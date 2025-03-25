@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Phone, PhoneCall, PhoneForwarded, PhoneOff, User, Calendar, Clock } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -63,7 +62,7 @@ const CallCenter = ({ leads, onUpdateLeadStatus }: CallCenterProps) => {
   
   const lead = leads.find(l => l.id === selectedLead);
 
-  const handleStartCall = () => {
+  const handleStartCall = async () => {
     if (!selectedLead) {
       toast.error("Por favor selecciona un lead para llamar");
       return;
@@ -72,7 +71,28 @@ const CallCenter = ({ leads, onUpdateLeadStatus }: CallCenterProps) => {
     setIsCallActive(true);
     toast.success(`Iniciando llamada a ${lead?.nombre}`);
     
-    // En una aplicación real, aquí se iniciaría la integración con un sistema telefónico
+    // Execute webhook
+    try {
+      const webhookUrl = "https://hook.us2.make.com/nlckmsej5cwmfe93gv4g6xvmavhilujl";
+      
+      await fetch(webhookUrl, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        mode: "no-cors",
+        body: JSON.stringify({
+          leadName: lead?.nombre,
+          leadId: selectedLead,
+          timestamp: new Date().toISOString(),
+          action: "call_started"
+        }),
+      });
+      
+      console.log("Webhook executed successfully");
+    } catch (error) {
+      console.error("Error executing webhook:", error);
+    }
   };
 
   const handleEndCall = () => {
