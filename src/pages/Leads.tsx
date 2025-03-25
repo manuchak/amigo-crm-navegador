@@ -7,7 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { PlusCircle, PhoneCall } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import CallCenter from '../components/call-center';
-import { LeadFormDialog } from '@/components/LeadFormDialog';
+import { LeadFormDialog } from '@/components/lead-form';
 import { useToast } from '@/hooks/use-toast';
 
 const defaultLeads = [
