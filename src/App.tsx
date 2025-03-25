@@ -7,7 +7,8 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Navbar from "./components/Navbar";
 import Index from "./pages/Index";
 import Dashboard from "./pages/Dashboard";
-import Clients from "./pages/Clients";
+import Leads from "./pages/Leads";
+import Requerimientos from "./pages/Requerimientos";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -22,7 +23,8 @@ const App = () => (
         <Routes>
           <Route path="/" element={<Index />} />
           <Route path="/dashboard" element={<Dashboard />} />
-          <Route path="/clients" element={<Clients />} />
+          <Route path="/leads" element={<Leads />} />
+          <Route path="/requerimientos" element={<Requerimientos />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
