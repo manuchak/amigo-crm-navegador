@@ -1,6 +1,6 @@
 
 import React, { useMemo } from 'react';
-import { RequerimientosProvider, useRequerimientos } from '@/components/requerimientos/RequerimientosContext';
+import { RequerimientosProvider, useRequerimientos } from '@/components/requerimientos/context/RequerimientosContext';
 import ObjectivosPage from '@/components/requerimientos/ObjectivosPage';
 import CustodioRequirements from '@/components/requerimientos/CustodioRequirements';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';

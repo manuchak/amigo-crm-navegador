@@ -1,7 +1,6 @@
 
 import React from 'react';
-import { Card } from '@/components/ui/card';
-import { useRequerimientos } from './RequerimientosContext';
+import { useRequerimientos } from './context/RequerimientosContext';
 import CustodioRequirementsCard from './CustodioRequirementsCard';
 
 const CustodioRequirements = () => {
