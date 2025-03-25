@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Button } from '@/components/ui/button';
@@ -6,10 +6,13 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Form, FormField, FormItem, FormLabel, FormControl } from '@/components/ui/form';
-import { Edit, Save } from 'lucide-react';
+import { Edit, Save, Plus, Trash } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogTrigger } from '@/components/ui/dialog';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from "@/hooks/use-toast";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
 const Requerimientos = () => {
   const { toast } = useToast();
@@ -67,6 +70,16 @@ const Requerimientos = () => {
     efectividad: 78
   });
 
+  // Estado para requisitos de custodios
+  const [custodioRequirements, setCustodioRequirements] = useState([]);
+  const [openRequirementForm, setOpenRequirementForm] = useState(false);
+
+  // Lista de ciudades de México (muestra principal)
+  const ciudadesMexico = [
+    'CDMX', 'Guadalajara', 'Monterrey', 'Puebla', 'Tijuana', 'León', 'Juárez', 
+    'Veracruz', 'Zapopan', 'Mérida', 'Cancún', 'Querétaro', 'Acapulco'
+  ];
+
   // Función para actualizar los datos
   const actualizarObjetivo = (categoriaIndex, datos) => {
     const nuevosDatos = [...datosRequerimientos];
@@ -89,7 +102,7 @@ const Requerimientos = () => {
     setDatosRequerimientos(nuevosDatos);
   };
 
-  // Nueva función para actualizar el forecast
+  // Función para actualizar el forecast
   const actualizarForecast = (nuevosDatos) => {
     const nuevaEfectividad = Math.round((nuevosDatos.requerimientosRealizados / nuevosDatos.requerimientosPrevistos) * 100);
     
@@ -102,6 +115,153 @@ const Requerimientos = () => {
       title: "Forecast actualizado",
       description: "Los datos de previsión han sido actualizados correctamente.",
     });
+  };
+
+  // Form para nuevos requisitos de custodios
+  const RequirementForm = () => {
+    const form = useForm({
+      defaultValues: {
+        ciudad: '',
+        mes: mesesDelAnio[mesActual],
+        cantidad: 1,
+        armado: false,
+        zona: ''
+      }
+    });
+
+    const onSubmit = (data) => {
+      const newRequirement = {
+        ...data,
+        id: Date.now(),
+        fechaCreacion: new Date().toISOString(),
+        solicitante: 'Usuario Actual', // En un sistema real, esto vendría de la autenticación
+      };
+      
+      setCustodioRequirements(prev => [...prev, newRequirement]);
+      
+      // Actualizar el forecast basado en los nuevos requisitos
+      const totalRequerimientos = custodioRequirements.length + 1;
+      actualizarForecast({
+        requerimientosPrevistos: totalRequerimientos * 10, // Ejemplo simple
+        requerimientosRealizados: forecastData.requerimientosRealizados
+      });
+      
+      toast({
+        title: "Requisito agregado",
+        description: `Requisito para ${data.cantidad} custodios en ${data.ciudad} agregado correctamente.`
+      });
+      
+      setOpenRequirementForm(false);
+      form.reset();
+    };
+
+    return (
+      <Form {...form}>
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+          <FormField
+            control={form.control}
+            name="ciudad"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Ciudad</FormLabel>
+                <Select 
+                  onValueChange={field.onChange} 
+                  defaultValue={field.value}
+                >
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Seleccionar ciudad" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    {ciudadesMexico.map((ciudad) => (
+                      <SelectItem key={ciudad} value={ciudad}>
+                        {ciudad}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </FormItem>
+            )}
+          />
+          
+          <FormField
+            control={form.control}
+            name="mes"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Mes</FormLabel>
+                <Select 
+                  onValueChange={field.onChange} 
+                  defaultValue={field.value}
+                >
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Seleccionar mes" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    {mesesDelAnio.map((mes) => (
+                      <SelectItem key={mes} value={mes}>
+                        {mes}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </FormItem>
+            )}
+          />
+          
+          <FormField
+            control={form.control}
+            name="cantidad"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Cantidad de Custodios</FormLabel>
+                <FormControl>
+                  <Input type="number" {...field} min="1" />
+                </FormControl>
+              </FormItem>
+            )}
+          />
+          
+          <FormField
+            control={form.control}
+            name="armado"
+            render={({ field }) => (
+              <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
+                <FormControl>
+                  <Checkbox
+                    checked={field.value}
+                    onCheckedChange={field.onChange}
+                  />
+                </FormControl>
+                <div className="space-y-1 leading-none">
+                  <FormLabel>Custodio Armado</FormLabel>
+                </div>
+              </FormItem>
+            )}
+          />
+          
+          <FormField
+            control={form.control}
+            name="zona"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Zona (opcional)</FormLabel>
+                <FormControl>
+                  <Input {...field} placeholder="Ej: Norte, Centro, etc." />
+                </FormControl>
+              </FormItem>
+            )}
+          />
+          
+          <DialogFooter>
+            <Button type="submit">Guardar Requisito</Button>
+          </DialogFooter>
+        </form>
+      </Form>
+    );
   };
 
   return (
@@ -162,7 +322,7 @@ const Requerimientos = () => {
         ))}
       </div>
 
-      <Card className="shadow-sm">
+      <Card className="shadow-sm mb-10">
         <CardHeader className="flex flex-row justify-between items-start">
           <div>
             <CardTitle>Forecast vs. Realidad (Anual)</CardTitle>
@@ -204,6 +364,87 @@ const Requerimientos = () => {
               </CardContent>
             </Card>
           </div>
+        </CardContent>
+      </Card>
+
+      {/* Nueva sección para requisitos de custodios */}
+      <Card className="shadow-sm mb-10">
+        <CardHeader className="flex flex-row justify-between items-start">
+          <div>
+            <CardTitle>Requisitos de Custodios</CardTitle>
+            <CardDescription>
+              Gestione los requisitos de custodios por ciudad y mes
+            </CardDescription>
+          </div>
+          <Dialog open={openRequirementForm} onOpenChange={setOpenRequirementForm}>
+            <DialogTrigger asChild>
+              <Button size="sm">
+                <Plus className="h-4 w-4 mr-2" />
+                Nuevo Requisito
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Agregar Nuevo Requisito de Custodios</DialogTitle>
+                <DialogDescription>
+                  Complete la información requerida para crear un nuevo requisito de custodios
+                </DialogDescription>
+              </DialogHeader>
+              <RequirementForm />
+            </DialogContent>
+          </Dialog>
+        </CardHeader>
+        <CardContent>
+          {custodioRequirements.length > 0 ? (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Ciudad</TableHead>
+                  <TableHead>Mes</TableHead>
+                  <TableHead>Cantidad</TableHead>
+                  <TableHead>Tipo</TableHead>
+                  <TableHead>Zona</TableHead>
+                  <TableHead>Solicitante</TableHead>
+                  <TableHead>Fecha</TableHead>
+                  <TableHead>Acciones</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {custodioRequirements.map((req) => (
+                  <TableRow key={req.id}>
+                    <TableCell>{req.ciudad}</TableCell>
+                    <TableCell>{req.mes}</TableCell>
+                    <TableCell>{req.cantidad}</TableCell>
+                    <TableCell>{req.armado ? 'Armado' : 'Sin arma'}</TableCell>
+                    <TableCell>{req.zona || '-'}</TableCell>
+                    <TableCell>{req.solicitante}</TableCell>
+                    <TableCell>{new Date(req.fechaCreacion).toLocaleDateString()}</TableCell>
+                    <TableCell>
+                      <Button 
+                        variant="ghost" 
+                        size="sm"
+                        onClick={() => {
+                          setCustodioRequirements(prev => 
+                            prev.filter(item => item.id !== req.id)
+                          );
+                          toast({
+                            title: "Requisito eliminado",
+                            description: "El requisito ha sido eliminado correctamente."
+                          });
+                        }}
+                      >
+                        <Trash className="h-4 w-4" />
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          ) : (
+            <div className="text-center p-6 text-muted-foreground">
+              No hay requisitos de custodios registrados. Haga clic en "Nuevo Requisito" para agregar uno.
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>
@@ -289,7 +530,7 @@ const EditarObjetivo = ({ categoria, index, onUpdate }) => {
   );
 };
 
-// Nuevo componente para editar el forecast
+// Componente para editar el forecast
 const EditarForecast = ({ forecast, onUpdate }) => {
   const [open, setOpen] = useState(false);
   
