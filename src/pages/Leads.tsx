@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -5,7 +6,7 @@ import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from '@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { PlusCircle, PhoneCall } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
-import CallCenter from '../components/CallCenter';
+import CallCenter from '../components/call-center';
 import { LeadFormDialog } from '@/components/LeadFormDialog';
 import { useToast } from '@/hooks/use-toast';
 
