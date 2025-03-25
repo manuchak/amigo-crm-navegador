@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import { RequerimientosProvider, useRequerimientos } from '@/components/requerimientos/RequerimientosContext';
 import ProgressCard from '@/components/requerimientos/ProgressCard';
 import ForecastSummary from '@/components/requerimientos/ForecastSummary';
@@ -8,7 +8,7 @@ import EditarObjetivoForm from '@/components/requerimientos/EditarObjetivoForm';
 import EditarForecastForm from '@/components/requerimientos/EditarForecastForm';
 
 // Componente principal que usa el contexto
-const RequerimientosContent = () => {
+const RequerimientosContent = React.memo(() => {
   const {
     datosRequerimientos,
     forecastData,
@@ -26,12 +26,34 @@ const RequerimientosContent = () => {
   const [categoriaEditando, setCategoriaEditando] = React.useState<number | null>(null);
   const [editingForecast, setEditingForecast] = React.useState(false);
 
+  // Memoizar el mes actual para evitar recálculos
+  const currentMonth = useMemo(() => mesesDelAnio[mesActual], [mesesDelAnio, mesActual]);
+  
+  // Callbacks memorizados para evitar recreaciones
+  const handleEditObjetivo = React.useCallback((index: number) => {
+    setCategoriaEditando(index);
+  }, []);
+
+  const handleUpdateObjetivo = React.useCallback((index: number, datos: any) => {
+    actualizarObjetivo(index, datos);
+    setCategoriaEditando(null);
+  }, [actualizarObjetivo]);
+
+  const handleEditForecast = React.useCallback(() => {
+    setEditingForecast(true);
+  }, []);
+
+  const handleUpdateForecast = React.useCallback((datos: any) => {
+    actualizarForecast(datos);
+    setEditingForecast(false);
+  }, [actualizarForecast]);
+
   return (
     <div className="container mx-auto px-6 py-24">
       <div className="mb-8">
         <h1 className="text-3xl font-bold tracking-tight">Requerimientos</h1>
         <p className="text-muted-foreground mt-1">
-          Seguimiento de objetivos completados vs. previstos para {mesesDelAnio[mesActual]}
+          Seguimiento de objetivos completados vs. previstos para {currentMonth}
         </p>
       </div>
 
@@ -41,7 +63,7 @@ const RequerimientosContent = () => {
             key={index} 
             req={req} 
             index={index}
-            onEdit={() => setCategoriaEditando(index)}
+            onEdit={handleEditObjetivo}
           />
         ))}
       </div>
@@ -50,25 +72,19 @@ const RequerimientosContent = () => {
         <EditarObjetivoForm
           categoria={datosRequerimientos[categoriaEditando]}
           index={categoriaEditando}
-          onUpdate={(index, datos) => {
-            actualizarObjetivo(index, datos);
-            setCategoriaEditando(null);
-          }}
+          onUpdate={handleUpdateObjetivo}
         />
       )}
 
       <ForecastSummary
         forecastData={forecastData}
-        onEdit={() => setEditingForecast(true)}
+        onEdit={handleEditForecast}
       />
 
       {editingForecast && (
         <EditarForecastForm
           forecast={forecastData}
-          onUpdate={(datos) => {
-            actualizarForecast(datos);
-            setEditingForecast(false);
-          }}
+          onUpdate={handleUpdateForecast}
         />
       )}
 
@@ -76,13 +92,15 @@ const RequerimientosContent = () => {
         requirements={custodioRequirements}
         ciudadesMexico={ciudadesMexico}
         mesesDelAnio={mesesDelAnio}
-        currentMonth={mesesDelAnio[mesActual]}
+        currentMonth={currentMonth}
         onAddRequirement={agregarRequisitosCustodios}
         onDeleteRequirement={eliminarRequisitosCustodios}
       />
     </div>
   );
-};
+});
+
+RequerimientosContent.displayName = 'RequerimientosContent';
 
 // Componente contenedor que proporciona el contexto
 const Requerimientos = () => {

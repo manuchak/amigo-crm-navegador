@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger } from '@/components/ui/dialog';
@@ -27,32 +27,67 @@ interface CustodioRequirementsCardProps {
   onDeleteRequirement: (id: number) => void;
 }
 
-const CustodioRequirementsCard: React.FC<CustodioRequirementsCardProps> = ({
+// Header del card optimizado con React.memo
+const CardHeaderMemo = React.memo(({ 
+  title, 
+  description, 
+  openDialog 
+}: { 
+  title: string; 
+  description: string; 
+  openDialog: () => void 
+}) => (
+  <div className="flex flex-row justify-between items-start">
+    <div>
+      <CardTitle>{title}</CardTitle>
+      <CardDescription>
+        {description}
+      </CardDescription>
+    </div>
+    <Button size="sm" onClick={openDialog}>
+      <Plus className="h-4 w-4 mr-2" />
+      Nuevo Requisito
+    </Button>
+  </div>
+));
+
+CardHeaderMemo.displayName = 'CardHeaderMemo';
+
+// Componente principal optimizado con React.memo
+const CustodioRequirementsCard = React.memo(({
   requirements,
   ciudadesMexico,
   mesesDelAnio,
   currentMonth,
   onAddRequirement,
   onDeleteRequirement
-}) => {
+}: CustodioRequirementsCardProps) => {
   const [openRequirementForm, setOpenRequirementForm] = useState(false);
+
+  const handleOpenChange = useCallback((open: boolean) => {
+    setOpenRequirementForm(open);
+  }, []);
+
+  const handleAddRequirement = useCallback((data: any) => {
+    onAddRequirement(data);
+    setOpenRequirementForm(false);
+  }, [onAddRequirement]);
+
+  const handleOpenDialog = useCallback(() => {
+    setOpenRequirementForm(true);
+  }, []);
 
   return (
     <Card className="shadow-sm mb-10">
-      <CardHeader className="flex flex-row justify-between items-start">
-        <div>
-          <CardTitle>Requisitos de Custodios</CardTitle>
-          <CardDescription>
-            Gestione los requisitos de custodios por ciudad y mes
-          </CardDescription>
-        </div>
-        <Dialog open={openRequirementForm} onOpenChange={setOpenRequirementForm}>
-          <DialogTrigger asChild>
-            <Button size="sm">
-              <Plus className="h-4 w-4 mr-2" />
-              Nuevo Requisito
-            </Button>
-          </DialogTrigger>
+      <CardHeader>
+        <CardHeaderMemo 
+          title="Requisitos de Custodios" 
+          description="Gestione los requisitos de custodios por ciudad y mes"
+          openDialog={handleOpenDialog}
+        />
+      </CardHeader>
+      <CardContent>
+        <Dialog open={openRequirementForm} onOpenChange={handleOpenChange}>
           <DialogContent>
             <DialogHeader>
               <DialogTitle>Agregar Nuevo Requisito de Custodios</DialogTitle>
@@ -61,18 +96,13 @@ const CustodioRequirementsCard: React.FC<CustodioRequirementsCardProps> = ({
               </DialogDescription>
             </DialogHeader>
             <CustodioRequirementForm 
-              onSubmit={(data) => {
-                onAddRequirement(data);
-                setOpenRequirementForm(false);
-              }}
+              onSubmit={handleAddRequirement}
               ciudadesMexico={ciudadesMexico}
               mesesDelAnio={mesesDelAnio}
               defaultMonth={currentMonth}
             />
           </DialogContent>
         </Dialog>
-      </CardHeader>
-      <CardContent>
         <CustodioRequirementsTable 
           requirements={requirements} 
           onDelete={onDeleteRequirement} 
@@ -80,6 +110,8 @@ const CustodioRequirementsCard: React.FC<CustodioRequirementsCardProps> = ({
       </CardContent>
     </Card>
   );
-};
+});
+
+CustodioRequirementsCard.displayName = 'CustodioRequirementsCard';
 
 export default CustodioRequirementsCard;

@@ -20,10 +20,47 @@ interface CustodioRequirementsTableProps {
   onDelete: (id: number) => void;
 }
 
-const CustodioRequirementsTable: React.FC<CustodioRequirementsTableProps> = ({ 
+// Componente de fila de tabla optimizado con React.memo
+const TableRowMemo = React.memo(({ 
+  req, 
+  onDelete 
+}: { 
+  req: CustodioRequirement; 
+  onDelete: (id: number) => void;
+}) => {
+  const handleDelete = React.useCallback(() => {
+    onDelete(req.id);
+  }, [req.id, onDelete]);
+
+  return (
+    <TableRow>
+      <TableCell>{req.ciudad}</TableCell>
+      <TableCell>{req.mes}</TableCell>
+      <TableCell>{req.cantidad}</TableCell>
+      <TableCell>{req.armado ? 'Armado' : 'Sin arma'}</TableCell>
+      <TableCell>{req.zona || '-'}</TableCell>
+      <TableCell>{req.solicitante}</TableCell>
+      <TableCell>{new Date(req.fechaCreacion).toLocaleDateString()}</TableCell>
+      <TableCell>
+        <Button 
+          variant="ghost" 
+          size="sm"
+          onClick={handleDelete}
+        >
+          <Trash className="h-4 w-4" />
+        </Button>
+      </TableCell>
+    </TableRow>
+  );
+});
+
+TableRowMemo.displayName = 'TableRowMemo';
+
+// Componente principal optimizado con React.memo
+const CustodioRequirementsTable = React.memo(({ 
   requirements, 
   onDelete 
-}) => {
+}: CustodioRequirementsTableProps) => {
   if (requirements.length === 0) {
     return (
       <div className="text-center p-6 text-muted-foreground">
@@ -48,28 +85,17 @@ const CustodioRequirementsTable: React.FC<CustodioRequirementsTableProps> = ({
       </TableHeader>
       <TableBody>
         {requirements.map((req) => (
-          <TableRow key={req.id}>
-            <TableCell>{req.ciudad}</TableCell>
-            <TableCell>{req.mes}</TableCell>
-            <TableCell>{req.cantidad}</TableCell>
-            <TableCell>{req.armado ? 'Armado' : 'Sin arma'}</TableCell>
-            <TableCell>{req.zona || '-'}</TableCell>
-            <TableCell>{req.solicitante}</TableCell>
-            <TableCell>{new Date(req.fechaCreacion).toLocaleDateString()}</TableCell>
-            <TableCell>
-              <Button 
-                variant="ghost" 
-                size="sm"
-                onClick={() => onDelete(req.id)}
-              >
-                <Trash className="h-4 w-4" />
-              </Button>
-            </TableCell>
-          </TableRow>
+          <TableRowMemo 
+            key={req.id} 
+            req={req} 
+            onDelete={onDelete} 
+          />
         ))}
       </TableBody>
     </Table>
   );
-};
+});
+
+CustodioRequirementsTable.displayName = 'CustodioRequirementsTable';
 
 export default CustodioRequirementsTable;
