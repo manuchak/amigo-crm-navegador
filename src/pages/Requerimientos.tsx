@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
@@ -9,8 +8,11 @@ import { Label } from '@/components/ui/label';
 import { Form, FormField, FormItem, FormLabel, FormControl } from '@/components/ui/form';
 import { Edit, Save } from 'lucide-react';
 import { useForm } from 'react-hook-form';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogTrigger } from '@/components/ui/dialog';
+import { useToast } from "@/hooks/use-toast";
 
 const Requerimientos = () => {
+  const { toast } = useToast();
   // Datos desglosados por ciudad
   const [datosRequerimientos, setDatosRequerimientos] = useState([
     { 
@@ -58,6 +60,13 @@ const Requerimientos = () => {
   const mesesDelAnio = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
   const mesActual = new Date().getMonth();
 
+  // Forecast data
+  const [forecastData, setForecastData] = useState({
+    requerimientosPrevistos: 240,
+    requerimientosRealizados: 187,
+    efectividad: 78
+  });
+
   // Función para actualizar los datos
   const actualizarObjetivo = (categoriaIndex, datos) => {
     const nuevosDatos = [...datosRequerimientos];
@@ -78,6 +87,21 @@ const Requerimientos = () => {
     }
 
     setDatosRequerimientos(nuevosDatos);
+  };
+
+  // Nueva función para actualizar el forecast
+  const actualizarForecast = (nuevosDatos) => {
+    const nuevaEfectividad = Math.round((nuevosDatos.requerimientosRealizados / nuevosDatos.requerimientosPrevistos) * 100);
+    
+    setForecastData({
+      ...nuevosDatos,
+      efectividad: nuevaEfectividad
+    });
+
+    toast({
+      title: "Forecast actualizado",
+      description: "Los datos de previsión han sido actualizados correctamente.",
+    });
   };
 
   return (
@@ -139,11 +163,14 @@ const Requerimientos = () => {
       </div>
 
       <Card className="shadow-sm">
-        <CardHeader>
-          <CardTitle>Forecast vs. Realidad (Anual)</CardTitle>
-          <CardDescription>
-            Comparativa entre los objetivos previstos y los resultados reales durante el año
-          </CardDescription>
+        <CardHeader className="flex flex-row justify-between items-start">
+          <div>
+            <CardTitle>Forecast vs. Realidad (Anual)</CardTitle>
+            <CardDescription>
+              Comparativa entre los objetivos previstos y los resultados reales durante el año
+            </CardDescription>
+          </div>
+          <EditarForecast forecast={forecastData} onUpdate={actualizarForecast} />
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -152,7 +179,7 @@ const Requerimientos = () => {
                 <CardTitle className="text-lg">Forecast</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-3xl font-bold">240</div>
+                <div className="text-3xl font-bold">{forecastData.requerimientosPrevistos}</div>
                 <p className="text-muted-foreground">Requerimientos previstos</p>
               </CardContent>
             </Card>
@@ -162,7 +189,7 @@ const Requerimientos = () => {
                 <CardTitle className="text-lg">Completados</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-3xl font-bold">187</div>
+                <div className="text-3xl font-bold">{forecastData.requerimientosRealizados}</div>
                 <p className="text-muted-foreground">Requerimientos realizados</p>
               </CardContent>
             </Card>
@@ -172,7 +199,7 @@ const Requerimientos = () => {
                 <CardTitle className="text-lg">Efectividad</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-3xl font-bold">78%</div>
+                <div className="text-3xl font-bold">{forecastData.efectividad}%</div>
                 <p className="text-muted-foreground">Porcentaje de cumplimiento</p>
               </CardContent>
             </Card>
@@ -259,6 +286,80 @@ const EditarObjetivo = ({ categoria, index, onUpdate }) => {
         </div>
       </PopoverContent>
     </Popover>
+  );
+};
+
+// Nuevo componente para editar el forecast
+const EditarForecast = ({ forecast, onUpdate }) => {
+  const [open, setOpen] = useState(false);
+  
+  const form = useForm({
+    defaultValues: {
+      requerimientosPrevistos: forecast.requerimientosPrevistos,
+      requerimientosRealizados: forecast.requerimientosRealizados
+    }
+  });
+
+  const handleSubmit = (data) => {
+    onUpdate({
+      requerimientosPrevistos: Number(data.requerimientosPrevistos),
+      requerimientosRealizados: Number(data.requerimientosRealizados)
+    });
+    setOpen(false);
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button variant="ghost" size="icon">
+          <Edit className="h-4 w-4" />
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="sm:max-w-[425px]">
+        <DialogHeader>
+          <DialogTitle>Editar Forecast Anual</DialogTitle>
+          <DialogDescription>
+            Actualiza los valores de previsión y resultados para el cálculo de efectividad
+          </DialogDescription>
+        </DialogHeader>
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
+            <FormField
+              control={form.control}
+              name="requerimientosPrevistos"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Requerimientos Previstos</FormLabel>
+                  <FormControl>
+                    <Input type="number" {...field} min="1" />
+                  </FormControl>
+                </FormItem>
+              )}
+            />
+            
+            <FormField
+              control={form.control}
+              name="requerimientosRealizados"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Requerimientos Realizados</FormLabel>
+                  <FormControl>
+                    <Input type="number" {...field} min="0" />
+                  </FormControl>
+                </FormItem>
+              )}
+            />
+
+            <DialogFooter>
+              <Button type="submit">
+                <Save className="h-4 w-4 mr-2" />
+                Guardar Cambios
+              </Button>
+            </DialogFooter>
+          </form>
+        </Form>
+      </DialogContent>
+    </Dialog>
   );
 };
 
