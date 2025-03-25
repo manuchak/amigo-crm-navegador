@@ -7,6 +7,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { PlusCircle, PhoneCall } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import CallCenter from '../components/CallCenter';
+import { LeadFormDialog } from '@/components/LeadFormDialog';
+import { useToast } from '@/hooks/use-toast';
 
 const defaultLeads = [
   { id: 1, nombre: 'Carlos Rodríguez', empresa: 'Tecno Solutions', contacto: 'carlos@tecnosolutions.com', estado: 'Nuevo', fechaCreacion: '2023-10-15' },
@@ -20,6 +22,8 @@ const Leads = () => {
   const [leads, setLeads] = useState(defaultLeads);
   const [isLoading, setIsLoading] = useState(false);
   const [activeTab, setActiveTab] = useState("leads");
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const { toast } = useToast();
   
   const estadosLead = ['Todos', 'Nuevo', 'Contactado', 'En progreso', 'Calificado', 'No calificado'];
 
@@ -27,6 +31,27 @@ const Leads = () => {
     setLeads(leads.map(lead => 
       lead.id === leadId ? { ...lead, estado: newStatus } : lead
     ));
+  };
+
+  const handleSubmitLeadForm = (formData: any) => {
+    // Crear un nuevo lead con la información del formulario
+    const newLead = {
+      id: leads.length + 1,
+      nombre: formData.nombre,
+      empresa: "Custodios Armados", // Valor por defecto
+      contacto: `${formData.email} | ${formData.telefono}`,
+      estado: 'Nuevo',
+      fechaCreacion: new Date().toISOString().split('T')[0], // Fecha actual en formato YYYY-MM-DD
+    };
+
+    // Agregar el nuevo lead a la lista de leads
+    setLeads([newLead, ...leads]);
+
+    // Mostrar mensaje de éxito
+    toast({
+      title: "Lead registrado",
+      description: `${formData.nombre} ha sido agregado a la lista de llamadas pendientes`,
+    });
   };
 
   return (
@@ -42,7 +67,7 @@ const Leads = () => {
             <PhoneCall className="mr-2 h-4 w-4" />
             Call Center
           </Button>
-          <Button className="mt-4 md:mt-0">
+          <Button className="mt-4 md:mt-0" onClick={() => setDialogOpen(true)}>
             <PlusCircle className="mr-2 h-4 w-4" />
             Nuevo Lead
           </Button>
@@ -129,6 +154,12 @@ const Leads = () => {
           <CallCenter leads={leads} onUpdateLeadStatus={handleUpdateLeadStatus} />
         </TabsContent>
       </Tabs>
+
+      <LeadFormDialog 
+        open={dialogOpen} 
+        onOpenChange={setDialogOpen} 
+        onSubmit={handleSubmitLeadForm} 
+      />
     </div>
   );
 };
