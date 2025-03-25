@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+
+import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Button } from '@/components/ui/button';
@@ -115,6 +116,159 @@ const Requerimientos = () => {
       title: "Forecast actualizado",
       description: "Los datos de previsión han sido actualizados correctamente.",
     });
+  };
+
+  // Componente para editar objetivos
+  const EditarObjetivo = ({ categoria, index, onUpdate }) => {
+    const [open, setOpen] = useState(false);
+    
+    const form = useForm({
+      defaultValues: {
+        objetivo: categoria.objetivo,
+        desglose: categoria.desglose ? categoria.desglose.map(ciudad => ({
+          ciudad: ciudad.ciudad,
+          objetivo: ciudad.objetivo
+        })) : undefined
+      }
+    });
+
+    const handleSubmit = (data) => {
+      onUpdate(index, data);
+      setOpen(false);
+    };
+
+    return (
+      <Popover open={open} onOpenChange={setOpen}>
+        <PopoverTrigger asChild>
+          <Button variant="ghost" size="icon">
+            <Edit className="h-4 w-4" />
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent className="w-80">
+          <div className="space-y-4">
+            <h3 className="font-medium">Editar Forecast: {categoria.categoria}</h3>
+            <Form {...form}>
+              <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
+                <FormField
+                  control={form.control}
+                  name="objetivo"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Objetivo General</FormLabel>
+                      <FormControl>
+                        <Input type="number" {...field} min="1" />
+                      </FormControl>
+                    </FormItem>
+                  )}
+                />
+
+                {categoria.desglose && (
+                  <div className="space-y-3">
+                    <h4 className="text-sm font-medium">Objetivos por Ciudad</h4>
+                    {categoria.desglose.map((ciudad, idx) => (
+                      <FormField
+                        key={idx}
+                        control={form.control}
+                        name={`desglose.${idx}.objetivo`}
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>{ciudad.ciudad}</FormLabel>
+                            <FormControl>
+                              <Input type="number" {...field} min="1" />
+                            </FormControl>
+                          </FormItem>
+                        )}
+                      />
+                    ))}
+                  </div>
+                )}
+
+                <div className="flex justify-end">
+                  <Button type="submit" size="sm">
+                    <Save className="h-4 w-4 mr-2" />
+                    Guardar
+                  </Button>
+                </div>
+              </form>
+            </Form>
+          </div>
+        </PopoverContent>
+      </Popover>
+    );
+  };
+
+  // Componente para editar el forecast
+  const EditarForecast = ({ forecast, onUpdate }) => {
+    const [open, setOpen] = useState(false);
+    
+    const form = useForm({
+      defaultValues: {
+        requerimientosPrevistos: forecast.requerimientosPrevistos,
+        requerimientosRealizados: forecast.requerimientosRealizados
+      }
+    });
+
+    const handleSubmit = (data) => {
+      onUpdate({
+        requerimientosPrevistos: Number(data.requerimientosPrevistos),
+        requerimientosRealizados: Number(data.requerimientosRealizados)
+      });
+      setOpen(false);
+    };
+
+    return (
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogTrigger asChild>
+          <Button variant="ghost" size="icon">
+            <Edit className="h-4 w-4" />
+          </Button>
+        </DialogTrigger>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Editar Forecast Anual</DialogTitle>
+            <DialogDescription>
+              Actualiza los valores de previsión y resultados para el cálculo de efectividad
+            </DialogDescription>
+          </DialogHeader>
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
+              <FormField
+                control={form.control}
+                name="requerimientosPrevistos"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Requerimientos Previstos</FormLabel>
+                    <FormControl>
+                      <Input type="number" {...field} min="1" />
+                    </FormControl>
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={form.control}
+                name="requerimientosRealizados"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Requerimientos Realizados</FormLabel>
+                    <FormControl>
+                      <Input type="number" {...field} min="0" />
+                    </FormControl>
+                  </FormItem>
+                )}
+              />
+
+              <DialogFooter>
+                <Button type="submit">
+                  <Save className="h-4 w-4 mr-2" />
+                  Guardar Cambios
+                </Button>
+              </DialogFooter>
+            </form>
+          </Form>
+        </DialogContent>
+      </Dialog>
+    );
   };
 
   // Form para nuevos requisitos de custodios
@@ -448,159 +602,6 @@ const Requerimientos = () => {
         </CardContent>
       </Card>
     </div>
-  );
-};
-
-// Componente para editar objetivos
-const EditarObjetivo = ({ categoria, index, onUpdate }) => {
-  const [open, setOpen] = useState(false);
-  
-  const form = useForm({
-    defaultValues: {
-      objetivo: categoria.objetivo,
-      desglose: categoria.desglose ? categoria.desglose.map(ciudad => ({
-        ciudad: ciudad.ciudad,
-        objetivo: ciudad.objetivo
-      })) : undefined
-    }
-  });
-
-  const handleSubmit = (data) => {
-    onUpdate(index, data);
-    setOpen(false);
-  };
-
-  return (
-    <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>
-        <Button variant="ghost" size="icon">
-          <Edit className="h-4 w-4" />
-        </Button>
-      </PopoverTrigger>
-      <PopoverContent className="w-80">
-        <div className="space-y-4">
-          <h3 className="font-medium">Editar Forecast: {categoria.categoria}</h3>
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
-              <FormField
-                control={form.control}
-                name="objetivo"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Objetivo General</FormLabel>
-                    <FormControl>
-                      <Input type="number" {...field} min="1" />
-                    </FormControl>
-                  </FormItem>
-                )}
-              />
-
-              {categoria.desglose && (
-                <div className="space-y-3">
-                  <h4 className="text-sm font-medium">Objetivos por Ciudad</h4>
-                  {categoria.desglose.map((ciudad, idx) => (
-                    <FormField
-                      key={idx}
-                      control={form.control}
-                      name={`desglose.${idx}.objetivo`}
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>{ciudad.ciudad}</FormLabel>
-                          <FormControl>
-                            <Input type="number" {...field} min="1" />
-                          </FormControl>
-                        </FormItem>
-                      )}
-                    />
-                  ))}
-                </div>
-              )}
-
-              <div className="flex justify-end">
-                <Button type="submit" size="sm">
-                  <Save className="h-4 w-4 mr-2" />
-                  Guardar
-                </Button>
-              </div>
-            </form>
-          </Form>
-        </div>
-      </PopoverContent>
-    </Popover>
-  );
-};
-
-// Componente para editar el forecast
-const EditarForecast = ({ forecast, onUpdate }) => {
-  const [open, setOpen] = useState(false);
-  
-  const form = useForm({
-    defaultValues: {
-      requerimientosPrevistos: forecast.requerimientosPrevistos,
-      requerimientosRealizados: forecast.requerimientosRealizados
-    }
-  });
-
-  const handleSubmit = (data) => {
-    onUpdate({
-      requerimientosPrevistos: Number(data.requerimientosPrevistos),
-      requerimientosRealizados: Number(data.requerimientosRealizados)
-    });
-    setOpen(false);
-  };
-
-  return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button variant="ghost" size="icon">
-          <Edit className="h-4 w-4" />
-        </Button>
-      </DialogTrigger>
-      <DialogContent className="sm:max-w-[425px]">
-        <DialogHeader>
-          <DialogTitle>Editar Forecast Anual</DialogTitle>
-          <DialogDescription>
-            Actualiza los valores de previsión y resultados para el cálculo de efectividad
-          </DialogDescription>
-        </DialogHeader>
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
-            <FormField
-              control={form.control}
-              name="requerimientosPrevistos"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Requerimientos Previstos</FormLabel>
-                  <FormControl>
-                    <Input type="number" {...field} min="1" />
-                  </FormControl>
-                </FormItem>
-              )}
-            />
-            
-            <FormField
-              control={form.control}
-              name="requerimientosRealizados"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Requerimientos Realizados</FormLabel>
-                  <FormControl>
-                    <Input type="number" {...field} min="0" />
-                  </FormControl>
-                </FormItem>
-              )}
-            />
-
-            <DialogFooter>
-              <Button type="submit">
-                <Save className="h-4 w-4 mr-2" />
-                Guardar Cambios
-              </Button>
-            </DialogFooter>
-          </form>
-        </Form>
-      </DialogContent>
-    </Dialog>
   );
 };
 
