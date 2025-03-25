@@ -142,8 +142,18 @@ export const RequerimientosProvider: React.FC<{ children: ReactNode }> = ({ chil
     setCustodioRequirements(prev => 
       prev.map(item => {
         if (item.id === id) {
-          // Si el estado cambió a 'aceptado', agregar información del aprobador
-          if (estado === 'aceptado' && item.estado !== 'aceptado') {
+          // Si el requisito ya está en estado 'aceptado', no permitir cambios
+          if (item.estado === 'aceptado') {
+            toast({
+              title: "Operación no permitida",
+              description: "Un requisito aprobado no puede cambiar de estado.",
+              variant: "destructive"
+            });
+            return item;
+          }
+          
+          // Si el estado cambia a 'aceptado', agregar información del aprobador
+          if (estado === 'aceptado') {
             return { 
               ...item, 
               estado,
@@ -151,11 +161,7 @@ export const RequerimientosProvider: React.FC<{ children: ReactNode }> = ({ chil
               fechaAprobacion: new Date().toISOString()
             };
           }
-          // Si el estado cambió de 'aceptado' a otro, eliminamos la información del aprobador
-          if (estado !== 'aceptado' && item.estado === 'aceptado') {
-            const { usuarioAprobador, fechaAprobacion, ...rest } = item;
-            return { ...rest, estado };
-          }
+          
           return { ...item, estado };
         }
         return item;

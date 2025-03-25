@@ -41,15 +41,13 @@ const TableRowMemo = React.memo(({
   }, [req.id, onDelete]);
 
   const handleUpdateEstado = React.useCallback(() => {
-    if (onUpdateEstado) {
+    if (onUpdateEstado && req.estado !== 'aceptado') {
       let nextEstado: 'solicitado' | 'recibido' | 'aceptado' = 'solicitado';
       
       if (req.estado === 'solicitado') {
         nextEstado = 'recibido';
       } else if (req.estado === 'recibido') {
         nextEstado = 'aceptado';
-      } else if (req.estado === 'aceptado') {
-        nextEstado = 'solicitado';
       }
       
       onUpdateEstado(req.id, nextEstado);
@@ -82,6 +80,9 @@ const TableRowMemo = React.memo(({
     }
   };
 
+  // Determine if buttons should be disabled
+  const isStateChangeDisabled = req.estado === 'aceptado';
+
   return (
     <TableRow className={req.estado === 'aceptado' ? 'bg-green-50' : ''}>
       <TableCell>{req.ciudad}</TableCell>
@@ -94,8 +95,8 @@ const TableRowMemo = React.memo(({
       <TableCell>
         <Badge 
           variant={getBadgeVariant() as any}
-          className="mr-2 cursor-pointer"
-          onClick={handleUpdateEstado}
+          className={`mr-2 ${!isStateChangeDisabled ? 'cursor-pointer' : ''}`}
+          onClick={!isStateChangeDisabled ? handleUpdateEstado : undefined}
         >
           {getEstadoLabel()}
         </Badge>
@@ -124,7 +125,8 @@ const TableRowMemo = React.memo(({
             size="sm"
             onClick={handleUpdateEstado}
             className="text-gray-500 hover:text-blue-500"
-            title="Cambiar estado"
+            title={isStateChangeDisabled ? "No se puede cambiar el estado una vez aceptado" : "Cambiar estado"}
+            disabled={isStateChangeDisabled}
           >
             <CheckCircle className="h-4 w-4" />
           </Button>
