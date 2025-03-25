@@ -1,4 +1,3 @@
-
 import { RequerimientoData, ForecastData, CustodioRequirement } from '../types';
 
 // Storage keys for localStorage
@@ -11,16 +10,16 @@ export const STORAGE_KEYS = {
 // Default data values
 export const datosRequerimientosIniciales: RequerimientoData[] = [
   { 
-    categoria: 'Adquisición Custodios', 
-    completados: 38, 
-    objetivo: 50, 
-    porcentaje: 76,
-    color: 'bg-blue-500',
+    categoria: 'Adquisición Custodios Armados', 
+    completados: 12, 
+    objetivo: 20, 
+    porcentaje: 60,
+    color: 'bg-purple-500',
     desglose: [
-      { ciudad: 'CDMX', completados: 15, objetivo: 20 },
-      { ciudad: 'Guadalajara', completados: 10, objetivo: 15 },
-      { ciudad: 'Monterrey', completados: 8, objetivo: 10 },
-      { ciudad: 'Veracruz', completados: 5, objetivo: 5 }
+      { ciudad: 'CDMX', completados: 4, objetivo: 6 },
+      { ciudad: 'Guadalajara', completados: 3, objetivo: 5 },
+      { ciudad: 'Monterrey', completados: 2, objetivo: 4 },
+      { ciudad: 'Veracruz', completados: 3, objetivo: 5 }
     ]
   },
   { 
