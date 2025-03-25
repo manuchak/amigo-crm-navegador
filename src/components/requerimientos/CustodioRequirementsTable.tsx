@@ -14,37 +14,73 @@ interface CustodioRequirement {
   zona?: string;
   solicitante: string;
   fechaCreacion: string;
-  procesado?: boolean;
+  estado: 'solicitado' | 'recibido' | 'aceptado';
 }
 
 interface CustodioRequirementsTableProps {
   requirements: CustodioRequirement[];
   onDelete: (id: number) => void;
-  onMarkProcessed?: (id: number) => void;
+  onUpdateEstado?: (id: number, estado: 'solicitado' | 'recibido' | 'aceptado') => void;
 }
 
 // Componente de fila de tabla optimizado con React.memo
 const TableRowMemo = React.memo(({ 
   req, 
   onDelete,
-  onMarkProcessed
+  onUpdateEstado
 }: { 
   req: CustodioRequirement; 
   onDelete: (id: number) => void;
-  onMarkProcessed?: (id: number) => void;
+  onUpdateEstado?: (id: number, estado: 'solicitado' | 'recibido' | 'aceptado') => void;
 }) => {
   const handleDelete = React.useCallback(() => {
     onDelete(req.id);
   }, [req.id, onDelete]);
 
-  const handleMarkProcessed = React.useCallback(() => {
-    if (onMarkProcessed) {
-      onMarkProcessed(req.id);
+  const handleUpdateEstado = React.useCallback(() => {
+    if (onUpdateEstado) {
+      let nextEstado: 'solicitado' | 'recibido' | 'aceptado' = 'solicitado';
+      
+      if (req.estado === 'solicitado') {
+        nextEstado = 'recibido';
+      } else if (req.estado === 'recibido') {
+        nextEstado = 'aceptado';
+      } else if (req.estado === 'aceptado') {
+        nextEstado = 'solicitado';
+      }
+      
+      onUpdateEstado(req.id, nextEstado);
     }
-  }, [req.id, onMarkProcessed]);
+  }, [req.id, req.estado, onUpdateEstado]);
+
+  const getBadgeVariant = () => {
+    switch (req.estado) {
+      case 'solicitado':
+        return 'default';
+      case 'recibido':
+        return 'secondary';
+      case 'aceptado':
+        return 'outline';
+      default:
+        return 'default';
+    }
+  };
+
+  const getEstadoLabel = () => {
+    switch (req.estado) {
+      case 'solicitado':
+        return 'Solicitado';
+      case 'recibido':
+        return 'Recibido Supply';
+      case 'aceptado':
+        return 'Aceptado Supply';
+      default:
+        return 'Desconocido';
+    }
+  };
 
   return (
-    <TableRow className={req.procesado ? 'bg-muted/30' : ''}>
+    <TableRow className={req.estado === 'aceptado' ? 'bg-muted/30' : ''}>
       <TableCell>{req.ciudad}</TableCell>
       <TableCell>{req.mes}</TableCell>
       <TableCell>{req.cantidad}</TableCell>
@@ -54,11 +90,11 @@ const TableRowMemo = React.memo(({
       <TableCell>{new Date(req.fechaCreacion).toLocaleDateString()}</TableCell>
       <TableCell>
         <Badge 
-          variant={req.procesado ? "outline" : "default"}
+          variant={getBadgeVariant()}
           className="mr-2 cursor-pointer"
-          onClick={handleMarkProcessed}
+          onClick={handleUpdateEstado}
         >
-          {req.procesado ? 'Procesado' : 'Pendiente'}
+          {getEstadoLabel()}
         </Badge>
       </TableCell>
       <TableCell>
@@ -66,9 +102,9 @@ const TableRowMemo = React.memo(({
           <Button 
             variant="ghost" 
             size="sm"
-            onClick={handleMarkProcessed}
-            className={req.procesado ? "text-green-500" : "text-gray-500"}
-            title={req.procesado ? "Marcar como pendiente" : "Marcar como procesado"}
+            onClick={handleUpdateEstado}
+            className="text-gray-500"
+            title="Cambiar estado"
           >
             <CheckCircle className="h-4 w-4" />
           </Button>
@@ -92,7 +128,7 @@ TableRowMemo.displayName = 'TableRowMemo';
 const CustodioRequirementsTable = React.memo(({ 
   requirements, 
   onDelete,
-  onMarkProcessed
+  onUpdateEstado
 }: CustodioRequirementsTableProps) => {
   if (requirements.length === 0) {
     return (
@@ -123,7 +159,7 @@ const CustodioRequirementsTable = React.memo(({
             key={req.id} 
             req={req} 
             onDelete={onDelete}
-            onMarkProcessed={onMarkProcessed}
+            onUpdateEstado={onUpdateEstado}
           />
         ))}
       </TableBody>

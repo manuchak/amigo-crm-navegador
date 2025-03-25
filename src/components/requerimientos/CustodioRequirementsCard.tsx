@@ -13,7 +13,7 @@ interface CustodioRequirementsCardProps {
   currentMonth: string;
   onAddRequirement: (data: any) => void;
   onDeleteRequirement: (id: number) => void;
-  onMarkProcessed: (id: number) => void;
+  onUpdateEstado: (id: number, estado: 'solicitado' | 'recibido' | 'aceptado') => void;
 }
 
 const CustodioRequirementsCard = React.memo(({
@@ -23,7 +23,7 @@ const CustodioRequirementsCard = React.memo(({
   currentMonth,
   onAddRequirement,
   onDeleteRequirement,
-  onMarkProcessed
+  onUpdateEstado
 }: CustodioRequirementsCardProps) => {
   const [openRequirementForm, setOpenRequirementForm] = useState(false);
 
@@ -61,7 +61,7 @@ const CustodioRequirementsCard = React.memo(({
         <CustodioRequirementsTable 
           requirements={requirements} 
           onDelete={onDeleteRequirement} 
-          onMarkProcessed={onMarkProcessed}
+          onUpdateEstado={onUpdateEstado}
         />
       </CardContent>
     </Card>

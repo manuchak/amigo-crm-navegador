@@ -20,7 +20,7 @@ const RequerimientosContent = React.memo(() => {
     actualizarForecast,
     agregarRequisitosCustodios,
     eliminarRequisitosCustodios,
-    marcarComoProcesado
+    actualizarEstadoCustodio
   } = useRequerimientos();
 
   // Para simplificar la edición del objetivo, usaremos un estado para rastrear qué categoría se está editando
@@ -96,7 +96,7 @@ const RequerimientosContent = React.memo(() => {
         currentMonth={currentMonth}
         onAddRequirement={agregarRequisitosCustodios}
         onDeleteRequirement={eliminarRequisitosCustodios}
-        onMarkProcessed={marcarComoProcesado}
+        onUpdateEstado={actualizarEstadoCustodio}
       />
     </div>
   );

@@ -31,7 +31,7 @@ export interface CustodioRequirement {
   zona?: string;
   solicitante: string;
   fechaCreacion: string;
-  procesado?: boolean;
+  estado: 'solicitado' | 'recibido' | 'aceptado';
 }
 
 // Interface for the context
@@ -46,5 +46,5 @@ export interface RequerimientosContextType {
   actualizarForecast: (nuevosDatos: { requerimientosPrevistos: number; requerimientosRealizados: number }) => void;
   agregarRequisitosCustodios: (data: any) => void;
   eliminarRequisitosCustodios: (id: number) => void;
-  marcarComoProcesado: (id: number) => void;
+  actualizarEstadoCustodio: (id: number, estado: 'solicitado' | 'recibido' | 'aceptado') => void;
 }

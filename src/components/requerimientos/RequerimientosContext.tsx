@@ -37,9 +37,19 @@ export const RequerimientosProvider: React.FC<{ children: ReactNode }> = ({ chil
     loadFromStorage(STORAGE_KEYS.FORECAST, forecastDataInicial)
   );
 
-  const [custodioRequirements, setCustodioRequirements] = useState<CustodioRequirement[]>(() => 
-    loadFromStorage(STORAGE_KEYS.CUSTODIOS, [])
-  );
+  const [custodioRequirements, setCustodioRequirements] = useState<CustodioRequirement[]>(() => {
+    const savedRequirements = loadFromStorage(STORAGE_KEYS.CUSTODIOS, []);
+    // Migrar datos antiguos que usan 'procesado' al nuevo formato con 'estado'
+    return savedRequirements.map((req: any) => {
+      if (req.procesado !== undefined && req.estado === undefined) {
+        return {
+          ...req,
+          estado: req.procesado ? 'aceptado' : 'solicitado'
+        };
+      }
+      return req.estado ? req : { ...req, estado: 'solicitado' };
+    });
+  });
 
   // Efectos para guardar cambios en localStorage
   useEffect(() => {
@@ -101,7 +111,7 @@ export const RequerimientosProvider: React.FC<{ children: ReactNode }> = ({ chil
       id: Date.now(),
       fechaCreacion: new Date().toISOString(),
       solicitante: 'Usuario Actual', // En un sistema real, esto vendría de la autenticación
-      procesado: false // Por defecto, un nuevo requisito no está procesado
+      estado: 'solicitado' // Por defecto, un nuevo requisito está en estado solicitado
     };
     
     setCustodioRequirements(prev => [...prev, newRequirement]);
@@ -127,17 +137,23 @@ export const RequerimientosProvider: React.FC<{ children: ReactNode }> = ({ chil
     });
   };
 
-  // Función para marcar como procesado
-  const marcarComoProcesado = (id: number) => {
+  // Función para actualizar el estado de un custodio
+  const actualizarEstadoCustodio = (id: number, estado: 'solicitado' | 'recibido' | 'aceptado') => {
     setCustodioRequirements(prev => 
       prev.map(item => 
-        item.id === id ? { ...item, procesado: !item.procesado } : item
+        item.id === id ? { ...item, estado } : item
       )
     );
     
+    const estadoLabel = {
+      'solicitado': 'Solicitado',
+      'recibido': 'Recibido Supply',
+      'aceptado': 'Aceptado Supply'
+    }[estado];
+    
     toast({
       title: "Estado actualizado",
-      description: "El estado del requisito ha sido actualizado."
+      description: `El requisito ha sido marcado como "${estadoLabel}".`
     });
   };
 
@@ -152,7 +168,7 @@ export const RequerimientosProvider: React.FC<{ children: ReactNode }> = ({ chil
     actualizarForecast,
     agregarRequisitosCustodios,
     eliminarRequisitosCustodios,
-    marcarComoProcesado
+    actualizarEstadoCustodio
   };
 
   return (
