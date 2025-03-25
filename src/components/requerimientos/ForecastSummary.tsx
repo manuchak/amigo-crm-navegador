@@ -1,23 +1,21 @@
-
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Edit } from 'lucide-react';
-
 interface ForecastData {
   requerimientosPrevistos: number;
   requerimientosRealizados: number;
   efectividad: number;
 }
-
 interface ForecastSummaryProps {
   forecastData: ForecastData;
   onEdit: () => void;
 }
-
-const ForecastSummary: React.FC<ForecastSummaryProps> = ({ forecastData, onEdit }) => {
-  return (
-    <Card className="shadow-sm mb-10">
+const ForecastSummary: React.FC<ForecastSummaryProps> = ({
+  forecastData,
+  onEdit
+}) => {
+  return <Card className="shadow-sm mb-10">
       <CardHeader className="flex flex-row justify-between items-start">
         <div>
           <CardTitle>Forecast vs. Realidad (Anual)</CardTitle>
@@ -25,9 +23,7 @@ const ForecastSummary: React.FC<ForecastSummaryProps> = ({ forecastData, onEdit 
             Comparativa entre los objetivos previstos y los resultados reales durante el año
           </CardDescription>
         </div>
-        <Button variant="ghost" size="icon" onClick={onEdit}>
-          <Edit className="h-4 w-4" />
-        </Button>
+        
       </CardHeader>
       <CardContent>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -62,8 +58,6 @@ const ForecastSummary: React.FC<ForecastSummaryProps> = ({ forecastData, onEdit 
           </Card>
         </div>
       </CardContent>
-    </Card>
-  );
+    </Card>;
 };
-
 export default ForecastSummary;
