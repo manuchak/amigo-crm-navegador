@@ -2,7 +2,8 @@
 import React from 'react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from '@/components/ui/button';
-import { Trash } from 'lucide-react';
+import { Trash, CheckCircle } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
 
 interface CustodioRequirement {
   id: number;
@@ -13,27 +14,37 @@ interface CustodioRequirement {
   zona?: string;
   solicitante: string;
   fechaCreacion: string;
+  procesado?: boolean;
 }
 
 interface CustodioRequirementsTableProps {
   requirements: CustodioRequirement[];
   onDelete: (id: number) => void;
+  onMarkProcessed?: (id: number) => void;
 }
 
 // Componente de fila de tabla optimizado con React.memo
 const TableRowMemo = React.memo(({ 
   req, 
-  onDelete 
+  onDelete,
+  onMarkProcessed
 }: { 
   req: CustodioRequirement; 
   onDelete: (id: number) => void;
+  onMarkProcessed?: (id: number) => void;
 }) => {
   const handleDelete = React.useCallback(() => {
     onDelete(req.id);
   }, [req.id, onDelete]);
 
+  const handleMarkProcessed = React.useCallback(() => {
+    if (onMarkProcessed) {
+      onMarkProcessed(req.id);
+    }
+  }, [req.id, onMarkProcessed]);
+
   return (
-    <TableRow>
+    <TableRow className={req.procesado ? 'bg-muted/30' : ''}>
       <TableCell>{req.ciudad}</TableCell>
       <TableCell>{req.mes}</TableCell>
       <TableCell>{req.cantidad}</TableCell>
@@ -42,13 +53,34 @@ const TableRowMemo = React.memo(({
       <TableCell>{req.solicitante}</TableCell>
       <TableCell>{new Date(req.fechaCreacion).toLocaleDateString()}</TableCell>
       <TableCell>
-        <Button 
-          variant="ghost" 
-          size="sm"
-          onClick={handleDelete}
+        <Badge 
+          variant={req.procesado ? "outline" : "default"}
+          className="mr-2 cursor-pointer"
+          onClick={handleMarkProcessed}
         >
-          <Trash className="h-4 w-4" />
-        </Button>
+          {req.procesado ? 'Procesado' : 'Pendiente'}
+        </Badge>
+      </TableCell>
+      <TableCell>
+        <div className="flex space-x-2">
+          <Button 
+            variant="ghost" 
+            size="sm"
+            onClick={handleMarkProcessed}
+            className={req.procesado ? "text-green-500" : "text-gray-500"}
+            title={req.procesado ? "Marcar como pendiente" : "Marcar como procesado"}
+          >
+            <CheckCircle className="h-4 w-4" />
+          </Button>
+          <Button 
+            variant="ghost" 
+            size="sm"
+            onClick={handleDelete}
+            className="text-red-500"
+          >
+            <Trash className="h-4 w-4" />
+          </Button>
+        </div>
       </TableCell>
     </TableRow>
   );
@@ -59,7 +91,8 @@ TableRowMemo.displayName = 'TableRowMemo';
 // Componente principal optimizado con React.memo
 const CustodioRequirementsTable = React.memo(({ 
   requirements, 
-  onDelete 
+  onDelete,
+  onMarkProcessed
 }: CustodioRequirementsTableProps) => {
   if (requirements.length === 0) {
     return (
@@ -80,6 +113,7 @@ const CustodioRequirementsTable = React.memo(({
           <TableHead>Zona</TableHead>
           <TableHead>Solicitante</TableHead>
           <TableHead>Fecha</TableHead>
+          <TableHead>Estado</TableHead>
           <TableHead>Acciones</TableHead>
         </TableRow>
       </TableHeader>
@@ -88,7 +122,8 @@ const CustodioRequirementsTable = React.memo(({
           <TableRowMemo 
             key={req.id} 
             req={req} 
-            onDelete={onDelete} 
+            onDelete={onDelete}
+            onMarkProcessed={onMarkProcessed}
           />
         ))}
       </TableBody>

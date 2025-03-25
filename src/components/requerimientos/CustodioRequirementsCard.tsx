@@ -16,6 +16,7 @@ interface CustodioRequirement {
   zona?: string;
   solicitante: string;
   fechaCreacion: string;
+  procesado?: boolean;
 }
 
 interface CustodioRequirementsCardProps {
@@ -25,6 +26,7 @@ interface CustodioRequirementsCardProps {
   currentMonth: string;
   onAddRequirement: (data: any) => void;
   onDeleteRequirement: (id: number) => void;
+  onMarkProcessed: (id: number) => void;
 }
 
 // Header del card optimizado con React.memo
@@ -60,7 +62,8 @@ const CustodioRequirementsCard = React.memo(({
   mesesDelAnio,
   currentMonth,
   onAddRequirement,
-  onDeleteRequirement
+  onDeleteRequirement,
+  onMarkProcessed
 }: CustodioRequirementsCardProps) => {
   const [openRequirementForm, setOpenRequirementForm] = useState(false);
 
@@ -106,6 +109,7 @@ const CustodioRequirementsCard = React.memo(({
         <CustodioRequirementsTable 
           requirements={requirements} 
           onDelete={onDeleteRequirement} 
+          onMarkProcessed={onMarkProcessed}
         />
       </CardContent>
     </Card>

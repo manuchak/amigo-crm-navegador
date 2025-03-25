@@ -1,5 +1,5 @@
 
-import React, { createContext, useState, useContext, ReactNode } from 'react';
+import React, { createContext, useState, useContext, ReactNode, useEffect } from 'react';
 import { useToast } from "@/hooks/use-toast";
 
 // Tipos de datos
@@ -33,7 +33,15 @@ export interface CustodioRequirement {
   zona?: string;
   solicitante: string;
   fechaCreacion: string;
+  procesado?: boolean; // Añadimos este campo para marcar como procesado
 }
+
+// Claves para localStorage
+const STORAGE_KEYS = {
+  REQUERIMIENTOS: 'datos_requerimientos',
+  FORECAST: 'datos_forecast',
+  CUSTODIOS: 'requisitos_custodios'
+};
 
 // Interface del contexto
 interface RequerimientosContextType {
@@ -47,6 +55,7 @@ interface RequerimientosContextType {
   actualizarForecast: (nuevosDatos: { requerimientosPrevistos: number; requerimientosRealizados: number }) => void;
   agregarRequisitosCustodios: (data: any) => void;
   eliminarRequisitosCustodios: (id: number) => void;
+  marcarComoProcesado: (id: number) => void; // Nueva función para marcar como procesado
 }
 
 // Crear el contexto
@@ -65,8 +74,8 @@ export const RequerimientosProvider: React.FC<{ children: ReactNode }> = ({ chil
     'Veracruz', 'Zapopan', 'Mérida', 'Cancún', 'Querétaro', 'Acapulco'
   ];
 
-  // States
-  const [datosRequerimientos, setDatosRequerimientos] = useState<RequerimientoData[]>([
+  // Datos iniciales
+  const datosRequerimientosIniciales: RequerimientoData[] = [
     { 
       categoria: 'Adquisición Custodios', 
       completados: 38, 
@@ -107,15 +116,42 @@ export const RequerimientosProvider: React.FC<{ children: ReactNode }> = ({ chil
       porcentaje: 112,
       color: 'bg-amber-500' 
     }
-  ]);
+  ];
 
-  const [forecastData, setForecastData] = useState<ForecastData>({
+  const forecastDataInicial: ForecastData = {
     requerimientosPrevistos: 240,
     requerimientosRealizados: 187,
     efectividad: 78
+  };
+
+  // States con persistencia en localStorage
+  const [datosRequerimientos, setDatosRequerimientos] = useState<RequerimientoData[]>(() => {
+    const savedData = localStorage.getItem(STORAGE_KEYS.REQUERIMIENTOS);
+    return savedData ? JSON.parse(savedData) : datosRequerimientosIniciales;
   });
 
-  const [custodioRequirements, setCustodioRequirements] = useState<CustodioRequirement[]>([]);
+  const [forecastData, setForecastData] = useState<ForecastData>(() => {
+    const savedData = localStorage.getItem(STORAGE_KEYS.FORECAST);
+    return savedData ? JSON.parse(savedData) : forecastDataInicial;
+  });
+
+  const [custodioRequirements, setCustodioRequirements] = useState<CustodioRequirement[]>(() => {
+    const savedData = localStorage.getItem(STORAGE_KEYS.CUSTODIOS);
+    return savedData ? JSON.parse(savedData) : [];
+  });
+
+  // Efectos para guardar cambios en localStorage
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEYS.REQUERIMIENTOS, JSON.stringify(datosRequerimientos));
+  }, [datosRequerimientos]);
+
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEYS.FORECAST, JSON.stringify(forecastData));
+  }, [forecastData]);
+
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEYS.CUSTODIOS, JSON.stringify(custodioRequirements));
+  }, [custodioRequirements]);
 
   // Functions to update data
   const actualizarObjetivo = (categoriaIndex: number, datos: { objetivo: number; desglose?: { objetivo: number }[] }) => {
@@ -137,6 +173,11 @@ export const RequerimientosProvider: React.FC<{ children: ReactNode }> = ({ chil
     }
 
     setDatosRequerimientos(nuevosDatos);
+    
+    toast({
+      title: "Objetivo actualizado",
+      description: "El objetivo ha sido actualizado correctamente."
+    });
   };
 
   const actualizarForecast = (nuevosDatos: { requerimientosPrevistos: number; requerimientosRealizados: number }) => {
@@ -159,6 +200,7 @@ export const RequerimientosProvider: React.FC<{ children: ReactNode }> = ({ chil
       id: Date.now(),
       fechaCreacion: new Date().toISOString(),
       solicitante: 'Usuario Actual', // En un sistema real, esto vendría de la autenticación
+      procesado: false // Por defecto, un nuevo requisito no está procesado
     };
     
     setCustodioRequirements(prev => [...prev, newRequirement]);
@@ -184,6 +226,20 @@ export const RequerimientosProvider: React.FC<{ children: ReactNode }> = ({ chil
     });
   };
 
+  // Nueva función para marcar como procesado
+  const marcarComoProcesado = (id: number) => {
+    setCustodioRequirements(prev => 
+      prev.map(item => 
+        item.id === id ? { ...item, procesado: !item.procesado } : item
+      )
+    );
+    
+    toast({
+      title: "Estado actualizado",
+      description: "El estado del requisito ha sido actualizado."
+    });
+  };
+
   const value = {
     datosRequerimientos,
     forecastData,
@@ -194,7 +250,8 @@ export const RequerimientosProvider: React.FC<{ children: ReactNode }> = ({ chil
     actualizarObjetivo,
     actualizarForecast,
     agregarRequisitosCustodios,
-    eliminarRequisitosCustodios
+    eliminarRequisitosCustodios,
+    marcarComoProcesado
   };
 
   return (
