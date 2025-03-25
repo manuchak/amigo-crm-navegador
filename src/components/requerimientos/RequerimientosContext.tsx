@@ -1,62 +1,24 @@
 
 import React, { createContext, useState, useContext, ReactNode, useEffect } from 'react';
 import { useToast } from "@/hooks/use-toast";
-
-// Tipos de datos
-export interface CiudadDesglose {
-  ciudad: string;
-  completados: number;
-  objetivo: number;
-}
-
-export interface RequerimientoData {
-  categoria: string;
-  completados: number;
-  objetivo: number;
-  porcentaje: number;
-  color: string;
-  desglose?: CiudadDesglose[];
-}
-
-export interface ForecastData {
-  requerimientosPrevistos: number;
-  requerimientosRealizados: number;
-  efectividad: number;
-}
-
-export interface CustodioRequirement {
-  id: number;
-  ciudad: string;
-  mes: string;
-  cantidad: number;
-  armado: boolean;
-  zona?: string;
-  solicitante: string;
-  fechaCreacion: string;
-  procesado?: boolean; // Añadimos este campo para marcar como procesado
-}
-
-// Claves para localStorage
-const STORAGE_KEYS = {
-  REQUERIMIENTOS: 'datos_requerimientos',
-  FORECAST: 'datos_forecast',
-  CUSTODIOS: 'requisitos_custodios'
-};
-
-// Interface del contexto
-interface RequerimientosContextType {
-  datosRequerimientos: RequerimientoData[];
-  forecastData: ForecastData;
-  custodioRequirements: CustodioRequirement[];
-  mesesDelAnio: string[];
-  ciudadesMexico: string[];
-  mesActual: number;
-  actualizarObjetivo: (categoriaIndex: number, datos: { objetivo: number; desglose?: { objetivo: number }[] }) => void;
-  actualizarForecast: (nuevosDatos: { requerimientosPrevistos: number; requerimientosRealizados: number }) => void;
-  agregarRequisitosCustodios: (data: any) => void;
-  eliminarRequisitosCustodios: (id: number) => void;
-  marcarComoProcesado: (id: number) => void; // Nueva función para marcar como procesado
-}
+import { 
+  RequerimientosContextType, 
+  RequerimientoData, 
+  ForecastData, 
+  CustodioRequirement 
+} from './types';
+import { 
+  STORAGE_KEYS, 
+  datosRequerimientosIniciales, 
+  forecastDataInicial,
+  loadFromStorage,
+  saveToStorage
+} from './utils/storage';
+import { 
+  mesesDelAnio, 
+  ciudadesMexico,
+  calcularEfectividad
+} from './utils/dataUtils';
 
 // Crear el contexto
 const RequerimientosContext = createContext<RequerimientosContextType | undefined>(undefined);
@@ -64,93 +26,32 @@ const RequerimientosContext = createContext<RequerimientosContextType | undefine
 // Proveedor del contexto
 export const RequerimientosProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
   const { toast } = useToast();
-  
-  // Months and cities data
-  const mesesDelAnio = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
   const mesActual = new Date().getMonth();
-  
-  const ciudadesMexico = [
-    'CDMX', 'Guadalajara', 'Monterrey', 'Puebla', 'Tijuana', 'León', 'Juárez', 
-    'Veracruz', 'Zapopan', 'Mérida', 'Cancún', 'Querétaro', 'Acapulco'
-  ];
-
-  // Datos iniciales
-  const datosRequerimientosIniciales: RequerimientoData[] = [
-    { 
-      categoria: 'Adquisición Custodios', 
-      completados: 38, 
-      objetivo: 50, 
-      porcentaje: 76,
-      color: 'bg-blue-500',
-      desglose: [
-        { ciudad: 'CDMX', completados: 15, objetivo: 20 },
-        { ciudad: 'Guadalajara', completados: 10, objetivo: 15 },
-        { ciudad: 'Monterrey', completados: 8, objetivo: 10 },
-        { ciudad: 'Veracruz', completados: 5, objetivo: 5 }
-      ]
-    },
-    { 
-      categoria: 'Custodios Nuevos', 
-      completados: 12, 
-      objetivo: 20, 
-      porcentaje: 60,
-      color: 'bg-purple-500' 
-    },
-    { 
-      categoria: 'Contratos firmados', 
-      completados: 5, 
-      objetivo: 10, 
-      porcentaje: 50,
-      color: 'bg-emerald-500',
-      desglose: [
-        { ciudad: 'CDMX', completados: 2, objetivo: 4 },
-        { ciudad: 'Guadalajara', completados: 1, objetivo: 3 },
-        { ciudad: 'Monterrey', completados: 1, objetivo: 2 },
-        { ciudad: 'Veracruz', completados: 1, objetivo: 1 }
-      ]
-    },
-    { 
-      categoria: 'Reuniones agendadas', 
-      completados: 45, 
-      objetivo: 40, 
-      porcentaje: 112,
-      color: 'bg-amber-500' 
-    }
-  ];
-
-  const forecastDataInicial: ForecastData = {
-    requerimientosPrevistos: 240,
-    requerimientosRealizados: 187,
-    efectividad: 78
-  };
 
   // States con persistencia en localStorage
-  const [datosRequerimientos, setDatosRequerimientos] = useState<RequerimientoData[]>(() => {
-    const savedData = localStorage.getItem(STORAGE_KEYS.REQUERIMIENTOS);
-    return savedData ? JSON.parse(savedData) : datosRequerimientosIniciales;
-  });
+  const [datosRequerimientos, setDatosRequerimientos] = useState<RequerimientoData[]>(() => 
+    loadFromStorage(STORAGE_KEYS.REQUERIMIENTOS, datosRequerimientosIniciales)
+  );
 
-  const [forecastData, setForecastData] = useState<ForecastData>(() => {
-    const savedData = localStorage.getItem(STORAGE_KEYS.FORECAST);
-    return savedData ? JSON.parse(savedData) : forecastDataInicial;
-  });
+  const [forecastData, setForecastData] = useState<ForecastData>(() => 
+    loadFromStorage(STORAGE_KEYS.FORECAST, forecastDataInicial)
+  );
 
-  const [custodioRequirements, setCustodioRequirements] = useState<CustodioRequirement[]>(() => {
-    const savedData = localStorage.getItem(STORAGE_KEYS.CUSTODIOS);
-    return savedData ? JSON.parse(savedData) : [];
-  });
+  const [custodioRequirements, setCustodioRequirements] = useState<CustodioRequirement[]>(() => 
+    loadFromStorage(STORAGE_KEYS.CUSTODIOS, [])
+  );
 
   // Efectos para guardar cambios en localStorage
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEYS.REQUERIMIENTOS, JSON.stringify(datosRequerimientos));
+    saveToStorage(STORAGE_KEYS.REQUERIMIENTOS, datosRequerimientos);
   }, [datosRequerimientos]);
 
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEYS.FORECAST, JSON.stringify(forecastData));
+    saveToStorage(STORAGE_KEYS.FORECAST, forecastData);
   }, [forecastData]);
 
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEYS.CUSTODIOS, JSON.stringify(custodioRequirements));
+    saveToStorage(STORAGE_KEYS.CUSTODIOS, custodioRequirements);
   }, [custodioRequirements]);
 
   // Functions to update data
@@ -181,7 +82,7 @@ export const RequerimientosProvider: React.FC<{ children: ReactNode }> = ({ chil
   };
 
   const actualizarForecast = (nuevosDatos: { requerimientosPrevistos: number; requerimientosRealizados: number }) => {
-    const nuevaEfectividad = Math.round((nuevosDatos.requerimientosRealizados / nuevosDatos.requerimientosPrevistos) * 100);
+    const nuevaEfectividad = calcularEfectividad(nuevosDatos.requerimientosRealizados, nuevosDatos.requerimientosPrevistos);
     
     setForecastData({
       ...nuevosDatos,
@@ -226,7 +127,7 @@ export const RequerimientosProvider: React.FC<{ children: ReactNode }> = ({ chil
     });
   };
 
-  // Nueva función para marcar como procesado
+  // Función para marcar como procesado
   const marcarComoProcesado = (id: number) => {
     setCustodioRequirements(prev => 
       prev.map(item => 
