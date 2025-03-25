@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -34,20 +33,17 @@ const Leads = () => {
   };
 
   const handleSubmitLeadForm = (formData: any) => {
-    // Crear un nuevo lead con la información del formulario
     const newLead = {
       id: leads.length + 1,
       nombre: formData.nombre,
-      empresa: "Custodios Armados", // Valor por defecto
+      empresa: "Custodios Armados",
       contacto: `${formData.email} | ${formData.telefono}`,
       estado: 'Nuevo',
-      fechaCreacion: new Date().toISOString().split('T')[0], // Fecha actual en formato YYYY-MM-DD
+      fechaCreacion: new Date().toISOString().split('T')[0],
     };
 
-    // Agregar el nuevo lead a la lista de leads
     setLeads([newLead, ...leads]);
 
-    // Mostrar mensaje de éxito
     toast({
       title: "Lead registrado",
       description: `${formData.nombre} ha sido agregado a la lista de llamadas pendientes`,

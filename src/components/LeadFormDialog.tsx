@@ -22,6 +22,13 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
@@ -31,10 +38,23 @@ import { useToast } from "@/hooks/use-toast";
 const currentYear = new Date().getFullYear();
 const yearOptions = Array.from({ length: 20 }, (_, i) => currentYear - i);
 
+// Country codes data
+const countryCodes = [
+  { code: "+52", name: "México" },
+  { code: "+1", name: "Estados Unidos" },
+  { code: "+34", name: "España" },
+  { code: "+57", name: "Colombia" },
+  { code: "+54", name: "Argentina" },
+  { code: "+56", name: "Chile" },
+  { code: "+51", name: "Perú" },
+  { code: "+55", name: "Brasil" },
+];
+
 const formSchema = z.object({
   nombre: z.string().min(3, "El nombre es requerido"),
   email: z.string().email("Email inválido"),
-  telefono: z.string().min(10, "Ingrese un número telefónico válido"),
+  codigoPais: z.string().default("+52"),
+  telefono: z.string().min(10, "Ingrese un número telefónico válido de 10 dígitos"),
   tieneCarroPropio: z.enum(["SI", "NO"]),
   anioCarro: z.number().optional(),
   experienciaSeguridad: z.enum(["SI", "NO"]),
@@ -59,6 +79,7 @@ export function LeadFormDialog({
     defaultValues: {
       nombre: "",
       email: "",
+      codigoPais: "+52",
       telefono: "",
       tieneCarroPropio: "NO",
       experienciaSeguridad: "NO",
@@ -70,7 +91,16 @@ export function LeadFormDialog({
   const watchTieneCarro = form.watch("tieneCarroPropio");
 
   const handleSubmit = (values: LeadFormValues) => {
-    onSubmit(values);
+    // Combine country code with phone number
+    const completePhoneNumber = `${values.codigoPais}${values.telefono}`;
+    
+    // Create a new object with the modified phone number
+    const submissionData = {
+      ...values,
+      telefono: completePhoneNumber,
+    };
+    
+    onSubmit(submissionData);
     form.reset();
     toast({
       title: "Formulario enviado",
@@ -127,19 +157,45 @@ export function LeadFormDialog({
               )}
             />
 
-            <FormField
-              control={form.control}
-              name="telefono"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Número Telefónico</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Teléfono de contacto" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            <FormItem>
+              <FormLabel>Número Telefónico</FormLabel>
+              <div className="flex gap-2">
+                <FormField
+                  control={form.control}
+                  name="codigoPais"
+                  render={({ field }) => (
+                    <Select
+                      value={field.value}
+                      onValueChange={field.onChange}
+                    >
+                      <SelectTrigger className="w-[120px]">
+                        <SelectValue placeholder="País" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {countryCodes.map((country) => (
+                          <SelectItem key={country.code} value={country.code}>
+                            {country.name} {country.code}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="telefono"
+                  render={({ field }) => (
+                    <FormItem className="flex-1">
+                      <FormControl>
+                        <Input placeholder="10 dígitos" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+            </FormItem>
 
             <FormField
               control={form.control}
