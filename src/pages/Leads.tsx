@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -9,6 +8,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import CallCenter from '../components/call-center';
 import { LeadFormDialog } from '@/components/lead-form';
 import { useToast } from '@/hooks/use-toast';
+import { LeadFormValues } from '@/components/lead-form/types';
 
 const defaultLeads = [
   { id: 1, nombre: 'Carlos Rodríguez', empresa: 'Tecno Solutions', contacto: 'carlos@tecnosolutions.com', estado: 'Nuevo', fechaCreacion: '2023-10-15' },
@@ -33,12 +33,16 @@ const Leads = () => {
     ));
   };
 
-  const handleSubmitLeadForm = (formData: any) => {
+  const handleSubmitLeadForm = (formData: LeadFormValues) => {
+    const empresa = formData.tieneCarroPropio === "SI" ? "Custodios Armados (con vehículo)" : "Custodios Armados";
+    
+    const contacto = `${formData.email} | ${formData.telefono}`;
+    
     const newLead = {
       id: leads.length + 1,
       nombre: formData.nombre,
-      empresa: "Custodios Armados",
-      contacto: `${formData.email} | ${formData.telefono}`,
+      empresa: empresa,
+      contacto: contacto,
       estado: 'Nuevo',
       fechaCreacion: new Date().toISOString().split('T')[0],
     };
@@ -47,7 +51,7 @@ const Leads = () => {
 
     toast({
       title: "Lead registrado",
-      description: `${formData.nombre} ha sido agregado a la lista de llamadas pendientes`,
+      description: `${formData.nombre} ha sido agregado a la lista de leads`,
     });
   };
 
