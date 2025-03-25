@@ -2,6 +2,7 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { cn } from '@/lib/utils';
+import { Shield, CheckCircle } from 'lucide-react';
 
 const Navbar = () => {
   const location = useLocation();
@@ -18,9 +19,15 @@ const Navbar = () => {
       <div className="container mx-auto flex items-center justify-between">
         <Link 
           to="/" 
-          className="font-semibold text-xl tracking-tight"
+          className="font-semibold text-xl tracking-tight flex items-center gap-2"
         >
-          SimpleCRM
+          <div className="bg-gradient-to-br from-primary to-accent rounded-full p-1.5 flex items-center justify-center">
+            <Shield size={20} className="text-primary-foreground" />
+          </div>
+          <span className="flex flex-col items-start">
+            <span className="font-bold text-primary">CustodiosCRM</span>
+            <span className="text-xs text-muted-foreground">by Detecta</span>
+          </span>
         </Link>
         
         <div className="flex items-center space-x-1">
