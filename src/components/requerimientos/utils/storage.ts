@@ -1,3 +1,4 @@
+
 import { RequerimientoData, ForecastData, CustodioRequirement } from '../types';
 
 // Storage keys for localStorage
@@ -23,7 +24,7 @@ export const datosRequerimientosIniciales: RequerimientoData[] = [
     ]
   },
   { 
-    categoria: 'Custodios Nuevos', 
+    categoria: 'Adquisición Custodios Armados', 
     completados: 12, 
     objetivo: 20, 
     porcentaje: 60,
