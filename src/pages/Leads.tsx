@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -28,9 +29,20 @@ const Leads = () => {
   const estadosLead = ['Todos', 'Nuevo', 'Contactado', 'En progreso', 'Calificado', 'No calificado'];
 
   const handleUpdateLeadStatus = (leadId: number, newStatus: string) => {
-    setLeads(leads.map(lead => 
+    const updatedLeads = leads.map(lead => 
       lead.id === leadId ? { ...lead, estado: newStatus } : lead
-    ));
+    );
+    
+    setLeads(updatedLeads);
+    
+    // Mostrar toast con la actualización
+    const lead = leads.find(l => l.id === leadId);
+    if (lead) {
+      toast({
+        title: "Estado actualizado",
+        description: `${lead.nombre} ha sido actualizado a estado: ${newStatus}`,
+      });
+    }
   };
 
   const handleSubmitLeadForm = (formData: LeadFormValues) => {

@@ -48,6 +48,18 @@ export const useCallCenter = ({ leads, onUpdateLeadStatus }: UseCallCenterProps)
     setIsCallActive(true);
     toast.success(`Iniciando llamada a ${lead?.nombre}`);
     
+    // Iniciar un temporizador para la duración de la llamada
+    let seconds = 0;
+    const timer = setInterval(() => {
+      seconds++;
+      const mins = Math.floor(seconds / 60).toString().padStart(2, '0');
+      const secs = (seconds % 60).toString().padStart(2, '0');
+      setCallDuration(`${mins}:${secs}`);
+    }, 1000);
+    
+    // Guardamos el timer en un atributo para limpiarlo después
+    (window as any).callTimer = timer;
+    
     // Execute webhook
     try {
       const webhookUrl = "https://hook.us2.make.com/nlckmsej5cwmfe93gv4g6xvmavhilujl";
@@ -80,6 +92,12 @@ export const useCallCenter = ({ leads, onUpdateLeadStatus }: UseCallCenterProps)
     
     setIsCallActive(false);
     
+    // Detener el temporizador
+    if ((window as any).callTimer) {
+      clearInterval((window as any).callTimer);
+      (window as any).callTimer = null;
+    }
+    
     // Actualizar el estado del lead si fue contactado
     if (callResult === "Contactado") {
       onUpdateLeadStatus(selectedLead!, "Contactado");
@@ -100,7 +118,7 @@ export const useCallCenter = ({ leads, onUpdateLeadStatus }: UseCallCenterProps)
       notas: notes
     };
     
-    setCallsForToday([...callsForToday, newCall]);
+    setCallsForToday([newCall, ...callsForToday]);
     
     // Resetear campos
     setCallResult('');
