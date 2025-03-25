@@ -2,8 +2,9 @@
 import React from 'react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from '@/components/ui/button';
-import { Trash, CheckCircle } from 'lucide-react';
+import { Trash, CheckCircle, User } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface CustodioRequirement {
   id: number;
@@ -15,6 +16,8 @@ interface CustodioRequirement {
   solicitante: string;
   fechaCreacion: string;
   estado: 'solicitado' | 'recibido' | 'aceptado';
+  usuarioAprobador?: string;
+  fechaAprobacion?: string;
 }
 
 interface CustodioRequirementsTableProps {
@@ -56,11 +59,11 @@ const TableRowMemo = React.memo(({
   const getBadgeVariant = () => {
     switch (req.estado) {
       case 'solicitado':
-        return 'default';
+        return 'warning';
       case 'recibido':
-        return 'secondary';
+        return 'info';
       case 'aceptado':
-        return 'outline';
+        return 'success';
       default:
         return 'default';
     }
@@ -80,7 +83,7 @@ const TableRowMemo = React.memo(({
   };
 
   return (
-    <TableRow className={req.estado === 'aceptado' ? 'bg-muted/30' : ''}>
+    <TableRow className={req.estado === 'aceptado' ? 'bg-green-50' : ''}>
       <TableCell>{req.ciudad}</TableCell>
       <TableCell>{req.mes}</TableCell>
       <TableCell>{req.cantidad}</TableCell>
@@ -90,7 +93,7 @@ const TableRowMemo = React.memo(({
       <TableCell>{new Date(req.fechaCreacion).toLocaleDateString()}</TableCell>
       <TableCell>
         <Badge 
-          variant={getBadgeVariant()}
+          variant={getBadgeVariant() as any}
           className="mr-2 cursor-pointer"
           onClick={handleUpdateEstado}
         >
@@ -98,12 +101,29 @@ const TableRowMemo = React.memo(({
         </Badge>
       </TableCell>
       <TableCell>
+        {req.estado === 'aceptado' && req.usuarioAprobador && (
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div className="flex items-center text-sm text-green-700">
+                  <User className="h-3 w-3 mr-1" />
+                  <span>{req.usuarioAprobador}</span>
+                </div>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Aprobado el {req.fechaAprobacion ? new Date(req.fechaAprobacion).toLocaleString() : 'fecha desconocida'}</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        )}
+      </TableCell>
+      <TableCell>
         <div className="flex space-x-2">
           <Button 
             variant="ghost" 
             size="sm"
             onClick={handleUpdateEstado}
-            className="text-gray-500"
+            className="text-gray-500 hover:text-blue-500"
             title="Cambiar estado"
           >
             <CheckCircle className="h-4 w-4" />
@@ -150,6 +170,7 @@ const CustodioRequirementsTable = React.memo(({
           <TableHead>Solicitante</TableHead>
           <TableHead>Fecha</TableHead>
           <TableHead>Estado</TableHead>
+          <TableHead>Aprobador</TableHead>
           <TableHead>Acciones</TableHead>
         </TableRow>
       </TableHeader>

@@ -140,9 +140,26 @@ export const RequerimientosProvider: React.FC<{ children: ReactNode }> = ({ chil
   // Función para actualizar el estado de un custodio
   const actualizarEstadoCustodio = (id: number, estado: 'solicitado' | 'recibido' | 'aceptado') => {
     setCustodioRequirements(prev => 
-      prev.map(item => 
-        item.id === id ? { ...item, estado } : item
-      )
+      prev.map(item => {
+        if (item.id === id) {
+          // Si el estado cambió a 'aceptado', agregar información del aprobador
+          if (estado === 'aceptado' && item.estado !== 'aceptado') {
+            return { 
+              ...item, 
+              estado,
+              usuarioAprobador: 'Admin Supply', // En un sistema real, usaríamos el nombre del usuario actual
+              fechaAprobacion: new Date().toISOString()
+            };
+          }
+          // Si el estado cambió de 'aceptado' a otro, eliminamos la información del aprobador
+          if (estado !== 'aceptado' && item.estado === 'aceptado') {
+            const { usuarioAprobador, fechaAprobacion, ...rest } = item;
+            return { ...rest, estado };
+          }
+          return { ...item, estado };
+        }
+        return item;
+      })
     );
     
     const estadoLabel = {

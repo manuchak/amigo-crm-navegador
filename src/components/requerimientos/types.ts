@@ -32,6 +32,8 @@ export interface CustodioRequirement {
   solicitante: string;
   fechaCreacion: string;
   estado: 'solicitado' | 'recibido' | 'aceptado';
+  usuarioAprobador?: string;
+  fechaAprobacion?: string;
 }
 
 // Interface for the context
