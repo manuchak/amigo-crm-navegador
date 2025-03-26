@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Phone, PhoneOff } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -33,35 +32,22 @@ const CallButtons: React.FC<CallButtonsProps> = ({
       return;
     }
 
-    // Extraer y formatear la información de contacto
+    // Extract only the phone number information
     const contactInfo = lead.contacto.split(' | ');
-    const email = contactInfo[0] || '';
     const phoneNumber = contactInfo[1] || '';
     
-    // Extraer información adicional del nombre de la empresa
-    const isArmed = lead.empresa.toLowerCase().includes('armado');
-    const hasVehicle = lead.empresa.toLowerCase().includes('vehículo');
-
     try {
-      // Enviar datos en formato plano (sin anidación)
+      // Send only the phone number to the webhook
       await executeWebhook({
-        lead_id: selectedLead,
-        lead_nombre: lead.nombre,
-        lead_empresa: lead.empresa,
-        email: email,
         telefono: phoneNumber,
-        estado: lead.estado,
-        fechaCreacion: lead.fechaCreacion,
         timestamp: new Date().toISOString(),
-        action: "outbound_call_requested",
-        es_armado: isArmed,
-        tiene_vehiculo: hasVehicle
+        action: "outbound_call_requested"
       });
       
       console.log("Webhook ejecutado para llamada saliente");
       toast.success(`Llamada saliente iniciada para ${lead.nombre}`);
       
-      // Continuar con el proceso de llamada
+      // Continue with the call process
       await handleStartCall();
       
     } catch (error) {

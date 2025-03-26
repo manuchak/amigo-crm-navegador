@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from '@/components/ui/table';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -25,30 +24,22 @@ const LeadsTable: React.FC<LeadsTableProps> = ({ isLoading, onCallLead }) => {
       return;
     }
 
-    // Parse contact information from the lead
+    // Parse contact information from the lead to get only the phone number
     const contactInfo = lead.contacto.split(' | ');
-    const email = contactInfo[0] || '';
     const phone = contactInfo[1] || '';
 
-    // Send complete lead data to webhook before navigating to call center
+    // Only send the phone number to the webhook
     try {
       await executeWebhook({
-        leadName: lead.nombre,
-        leadId: leadId,
-        empresa: lead.empresa,
-        email: email,
         telefono: phone,
-        estado: lead.estado,
-        fechaCreacion: lead.fechaCreacion,
         timestamp: new Date().toISOString(),
-        action: "outbound_call_requested_from_list",
-        contactInfo: lead.contacto
+        action: "outbound_call_requested_from_list"
       });
       
-      toast.success(`Llamada saliente solicitada para ${lead.nombre}`);
+      toast.success(`Llamada solicitada para ${lead.nombre}`);
     } catch (error) {
       console.error("Error executing webhook:", error);
-      toast.error("Error al solicitar la llamada saliente");
+      toast.error("Error al solicitar la llamada");
     }
 
     // Navigate to call center tab

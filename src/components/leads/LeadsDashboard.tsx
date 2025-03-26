@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -16,7 +15,6 @@ const LeadsDashboard = () => {
   const { toast } = useToast();
   const [filter, setFilter] = useState("todos");
   
-  // Función para filtrar leads según el tipo
   const filteredLeads = filter === "todos" 
     ? leads 
     : leads.filter(lead => {
@@ -27,7 +25,6 @@ const LeadsDashboard = () => {
         return true;
       });
   
-  // Estadísticas de leads
   const stats = {
     total: leads.length,
     nuevos: leads.filter(lead => lead.estado === "Nuevo").length,
@@ -36,26 +33,15 @@ const LeadsDashboard = () => {
     rechazados: leads.filter(lead => lead.estado === "Rechazado").length,
   };
   
-  // Función para iniciar llamada a un lead
   const handleCall = async (lead: any) => {
     try {
-      // Parse contact information
       const contactInfo = lead.contacto.split(' | ');
-      const email = contactInfo[0] || '';
       const phone = contactInfo[1] || '';
       
-      // Enviar datos al webhook
       await executeWebhook({
-        leadName: lead.nombre,
-        leadId: lead.id,
-        empresa: lead.empresa,
-        email: email,
         telefono: phone,
-        estado: lead.estado,
-        fechaCreacion: lead.fechaCreacion,
         timestamp: new Date().toISOString(),
-        action: "outbound_call_requested",
-        contactInfo: lead.contacto
+        action: "outbound_call_requested"
       });
       
       toast({
@@ -72,7 +58,6 @@ const LeadsDashboard = () => {
     }
   };
   
-  // Función para obtener color de badge según estado
   const getStatusColor = (status: string) => {
     switch (status) {
       case "Nuevo": return "info";
@@ -85,7 +70,6 @@ const LeadsDashboard = () => {
 
   return (
     <div className="space-y-6">
-      {/* Tarjetas de estadísticas */}
       <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
         <Card>
           <CardHeader className="pb-2">
@@ -119,7 +103,6 @@ const LeadsDashboard = () => {
         </Card>
       </div>
       
-      {/* Lista de leads */}
       <Card>
         <CardHeader>
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
