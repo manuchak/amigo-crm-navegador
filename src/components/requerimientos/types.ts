@@ -28,12 +28,15 @@ export interface CustodioRequirement {
   mes: string;
   cantidad: number;
   armado: boolean;
+  abordo: boolean; // New field for "A bordo" option
   zona?: string;
   solicitante: string;
   fechaCreacion: string;
+  horaCreacion: string; // New field for creation time
   estado: 'solicitado' | 'recibido' | 'aceptado';
   usuarioAprobador?: string;
   fechaAprobacion?: string;
+  horaAprobacion?: string; // New field for approval time
 }
 
 // Interface for the context

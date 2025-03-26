@@ -2,7 +2,7 @@
 import React from 'react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from '@/components/ui/button';
-import { Trash, CheckCircle, User } from 'lucide-react';
+import { Trash, CheckCircle, User, Clock } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
@@ -12,12 +12,15 @@ interface CustodioRequirement {
   mes: string;
   cantidad: number;
   armado: boolean;
+  abordo?: boolean;
   zona?: string;
   solicitante: string;
   fechaCreacion: string;
+  horaCreacion?: string;
   estado: 'solicitado' | 'recibido' | 'aceptado';
   usuarioAprobador?: string;
   fechaAprobacion?: string;
+  horaAprobacion?: string;
 }
 
 interface CustodioRequirementsTableProps {
@@ -25,6 +28,14 @@ interface CustodioRequirementsTableProps {
   onDelete: (id: number) => void;
   onUpdateEstado?: (id: number, estado: 'solicitado' | 'recibido' | 'aceptado') => void;
 }
+
+// Format date and time for display
+const formatDateTime = (date: string, time?: string) => {
+  if (!date) return '-';
+  
+  const formattedDate = new Date(date).toLocaleDateString();
+  return time ? `${formattedDate} ${time}` : formattedDate;
+};
 
 // Componente de fila de tabla optimizado con React.memo
 const TableRowMemo = React.memo(({ 
@@ -80,6 +91,14 @@ const TableRowMemo = React.memo(({
     }
   };
 
+  // Get the custodio type description
+  const getCustodioType = () => {
+    const types = [];
+    if (req.armado) types.push('Armado');
+    if (req.abordo) types.push('A bordo');
+    return types.length > 0 ? types.join(', ') : 'Sin arma';
+  };
+
   // Determine if buttons should be disabled
   const isStateChangeDisabled = req.estado === 'aceptado';
 
@@ -88,10 +107,24 @@ const TableRowMemo = React.memo(({
       <TableCell>{req.ciudad}</TableCell>
       <TableCell>{req.mes}</TableCell>
       <TableCell>{req.cantidad}</TableCell>
-      <TableCell>{req.armado ? 'Armado' : 'Sin arma'}</TableCell>
+      <TableCell>{getCustodioType()}</TableCell>
       <TableCell>{req.zona || '-'}</TableCell>
       <TableCell>{req.solicitante}</TableCell>
-      <TableCell>{new Date(req.fechaCreacion).toLocaleDateString()}</TableCell>
+      <TableCell>
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <div className="flex items-center text-sm">
+                <Clock className="h-3 w-3 mr-1 text-gray-500" />
+                <span>{formatDateTime(req.fechaCreacion)}</span>
+              </div>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>Creado el {formatDateTime(req.fechaCreacion, req.horaCreacion)}</p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+      </TableCell>
       <TableCell>
         <Badge 
           variant={getBadgeVariant() as any}
@@ -112,7 +145,7 @@ const TableRowMemo = React.memo(({
                 </div>
               </TooltipTrigger>
               <TooltipContent>
-                <p>Aprobado el {req.fechaAprobacion ? new Date(req.fechaAprobacion).toLocaleString() : 'fecha desconocida'}</p>
+                <p>Aprobado el {formatDateTime(req.fechaAprobacion || '', req.horaAprobacion)}</p>
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>

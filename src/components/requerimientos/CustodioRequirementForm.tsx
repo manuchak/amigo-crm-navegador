@@ -27,6 +27,7 @@ const CustodioRequirementForm: React.FC<RequirementFormProps> = ({
       mes: defaultMonth,
       cantidad: 1,
       armado: false,
+      abordo: false,
       zona: ''
     }
   });
@@ -106,23 +107,43 @@ const CustodioRequirementForm: React.FC<RequirementFormProps> = ({
           )}
         />
         
-        <FormField
-          control={form.control}
-          name="armado"
-          render={({ field }) => (
-            <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
-              <FormControl>
-                <Checkbox
-                  checked={field.value}
-                  onCheckedChange={field.onChange}
-                />
-              </FormControl>
-              <div className="space-y-1 leading-none">
-                <FormLabel>Custodio Armado</FormLabel>
-              </div>
-            </FormItem>
-          )}
-        />
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <FormField
+            control={form.control}
+            name="armado"
+            render={({ field }) => (
+              <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
+                <FormControl>
+                  <Checkbox
+                    checked={field.value}
+                    onCheckedChange={field.onChange}
+                  />
+                </FormControl>
+                <div className="space-y-1 leading-none">
+                  <FormLabel>Custodio Armado</FormLabel>
+                </div>
+              </FormItem>
+            )}
+          />
+          
+          <FormField
+            control={form.control}
+            name="abordo"
+            render={({ field }) => (
+              <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
+                <FormControl>
+                  <Checkbox
+                    checked={field.value}
+                    onCheckedChange={field.onChange}
+                  />
+                </FormControl>
+                <div className="space-y-1 leading-none">
+                  <FormLabel>A bordo</FormLabel>
+                </div>
+              </FormItem>
+            )}
+          />
+        </div>
         
         <FormField
           control={form.control}

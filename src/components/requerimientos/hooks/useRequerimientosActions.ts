@@ -12,6 +12,14 @@ type SetForecastData = React.Dispatch<React.SetStateAction<ForecastData>>;
 type SetCustodioRequirements = React.Dispatch<React.SetStateAction<CustodioRequirement[]>>;
 
 /**
+ * Get current time in HH:MM:SS format
+ */
+const getCurrentTime = (): string => {
+  const now = new Date();
+  return now.toLocaleTimeString();
+};
+
+/**
  * Custom hook for requerimientos actions
  */
 export function useRequerimientosActions(
@@ -65,10 +73,14 @@ export function useRequerimientosActions(
   };
 
   const agregarRequisitosCustodios = (data: any) => {
+    const currentDate = new Date().toISOString();
+    const currentTime = getCurrentTime();
+    
     const newRequirement = {
       ...data,
       id: Date.now(),
-      fechaCreacion: new Date().toISOString(),
+      fechaCreacion: currentDate,
+      horaCreacion: currentTime,
       solicitante: 'Usuario Actual', // En un sistema real, esto vendría de la autenticación
       estado: 'solicitado' // Por defecto, un nuevo requisito está en estado solicitado
     };
@@ -117,7 +129,8 @@ export function useRequerimientosActions(
               ...item, 
               estado,
               usuarioAprobador: 'Admin Supply', // En un sistema real, usaríamos el nombre del usuario actual
-              fechaAprobacion: new Date().toISOString()
+              fechaAprobacion: new Date().toISOString(),
+              horaAprobacion: getCurrentTime()
             };
           }
           
