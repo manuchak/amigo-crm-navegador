@@ -112,7 +112,7 @@ const LeadCreationForm = () => {
   };
 
   return (
-    <Card className="bg-gray-900/50 border-gray-800">
+    <Card className="bg-white border-gray-200 shadow-sm">
       <CardHeader>
         <CardTitle>Registro de Nuevo Custodio</CardTitle>
         <CardDescription>
@@ -232,7 +232,7 @@ const LeadCreationForm = () => {
                 />
                 
                 {watchTieneVehiculo === 'SI' && (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pl-6 border-l-2 border-gray-700">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pl-6 border-l-2 border-gray-200">
                     <FormField
                       control={form.control}
                       name="modeloVehiculo"

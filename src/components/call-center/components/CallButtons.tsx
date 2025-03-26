@@ -27,42 +27,52 @@ const CallButtons: React.FC<CallButtonsProps> = ({
       return;
     }
 
-    // Obtener datos del lead seleccionado
     const lead = leads.find(l => l.id === selectedLead);
     if (!lead) {
       toast.error("Custodio no encontrado");
       return;
     }
 
-    // Extraer información de contacto
+    // Extraer y formatear la información de contacto
     const contactInfo = lead.contacto.split(' | ');
     const email = contactInfo[0] || '';
-    const phone = contactInfo[1] || '';
+    const phoneNumber = contactInfo[1] || '';
+    
+    // Extraer información adicional del nombre de la empresa
+    const isArmed = lead.empresa.toLowerCase().includes('armado');
+    const hasVehicle = lead.empresa.toLowerCase().includes('vehículo');
 
-    // Enviar datos completos al webhook antes de iniciar la llamada
     try {
       await executeWebhook({
-        leadName: lead.nombre,
-        leadId: selectedLead,
-        empresa: lead.empresa,
-        email: email,
-        telefono: phone,
+        leadData: {
+          id: selectedLead,
+          nombre: lead.nombre,
+          empresa: lead.empresa,
+          contacto: {
+            email: email,
+            telefono: phoneNumber, // El número ya incluye el prefijo +52
+          },
+          calificaciones: {
+            esArmado: isArmed,
+            tieneVehiculo: hasVehicle
+          }
+        },
         estado: lead.estado,
         fechaCreacion: lead.fechaCreacion,
         timestamp: new Date().toISOString(),
-        action: "outbound_call_requested",
-        contactInfo: lead.contacto
+        action: "outbound_call_requested"
       });
       
       console.log("Webhook ejecutado para llamada saliente");
-      toast.success(`Llamada saliente solicitada para ${lead.nombre}`);
+      toast.success(`Llamada saliente iniciada para ${lead.nombre}`);
+      
+      // Continuar con el proceso de llamada
+      await handleStartCall();
+      
     } catch (error) {
       console.error("Error al ejecutar webhook:", error);
-      toast.error("Error al solicitar la llamada saliente");
+      toast.error("Error al iniciar la llamada saliente");
     }
-
-    // Continuar con el proceso normal de inicio de llamada
-    await handleStartCall();
   };
 
   return (
@@ -70,16 +80,17 @@ const CallButtons: React.FC<CallButtonsProps> = ({
       {!isCallActive ? (
         <Button 
           onClick={handleCall} 
-          disabled={!selectedLead} 
-          className="bg-green-500 hover:bg-green-600"
+          disabled={!selectedLead}
+          className="w-full bg-blue-500 hover:bg-blue-600 text-white"
         >
           <Phone className="mr-2 h-4 w-4" />
           Iniciar Llamada
         </Button>
       ) : (
         <Button 
-          onClick={handleEndCall} 
+          onClick={handleEndCall}
           variant="destructive"
+          className="w-full"
         >
           <PhoneOff className="mr-2 h-4 w-4" />
           Finalizar Llamada
