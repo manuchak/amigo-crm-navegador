@@ -28,15 +28,15 @@ export interface CustodioRequirement {
   mes: string;
   cantidad: number;
   armado: boolean;
-  abordo: boolean; // New field for "A bordo" option
+  abordo: boolean; // Field for "A bordo" option
   zona?: string;
   solicitante: string;
   fechaCreacion: string;
-  horaCreacion: string; // New field for creation time
-  estado: 'solicitado' | 'recibido' | 'aceptado';
+  horaCreacion: string; // Field for creation time
+  estado: 'solicitado' | 'recibido' | 'aceptado' | 'retrasado';
   usuarioAprobador?: string;
   fechaAprobacion?: string;
-  horaAprobacion?: string; // New field for approval time
+  horaAprobacion?: string; // Field for approval time
 }
 
 // Interface for the context
@@ -51,5 +51,5 @@ export interface RequerimientosContextType {
   actualizarForecast: (nuevosDatos: { requerimientosPrevistos: number; requerimientosRealizados: number }) => void;
   agregarRequisitosCustodios: (data: any) => void;
   eliminarRequisitosCustodios: (id: number) => void;
-  actualizarEstadoCustodio: (id: number, estado: 'solicitado' | 'recibido' | 'aceptado') => void;
+  actualizarEstadoCustodio: (id: number, estado: 'solicitado' | 'recibido' | 'aceptado' | 'retrasado') => void;
 }

@@ -20,6 +20,13 @@ const getCurrentTime = (): string => {
 };
 
 /**
+ * Get current month name in Spanish
+ */
+const getCurrentMonth = (): string => {
+  return new Date().toLocaleString('es-ES', { month: 'long' });
+};
+
+/**
  * Custom hook for requerimientos actions
  */
 export function useRequerimientosActions(
@@ -31,6 +38,40 @@ export function useRequerimientosActions(
   setCustodioRequirements: SetCustodioRequirements
 ) {
   const { toast } = useToast();
+
+  // Check and update delayed requirements
+  const checkDelayedRequirements = () => {
+    const currentMonth = getCurrentMonth().toLowerCase();
+    
+    const updatedRequirements = custodioRequirements.map(req => {
+      // If it's in "solicitado" status and for the current month, mark as delayed
+      if (req.estado === 'solicitado' && req.mes.toLowerCase() === currentMonth) {
+        return { ...req, estado: 'retrasado' as const };
+      }
+      return req;
+    });
+    
+    // Only update if there are actual changes
+    if (JSON.stringify(updatedRequirements) !== JSON.stringify(custodioRequirements)) {
+      setCustodioRequirements(updatedRequirements);
+      
+      // Show toast notification about delayed requirements
+      const delayedCount = updatedRequirements.filter(req => req.estado === 'retrasado').length;
+      if (delayedCount > 0) {
+        toast({
+          title: "Requisitos retrasados detectados",
+          description: `Se han detectado ${delayedCount} requisitos de custodios retrasados para este mes.`,
+          variant: "destructive"
+        });
+      }
+    }
+  };
+
+  // Run the check for delayed requirements
+  React.useEffect(() => {
+    checkDelayedRequirements();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [custodioRequirements]);
 
   const actualizarObjetivo = (categoriaIndex: number, datos: { objetivo: number; desglose?: { objetivo: number }[] }) => {
     const nuevosDatos = [...datosRequerimientos];
@@ -98,6 +139,9 @@ export function useRequerimientosActions(
       title: "Requisito agregado",
       description: `Requisito para ${data.cantidad} custodios en ${data.ciudad} agregado correctamente.`
     });
+    
+    // Check for delays after adding a new requirement
+    checkDelayedRequirements();
   };
 
   const eliminarRequisitosCustodios = (id: number) => {
@@ -109,7 +153,7 @@ export function useRequerimientosActions(
   };
 
   // Función para actualizar el estado de un custodio
-  const actualizarEstadoCustodio = (id: number, estado: 'solicitado' | 'recibido' | 'aceptado') => {
+  const actualizarEstadoCustodio = (id: number, estado: 'solicitado' | 'recibido' | 'aceptado' | 'retrasado') => {
     setCustodioRequirements(prev => 
       prev.map(item => {
         if (item.id === id) {
@@ -143,13 +187,19 @@ export function useRequerimientosActions(
     const estadoLabel = {
       'solicitado': 'Solicitado',
       'recibido': 'Recibido Supply',
-      'aceptado': 'Aceptado Supply'
+      'aceptado': 'Aceptado Supply',
+      'retrasado': 'Retrasado'
     }[estado];
     
     toast({
       title: "Estado actualizado",
       description: `El requisito ha sido marcado como "${estadoLabel}".`
     });
+    
+    // Check for any changes in delayed status after updating
+    if (estado !== 'retrasado') {
+      checkDelayedRequirements();
+    }
   };
 
   return {

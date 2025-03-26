@@ -1,10 +1,11 @@
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from '@/components/ui/button';
-import { Trash, CheckCircle, User, Clock } from 'lucide-react';
+import { Trash, CheckCircle, User, Clock, AlertTriangle } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 
 interface CustodioRequirement {
   id: number;
@@ -17,7 +18,7 @@ interface CustodioRequirement {
   solicitante: string;
   fechaCreacion: string;
   horaCreacion?: string;
-  estado: 'solicitado' | 'recibido' | 'aceptado';
+  estado: 'solicitado' | 'recibido' | 'aceptado' | 'retrasado';
   usuarioAprobador?: string;
   fechaAprobacion?: string;
   horaAprobacion?: string;
@@ -26,7 +27,7 @@ interface CustodioRequirement {
 interface CustodioRequirementsTableProps {
   requirements: CustodioRequirement[];
   onDelete: (id: number) => void;
-  onUpdateEstado?: (id: number, estado: 'solicitado' | 'recibido' | 'aceptado') => void;
+  onUpdateEstado?: (id: number, estado: 'solicitado' | 'recibido' | 'aceptado' | 'retrasado') => void;
 }
 
 // Format date and time for display
@@ -37,6 +38,28 @@ const formatDateTime = (date: string, time?: string) => {
   return time ? `${formattedDate} ${time}` : formattedDate;
 };
 
+// Custom Alert component for delayed requirements
+const DelayAlert = () => {
+  return (
+    <Alert className="mb-4 border-pink-200 bg-pink-50 text-pink-800">
+      <AlertTriangle className="h-4 w-4 text-pink-800" />
+      <AlertTitle className="text-pink-800 font-medium">Alerta de Retraso</AlertTitle>
+      <AlertDescription className="text-pink-700">
+        Existen requisitos de custodios retrasados para el mes en curso. Por favor, revise y actualice su estado.
+      </AlertDescription>
+    </Alert>
+  );
+};
+
+// Check if a requirement is delayed (in current month and still in "solicitado" status)
+const isDelayedRequirement = (requirements: CustodioRequirement[]) => {
+  const currentMonth = new Date().toLocaleString('es-ES', { month: 'long' });
+  return requirements.some(req => 
+    req.estado === 'retrasado' || 
+    (req.estado === 'solicitado' && req.mes.toLowerCase() === currentMonth.toLowerCase())
+  );
+};
+
 // Componente de fila de tabla optimizado con React.memo
 const TableRowMemo = React.memo(({ 
   req, 
@@ -45,7 +68,7 @@ const TableRowMemo = React.memo(({
 }: { 
   req: CustodioRequirement; 
   onDelete: (id: number) => void;
-  onUpdateEstado?: (id: number, estado: 'solicitado' | 'recibido' | 'aceptado') => void;
+  onUpdateEstado?: (id: number, estado: 'solicitado' | 'recibido' | 'aceptado' | 'retrasado') => void;
 }) => {
   const handleDelete = React.useCallback(() => {
     onDelete(req.id);
@@ -53,12 +76,14 @@ const TableRowMemo = React.memo(({
 
   const handleUpdateEstado = React.useCallback(() => {
     if (onUpdateEstado && req.estado !== 'aceptado') {
-      let nextEstado: 'solicitado' | 'recibido' | 'aceptado' = 'solicitado';
+      let nextEstado: 'solicitado' | 'recibido' | 'aceptado' | 'retrasado' = 'solicitado';
       
       if (req.estado === 'solicitado') {
         nextEstado = 'recibido';
       } else if (req.estado === 'recibido') {
         nextEstado = 'aceptado';
+      } else if (req.estado === 'retrasado') {
+        nextEstado = 'recibido';
       }
       
       onUpdateEstado(req.id, nextEstado);
@@ -73,6 +98,8 @@ const TableRowMemo = React.memo(({
         return 'info';
       case 'aceptado':
         return 'success';
+      case 'retrasado':
+        return 'destructive';
       default:
         return 'default';
     }
@@ -86,6 +113,8 @@ const TableRowMemo = React.memo(({
         return 'Recibido Supply';
       case 'aceptado':
         return 'Aceptado Supply';
+      case 'retrasado':
+        return 'Retrasado';
       default:
         return 'Desconocido';
     }
@@ -103,7 +132,10 @@ const TableRowMemo = React.memo(({
   const isStateChangeDisabled = req.estado === 'aceptado';
 
   return (
-    <TableRow className={req.estado === 'aceptado' ? 'bg-green-50' : ''}>
+    <TableRow className={
+      req.estado === 'aceptado' ? 'bg-green-50' : 
+      req.estado === 'retrasado' ? 'bg-pink-50' : ''
+    }>
       <TableCell>{req.ciudad}</TableCell>
       <TableCell>{req.mes}</TableCell>
       <TableCell>{req.cantidad}</TableCell>
@@ -133,6 +165,9 @@ const TableRowMemo = React.memo(({
         >
           {getEstadoLabel()}
         </Badge>
+        {req.estado === 'retrasado' && (
+          <AlertTriangle className="h-3 w-3 inline ml-1 text-red-500" />
+        )}
       </TableCell>
       <TableCell>
         {req.estado === 'aceptado' && req.usuarioAprobador && (
@@ -185,6 +220,18 @@ const CustodioRequirementsTable = React.memo(({
   onDelete,
   onUpdateEstado
 }: CustodioRequirementsTableProps) => {
+  // Check for delays and update status accordingly
+  useEffect(() => {
+    // This effect checks for delayed requirements and can be extended to automatically update them
+    const currentMonth = new Date().toLocaleString('es-ES', { month: 'long' }).toLowerCase();
+    
+    requirements.forEach(req => {
+      if (req.estado === 'solicitado' && req.mes.toLowerCase() === currentMonth && onUpdateEstado) {
+        // We're just identifying them here, actual update is handled by the hook to avoid circular dependencies
+      }
+    });
+  }, [requirements, onUpdateEstado]);
+
   if (requirements.length === 0) {
     return (
       <div className="text-center p-6 text-muted-foreground">
@@ -193,33 +240,40 @@ const CustodioRequirementsTable = React.memo(({
     );
   }
 
+  // Show delay alert if there are delayed requirements
+  const hasDelayedReqs = isDelayedRequirement(requirements);
+
   return (
-    <Table>
-      <TableHeader>
-        <TableRow>
-          <TableHead>Ciudad</TableHead>
-          <TableHead>Mes</TableHead>
-          <TableHead>Cantidad</TableHead>
-          <TableHead>Tipo</TableHead>
-          <TableHead>Zona</TableHead>
-          <TableHead>Solicitante</TableHead>
-          <TableHead>Fecha</TableHead>
-          <TableHead>Estado</TableHead>
-          <TableHead>Aprobador</TableHead>
-          <TableHead>Acciones</TableHead>
-        </TableRow>
-      </TableHeader>
-      <TableBody>
-        {requirements.map((req) => (
-          <TableRowMemo 
-            key={req.id} 
-            req={req} 
-            onDelete={onDelete}
-            onUpdateEstado={onUpdateEstado}
-          />
-        ))}
-      </TableBody>
-    </Table>
+    <>
+      {hasDelayedReqs && <DelayAlert />}
+      
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>Ciudad</TableHead>
+            <TableHead>Mes</TableHead>
+            <TableHead>Cantidad</TableHead>
+            <TableHead>Tipo</TableHead>
+            <TableHead>Zona</TableHead>
+            <TableHead>Solicitante</TableHead>
+            <TableHead>Fecha</TableHead>
+            <TableHead>Estado</TableHead>
+            <TableHead>Aprobador</TableHead>
+            <TableHead>Acciones</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {requirements.map((req) => (
+            <TableRowMemo 
+              key={req.id} 
+              req={req} 
+              onDelete={onDelete}
+              onUpdateEstado={onUpdateEstado}
+            />
+          ))}
+        </TableBody>
+      </Table>
+    </>
   );
 });
 
