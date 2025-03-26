@@ -32,6 +32,7 @@ const Leads = () => {
         
         <TabsContent value="callcenter" className="mt-6">
           <CallCenter 
+            leads={leads}
             onUpdateLeadStatus={updateLeadStatus} 
           />
         </TabsContent>

@@ -1,81 +1,127 @@
 
 import React from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Progress } from '@/components/ui/progress';
-import { Button } from '@/components/ui/button';
-import { Clock, PhoneForwarded } from 'lucide-react';
-import { CallRecord } from './types';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { PhoneCall, User, CheckCircle, Clock } from 'lucide-react';
+
+interface CallRecord {
+  id: number;
+  leadId: number;
+  nombreLead: string;
+  fechaLlamada: string;
+  horaLlamada: string;
+  duracion: string;
+  resultado: "Contactado" | "No contestó" | "Buzón de voz" | "Número equivocado" | "Programada";
+  notas: string;
+}
 
 interface CallStatsProps {
-  leads: { id: number; nombre: string; empresa: string; contacto: string; estado: string; fechaCreacion: string }[];
+  leads: any[];
   callsForToday: CallRecord[];
 }
 
 const CallStats: React.FC<CallStatsProps> = ({ leads, callsForToday }) => {
-  // Calculamos algunas estadísticas
+  // Cálculo de estadísticas
   const totalLeads = leads.length;
-  const contactados = leads.filter(lead => lead.estado === "Contactado").length;
-  const porcentajeContactados = totalLeads > 0 ? (contactados / totalLeads) * 100 : 0;
+  const totalCalls = callsForToday.length;
+  const contactedCalls = callsForToday.filter(call => call.resultado === "Contactado").length;
+  const contactRate = totalCalls > 0 ? Math.round((contactedCalls / totalCalls) * 100) : 0;
   
+  const statsCards = [
+    {
+      title: "Total Custodios",
+      value: totalLeads,
+      icon: <User className="h-5 w-5 text-white" />,
+      description: "Total de leads en el sistema",
+      color: "from-purple-800 to-purple-900"
+    },
+    {
+      title: "Llamadas Hoy",
+      value: totalCalls,
+      icon: <PhoneCall className="h-5 w-5 text-white" />,
+      description: "Llamadas realizadas hoy",
+      color: "from-blue-800 to-blue-900"
+    },
+    {
+      title: "Contactados",
+      value: contactedCalls,
+      icon: <CheckCircle className="h-5 w-5 text-white" />,
+      description: "Leads contactados hoy",
+      color: "from-green-800 to-green-900"
+    },
+    {
+      title: "Tasa de Contacto",
+      value: `${contactRate}%`,
+      icon: <Clock className="h-5 w-5 text-white" />,
+      description: "Porcentaje de éxito",
+      color: "from-yellow-800 to-yellow-900"
+    }
+  ];
+
   return (
-    <Card>
-      <CardHeader className="pb-3">
-        <CardTitle className="text-xl">Estadísticas</CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-6">
-        <div>
-          <div className="flex justify-between mb-1">
-            <span className="text-sm">Leads contactados</span>
-            <span className="text-sm font-medium">{contactados}/{totalLeads}</span>
-          </div>
-          <Progress value={porcentajeContactados} className="h-2" />
-        </div>
-        
-        <div>
-          <div className="flex justify-between mb-1">
-            <span className="text-sm">Llamadas de hoy</span>
-            <span className="text-sm font-medium">{callsForToday.length}</span>
-          </div>
-          <div className="grid grid-cols-2 gap-4 mt-4">
-            <div className="bg-muted/30 p-3 rounded-md text-center">
-              <div className="font-medium text-2xl">
-                {callsForToday.filter(c => c.resultado === "Contactado").length}
-              </div>
-              <div className="text-xs text-muted-foreground">Contactados</div>
-            </div>
-            <div className="bg-muted/30 p-3 rounded-md text-center">
-              <div className="font-medium text-2xl">
-                {callsForToday.filter(c => c.resultado !== "Contactado").length}
-              </div>
-              <div className="text-xs text-muted-foreground">No contactados</div>
-            </div>
-          </div>
-        </div>
-        
-        <div className="border-t pt-4">
-          <h4 className="font-medium mb-2">Próximas llamadas programadas</h4>
-          {callsForToday.filter(c => c.resultado === "Programada").length === 0 ? (
-            <div className="text-sm text-muted-foreground">No hay llamadas programadas</div>
-          ) : (
-            <div className="space-y-2">
-              {callsForToday
-                .filter(c => c.resultado === "Programada")
-                .map(call => (
-                  <div key={call.id} className="flex items-center justify-between bg-secondary/50 p-2 rounded-md">
-                    <div className="flex items-center">
-                      <Clock className="h-4 w-4 mr-2 text-muted-foreground" />
-                      <span className="text-sm">{call.nombreLead}</span>
-                    </div>
-                    <Button size="sm" variant="ghost">
-                      <PhoneForwarded className="h-4 w-4" />
-                    </Button>
+    <div className="space-y-4">
+      <Card className="bg-gray-900/50 border-gray-800">
+        <CardHeader className="pb-2">
+          <CardTitle className="text-xl">Rendimiento</CardTitle>
+          <CardDescription>Estadísticas de llamadas</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 gap-4">
+            {statsCards.map((stat, index) => (
+              <div 
+                key={index} 
+                className={`p-4 rounded-lg bg-gradient-to-br ${stat.color} border border-white/10`}
+              >
+                <div className="flex justify-between items-center">
+                  <div>
+                    <p className="text-gray-300 text-sm">{stat.title}</p>
+                    <p className="text-2xl font-bold text-white">{stat.value}</p>
                   </div>
-                ))}
-            </div>
-          )}
-        </div>
-      </CardContent>
-    </Card>
+                  <div className="bg-black/20 p-2 rounded-full">
+                    {stat.icon}
+                  </div>
+                </div>
+                <p className="text-xs text-gray-300 mt-2">{stat.description}</p>
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+      
+      <Card className="bg-gray-900/50 border-gray-800">
+        <CardHeader className="pb-2">
+          <CardTitle className="text-xl">Resultados de Llamadas</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-3">
+            {["Contactado", "No contestó", "Buzón de voz", "Número equivocado", "Programada"].map(result => {
+              const count = callsForToday.filter(call => call.resultado === result).length;
+              const percentage = totalCalls > 0 ? Math.round((count / totalCalls) * 100) : 0;
+              
+              return (
+                <div key={result} className="space-y-1">
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-gray-300">{result}</span>
+                    <span className="text-sm font-medium text-white">{count} ({percentage}%)</span>
+                  </div>
+                  <div className="h-2 bg-gray-800 rounded-full overflow-hidden">
+                    <div 
+                      className={`h-full rounded-full ${
+                        result === "Contactado" ? "bg-green-600" :
+                        result === "No contestó" ? "bg-yellow-600" :
+                        result === "Buzón de voz" ? "bg-blue-600" :
+                        result === "Número equivocado" ? "bg-red-600" :
+                        "bg-purple-600"
+                      }`}
+                      style={{ width: `${percentage}%` }}
+                    ></div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </CardContent>
+      </Card>
+    </div>
   );
 };
 
