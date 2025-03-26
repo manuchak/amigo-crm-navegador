@@ -10,6 +10,7 @@ export const formSchema = z.object({
   anioCarro: z.number().optional(),
   experienciaSeguridad: z.enum(["SI", "NO"]),
   credencialSedena: z.enum(["SI", "NO"]),
+  esArmado: z.enum(["SI", "NO"]),
 });
 
 export type LeadFormValues = z.infer<typeof formSchema>;

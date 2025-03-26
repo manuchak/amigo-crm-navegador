@@ -10,6 +10,15 @@ import CallCenter from '../components/call-center';
 import { LeadFormDialog } from '@/components/lead-form';
 import { useToast } from '@/hooks/use-toast';
 import { LeadFormValues } from '@/components/lead-form/types';
+import { 
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 const defaultLeads = [
   { id: 1, nombre: 'Carlos Rodríguez', empresa: 'Tecno Solutions', contacto: 'carlos@tecnosolutions.com', estado: 'Nuevo', fechaCreacion: '2023-10-15' },
@@ -24,6 +33,8 @@ const Leads = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [activeTab, setActiveTab] = useState("leads");
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
+  const [newLeadData, setNewLeadData] = useState<any>(null);
   const { toast } = useToast();
   
   const estadosLead = ['Todos', 'Nuevo', 'Contactado', 'En progreso', 'Calificado', 'No calificado'];
@@ -46,25 +57,47 @@ const Leads = () => {
   };
 
   const handleSubmitLeadForm = (formData: LeadFormValues) => {
-    const empresa = formData.tieneCarroPropio === "SI" ? "Custodios Armados (con vehículo)" : "Custodios Armados";
+    const tipoEmpresa = [];
+    
+    if (formData.tieneCarroPropio === "SI") {
+      tipoEmpresa.push("con vehículo");
+    }
+    
+    if (formData.esArmado === "SI") {
+      tipoEmpresa.push("armado");
+    }
+    
+    const empresaDescription = tipoEmpresa.length > 0 
+      ? `Custodios (${tipoEmpresa.join(", ")})` 
+      : "Custodios";
     
     const contacto = `${formData.email} | ${formData.telefono}`;
     
     const newLead = {
       id: leads.length + 1,
       nombre: formData.nombre,
-      empresa: empresa,
+      empresa: empresaDescription,
       contacto: contacto,
       estado: 'Nuevo',
       fechaCreacion: new Date().toISOString().split('T')[0],
     };
 
-    setLeads([newLead, ...leads]);
-
-    toast({
-      title: "Lead registrado",
-      description: `${formData.nombre} ha sido agregado a la lista de leads`,
-    });
+    setNewLeadData(newLead);
+    setConfirmDialogOpen(true);
+  };
+  
+  const confirmAddLead = () => {
+    if (newLeadData) {
+      setLeads([newLeadData, ...leads]);
+      
+      toast({
+        title: "Lead registrado",
+        description: `${newLeadData.nombre} ha sido agregado a la lista de leads`,
+      });
+      
+      setNewLeadData(null);
+      setConfirmDialogOpen(false);
+    }
   };
 
   return (
@@ -173,6 +206,28 @@ const Leads = () => {
         onOpenChange={setDialogOpen} 
         onSubmit={handleSubmitLeadForm} 
       />
+      
+      <AlertDialog open={confirmDialogOpen} onOpenChange={setConfirmDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmar registro de Lead</AlertDialogTitle>
+            <AlertDialogDescription>
+              {newLeadData && (
+                <div className="space-y-2 mt-2">
+                  <p><strong>Nombre:</strong> {newLeadData.nombre}</p>
+                  <p><strong>Empresa:</strong> {newLeadData.empresa}</p>
+                  <p><strong>Contacto:</strong> {newLeadData.contacto}</p>
+                </div>
+              )}
+              <p className="mt-4">¿Estás seguro que deseas registrar este lead?</p>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <Button variant="outline" onClick={() => setConfirmDialogOpen(false)}>Cancelar</Button>
+            <Button onClick={confirmAddLead}>Confirmar</Button>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

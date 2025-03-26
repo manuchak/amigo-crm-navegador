@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
 import { CallRecord } from './types';
 
@@ -37,11 +37,24 @@ export const useCallCenter = ({ leads, onUpdateLeadStatus }: UseCallCenterProps)
     },
   ]);
 
+  // This ensures the selected lead is always valid
+  useEffect(() => {
+    if (selectedLead && !leads.some(l => l.id === selectedLead)) {
+      setSelectedLead(null);
+    }
+  }, [leads, selectedLead]);
+
   const lead = leads.find(l => l.id === selectedLead);
 
   const handleStartCall = async () => {
     if (!selectedLead) {
       toast.error("Por favor selecciona un lead para llamar");
+      return;
+    }
+    
+    if (!lead) {
+      toast.error("Lead no encontrado");
+      setSelectedLead(null);
       return;
     }
     
@@ -87,6 +100,12 @@ export const useCallCenter = ({ leads, onUpdateLeadStatus }: UseCallCenterProps)
   const handleEndCall = () => {
     if (!callResult) {
       toast.error("Por favor selecciona un resultado para la llamada");
+      return;
+    }
+    
+    if (!lead) {
+      toast.error("Lead no encontrado");
+      setIsCallActive(false);
       return;
     }
     

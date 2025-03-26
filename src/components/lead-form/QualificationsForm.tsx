@@ -105,6 +105,36 @@ export function QualificationsForm({ form, watchTieneCarro }: QualificationsForm
           </FormItem>
         )}
       />
+
+      <FormField
+        control={form.control}
+        name="esArmado"
+        render={({ field }) => (
+          <FormItem className="space-y-3">
+            <FormLabel>¿Es Armado?</FormLabel>
+            <FormControl>
+              <RadioGroup
+                onValueChange={field.onChange}
+                defaultValue={field.value}
+                className="flex space-x-4"
+              >
+                <FormItem className="flex items-center space-x-2 space-y-0">
+                  <FormControl>
+                    <RadioGroupItem value="SI" />
+                  </FormControl>
+                  <FormLabel className="font-normal">Sí</FormLabel>
+                </FormItem>
+                <FormItem className="flex items-center space-x-2 space-y-0">
+                  <FormControl>
+                    <RadioGroupItem value="NO" />
+                  </FormControl>
+                  <FormLabel className="font-normal">No</FormLabel>
+                </FormItem>
+              </RadioGroup>
+            </FormControl>
+          </FormItem>
+        )}
+      />
     </>
   );
 }

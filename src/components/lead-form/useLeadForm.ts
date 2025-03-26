@@ -18,6 +18,7 @@ export function useLeadForm({ onSubmit, onOpenChange }: {
       tieneCarroPropio: "NO",
       experienciaSeguridad: "NO",
       credencialSedena: "NO",
+      esArmado: "NO",
     },
   });
 
