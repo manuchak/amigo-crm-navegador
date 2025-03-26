@@ -5,8 +5,10 @@ import CallControlPanel from './CallControlPanel';
 import CallHistory from './CallHistory';
 import CallStats from './CallStats';
 import { CallCenterProps } from './types';
+import { useLeads } from '@/context/LeadsContext';
 
-const CallCenter: React.FC<CallCenterProps> = ({ leads, onUpdateLeadStatus }) => {
+const CallCenter: React.FC<CallCenterProps> = ({ onUpdateLeadStatus }) => {
+  const { leads } = useLeads();
   const {
     selectedLead,
     setSelectedLead,

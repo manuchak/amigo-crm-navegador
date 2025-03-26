@@ -11,6 +11,6 @@ export interface CallRecord {
 }
 
 export interface CallCenterProps {
-  leads: { id: number; nombre: string; empresa: string; contacto: string; estado: string; fechaCreacion: string }[];
+  leads: any[]; // This will be populated via context
   onUpdateLeadStatus: (leadId: number, newStatus: string) => void;
 }

@@ -10,6 +10,7 @@ import Dashboard from "./pages/Dashboard";
 import Leads from "./pages/Leads";
 import Requerimientos from "./pages/Requerimientos";
 import NotFound from "./pages/NotFound";
+import { LeadsProvider } from "./context/LeadsContext";
 
 const queryClient = new QueryClient();
 
@@ -18,16 +19,18 @@ const App = () => {
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
         <TooltipProvider>
-          <Toaster />
-          <Sonner />
-          <Navbar />
-          <Routes>
-            <Route path="/" element={<Index />} />
-            <Route path="/dashboard" element={<Dashboard />} />
-            <Route path="/leads" element={<Leads />} />
-            <Route path="/requerimientos" element={<Requerimientos />} />
-            <Route path="*" element={<NotFound />} />
-          </Routes>
+          <LeadsProvider>
+            <Toaster />
+            <Sonner />
+            <Navbar />
+            <Routes>
+              <Route path="/" element={<Index />} />
+              <Route path="/dashboard" element={<Dashboard />} />
+              <Route path="/leads" element={<Leads />} />
+              <Route path="/requerimientos" element={<Requerimientos />} />
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </LeadsProvider>
         </TooltipProvider>
       </BrowserRouter>
     </QueryClientProvider>
