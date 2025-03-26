@@ -1,5 +1,24 @@
 
+interface ContactInfo {
+  email: string;
+  telefono: string;
+}
+
+interface Calificaciones {
+  esArmado: boolean;
+  tieneVehiculo: boolean;
+}
+
+interface LeadData {
+  id: number;
+  nombre: string;
+  empresa: string;
+  contacto: ContactInfo;
+  calificaciones: Calificaciones;
+}
+
 interface WebhookData {
+  leadData?: LeadData;
   leadName?: string;
   leadId?: number;
   empresa?: string;
