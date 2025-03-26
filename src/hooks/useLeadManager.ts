@@ -54,10 +54,20 @@ export function useLeadManager() {
         description: `${newLeadData.nombre} ha sido agregado a la lista de leads`,
       });
       
-      setNewLeadData(null);
+      // First close the confirmation dialog, then the form dialog
       setConfirmDialogOpen(false);
-      setDialogOpen(false); 
+      setDialogOpen(false);
+      
+      // Important: Reset the newLeadData AFTER closing dialogs to avoid UI issues
+      setTimeout(() => {
+        setNewLeadData(null);
+      }, 100);
     }
+  };
+
+  // Add a function to close the confirm dialog without adding the lead
+  const cancelConfirmation = () => {
+    setConfirmDialogOpen(false);
   };
 
   return {
@@ -67,6 +77,7 @@ export function useLeadManager() {
     setConfirmDialogOpen,
     newLeadData,
     handleSubmitLeadForm,
-    confirmAddLead
+    confirmAddLead,
+    cancelConfirmation
   };
 }

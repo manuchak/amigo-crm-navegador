@@ -19,12 +19,19 @@ const CallButtons: React.FC<CallButtonsProps> = ({
   return (
     <div className="flex mt-4 space-x-3">
       {!isCallActive ? (
-        <Button onClick={handleStartCall} disabled={!selectedLead} className="bg-green-500 hover:bg-green-600">
+        <Button 
+          onClick={handleStartCall} 
+          disabled={!selectedLead} 
+          className="bg-green-500 hover:bg-green-600"
+        >
           <Phone className="mr-2 h-4 w-4" />
           Iniciar Llamada
         </Button>
       ) : (
-        <Button onClick={handleEndCall} variant="destructive">
+        <Button 
+          onClick={handleEndCall} 
+          variant="destructive"
+        >
           <PhoneOff className="mr-2 h-4 w-4" />
           Finalizar Llamada
         </Button>

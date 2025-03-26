@@ -24,7 +24,8 @@ const Leads = () => {
     setConfirmDialogOpen,
     newLeadData,
     handleSubmitLeadForm,
-    confirmAddLead
+    confirmAddLead,
+    cancelConfirmation
   } = useLeadManager();
 
   const handleCallLead = (leadId: number) => {

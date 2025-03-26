@@ -25,6 +25,10 @@ const LeadConfirmDialog: React.FC<LeadConfirmDialogProps> = ({
   newLeadData, 
   onConfirm 
 }) => {
+  const handleCancel = () => {
+    onOpenChange(false);
+  };
+
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
       <AlertDialogContent>
@@ -44,7 +48,7 @@ const LeadConfirmDialog: React.FC<LeadConfirmDialogProps> = ({
         )}
         
         <AlertDialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
+          <Button variant="outline" onClick={handleCancel}>Cancelar</Button>
           <Button onClick={onConfirm}>Confirmar</Button>
         </AlertDialogFooter>
       </AlertDialogContent>
