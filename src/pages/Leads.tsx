@@ -5,15 +5,68 @@ import LeadCreationForm from '@/components/leads/LeadCreationForm';
 import LeadsDashboard from '@/components/leads/LeadsDashboard';
 import CallCenter from '@/components/call-center';
 import { useLeads } from '@/context/LeadsContext';
+import { Button } from '@/components/ui/button';
+import { Download } from 'lucide-react';
 
 const Leads = () => {
   const [activeTab, setActiveTab] = useState("crear");
   const { leads, updateLeadStatus } = useLeads();
 
+  const handleDownloadCSV = () => {
+    // Format the leads data for CSV
+    const headers = ['ID', 'Nombre', 'Empresa', 'Contacto', 'Estado', 'Fecha Creación'];
+    const csvData = leads.map(lead => [
+      lead.id,
+      lead.nombre,
+      lead.empresa,
+      lead.contacto,
+      lead.estado,
+      lead.fechaCreacion
+    ]);
+    
+    // Create CSV content
+    const csvContent = [
+      headers.join(','),
+      ...csvData.map(row => row.map(cell => 
+        // Wrap cells with commas in quotes
+        typeof cell === 'string' && cell.includes(',') 
+          ? `"${cell}"` 
+          : cell
+      ).join(','))
+    ].join('\n');
+    
+    // Create a blob and download link
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    
+    // Set up download attributes
+    link.setAttribute('href', url);
+    link.setAttribute('download', `custodios-${new Date().toISOString().split('T')[0]}.csv`);
+    
+    // Trigger download and clean up
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   return (
     <div className="container mx-auto px-6 py-20 text-gray-800 bg-gray-50">
-      <h1 className="text-3xl font-bold tracking-tight mb-2">Gestión de Custodios</h1>
-      <p className="text-muted-foreground mb-6">Reclutamiento y seguimiento de custodios para servicios de seguridad</p>
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight mb-2">Gestión de Custodios</h1>
+          <p className="text-muted-foreground">Reclutamiento y seguimiento de custodios para servicios de seguridad</p>
+        </div>
+        
+        <Button 
+          onClick={handleDownloadCSV} 
+          variant="outline" 
+          className="mt-4 md:mt-0"
+        >
+          <Download className="mr-2 h-4 w-4" />
+          Descargar CSV
+        </Button>
+      </div>
       
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="mb-6 bg-white shadow-sm">
