@@ -31,7 +31,7 @@ const ProgressCard: React.FC<ProgressCardProps> = ({ req, index, onEdit }) => {
     <Card className="shadow-sm">
       <CardHeader className="pb-2 flex flex-row justify-between items-start">
         <div>
-          <CardTitle>Adquisición Custodios Armados</CardTitle>
+          <CardTitle>Custodios con Vehiculo</CardTitle>
           <CardDescription>
             {req.completados} de {req.objetivo} ({req.porcentaje}% completado)
           </CardDescription>
