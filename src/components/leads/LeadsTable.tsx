@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from '@/components/ui/table';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -26,12 +27,14 @@ const LeadsTable: React.FC<LeadsTableProps> = ({ isLoading, onCallLead }) => {
 
     // Parse contact information from the lead to get only the phone number
     const contactInfo = lead.contacto.split(' | ');
-    const phone = contactInfo[1] || '';
+    const phoneNumber = contactInfo[1] || '';
 
-    // Only send the phone number to the webhook
+    // Format data for VAPI.AI through Make.com webhook
     try {
       await executeWebhook({
-        telefono: phone,
+        telefono: phoneNumber,
+        nombre: lead.nombre,
+        empresa: lead.empresa,
         timestamp: new Date().toISOString(),
         action: "outbound_call_requested_from_list"
       });

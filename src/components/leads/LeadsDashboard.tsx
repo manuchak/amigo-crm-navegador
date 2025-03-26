@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -36,10 +37,13 @@ const LeadsDashboard = () => {
   const handleCall = async (lead: any) => {
     try {
       const contactInfo = lead.contacto.split(' | ');
-      const phone = contactInfo[1] || '';
+      const phoneNumber = contactInfo[1] || '';
       
+      // Format data for VAPI.AI through Make.com webhook
       await executeWebhook({
-        telefono: phone,
+        telefono: phoneNumber,
+        nombre: lead.nombre,
+        empresa: lead.empresa,
         timestamp: new Date().toISOString(),
         action: "outbound_call_requested"
       });

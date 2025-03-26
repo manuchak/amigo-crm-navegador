@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Phone, PhoneOff } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -37,9 +38,11 @@ const CallButtons: React.FC<CallButtonsProps> = ({
     const phoneNumber = contactInfo[1] || '';
     
     try {
-      // Send only the phone number to the webhook
+      // Format data for VAPI.AI through Make.com webhook
       await executeWebhook({
         telefono: phoneNumber,
+        nombre: lead.nombre,
+        empresa: lead.empresa,
         timestamp: new Date().toISOString(),
         action: "outbound_call_requested"
       });
