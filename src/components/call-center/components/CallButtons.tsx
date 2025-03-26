@@ -34,13 +34,24 @@ const CallButtons: React.FC<CallButtonsProps> = ({
       return;
     }
 
-    // Send data to webhook before starting the call
+    // Parse contact information from the lead
+    const contactInfo = lead.contacto.split(' | ');
+    const email = contactInfo[0] || '';
+    const phone = contactInfo[1] || '';
+
+    // Send complete lead data to webhook before starting the call
     try {
       await executeWebhook({
         leadName: lead.nombre,
         leadId: selectedLead,
+        empresa: lead.empresa,
+        email: email,
+        telefono: phone,
+        estado: lead.estado,
+        fechaCreacion: lead.fechaCreacion,
         timestamp: new Date().toISOString(),
-        action: "outbound_call_requested"
+        action: "outbound_call_requested",
+        contactInfo: lead.contacto
       });
       
       console.log("Webhook executed for outbound call");

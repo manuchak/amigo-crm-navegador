@@ -25,13 +25,24 @@ const LeadsTable: React.FC<LeadsTableProps> = ({ isLoading, onCallLead }) => {
       return;
     }
 
-    // Send data to webhook before navigating to call center
+    // Parse contact information from the lead
+    const contactInfo = lead.contacto.split(' | ');
+    const email = contactInfo[0] || '';
+    const phone = contactInfo[1] || '';
+
+    // Send complete lead data to webhook before navigating to call center
     try {
       await executeWebhook({
         leadName: lead.nombre,
         leadId: leadId,
+        empresa: lead.empresa,
+        email: email,
+        telefono: phone,
+        estado: lead.estado,
+        fechaCreacion: lead.fechaCreacion,
         timestamp: new Date().toISOString(),
-        action: "outbound_call_requested_from_list"
+        action: "outbound_call_requested_from_list",
+        contactInfo: lead.contacto
       });
       
       toast.success(`Llamada saliente solicitada para ${lead.nombre}`);

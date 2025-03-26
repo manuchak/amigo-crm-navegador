@@ -2,10 +2,16 @@
 interface WebhookData {
   leadName?: string;
   leadId?: number;
+  empresa?: string;
+  email?: string;
+  telefono?: string;
+  estado?: string;
+  fechaCreacion?: string;
   timestamp: string;
   action: string;
   result?: string;
   duration?: string;
+  contactInfo?: string;
 }
 
 export const executeWebhook = async (data: WebhookData) => {
