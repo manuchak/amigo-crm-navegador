@@ -31,15 +31,18 @@ const LeadConfirmDialog: React.FC<LeadConfirmDialogProps> = ({
         <AlertDialogHeader>
           <AlertDialogTitle>Confirmar registro de Lead</AlertDialogTitle>
           <AlertDialogDescription>
-            {newLeadData && (
-              <div className="space-y-2 mt-2">
-                <p><strong>Nombre:</strong> {newLeadData.nombre}</p>
-                <p><strong>Empresa:</strong> {newLeadData.empresa}</p>
-                <p><strong>Contacto:</strong> {newLeadData.contacto}</p>
-              </div>
-            )}
+            ¿Estás seguro de que deseas registrar este lead?
           </AlertDialogDescription>
         </AlertDialogHeader>
+        
+        {newLeadData && (
+          <div className="space-y-2 my-4 text-sm">
+            <div><strong>Nombre:</strong> {newLeadData.nombre}</div>
+            <div><strong>Empresa:</strong> {newLeadData.empresa}</div>
+            <div><strong>Contacto:</strong> {newLeadData.contacto}</div>
+          </div>
+        )}
+        
         <AlertDialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>Cancelar</Button>
           <Button onClick={onConfirm}>Confirmar</Button>
