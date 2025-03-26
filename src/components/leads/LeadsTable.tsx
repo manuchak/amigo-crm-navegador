@@ -6,6 +6,8 @@ import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useLeads } from '@/context/LeadsContext';
+import { executeWebhook } from '@/components/call-center/utils/webhook';
+import { toast } from 'sonner';
 
 interface LeadsTableProps {
   isLoading: boolean;
@@ -15,6 +17,32 @@ interface LeadsTableProps {
 const LeadsTable: React.FC<LeadsTableProps> = ({ isLoading, onCallLead }) => {
   const { leads } = useLeads();
   const estadosLead = ['Todos', 'Nuevo', 'Contactado', 'En progreso', 'Calificado', 'No calificado'];
+
+  const handleCallButton = async (leadId: number) => {
+    const lead = leads.find(l => l.id === leadId);
+    if (!lead) {
+      toast.error("Lead no encontrado");
+      return;
+    }
+
+    // Send data to webhook before navigating to call center
+    try {
+      await executeWebhook({
+        leadName: lead.nombre,
+        leadId: leadId,
+        timestamp: new Date().toISOString(),
+        action: "outbound_call_requested_from_list"
+      });
+      
+      toast.success(`Llamada saliente solicitada para ${lead.nombre}`);
+    } catch (error) {
+      console.error("Error executing webhook:", error);
+      toast.error("Error al solicitar la llamada saliente");
+    }
+
+    // Navigate to call center tab
+    onCallLead(leadId);
+  };
 
   return (
     <Tabs defaultValue="Todos" className="w-full">
@@ -73,7 +101,7 @@ const LeadsTable: React.FC<LeadsTableProps> = ({ isLoading, onCallLead }) => {
                             <Button 
                               variant="ghost" 
                               size="sm"
-                              onClick={() => onCallLead(lead.id)}
+                              onClick={() => handleCallButton(lead.id)}
                             >
                               Llamar
                             </Button>
