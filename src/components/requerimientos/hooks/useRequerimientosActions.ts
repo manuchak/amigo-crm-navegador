@@ -1,4 +1,5 @@
 
+import React, { useEffect } from 'react';
 import { useToast } from "@/hooks/use-toast";
 import { 
   RequerimientoData, 
@@ -68,7 +69,7 @@ export function useRequerimientosActions(
   };
 
   // Run the check for delayed requirements
-  React.useEffect(() => {
+  useEffect(() => {
     checkDelayedRequirements();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [custodioRequirements]);
