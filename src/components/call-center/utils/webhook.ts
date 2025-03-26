@@ -1,42 +1,6 @@
 
-interface ContactInfo {
-  email: string;
-  telefono: string;
-}
-
-interface Calificaciones {
-  esArmado: boolean;
-  tieneVehiculo: boolean;
-}
-
-interface LeadData {
-  id: number;
-  nombre: string;
-  empresa: string;
-  contacto: ContactInfo;
-  calificaciones: Calificaciones;
-}
-
 interface WebhookData {
-  leadData?: LeadData;
-  leadName?: string;
-  leadId?: number;
-  empresa?: string;
-  email?: string;
-  telefono?: string;
-  estado?: string;
-  fechaCreacion?: string;
-  timestamp: string;
-  action: string;
-  result?: string;
-  duration?: string;
-  contactInfo?: string;
-  modeloVehiculo?: string;
-  anoVehiculo?: string;
-  tieneVehiculo?: string;
-  experienciaSeguridad?: string;
-  credencialSedena?: string;
-  esArmado?: string;
+  [key: string]: any; // Allow for any key-value pairs to support flat structure
 }
 
 export const executeWebhook = async (data: WebhookData) => {

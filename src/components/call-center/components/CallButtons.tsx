@@ -43,24 +43,19 @@ const CallButtons: React.FC<CallButtonsProps> = ({
     const hasVehicle = lead.empresa.toLowerCase().includes('vehículo');
 
     try {
+      // Enviar datos en formato plano (sin anidación)
       await executeWebhook({
-        leadData: {
-          id: selectedLead,
-          nombre: lead.nombre,
-          empresa: lead.empresa,
-          contacto: {
-            email: email,
-            telefono: phoneNumber, // El número ya incluye el prefijo +52
-          },
-          calificaciones: {
-            esArmado: isArmed,
-            tieneVehiculo: hasVehicle
-          }
-        },
+        lead_id: selectedLead,
+        lead_nombre: lead.nombre,
+        lead_empresa: lead.empresa,
+        email: email,
+        telefono: phoneNumber,
         estado: lead.estado,
         fechaCreacion: lead.fechaCreacion,
         timestamp: new Date().toISOString(),
-        action: "outbound_call_requested"
+        action: "outbound_call_requested",
+        es_armado: isArmed,
+        tiene_vehiculo: hasVehicle
       });
       
       console.log("Webhook ejecutado para llamada saliente");
