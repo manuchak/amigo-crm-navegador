@@ -31,7 +31,7 @@ const CallControlPanel: React.FC<CallControlPanelProps> = ({
   handleEndCall
 }) => {
   return (
-    <Card>
+    <Card className="border shadow-sm">
       <CardHeader className="pb-3">
         <CardTitle className="text-xl">Control de Llamadas</CardTitle>
       </CardHeader>

@@ -75,11 +75,11 @@ const LeadsDashboard = () => {
   // Función para obtener color de badge según estado
   const getStatusColor = (status: string) => {
     switch (status) {
-      case "Nuevo": return "bg-blue-600";
-      case "Contactado": return "bg-yellow-600";
-      case "Calificado": return "bg-green-600";
-      case "Rechazado": return "bg-red-600";
-      default: return "bg-gray-600";
+      case "Nuevo": return "info";
+      case "Contactado": return "warning";
+      case "Calificado": return "success";
+      case "Rechazado": return "destructive";
+      default: return "secondary";
     }
   };
 
@@ -87,31 +87,31 @@ const LeadsDashboard = () => {
     <div className="space-y-6">
       {/* Tarjetas de estadísticas */}
       <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-        <Card className="bg-gray-900/50 border-gray-800">
+        <Card>
           <CardHeader className="pb-2">
             <CardDescription>Total de Leads</CardDescription>
             <CardTitle className="text-2xl">{stats.total}</CardTitle>
           </CardHeader>
         </Card>
-        <Card className="bg-gray-900/50 border-gray-800">
+        <Card>
           <CardHeader className="pb-2">
             <CardDescription>Nuevos</CardDescription>
             <CardTitle className="text-2xl">{stats.nuevos}</CardTitle>
           </CardHeader>
         </Card>
-        <Card className="bg-gray-900/50 border-gray-800">
+        <Card>
           <CardHeader className="pb-2">
             <CardDescription>Contactados</CardDescription>
             <CardTitle className="text-2xl">{stats.contactados}</CardTitle>
           </CardHeader>
         </Card>
-        <Card className="bg-gray-900/50 border-gray-800">
+        <Card>
           <CardHeader className="pb-2">
             <CardDescription>Calificados</CardDescription>
             <CardTitle className="text-2xl">{stats.calificados}</CardTitle>
           </CardHeader>
         </Card>
-        <Card className="bg-gray-900/50 border-gray-800">
+        <Card>
           <CardHeader className="pb-2">
             <CardDescription>Rechazados</CardDescription>
             <CardTitle className="text-2xl">{stats.rechazados}</CardTitle>
@@ -120,7 +120,7 @@ const LeadsDashboard = () => {
       </div>
       
       {/* Lista de leads */}
-      <Card className="bg-gray-900/50 border-gray-800">
+      <Card>
         <CardHeader>
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
             <div>
@@ -148,10 +148,10 @@ const LeadsDashboard = () => {
           </div>
         </CardHeader>
         <CardContent>
-          <div className="rounded-md border border-gray-800">
+          <div className="rounded-md border">
             <Table>
               <TableHeader>
-                <TableRow className="bg-gray-800/50 hover:bg-gray-800/70">
+                <TableRow className="bg-gray-50 hover:bg-gray-100">
                   <TableHead>Nombre</TableHead>
                   <TableHead>Categoría</TableHead>
                   <TableHead>Contacto</TableHead>
@@ -169,12 +169,12 @@ const LeadsDashboard = () => {
                   </TableRow>
                 ) : (
                   filteredLeads.map((lead) => (
-                    <TableRow key={lead.id} className="hover:bg-gray-800/50">
+                    <TableRow key={lead.id} className="hover:bg-gray-50">
                       <TableCell className="font-medium">{lead.nombre}</TableCell>
                       <TableCell>{lead.empresa}</TableCell>
                       <TableCell>{lead.contacto}</TableCell>
                       <TableCell>
-                        <Badge className={getStatusColor(lead.estado)}>
+                        <Badge variant={getStatusColor(lead.estado)}>
                           {lead.estado}
                         </Badge>
                       </TableCell>

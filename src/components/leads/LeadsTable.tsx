@@ -57,7 +57,7 @@ const LeadsTable: React.FC<LeadsTableProps> = ({ isLoading, onCallLead }) => {
 
   return (
     <Tabs defaultValue="Todos" className="w-full">
-      <TabsList className="mb-6">
+      <TabsList className="mb-6 bg-white">
         {estadosLead.map(estado => (
           <TabsTrigger key={estado} value={estado}>{estado}</TabsTrigger>
         ))}

@@ -21,19 +21,20 @@ interface CallHistoryProps {
 }
 
 const CallHistory: React.FC<CallHistoryProps> = ({ callsForToday }) => {
-  const getResultColor = (result: string): string => {
+  // Updated to ensure we only return valid variants from badgeVariants
+  const getResultColor = (result: string): "success" | "warning" | "info" | "destructive" | "purple" => {
     switch (result) {
       case "Contactado": return "success";
       case "No contestó": return "warning";
       case "Buzón de voz": return "info";
       case "Número equivocado": return "destructive";
       case "Programada": return "purple";
-      default: return "secondary";
+      default: return "info";
     }
   };
 
   return (
-    <Card className="bg-gray-900/50 border-gray-800">
+    <Card className="border bg-white shadow-sm">
       <CardHeader>
         <CardTitle className="text-xl">Historial de Llamadas ({callsForToday.length})</CardTitle>
       </CardHeader>
@@ -46,7 +47,7 @@ const CallHistory: React.FC<CallHistoryProps> = ({ callsForToday }) => {
           <ScrollArea className="h-[300px]">
             <Table>
               <TableHeader>
-                <TableRow className="bg-gray-800/50 hover:bg-gray-800/70">
+                <TableRow className="bg-gray-50 hover:bg-gray-100">
                   <TableHead>Custodio</TableHead>
                   <TableHead>Hora</TableHead>
                   <TableHead>Duración</TableHead>
@@ -56,7 +57,7 @@ const CallHistory: React.FC<CallHistoryProps> = ({ callsForToday }) => {
               </TableHeader>
               <TableBody>
                 {callsForToday.map((call) => (
-                  <TableRow key={call.id} className="hover:bg-gray-800/50">
+                  <TableRow key={call.id} className="hover:bg-gray-50">
                     <TableCell className="font-medium">{call.nombreLead}</TableCell>
                     <TableCell>{call.horaLlamada}</TableCell>
                     <TableCell>{call.duracion}</TableCell>
