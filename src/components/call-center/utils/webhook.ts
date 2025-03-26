@@ -17,6 +17,8 @@ interface WebhookData {
 export const executeWebhook = async (data: WebhookData) => {
   const webhookUrl = "https://hook.us2.make.com/nlckmsej5cwmfe93gv4g6xvmavhilujl";
   
+  console.log("Sending data to webhook:", JSON.stringify(data, null, 2));
+  
   return fetch(webhookUrl, {
     method: "POST",
     headers: {
