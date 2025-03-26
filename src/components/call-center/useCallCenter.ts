@@ -1,6 +1,9 @@
-import { useState, useEffect } from 'react';
-import { toast } from 'sonner';
+
+import { useActiveCall } from './hooks/useActiveCall';
+import { useCallHistory } from './hooks/useCallHistory';
 import { CallRecord } from './types';
+import { executeWebhook } from './utils/webhook';
+import { toast } from 'sonner';
 
 export interface UseCallCenterProps {
   leads: { id: number; nombre: string; empresa: string; contacto: string; estado: string; fechaCreacion: string }[];
@@ -8,124 +11,22 @@ export interface UseCallCenterProps {
 }
 
 export const useCallCenter = ({ leads, onUpdateLeadStatus }: UseCallCenterProps) => {
-  const [selectedLead, setSelectedLead] = useState<number | null>(null);
-  const [callResult, setCallResult] = useState<string>('');
-  const [notes, setNotes] = useState('');
-  const [callDuration, setCallDuration] = useState('00:00');
-  const [isCallActive, setIsCallActive] = useState(false);
-  const [callsForToday, setCallsForToday] = useState<CallRecord[]>([]);
-
-  // Load call history from localStorage on mount
-  useEffect(() => {
-    const savedCalls = localStorage.getItem('callHistory');
-    if (savedCalls) {
-      setCallsForToday(JSON.parse(savedCalls));
-    } else {
-      // Default call records for demo if none exist
-      const defaultCalls: CallRecord[] = [
-        { 
-          id: 1, 
-          leadId: 1, 
-          nombreLead: "Carlos Rodríguez", 
-          fechaLlamada: "2023-10-15", 
-          horaLlamada: "10:30", 
-          duracion: "02:45", 
-          resultado: "Contactado", 
-          notas: "Cliente interesado en el servicio premium" 
-        },
-        {
-          id: 2,
-          leadId: 2,
-          nombreLead: "María García",
-          fechaLlamada: "2023-10-15",
-          horaLlamada: "11:15",
-          duracion: "01:30",
-          resultado: "No contestó",
-          notas: "Intentar llamar nuevamente mañana"
-        },
-      ];
-      setCallsForToday(defaultCalls);
-      localStorage.setItem('callHistory', JSON.stringify(defaultCalls));
-    }
-  }, []);
-
-  // Save call history to localStorage whenever it changes
-  useEffect(() => {
-    localStorage.setItem('callHistory', JSON.stringify(callsForToday));
-  }, [callsForToday]);
-
-  // Listen for lead selection from the leads tab
-  useEffect(() => {
-    const handleSelectLead = (event: CustomEvent) => {
-      setSelectedLead(event.detail);
-    };
-
-    window.addEventListener('selectLeadForCall', handleSelectLead as EventListener);
-
-    return () => {
-      window.removeEventListener('selectLeadForCall', handleSelectLead as EventListener);
-    };
-  }, []);
-
-  // This ensures the selected lead is always valid
-  useEffect(() => {
-    if (selectedLead && !leads.some(l => l.id === selectedLead)) {
-      setSelectedLead(null);
-    }
-  }, [leads, selectedLead]);
-
-  const lead = leads.find(l => l.id === selectedLead);
-
-  const handleStartCall = async () => {
-    if (!selectedLead) {
-      toast.error("Por favor selecciona un lead para llamar");
-      return;
-    }
-    
-    if (!lead) {
-      toast.error("Lead no encontrado");
-      setSelectedLead(null);
-      return;
-    }
-    
-    setIsCallActive(true);
-    toast.success(`Iniciando llamada a ${lead?.nombre}`);
-    
-    // Iniciar un temporizador para la duración de la llamada
-    let seconds = 0;
-    const timer = setInterval(() => {
-      seconds++;
-      const mins = Math.floor(seconds / 60).toString().padStart(2, '0');
-      const secs = (seconds % 60).toString().padStart(2, '0');
-      setCallDuration(`${mins}:${secs}`);
-    }, 1000);
-    
-    // Guardamos el timer en un atributo para limpiarlo después
-    (window as any).callTimer = timer;
-    
-    // Execute webhook
-    try {
-      const webhookUrl = "https://hook.us2.make.com/nlckmsej5cwmfe93gv4g6xvmavhilujl";
-      
-      await fetch(webhookUrl, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        mode: "no-cors",
-        body: JSON.stringify({
-          leadName: lead?.nombre,
-          leadId: selectedLead,
-          timestamp: new Date().toISOString(),
-          action: "call_started"
-        }),
-      });
-      
-      console.log("Webhook executed successfully");
-    } catch (error) {
-      console.error("Error executing webhook:", error);
-    }
-  };
+  const { callsForToday, addCallRecord } = useCallHistory();
+  
+  const {
+    selectedLead,
+    setSelectedLead,
+    callResult,
+    setCallResult,
+    notes,
+    setNotes,
+    callDuration,
+    isCallActive,
+    setIsCallActive,
+    lead,
+    handleStartCall,
+    resetCallState
+  } = useActiveCall({ leads, onUpdateLeadStatus });
 
   const handleEndCall = () => {
     if (!callResult) {
@@ -167,35 +68,24 @@ export const useCallCenter = ({ leads, onUpdateLeadStatus }: UseCallCenterProps)
       notas: notes
     };
     
-    setCallsForToday([newCall, ...callsForToday]);
+    addCallRecord(newCall);
     
     // Execute webhook for call ended
     try {
-      const webhookUrl = "https://hook.us2.make.com/nlckmsej5cwmfe93gv4g6xvmavhilujl";
-      
-      fetch(webhookUrl, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        mode: "no-cors",
-        body: JSON.stringify({
-          leadName: lead?.nombre,
-          leadId: selectedLead,
-          timestamp: new Date().toISOString(),
-          action: "call_ended",
-          result: callResult,
-          duration: callDuration
-        }),
+      executeWebhook({
+        leadName: lead?.nombre,
+        leadId: selectedLead,
+        timestamp: new Date().toISOString(),
+        action: "call_ended",
+        result: callResult,
+        duration: callDuration
       });
     } catch (error) {
       console.error("Error executing webhook:", error);
     }
     
     // Resetear campos
-    setCallResult('');
-    setNotes('');
-    setCallDuration('00:00');
+    resetCallState();
     
     toast.success("Llamada registrada con éxito");
   };
