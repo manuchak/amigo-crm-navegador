@@ -23,23 +23,23 @@ const CallButtons: React.FC<CallButtonsProps> = ({
   
   const handleCall = async () => {
     if (!selectedLead) {
-      toast.error("Selecciona un lead para llamar");
+      toast.error("Selecciona un custodio para llamar");
       return;
     }
 
-    // Get the selected lead data
+    // Obtener datos del lead seleccionado
     const lead = leads.find(l => l.id === selectedLead);
     if (!lead) {
-      toast.error("Lead no encontrado");
+      toast.error("Custodio no encontrado");
       return;
     }
 
-    // Parse contact information from the lead
+    // Extraer información de contacto
     const contactInfo = lead.contacto.split(' | ');
     const email = contactInfo[0] || '';
     const phone = contactInfo[1] || '';
 
-    // Send complete lead data to webhook before starting the call
+    // Enviar datos completos al webhook antes de iniciar la llamada
     try {
       await executeWebhook({
         leadName: lead.nombre,
@@ -54,14 +54,14 @@ const CallButtons: React.FC<CallButtonsProps> = ({
         contactInfo: lead.contacto
       });
       
-      console.log("Webhook executed for outbound call");
+      console.log("Webhook ejecutado para llamada saliente");
       toast.success(`Llamada saliente solicitada para ${lead.nombre}`);
     } catch (error) {
-      console.error("Error executing webhook:", error);
+      console.error("Error al ejecutar webhook:", error);
       toast.error("Error al solicitar la llamada saliente");
     }
 
-    // Continue with the normal call start process
+    // Continuar con el proceso normal de inicio de llamada
     await handleStartCall();
   };
 
