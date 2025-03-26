@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
 import { CallRecord } from './types';
@@ -23,7 +22,7 @@ export const useCallCenter = ({ leads, onUpdateLeadStatus }: UseCallCenterProps)
       setCallsForToday(JSON.parse(savedCalls));
     } else {
       // Default call records for demo if none exist
-      const defaultCalls = [
+      const defaultCalls: CallRecord[] = [
         { 
           id: 1, 
           leadId: 1, 
