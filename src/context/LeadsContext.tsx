@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect } from 'react';
 
 // Types
@@ -26,6 +25,8 @@ const defaultLeads = [
   { id: 3, nombre: 'Juan López', empresa: 'Custodio (con vehículo y armado)', contacto: 'juan@ejemplo.com | +525599887766', estado: 'Calificado', fechaCreacion: '2023-10-05' },
   { id: 4, nombre: 'Ana Martínez', empresa: 'Custodio', contacto: 'ana@ejemplo.com | +525566778899', estado: 'Rechazado', fechaCreacion: '2023-09-28' },
   { id: 5, nombre: 'Roberto Sánchez', empresa: 'Custodio (armado)', contacto: 'roberto@ejemplo.com | +525544332211', estado: 'Nuevo', fechaCreacion: '2023-09-20' },
+  { id: 6, nombre: 'Laura Mendoza', empresa: 'Custodio (con vehículo)', contacto: 'laura@ejemplo.com | +525511223344', estado: 'Calificado', fechaCreacion: '2023-10-01' },
+  { id: 7, nombre: 'Pedro González', empresa: 'Custodio (armado)', contacto: 'pedro@ejemplo.com | +525533445566', estado: 'Calificado', fechaCreacion: '2023-09-25' },
 ];
 
 const LeadsContext = createContext<LeadsContextType | undefined>(undefined);

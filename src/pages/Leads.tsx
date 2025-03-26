@@ -6,7 +6,8 @@ import LeadsDashboard from '@/components/leads/LeadsDashboard';
 import CallCenter from '@/components/call-center';
 import { useLeads } from '@/context/LeadsContext';
 import { Button } from '@/components/ui/button';
-import { Download } from 'lucide-react';
+import { Download, UserCheck } from 'lucide-react';
+import QualifiedLeadsApproval from '@/components/leads/QualifiedLeadsApproval';
 
 const Leads = () => {
   const [activeTab, setActiveTab] = useState("crear");
@@ -72,6 +73,10 @@ const Leads = () => {
         <TabsList className="mb-6 bg-white shadow-sm">
           <TabsTrigger value="crear">Crear Lead</TabsTrigger>
           <TabsTrigger value="seguimiento">Seguimiento</TabsTrigger>
+          <TabsTrigger value="aprobacion">
+            <UserCheck className="mr-1 h-4 w-4" />
+            Aprobación
+          </TabsTrigger>
           <TabsTrigger value="callcenter">Call Center</TabsTrigger>
         </TabsList>
         
@@ -81,6 +86,10 @@ const Leads = () => {
         
         <TabsContent value="seguimiento" className="mt-6">
           <LeadsDashboard />
+        </TabsContent>
+        
+        <TabsContent value="aprobacion" className="mt-6">
+          <QualifiedLeadsApproval />
         </TabsContent>
         
         <TabsContent value="callcenter" className="mt-6">
