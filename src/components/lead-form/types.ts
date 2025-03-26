@@ -20,3 +20,12 @@ export type LeadFormDialogProps = {
   onOpenChange: (open: boolean) => void;
   onSubmit: (data: LeadFormValues) => void;
 };
+
+export interface Lead {
+  id: number;
+  nombre: string;
+  empresa: string;
+  contacto: string;
+  estado: string;
+  fechaCreacion: string;
+}

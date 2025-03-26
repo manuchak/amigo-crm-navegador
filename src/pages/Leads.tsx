@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from '@/components/ui/table';
@@ -20,6 +20,12 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 
+// Utility function to create a unique ID
+const generateId = () => {
+  return Date.now() + Math.floor(Math.random() * 1000);
+};
+
+// Default leads data
 const defaultLeads = [
   { id: 1, nombre: 'Carlos Rodríguez', empresa: 'Tecno Solutions', contacto: 'carlos@tecnosolutions.com', estado: 'Nuevo', fechaCreacion: '2023-10-15' },
   { id: 2, nombre: 'María García', empresa: 'Innovación Digital', contacto: 'maria@innovaciondigital.com', estado: 'En progreso', fechaCreacion: '2023-10-10' },
@@ -38,6 +44,19 @@ const Leads = () => {
   const { toast } = useToast();
   
   const estadosLead = ['Todos', 'Nuevo', 'Contactado', 'En progreso', 'Calificado', 'No calificado'];
+
+  // Load leads from localStorage on first render
+  useEffect(() => {
+    const savedLeads = localStorage.getItem('leads');
+    if (savedLeads) {
+      setLeads(JSON.parse(savedLeads));
+    }
+  }, []);
+
+  // Save leads to localStorage whenever they change
+  useEffect(() => {
+    localStorage.setItem('leads', JSON.stringify(leads));
+  }, [leads]);
 
   const handleUpdateLeadStatus = (leadId: number, newStatus: string) => {
     const updatedLeads = leads.map(lead => 
@@ -88,7 +107,8 @@ const Leads = () => {
   
   const confirmAddLead = () => {
     if (newLeadData) {
-      setLeads([newLeadData, ...leads]);
+      const updatedLeads = [newLeadData, ...leads];
+      setLeads(updatedLeads);
       
       toast({
         title: "Lead registrado",
@@ -97,6 +117,7 @@ const Leads = () => {
       
       setNewLeadData(null);
       setConfirmDialogOpen(false);
+      setDialogOpen(false); // Close the lead form dialog
     }
   };
 
@@ -180,8 +201,17 @@ const Leads = () => {
                                 </TableCell>
                                 <TableCell>{lead.fechaCreacion}</TableCell>
                                 <TableCell className="text-right">
-                                  <Button variant="ghost" size="sm">
-                                    Ver
+                                  <Button 
+                                    variant="ghost" 
+                                    size="sm"
+                                    onClick={() => {
+                                      setActiveTab("callcenter");
+                                      // Pass selected lead to call center
+                                      const event = new CustomEvent('selectLeadForCall', { detail: lead.id });
+                                      window.dispatchEvent(event);
+                                    }}
+                                  >
+                                    Llamar
                                   </Button>
                                 </TableCell>
                               </TableRow>
@@ -219,7 +249,6 @@ const Leads = () => {
                   <p><strong>Contacto:</strong> {newLeadData.contacto}</p>
                 </div>
               )}
-              <p className="mt-4">¿Estás seguro que deseas registrar este lead?</p>
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

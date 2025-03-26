@@ -36,12 +36,12 @@ export function useLeadForm({ onSubmit, onOpenChange }: {
     };
     
     onSubmit(submissionData);
-    form.reset();
+    
+    // Don't reset the form or close the dialog yet - we'll do this after confirmation
     toast({
-      title: "Formulario enviado",
-      description: "El lead ha sido registrado exitosamente",
+      title: "Formulario completado",
+      description: "Por favor confirma los datos del lead",
     });
-    onOpenChange(false);
   };
 
   return {
