@@ -5,6 +5,7 @@ export interface CiudadDesglose {
   ciudad: string;
   completados: number;
   objetivo: number;
+  estado?: 'solicitado' | 'recibido' | 'aceptado' | 'retrasado';
 }
 
 export interface RequerimientoData {

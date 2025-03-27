@@ -23,31 +23,45 @@ const CustodioRequirements = () => {
   useEffect(() => {
     if (custodioRequirements.length === 0) return;
 
-    // Filtrar solo requisitos aceptados
-    const aceptados = custodioRequirements.filter(req => req.estado === 'aceptado');
-    
     // Obtener todas las ciudades únicas
-    const ciudadesUnicas = [...new Set(aceptados.map(req => req.ciudad))];
+    const ciudadesUnicas = [...new Set(custodioRequirements.map(req => req.ciudad))];
     
-    // Crear desgloses por ciudad
+    // Función para crear desgloses por ciudad
     const crearDesglosePorCiudad = (filtro: (req: any) => boolean) => {
       return ciudadesUnicas.map(ciudad => {
-        const reqsCiudad = aceptados.filter(req => req.ciudad === ciudad && filtro(req));
+        // Filtramos requerimientos para esta ciudad y este tipo
+        const reqsCiudad = custodioRequirements.filter(req => req.ciudad === ciudad && filtro(req));
+        
+        if (reqsCiudad.length === 0) return null;
+        
         const cantidadCompletada = reqsCiudad.reduce((total, req) => total + req.cantidad, 0);
+        
+        // Determinamos el estado predominante para este tipo en esta ciudad
+        // Priorizamos el estado más avanzado
+        let estadoPredominante: 'solicitado' | 'recibido' | 'aceptado' | 'retrasado' = 'solicitado';
+        
+        if (reqsCiudad.some(req => req.estado === 'aceptado')) {
+          estadoPredominante = 'aceptado';
+        } else if (reqsCiudad.some(req => req.estado === 'recibido')) {
+          estadoPredominante = 'recibido';
+        } else if (reqsCiudad.some(req => req.estado === 'retrasado')) {
+          estadoPredominante = 'retrasado';
+        }
         
         return {
           ciudad,
           completados: cantidadCompletada,
-          objetivo: 10 // Valor por defecto, se puede ajustar basado en datos históricos
+          objetivo: 10, // Valor por defecto, se puede ajustar basado en datos históricos
+          estado: estadoPredominante
         };
-      }).filter(item => item.completados > 0);
+      }).filter(Boolean); // Eliminar elementos nulos
     };
     
     // Contadores para cada tipo de custodio
-    const custodiosVehiculo = aceptados.filter(req => !req.armado && !req.abordo).reduce((total, req) => total + req.cantidad, 0);
-    const custodiosArmados = aceptados.filter(req => req.armado && !req.abordo).reduce((total, req) => total + req.cantidad, 0);
-    const custodiosAbordo = aceptados.filter(req => req.abordo).reduce((total, req) => total + req.cantidad, 0);
-    const custodiosVehiculoArmado = aceptados.filter(req => req.armado && !req.abordo).reduce((total, req) => total + req.cantidad, 0);
+    const custodiosVehiculo = custodioRequirements.filter(req => !req.armado && !req.abordo).reduce((total, req) => total + req.cantidad, 0);
+    const custodiosArmados = custodioRequirements.filter(req => req.armado && !req.abordo).reduce((total, req) => total + req.cantidad, 0);
+    const custodiosAbordo = custodioRequirements.filter(req => req.abordo).reduce((total, req) => total + req.cantidad, 0);
+    const custodiosVehiculoArmado = custodioRequirements.filter(req => req.armado && !req.abordo).reduce((total, req) => total + req.cantidad, 0);
     
     // Desgloses por ciudad para cada tipo
     const desgloseVehiculo = crearDesglosePorCiudad(req => !req.armado && !req.abordo);

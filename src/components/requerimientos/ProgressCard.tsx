@@ -2,13 +2,14 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
-import { Edit, MapPin, Building } from 'lucide-react';
+import { Edit, MapPin, Building, CheckCircle, XCircle, Clock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 interface CiudadDesglose {
   ciudad: string;
   completados: number;
   objetivo: number;
+  estado?: 'solicitado' | 'recibido' | 'aceptado' | 'retrasado';
 }
 
 export interface RequerimientoData {
@@ -27,6 +28,36 @@ interface ProgressCardProps {
 }
 
 const ProgressCard: React.FC<ProgressCardProps> = ({ req, index, onEdit }) => {
+  // Function to render the appropriate status icon
+  const renderStatusIcon = (estado?: 'solicitado' | 'recibido' | 'aceptado' | 'retrasado') => {
+    switch (estado) {
+      case 'aceptado':
+        return <CheckCircle className="h-3 w-3 text-green-500" />;
+      case 'recibido':
+        return <Clock className="h-3 w-3 text-amber-500" />;
+      case 'retrasado':
+        return <XCircle className="h-3 w-3 text-red-500" />;
+      case 'solicitado':
+      default:
+        return <Clock className="h-3 w-3 text-gray-400" />;
+    }
+  };
+
+  // Function to get the label for the status
+  const getStatusLabel = (estado?: 'solicitado' | 'recibido' | 'aceptado' | 'retrasado') => {
+    switch (estado) {
+      case 'aceptado':
+        return 'Aprobado';
+      case 'recibido':
+        return 'En Revisión';
+      case 'retrasado':
+        return 'Retrasado';
+      case 'solicitado':
+      default:
+        return 'Pendiente';
+    }
+  };
+
   return (
     <Card className="shadow-sm">
       <CardHeader className="pb-2 flex flex-row justify-between items-start">
@@ -50,7 +81,7 @@ const ProgressCard: React.FC<ProgressCardProps> = ({ req, index, onEdit }) => {
         <div className="mt-4 flex items-center justify-between text-sm">
           <div className="flex items-center">
             <div className={`w-3 h-3 rounded-full ${req.color} mr-2`}></div>
-            <span>Completados: {req.completados}</span>
+            <span>Requeridos: {req.completados}</span>
           </div>
           <div className="flex items-center">
             <div className="w-3 h-3 rounded-full bg-gray-200 mr-2"></div>
@@ -67,13 +98,17 @@ const ProgressCard: React.FC<ProgressCardProps> = ({ req, index, onEdit }) => {
             </h4>
             <div className="space-y-2">
               {req.desglose.map((ciudad, idx) => (
-                <div key={idx} className="grid grid-cols-8 gap-2 text-xs">
+                <div key={idx} className="grid grid-cols-12 gap-2 text-xs">
                   <div className="col-span-3 flex items-center">
                     <MapPin className="h-3 w-3 mr-1 text-gray-400" />
                     <span className="truncate">{ciudad.ciudad}</span>
                   </div>
-                  <div className="col-span-2 text-right text-gray-500">
-                    Completados: {ciudad.completados}
+                  <div className="col-span-3 flex items-center text-right">
+                    {renderStatusIcon(ciudad.estado)}
+                    <span className="ml-1">{getStatusLabel(ciudad.estado)}</span>
+                  </div>
+                  <div className="col-span-3 text-right text-gray-500">
+                    Requeridos: {ciudad.completados}
                   </div>
                   <div className="col-span-3 text-right">
                     <span className="font-medium">Objetivo: {ciudad.objetivo}</span>
