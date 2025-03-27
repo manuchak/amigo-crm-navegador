@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Form, FormField, FormItem, FormLabel, FormControl } from '@/components/ui/form';
 import { Edit, Save } from 'lucide-react';
-import { RequerimientoData } from './ProgressCard';
+import { RequerimientoData } from './types';
 
 interface EditarObjetivoProps {
   categoria: RequerimientoData;
@@ -19,10 +19,10 @@ const EditarObjetivoForm: React.FC<EditarObjetivoProps> = ({ categoria, index, o
   
   const form = useForm({
     defaultValues: {
-      objetivo: categoria.objetivo,
+      objetivo: 0, // Default value since we removed objetivo
       desglose: categoria.desglose ? categoria.desglose.map(ciudad => ({
         ciudad: ciudad.ciudad,
-        objetivo: ciudad.objetivo
+        objetivo: 0 // Default value since we removed objetivo
       })) : undefined
     }
   });
@@ -41,7 +41,7 @@ const EditarObjetivoForm: React.FC<EditarObjetivoProps> = ({ categoria, index, o
       </PopoverTrigger>
       <PopoverContent className="w-80">
         <div className="space-y-4">
-          <h3 className="font-medium">Editar Forecast: {categoria.categoria}</h3>
+          <h3 className="font-medium">Editar: {categoria.categoria}</h3>
           <Form {...form}>
             <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
               <FormField

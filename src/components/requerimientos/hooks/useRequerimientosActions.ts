@@ -1,4 +1,3 @@
-
 import React, { useEffect } from 'react';
 import { useToast } from "@/hooks/use-toast";
 import { 
@@ -78,21 +77,9 @@ export function useRequerimientosActions(
   const actualizarObjetivo = (categoriaIndex: number, datos: { objetivo: number; desglose?: { objetivo: number }[] }) => {
     const nuevosDatos = [...datosRequerimientos];
     
-    // Actualizar objetivo principal
-    if (datos.objetivo) {
-      nuevosDatos[categoriaIndex].objetivo = Number(datos.objetivo);
-      nuevosDatos[categoriaIndex].porcentaje = Math.round((nuevosDatos[categoriaIndex].completados / Number(datos.objetivo)) * 100);
-    }
-
-    // Actualizar objetivos por ciudad si existen
-    if (datos.desglose && nuevosDatos[categoriaIndex].desglose) {
-      datos.desglose.forEach((ciudadDatos, idx) => {
-        if (nuevosDatos[categoriaIndex].desglose && nuevosDatos[categoriaIndex].desglose[idx]) {
-          nuevosDatos[categoriaIndex].desglose[idx].objetivo = Number(ciudadDatos.objetivo);
-        }
-      });
-    }
-
+    // Keep the existing data, we no longer use objective
+    // but we maintain the function for compatibility with other components
+    
     setDatosRequerimientos(nuevosDatos);
     
     toast({

@@ -2,7 +2,7 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
-import { Edit, MapPin, Building } from 'lucide-react';
+import { Edit, MapPin, Building, AlertTriangle, CheckCircle, Clock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 interface CiudadDesglose {
@@ -25,6 +25,36 @@ interface ProgressCardProps {
   onEdit: (index: number) => void;
 }
 
+// Helper function to get status icon
+const getStatusIcon = (estado?: string) => {
+  switch (estado) {
+    case 'aceptado':
+      return <CheckCircle className="h-3 w-3 text-green-500" />;
+    case 'recibido':
+      return <Clock className="h-3 w-3 text-blue-500" />;
+    case 'retrasado':
+      return <AlertTriangle className="h-3 w-3 text-red-500" />;
+    case 'solicitado':
+    default:
+      return <Clock className="h-3 w-3 text-amber-500" />;
+  }
+};
+
+// Helper function to get status text
+const getStatusText = (estado?: string) => {
+  switch (estado) {
+    case 'aceptado':
+      return "Aceptado";
+    case 'recibido':
+      return "Recibido";
+    case 'retrasado':
+      return "Retrasado";
+    case 'solicitado':
+    default:
+      return "Solicitado";
+  }
+};
+
 const ProgressCard: React.FC<ProgressCardProps> = ({ req, index, onEdit }) => {
   return (
     <Card className="shadow-sm">
@@ -32,7 +62,7 @@ const ProgressCard: React.FC<ProgressCardProps> = ({ req, index, onEdit }) => {
         <div>
           <CardTitle>{req.categoria}</CardTitle>
           <CardDescription>
-            {req.completados} ({req.porcentaje}% completado)
+            {req.completados} custodios
           </CardDescription>
         </div>
         <Button 
@@ -56,11 +86,15 @@ const ProgressCard: React.FC<ProgressCardProps> = ({ req, index, onEdit }) => {
             <div className="space-y-2">
               {req.desglose.map((ciudad, idx) => (
                 <div key={idx} className="grid grid-cols-12 gap-2 text-xs">
-                  <div className="col-span-6 flex items-center">
+                  <div className="col-span-5 flex items-center">
                     <MapPin className="h-3 w-3 mr-1 text-gray-400" />
                     <span className="truncate">{ciudad.ciudad}</span>
                   </div>
-                  <div className="col-span-6 text-right">
+                  <div className="col-span-4 flex items-center justify-center">
+                    {getStatusIcon(ciudad.estado)}
+                    <span className="ml-1">{getStatusText(ciudad.estado)}</span>
+                  </div>
+                  <div className="col-span-3 text-right">
                     <span className="font-medium">{ciudad.completados}</span>
                   </div>
                 </div>

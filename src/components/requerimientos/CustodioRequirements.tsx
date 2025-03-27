@@ -69,7 +69,6 @@ const CustodioRequirements = () => {
         return {
           ciudad,
           completados: cantidadCompletada,
-          objetivo: 10, // Valor por defecto, se puede ajustar basado en datos históricos
           estado: estadoPredominante
         };
       }).filter(Boolean); // Eliminar elementos nulos
@@ -110,39 +109,35 @@ const CustodioRequirements = () => {
       {
         categoria: "Custodios con Vehículo",
         completados: custodiosVehiculo,
-        objetivo: datosRequerimientos[0]?.objetivo || 50,
-        porcentaje: Math.round((custodiosVehiculo / (datosRequerimientos[0]?.objetivo || 50)) * 100),
+        porcentaje: custodiosVehiculo > 0 ? 100 : 0,
         color: "bg-blue-500",
         desglose: desgloseVehiculo
       },
       {
         categoria: "Custodios Armados",
         completados: custodiosArmados,
-        objetivo: datosRequerimientos[1]?.objetivo || 30,
-        porcentaje: Math.round((custodiosArmados / (datosRequerimientos[1]?.objetivo || 30)) * 100),
+        porcentaje: custodiosArmados > 0 ? 100 : 0,
         color: "bg-amber-500",
         desglose: desgloseArmados
       },
       {
         categoria: "Custodios A Bordo",
         completados: custodiosAbordo,
-        objetivo: datosRequerimientos[2]?.objetivo || 20,
-        porcentaje: Math.round((custodiosAbordo / (datosRequerimientos[2]?.objetivo || 20)) * 100),
+        porcentaje: custodiosAbordo > 0 ? 100 : 0,
         color: "bg-green-500",
         desglose: desgloseAbordo
       },
       {
         categoria: "Custodios con Vehículo Armado",
         completados: custodiosVehiculoArmado,
-        objetivo: datosRequerimientos[3]?.objetivo || 15,
-        porcentaje: Math.round((custodiosVehiculoArmado / (datosRequerimientos[3]?.objetivo || 15)) * 100),
+        porcentaje: custodiosVehiculoArmado > 0 ? 100 : 0,
         color: "bg-purple-500",
         desglose: desgloseVehiculoArmado
       }
     ];
     
     setDatosRequerimientos(updatedData);
-  }, [custodioRequirements, setDatosRequerimientos, datosRequerimientos]);
+  }, [custodioRequirements, setDatosRequerimientos]);
 
   return (
     <div className="mt-6">

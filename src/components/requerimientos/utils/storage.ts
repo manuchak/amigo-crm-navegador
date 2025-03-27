@@ -13,40 +13,36 @@ export const datosRequerimientosIniciales: RequerimientoData[] = [
   { 
     categoria: 'Adquisición Custodios Armados', 
     completados: 12, 
-    objetivo: 20, 
     porcentaje: 60,
     color: 'bg-purple-500',
     desglose: [
-      { ciudad: 'CDMX', completados: 4, objetivo: 6 },
-      { ciudad: 'Guadalajara', completados: 3, objetivo: 5 },
-      { ciudad: 'Monterrey', completados: 2, objetivo: 4 },
-      { ciudad: 'Veracruz', completados: 3, objetivo: 5 }
+      { ciudad: 'CDMX', completados: 4 },
+      { ciudad: 'Guadalajara', completados: 3 },
+      { ciudad: 'Monterrey', completados: 2 },
+      { ciudad: 'Veracruz', completados: 3 }
     ]
   },
   { 
     categoria: 'Adquisición Custodios Armados', 
     completados: 12, 
-    objetivo: 20, 
     porcentaje: 60,
     color: 'bg-purple-500' 
   },
   { 
     categoria: 'Contratos firmados', 
     completados: 5, 
-    objetivo: 10, 
     porcentaje: 50,
     color: 'bg-emerald-500',
     desglose: [
-      { ciudad: 'CDMX', completados: 2, objetivo: 4 },
-      { ciudad: 'Guadalajara', completados: 1, objetivo: 3 },
-      { ciudad: 'Monterrey', completados: 1, objetivo: 2 },
-      { ciudad: 'Veracruz', completados: 1, objetivo: 1 }
+      { ciudad: 'CDMX', completados: 2 },
+      { ciudad: 'Guadalajara', completados: 1 },
+      { ciudad: 'Monterrey', completados: 1 },
+      { ciudad: 'Veracruz', completados: 1 }
     ]
   },
   { 
     categoria: 'Reuniones agendadas', 
     completados: 45, 
-    objetivo: 40, 
     porcentaje: 112,
     color: 'bg-amber-500' 
   }
