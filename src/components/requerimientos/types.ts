@@ -1,17 +1,14 @@
-
 // Types for the requerimientos module
 
 export interface CiudadDesglose {
   ciudad: string;
   completados: number;
-  objetivo: number;
   estado?: 'solicitado' | 'recibido' | 'aceptado' | 'retrasado';
 }
 
 export interface RequerimientoData {
   categoria: string;
   completados: number;
-  objetivo: number;
   porcentaje: number;
   color: string;
   desglose?: CiudadDesglose[];
