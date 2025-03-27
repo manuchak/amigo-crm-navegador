@@ -2,7 +2,7 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
-import { Edit, MapPin, City } from 'lucide-react';
+import { Edit, MapPin, Building } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 interface CiudadDesglose {
@@ -62,7 +62,7 @@ const ProgressCard: React.FC<ProgressCardProps> = ({ req, index, onEdit }) => {
         {req.desglose && (
           <div className="mt-4 pt-4 border-t">
             <h4 className="text-sm font-medium mb-2 flex items-center">
-              <City className="h-4 w-4 mr-1 text-gray-500" />
+              <Building className="h-4 w-4 mr-1 text-gray-500" />
               Desglose por ciudad
             </h4>
             <div className="space-y-2">
