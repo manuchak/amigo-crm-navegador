@@ -1,4 +1,3 @@
-
 import React, { useEffect } from 'react';
 import { useRequerimientos } from './context/RequerimientosContext';
 import CustodioRequirementsCard from './CustodioRequirementsCard';
