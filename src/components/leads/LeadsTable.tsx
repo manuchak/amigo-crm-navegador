@@ -29,10 +29,10 @@ const LeadsTable: React.FC<LeadsTableProps> = ({ isLoading, onCallLead }) => {
     const contactInfo = lead.contacto.split(' | ');
     const phoneNumber = contactInfo[1] || '';
 
-    // Format data for VAPI.AI through Make.com webhook
+    // Format data for VAPI.AI through Make.com webhook with phone as separate field
     try {
       await executeWebhook({
-        telefono: phoneNumber,
+        telefono: phoneNumber, // Will be extracted as a separate object
         nombre: lead.nombre,
         empresa: lead.empresa,
         timestamp: new Date().toISOString(),

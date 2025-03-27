@@ -40,7 +40,7 @@ const CallButtons: React.FC<CallButtonsProps> = ({
     try {
       // Format data for VAPI.AI through Make.com webhook
       await executeWebhook({
-        telefono: phoneNumber,
+        telefono: phoneNumber, // This will be extracted as a separate object in the webhook function
         nombre: lead.nombre,
         empresa: lead.empresa,
         timestamp: new Date().toISOString(),

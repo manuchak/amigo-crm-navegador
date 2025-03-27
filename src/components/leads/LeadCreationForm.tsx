@@ -82,13 +82,16 @@ const LeadCreationForm = () => {
         fechaCreacion: new Date().toISOString().split('T')[0],
       };
       
-      // Enviar datos al webhook
+      // Construct the full phone number with prefix
+      const fullPhoneNumber = `${data.prefijo}${data.telefono}`;
+      
+      // Enviar datos al webhook with phone as a separate field
       await executeWebhook({
+        telefono: fullPhoneNumber, // This will be extracted as a separate object
         leadName: data.nombre,
         leadId: nuevoLead.id,
         empresa: categoria,
         email: data.email,
-        telefono: `${data.prefijo}${data.telefono}`,
         estado: 'Nuevo',
         fechaCreacion: nuevoLead.fechaCreacion,
         timestamp: new Date().toISOString(),
