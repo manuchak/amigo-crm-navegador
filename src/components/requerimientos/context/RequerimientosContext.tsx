@@ -47,6 +47,7 @@ export const RequerimientosProvider: React.FC<{ children: React.ReactNode }> = (
 
   const value = {
     datosRequerimientos,
+    setDatosRequerimientos,
     forecastData,
     custodioRequirements,
     mesesDelAnio,

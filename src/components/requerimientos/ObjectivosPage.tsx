@@ -1,6 +1,6 @@
 
 import React, { useCallback, useState } from 'react';
-import { useRequerimientos } from './RequerimientosContext';
+import { useRequerimientos } from './context/RequerimientosContext';
 import ProgressCard from './ProgressCard';
 import ForecastSummary from './ForecastSummary';
 import EditarObjetivoForm from './EditarObjetivoForm';
@@ -10,6 +10,7 @@ const ObjectivosPage = () => {
   const {
     datosRequerimientos,
     forecastData,
+    custodioRequirements,
     actualizarObjetivo,
     actualizarForecast
   } = useRequerimientos();

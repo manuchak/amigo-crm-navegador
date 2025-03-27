@@ -42,6 +42,7 @@ export interface CustodioRequirement {
 // Interface for the context
 export interface RequerimientosContextType {
   datosRequerimientos: RequerimientoData[];
+  setDatosRequerimientos: React.Dispatch<React.SetStateAction<RequerimientoData[]>>;
   forecastData: ForecastData;
   custodioRequirements: CustodioRequirement[];
   mesesDelAnio: string[];
