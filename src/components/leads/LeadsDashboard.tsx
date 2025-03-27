@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -11,7 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { executeWebhook } from '../call-center/utils/webhook';
 
 const LeadsDashboard = () => {
-  const { leads } = useLeads();
+  const { leads, updateLeadStatus } = useLeads();
   const { toast } = useToast();
   const [filter, setFilter] = useState("todos");
   
@@ -43,6 +44,9 @@ const LeadsDashboard = () => {
         action: "outbound_call_requested"
       });
       
+      // Update the lead status to "1er Contacto"
+      updateLeadStatus(lead.id, "1er Contacto");
+      
       toast({
         title: "Llamada iniciada",
         description: `Conectando con ${lead.nombre}...`,
@@ -61,6 +65,7 @@ const LeadsDashboard = () => {
     switch (status) {
       case "Nuevo": return "info";
       case "Contactado": return "warning";
+      case "1er Contacto": return "warning";
       case "Calificado": return "success";
       case "Rechazado": return "destructive";
       default: return "secondary";
