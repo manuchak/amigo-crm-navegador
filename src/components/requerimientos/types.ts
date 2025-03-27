@@ -23,13 +23,19 @@ export interface ForecastData {
   efectividad: number;
 }
 
+export type TipoCustodio = 
+  | 'Custodio Estándar'
+  | 'Custodio con Vehículo'
+  | 'Custodio Armado'
+  | 'Custodio Armado y con Vehículo'
+  | 'Custodio A Bordo';
+
 export interface CustodioRequirement {
   id: number;
   ciudad: string;
   mes: string;
   cantidad: number;
-  armado: boolean;
-  abordo: boolean; // Field for "A bordo" option
+  tipoCustodio: TipoCustodio;
   zona?: string;
   solicitante: string;
   fechaCreacion: string;

@@ -5,8 +5,9 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Form, FormField, FormItem, FormLabel, FormControl } from '@/components/ui/form';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Checkbox } from '@/components/ui/checkbox';
 import { DialogFooter } from '@/components/ui/dialog';
+import { Car, Shield, Bus } from 'lucide-react';
+import { TipoCustodio } from './types';
 
 interface RequirementFormProps {
   onSubmit: (data: any) => void;
@@ -14,6 +15,29 @@ interface RequirementFormProps {
   mesesDelAnio: string[];
   defaultMonth: string;
 }
+
+const tiposCustodio: TipoCustodio[] = [
+  'Custodio Estándar',
+  'Custodio con Vehículo',
+  'Custodio Armado',
+  'Custodio Armado y con Vehículo',
+  'Custodio A Bordo'
+];
+
+const getTipoCustodioIcon = (tipo: TipoCustodio) => {
+  switch (tipo) {
+    case 'Custodio con Vehículo':
+      return <Car className="h-4 w-4 mr-2" />;
+    case 'Custodio Armado':
+      return <Shield className="h-4 w-4 mr-2" />;
+    case 'Custodio Armado y con Vehículo':
+      return <><Shield className="h-4 w-4 mr-1" /><Car className="h-4 w-4 mr-1" /></>;
+    case 'Custodio A Bordo':
+      return <Bus className="h-4 w-4 mr-2" />;
+    default:
+      return null;
+  }
+};
 
 const CustodioRequirementForm: React.FC<RequirementFormProps> = ({ 
   onSubmit, 
@@ -26,8 +50,7 @@ const CustodioRequirementForm: React.FC<RequirementFormProps> = ({
       ciudad: '',
       mes: defaultMonth,
       cantidad: 1,
-      armado: false,
-      abordo: false,
+      tipoCustodio: 'Custodio Estándar' as TipoCustodio,
       zona: ''
     }
   });
@@ -107,43 +130,35 @@ const CustodioRequirementForm: React.FC<RequirementFormProps> = ({
           )}
         />
         
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <FormField
-            control={form.control}
-            name="armado"
-            render={({ field }) => (
-              <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
+        <FormField
+          control={form.control}
+          name="tipoCustodio"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Tipo de Custodio</FormLabel>
+              <Select 
+                onValueChange={field.onChange} 
+                defaultValue={field.value}
+              >
                 <FormControl>
-                  <Checkbox
-                    checked={field.value}
-                    onCheckedChange={field.onChange}
-                  />
+                  <SelectTrigger>
+                    <SelectValue placeholder="Seleccionar tipo de custodio" />
+                  </SelectTrigger>
                 </FormControl>
-                <div className="space-y-1 leading-none">
-                  <FormLabel>Custodio Armado</FormLabel>
-                </div>
-              </FormItem>
-            )}
-          />
-          
-          <FormField
-            control={form.control}
-            name="abordo"
-            render={({ field }) => (
-              <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
-                <FormControl>
-                  <Checkbox
-                    checked={field.value}
-                    onCheckedChange={field.onChange}
-                  />
-                </FormControl>
-                <div className="space-y-1 leading-none">
-                  <FormLabel>A bordo</FormLabel>
-                </div>
-              </FormItem>
-            )}
-          />
-        </div>
+                <SelectContent>
+                  {tiposCustodio.map((tipo) => (
+                    <SelectItem key={tipo} value={tipo}>
+                      <div className="flex items-center">
+                        {getTipoCustodioIcon(tipo)}
+                        {tipo}
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </FormItem>
+          )}
+        />
         
         <FormField
           control={form.control}

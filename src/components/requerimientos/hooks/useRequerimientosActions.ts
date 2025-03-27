@@ -4,7 +4,8 @@ import { useToast } from "@/hooks/use-toast";
 import { 
   RequerimientoData, 
   ForecastData, 
-  CustodioRequirement 
+  CustodioRequirement,
+  TipoCustodio 
 } from '../types';
 import { calcularEfectividad } from '../utils/dataUtils';
 
@@ -138,7 +139,7 @@ export function useRequerimientosActions(
     
     toast({
       title: "Requisito agregado",
-      description: `Requisito para ${data.cantidad} custodios en ${data.ciudad} agregado correctamente.`
+      description: `Requisito para ${data.cantidad} ${data.tipoCustodio} en ${data.ciudad} agregado correctamente.`
     });
     
     // Check for delays after adding a new requirement
