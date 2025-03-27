@@ -2,7 +2,7 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
-import { Edit } from 'lucide-react';
+import { Edit, MapPin, City } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 interface CiudadDesglose {
@@ -61,14 +61,26 @@ const ProgressCard: React.FC<ProgressCardProps> = ({ req, index, onEdit }) => {
         {/* Desglose por ciudad si existe */}
         {req.desglose && (
           <div className="mt-4 pt-4 border-t">
-            <h4 className="text-sm font-medium mb-2">Desglose por ciudad</h4>
+            <h4 className="text-sm font-medium mb-2 flex items-center">
+              <City className="h-4 w-4 mr-1 text-gray-500" />
+              Desglose por ciudad
+            </h4>
             <div className="space-y-2">
               {req.desglose.map((ciudad, idx) => (
-                <div key={idx} className="flex justify-between text-xs">
-                  <span>{ciudad.ciudad}</span>
-                  <span>
-                    {ciudad.completados} de {ciudad.objetivo} ({Math.round((ciudad.completados / ciudad.objetivo) * 100)}%)
-                  </span>
+                <div key={idx} className="grid grid-cols-8 gap-2 text-xs">
+                  <div className="col-span-3 flex items-center">
+                    <MapPin className="h-3 w-3 mr-1 text-gray-400" />
+                    <span className="truncate">{ciudad.ciudad}</span>
+                  </div>
+                  <div className="col-span-2 text-right text-gray-500">
+                    Completados: {ciudad.completados}
+                  </div>
+                  <div className="col-span-3 text-right">
+                    <span className="font-medium">Objetivo: {ciudad.objetivo}</span>
+                    <span className="ml-2 text-xs text-gray-500">
+                      ({Math.round((ciudad.completados / ciudad.objetivo) * 100)}%)
+                    </span>
+                  </div>
                 </div>
               ))}
             </div>
