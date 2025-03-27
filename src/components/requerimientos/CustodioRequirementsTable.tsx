@@ -6,23 +6,7 @@ import { Trash, CheckCircle, User, Clock, AlertTriangle } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
-
-interface CustodioRequirement {
-  id: number;
-  ciudad: string;
-  mes: string;
-  cantidad: number;
-  armado: boolean;
-  abordo?: boolean;
-  zona?: string;
-  solicitante: string;
-  fechaCreacion: string;
-  horaCreacion?: string;
-  estado: 'solicitado' | 'recibido' | 'aceptado' | 'retrasado';
-  usuarioAprobador?: string;
-  fechaAprobacion?: string;
-  horaAprobacion?: string;
-}
+import { CustodioRequirement } from './types';
 
 interface CustodioRequirementsTableProps {
   requirements: CustodioRequirement[];
@@ -120,14 +104,6 @@ const TableRowMemo = React.memo(({
     }
   };
 
-  // Get the custodio type description
-  const getCustodioType = () => {
-    const types = [];
-    if (req.armado) types.push('Armado');
-    if (req.abordo) types.push('A bordo');
-    return types.length > 0 ? types.join(', ') : 'Sin arma';
-  };
-
   // Determine if buttons should be disabled
   const isStateChangeDisabled = req.estado === 'aceptado';
 
@@ -139,7 +115,7 @@ const TableRowMemo = React.memo(({
       <TableCell>{req.ciudad}</TableCell>
       <TableCell>{req.mes}</TableCell>
       <TableCell>{req.cantidad}</TableCell>
-      <TableCell>{getCustodioType()}</TableCell>
+      <TableCell>{req.tipoCustodio}</TableCell>
       <TableCell>{req.zona || '-'}</TableCell>
       <TableCell>{req.solicitante}</TableCell>
       <TableCell>

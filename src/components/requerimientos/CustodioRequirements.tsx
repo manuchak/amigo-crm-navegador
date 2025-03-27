@@ -2,6 +2,7 @@
 import React, { useEffect } from 'react';
 import { useRequerimientos } from './context/RequerimientosContext';
 import CustodioRequirementsCard from './CustodioRequirementsCard';
+import { TipoCustodio } from './types';
 
 const CustodioRequirements = () => {
   const {
@@ -18,6 +19,23 @@ const CustodioRequirements = () => {
 
   // Memoizar el mes actual para evitar recálculos
   const currentMonth = React.useMemo(() => mesesDelAnio[mesActual], [mesesDelAnio, mesActual]);
+
+  // Helper function to determine if a custodio is armado based on tipoCustodio
+  const isCustodioArmado = (tipoCustodio: TipoCustodio): boolean => {
+    return tipoCustodio === 'Custodio Armado' || 
+           tipoCustodio === 'Custodio Armado y con Vehículo';
+  };
+
+  // Helper function to determine if a custodio is abordo based on tipoCustodio
+  const isCustodioAbordo = (tipoCustodio: TipoCustodio): boolean => {
+    return tipoCustodio === 'Custodio A Bordo';
+  };
+
+  // Helper function to determine if a custodio has a vehicle based on tipoCustodio
+  const isCustodioConVehiculo = (tipoCustodio: TipoCustodio): boolean => {
+    return tipoCustodio === 'Custodio con Vehículo' || 
+           tipoCustodio === 'Custodio Armado y con Vehículo';
+  };
 
   // Actualizar los contadores basados en los requisitos aceptados
   useEffect(() => {
@@ -57,17 +75,35 @@ const CustodioRequirements = () => {
       }).filter(Boolean); // Eliminar elementos nulos
     };
     
-    // Contadores para cada tipo de custodio
-    const custodiosVehiculo = custodioRequirements.filter(req => !req.armado && !req.abordo).reduce((total, req) => total + req.cantidad, 0);
-    const custodiosArmados = custodioRequirements.filter(req => req.armado && !req.abordo).reduce((total, req) => total + req.cantidad, 0);
-    const custodiosAbordo = custodioRequirements.filter(req => req.abordo).reduce((total, req) => total + req.cantidad, 0);
-    const custodiosVehiculoArmado = custodioRequirements.filter(req => req.armado && !req.abordo).reduce((total, req) => total + req.cantidad, 0);
+    // Contadores para cada tipo de custodio - usando las funciones de ayuda
+    const custodiosVehiculo = custodioRequirements
+      .filter(req => isCustodioConVehiculo(req.tipoCustodio) && !isCustodioArmado(req.tipoCustodio))
+      .reduce((total, req) => total + req.cantidad, 0);
+
+    const custodiosArmados = custodioRequirements
+      .filter(req => isCustodioArmado(req.tipoCustodio) && !isCustodioConVehiculo(req.tipoCustodio))
+      .reduce((total, req) => total + req.cantidad, 0);
+
+    const custodiosAbordo = custodioRequirements
+      .filter(req => isCustodioAbordo(req.tipoCustodio))
+      .reduce((total, req) => total + req.cantidad, 0);
+
+    const custodiosVehiculoArmado = custodioRequirements
+      .filter(req => isCustodioArmado(req.tipoCustodio) && isCustodioConVehiculo(req.tipoCustodio))
+      .reduce((total, req) => total + req.cantidad, 0);
     
     // Desgloses por ciudad para cada tipo
-    const desgloseVehiculo = crearDesglosePorCiudad(req => !req.armado && !req.abordo);
-    const desgloseArmados = crearDesglosePorCiudad(req => req.armado && !req.abordo);
-    const desgloseAbordo = crearDesglosePorCiudad(req => req.abordo);
-    const desgloseVehiculoArmado = crearDesglosePorCiudad(req => req.armado && !req.abordo);
+    const desgloseVehiculo = crearDesglosePorCiudad(req => 
+      isCustodioConVehiculo(req.tipoCustodio) && !isCustodioArmado(req.tipoCustodio));
+    
+    const desgloseArmados = crearDesglosePorCiudad(req => 
+      isCustodioArmado(req.tipoCustodio) && !isCustodioConVehiculo(req.tipoCustodio));
+    
+    const desgloseAbordo = crearDesglosePorCiudad(req => 
+      isCustodioAbordo(req.tipoCustodio));
+    
+    const desgloseVehiculoArmado = crearDesglosePorCiudad(req => 
+      isCustodioArmado(req.tipoCustodio) && isCustodioConVehiculo(req.tipoCustodio));
     
     // Actualizar datos de requerimientos
     const updatedData = [

@@ -36,6 +36,9 @@ export interface CustodioRequirement {
   mes: string;
   cantidad: number;
   tipoCustodio: TipoCustodio;
+  // Adding these properties that are being used in the code
+  armado: boolean;
+  abordo?: boolean;
   zona?: string;
   solicitante: string;
   fechaCreacion: string;
