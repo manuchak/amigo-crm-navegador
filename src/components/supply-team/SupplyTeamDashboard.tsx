@@ -4,11 +4,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Phone, FileCheck, Loader2, AlertCircle } from 'lucide-react';
+import { Phone, FileCheck, Loader2, AlertCircle, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
 import { Lead } from '@/context/LeadsContext';
 import ValidationDialog from './ValidationDialog';
 import { executeWebhook } from '../call-center/utils/webhook';
+import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 
 interface SheetData {
   id: string;
@@ -69,71 +70,105 @@ const SupplyTeamDashboard: React.FC = () => {
     return localStorage.getItem('supplyOperatorName') || '';
   });
 
-  // Original Google Sheets URL
-  const originalCsvUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQGlBVy3s8JH7QNsnf9vRs8urGbuGT0CtPzw4tmJV5O0wW5DkI3adBxUr_HK-ON3WfUPZHTOhuv_qUT/pub?output=csv';
+  // Alternative Google Sheets URLs to try
+  const sheetUrls = [
+    // Original URL
+    'https://docs.google.com/spreadsheets/d/e/2PACX-1vQGlBVy3s8JH7QNsnf9vRs8urGbuGT0CtPzw4tmJV5O0wW5DkI3adBxUr_HK-ON3WfUPZHTOhuv_qUT/pub?output=csv',
+    // Simplified URL format (in case the original one is too complex for proxies)
+    'https://docs.google.com/spreadsheets/d/e/2PACX-1vQGlBVy3s8JH7QNsnf9vRs8urGbuGT0CtPzw4tmJV5O0wW5DkI3adBxUr_HK-ON3WfUPZHTOhuv_qUT/pub?gid=0&single=true&output=csv'
+  ];
   
-  // Using a CORS proxy to bypass the CORS issue
-  const corsProxyUrl = 'https://corsproxy.io/?';
-  const csvUrl = `${corsProxyUrl}${encodeURIComponent(originalCsvUrl)}`;
+  // CORS proxies to try
+  const corsProxies = [
+    'https://corsproxy.io/?',
+    'https://api.allorigins.win/raw?url='
+  ];
 
-  useEffect(() => {
-    const fetchData = async () => {
-      setIsLoading(true);
-      setError(null);
-      
-      try {
-        console.log("Fetching data from:", csvUrl);
-        const response = await fetch(csvUrl);
+  const fetchData = async () => {
+    setIsLoading(true);
+    setError(null);
+    let success = false;
+    
+    // Try different combinations of URLs and proxies
+    for (const sheetUrl of sheetUrls) {
+      for (const proxyUrl of corsProxies) {
+        if (success) continue; // Skip if we already have data
         
-        if (!response.ok) {
-          throw new Error(`HTTP error! Status: ${response.status}`);
-        }
+        const fullUrl = `${proxyUrl}${encodeURIComponent(sheetUrl)}`;
         
-        const csvText = await response.text();
-        console.log("CSV data received:", csvText.substring(0, 100) + "..."); // Log first 100 chars
-        
-        const rows = csvText.split('\n');
-        if (rows.length <= 1) {
-          throw new Error("No data rows found in CSV");
-        }
-        
-        const headers = rows[0].split(',');
-        console.log("CSV headers:", headers);
-        
-        const parsedData = rows.slice(1).map((row, index) => {
-          const values = row.split(',');
-          const item: any = {};
-          
-          headers.forEach((header, idx) => {
-            const cleanHeader = header.trim().toLowerCase().replace(/\s+/g, '');
-            item[cleanHeader] = values[idx]?.trim() || '';
+        try {
+          console.log("Fetching data from:", fullUrl);
+          const response = await fetch(fullUrl, {
+            headers: {
+              'Accept': 'text/csv,text/plain,*/*'
+            }
           });
           
-          item.id = item.id || String(index + 1);
-          return item as SheetData;
-        });
-        
-        setData(parsedData);
-        console.log("Parsed data:", parsedData);
-      } catch (error) {
-        console.error('Error fetching CSV data:', error);
-        
-        // Use sample data as fallback
-        setData(sampleData);
-        
-        setError('No se pudo cargar datos desde Google Sheets. Usando datos de muestra.');
-        toast.error('Error al cargar los datos. Usando datos de ejemplo.');
-      } finally {
-        setIsLoading(false);
+          if (!response.ok) {
+            console.log(`HTTP error with ${proxyUrl}: Status: ${response.status}`);
+            continue; // Try next proxy
+          }
+          
+          const csvText = await response.text();
+          console.log("CSV data received length:", csvText.length);
+          
+          if (csvText.includes('No se pudo abrir el archivo') || csvText.length < 50) {
+            console.log("Invalid CSV response, trying next URL/proxy");
+            continue;
+          }
+          
+          const rows = csvText.split('\n');
+          if (rows.length <= 1) {
+            console.log("No data rows found in CSV");
+            continue;
+          }
+          
+          const headers = rows[0].split(',');
+          console.log("CSV headers:", headers);
+          
+          const parsedData = rows.slice(1).map((row, index) => {
+            const values = row.split(',');
+            const item: any = {};
+            
+            headers.forEach((header, idx) => {
+              const cleanHeader = header.trim().toLowerCase().replace(/\s+/g, '');
+              item[cleanHeader] = values[idx]?.trim() || '';
+            });
+            
+            item.id = item.id || String(index + 1);
+            return item as SheetData;
+          });
+          
+          setData(parsedData);
+          success = true;
+          break; // Exit loop if successful
+        } catch (error) {
+          console.error(`Error fetching CSV data with ${proxyUrl}:`, error);
+          // Continue to next proxy
+        }
       }
-    };
+      
+      if (success) break; // Exit outer loop if successful
+    }
+    
+    if (!success) {
+      // All attempts failed, use sample data as fallback
+      console.log("All fetch attempts failed, using sample data");
+      setData(sampleData);
+      setError('No se pudo acceder a Google Sheets. Verifica que la hoja esté publicada y compartida con acceso público. Usando datos de ejemplo.');
+      toast.error('Error al cargar datos. Usando datos de ejemplo.');
+    }
+    
+    setIsLoading(false);
+  };
 
+  useEffect(() => {
     fetchData();
     // Refresh every 5 minutes
     const interval = setInterval(fetchData, 5 * 60 * 1000);
     
     return () => clearInterval(interval);
-  }, [csvUrl]);
+  }, []);
 
   useEffect(() => {
     // Save operator name to localStorage
@@ -238,7 +273,7 @@ const SupplyTeamDashboard: React.FC = () => {
               <CardTitle>Dashboard de Suministros</CardTitle>
               <CardDescription>Validación de leads generados por formulario</CardDescription>
             </div>
-            <div className="mt-4 md:mt-0">
+            <div className="mt-4 md:mt-0 flex items-center space-x-4">
               <div className="flex items-center space-x-2">
                 <input
                   type="text"
@@ -256,19 +291,24 @@ const SupplyTeamDashboard: React.FC = () => {
                   Guardar
                 </Button>
               </div>
+              <Button 
+                onClick={fetchData} 
+                size="sm"
+                variant="outline"
+              >
+                <RefreshCw className="h-4 w-4 mr-1" />
+                Actualizar
+              </Button>
             </div>
           </div>
         </CardHeader>
         {error && (
-          <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 mx-6 mb-4">
-            <div className="flex">
-              <div className="flex-shrink-0">
-                <AlertCircle className="h-5 w-5 text-yellow-400" />
-              </div>
-              <div className="ml-3">
-                <p className="text-sm text-yellow-700">{error}</p>
-              </div>
-            </div>
+          <div className="px-6 mb-4">
+            <Alert variant="warning">
+              <AlertCircle className="h-4 w-4" />
+              <AlertTitle>Advertencia</AlertTitle>
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
           </div>
         )}
         <CardContent>
