@@ -60,6 +60,8 @@ const sampleData: SheetData[] = [
   }
 ];
 
+const WEBHOOK_URL = "https://hook.us2.make.com/yrqf31b5xkve9j77vjfal7crsv6qqkf1";
+
 const SupplyTeamDashboard: React.FC = () => {
   const [data, setData] = useState<SheetData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -70,96 +72,55 @@ const SupplyTeamDashboard: React.FC = () => {
     return localStorage.getItem('supplyOperatorName') || '';
   });
 
-  // Alternative Google Sheets URLs to try
-  const sheetUrls = [
-    // Original URL
-    'https://docs.google.com/spreadsheets/d/e/2PACX-1vQGlBVy3s8JH7QNsnf9vRs8urGbuGT0CtPzw4tmJV5O0wW5DkI3adBxUr_HK-ON3WfUPZHTOhuv_qUT/pub?output=csv',
-    // Simplified URL format (in case the original one is too complex for proxies)
-    'https://docs.google.com/spreadsheets/d/e/2PACX-1vQGlBVy3s8JH7QNsnf9vRs8urGbuGT0CtPzw4tmJV5O0wW5DkI3adBxUr_HK-ON3WfUPZHTOhuv_qUT/pub?gid=0&single=true&output=csv'
-  ];
-  
-  // CORS proxies to try
-  const corsProxies = [
-    'https://corsproxy.io/?',
-    'https://api.allorigins.win/raw?url='
-  ];
-
   const fetchData = async () => {
     setIsLoading(true);
     setError(null);
-    let success = false;
     
-    // Try different combinations of URLs and proxies
-    for (const sheetUrl of sheetUrls) {
-      for (const proxyUrl of corsProxies) {
-        if (success) continue; // Skip if we already have data
-        
-        const fullUrl = `${proxyUrl}${encodeURIComponent(sheetUrl)}`;
-        
-        try {
-          console.log("Fetching data from:", fullUrl);
-          const response = await fetch(fullUrl, {
-            headers: {
-              'Accept': 'text/csv,text/plain,*/*'
-            }
-          });
-          
-          if (!response.ok) {
-            console.log(`HTTP error with ${proxyUrl}: Status: ${response.status}`);
-            continue; // Try next proxy
-          }
-          
-          const csvText = await response.text();
-          console.log("CSV data received length:", csvText.length);
-          
-          if (csvText.includes('No se pudo abrir el archivo') || csvText.length < 50) {
-            console.log("Invalid CSV response, trying next URL/proxy");
-            continue;
-          }
-          
-          const rows = csvText.split('\n');
-          if (rows.length <= 1) {
-            console.log("No data rows found in CSV");
-            continue;
-          }
-          
-          const headers = rows[0].split(',');
-          console.log("CSV headers:", headers);
-          
-          const parsedData = rows.slice(1).map((row, index) => {
-            const values = row.split(',');
-            const item: any = {};
-            
-            headers.forEach((header, idx) => {
-              const cleanHeader = header.trim().toLowerCase().replace(/\s+/g, '');
-              item[cleanHeader] = values[idx]?.trim() || '';
-            });
-            
-            item.id = item.id || String(index + 1);
-            return item as SheetData;
-          });
-          
-          setData(parsedData);
-          success = true;
-          break; // Exit loop if successful
-        } catch (error) {
-          console.error(`Error fetching CSV data with ${proxyUrl}:`, error);
-          // Continue to next proxy
+    try {
+      console.log("Fetching data from webhook:", WEBHOOK_URL);
+      const response = await fetch(WEBHOOK_URL, {
+        method: "GET",
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json'
         }
+      });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error: ${response.status}`);
       }
       
-      if (success) break; // Exit outer loop if successful
-    }
-    
-    if (!success) {
-      // All attempts failed, use sample data as fallback
-      console.log("All fetch attempts failed, using sample data");
+      const responseData = await response.json();
+      console.log("Webhook data received:", responseData);
+      
+      // Check if data exists and is an array
+      if (Array.isArray(responseData)) {
+        // Transform the data to match our SheetData interface
+        const formattedData = responseData.map((item, index) => ({
+          id: item.id || String(index + 1),
+          nombre: item.nombre || "Sin nombre",
+          empresa: item.empresa || "Sin empresa",
+          telefono: item.telefono || "Sin teléfono",
+          email: item.email || "Sin email",
+          estado: item.estado || "nuevo",
+          fechaCreacion: item.fechaCreacion || new Date().toISOString().split('T')[0],
+          validado: item.validado || "no",
+          validadoPor: item.validadoPor,
+          fechaValidacion: item.fechaValidacion
+        }));
+        
+        setData(formattedData);
+      } else {
+        throw new Error("La respuesta del webhook no es un arreglo de datos");
+      }
+    } catch (error) {
+      console.error("Error fetching data from webhook:", error);
       setData(sampleData);
-      setError('No se pudo acceder a Google Sheets. Verifica que la hoja esté publicada y compartida con acceso público. Usando datos de ejemplo.');
+      setError('No se pudo acceder al webhook. Usando datos de ejemplo. Error: ' + (error instanceof Error ? error.message : 'Desconocido'));
       toast.error('Error al cargar datos. Usando datos de ejemplo.');
+    } finally {
+      setIsLoading(false);
     }
-    
-    setIsLoading(false);
   };
 
   useEffect(() => {
