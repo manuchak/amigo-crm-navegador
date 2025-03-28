@@ -4,17 +4,23 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
-import { PhoneCall, ClipboardList, Filter } from 'lucide-react';
+import { PhoneCall, ClipboardList, Filter, Phone } from 'lucide-react';
 import { useLeads } from '@/context/LeadsContext';
 import { useToast } from '@/hooks/use-toast';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { executeWebhook } from '../call-center/utils/webhook';
+import { useCallHistory } from '../call-center/hooks/useCallHistory';
+import { HoverCard, HoverCardTrigger, HoverCardContent } from '@/components/ui/hover-card';
+import CallLogDialog from './CallLogDialog';
 
 const LeadsDashboard = () => {
   const { leads, updateLeadStatus } = useLeads();
   const { toast } = useToast();
   const [filter, setFilter] = useState("todos");
+  const { getCallCountForLead, getCallsForLead } = useCallHistory();
+  const [selectedLeadId, setSelectedLeadId] = useState<number | null>(null);
+  const [isCallLogOpen, setIsCallLogOpen] = useState(false);
   
   const filteredLeads = filter === "todos" 
     ? leads 
@@ -61,6 +67,11 @@ const LeadsDashboard = () => {
     }
   };
   
+  const handleViewCallLogs = (leadId: number) => {
+    setSelectedLeadId(leadId);
+    setIsCallLogOpen(true);
+  };
+  
   const getStatusColor = (status: string) => {
     switch (status) {
       case "Nuevo": return "info";
@@ -71,6 +82,9 @@ const LeadsDashboard = () => {
       default: return "secondary";
     }
   };
+
+  const selectedLead = leads.find(lead => lead.id === selectedLeadId);
+  const callLogs = selectedLeadId ? getCallsForLead(selectedLeadId) : [];
 
   return (
     <div className="space-y-6">
@@ -143,6 +157,7 @@ const LeadsDashboard = () => {
                   <TableHead>Categoría</TableHead>
                   <TableHead>Contacto</TableHead>
                   <TableHead>Estado</TableHead>
+                  <TableHead>Llamadas</TableHead>
                   <TableHead>Fecha</TableHead>
                   <TableHead className="text-right">Acciones</TableHead>
                 </TableRow>
@@ -150,7 +165,7 @@ const LeadsDashboard = () => {
               <TableBody>
                 {filteredLeads.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={6} className="text-center py-8 text-gray-400">
+                    <TableCell colSpan={7} className="text-center py-8 text-gray-400">
                       No hay custodios registrados
                     </TableCell>
                   </TableRow>
@@ -164,6 +179,31 @@ const LeadsDashboard = () => {
                         <Badge variant={getStatusColor(lead.estado)}>
                           {lead.estado}
                         </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <HoverCard>
+                          <HoverCardTrigger asChild>
+                            <div className="flex items-center">
+                              <Badge variant="outline" className="cursor-pointer">
+                                <Phone className="h-3 w-3 mr-1" />
+                                {getCallCountForLead(lead.id)}
+                              </Badge>
+                            </div>
+                          </HoverCardTrigger>
+                          <HoverCardContent className="w-80">
+                            <div className="flex justify-between space-x-4">
+                              <div className="space-y-1">
+                                <h4 className="text-sm font-semibold">Historial de llamadas</h4>
+                                <p className="text-sm text-muted-foreground">
+                                  Se han realizado {getCallCountForLead(lead.id)} intentos de llamada a este custodio.
+                                </p>
+                                <p className="text-xs text-muted-foreground">
+                                  Haz clic en "Detalles" para ver el registro completo.
+                                </p>
+                              </div>
+                            </div>
+                          </HoverCardContent>
+                        </HoverCard>
                       </TableCell>
                       <TableCell>{lead.fechaCreacion}</TableCell>
                       <TableCell className="text-right">
@@ -179,10 +219,7 @@ const LeadsDashboard = () => {
                           <Button 
                             variant="ghost" 
                             size="sm"
-                            onClick={() => toast({
-                              title: "Detalles",
-                              description: `Ver detalles de ${lead.nombre}`,
-                            })}
+                            onClick={() => handleViewCallLogs(lead.id)}
                           >
                             <ClipboardList className="h-4 w-4 mr-1" />
                             Detalles
@@ -197,6 +234,15 @@ const LeadsDashboard = () => {
           </div>
         </CardContent>
       </Card>
+
+      {selectedLead && (
+        <CallLogDialog
+          open={isCallLogOpen}
+          onOpenChange={setIsCallLogOpen}
+          leadName={selectedLead.nombre}
+          callLogs={callLogs}
+        />
+      )}
     </div>
   );
 };

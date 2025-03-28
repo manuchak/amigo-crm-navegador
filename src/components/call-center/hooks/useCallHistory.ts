@@ -48,8 +48,20 @@ export const useCallHistory = () => {
     setCallsForToday([newCall, ...callsForToday]);
   };
 
+  // New function to get call history for a specific lead
+  const getCallsForLead = (leadId: number): CallRecord[] => {
+    return callsForToday.filter(call => call.leadId === leadId);
+  };
+
+  // New function to count calls for a specific lead
+  const getCallCountForLead = (leadId: number): number => {
+    return callsForToday.filter(call => call.leadId === leadId).length;
+  };
+
   return {
     callsForToday,
-    addCallRecord
+    addCallRecord,
+    getCallsForLead,
+    getCallCountForLead
   };
 };
