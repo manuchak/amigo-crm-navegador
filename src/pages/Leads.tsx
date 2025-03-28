@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import LeadCreationForm from '@/components/leads/LeadCreationForm';
 import LeadsDashboard from '@/components/leads/LeadsDashboard';
@@ -9,10 +9,25 @@ import { useLeads } from '@/context/LeadsContext';
 import { Button } from '@/components/ui/button';
 import { Download, UserCheck, Package } from 'lucide-react';
 import QualifiedLeadsApproval from '@/components/leads/QualifiedLeadsApproval';
+import LeadsIntro from '@/components/leads/LeadsIntro';
 
 const Leads = () => {
   const [activeTab, setActiveTab] = useState("crear");
+  const [showIntro, setShowIntro] = useState(true);
   const { leads, updateLeadStatus } = useLeads();
+
+  // Check if user has visited before
+  useEffect(() => {
+    const hasVisitedLeads = localStorage.getItem('hasVisitedLeads');
+    if (hasVisitedLeads) {
+      setShowIntro(false);
+    }
+  }, []);
+
+  const handleGetStarted = () => {
+    setShowIntro(false);
+    localStorage.setItem('hasVisitedLeads', 'true');
+  };
 
   const handleDownloadCSV = () => {
     // Format the leads data for CSV
@@ -51,6 +66,10 @@ const Leads = () => {
     link.click();
     document.body.removeChild(link);
   };
+
+  if (showIntro) {
+    return <LeadsIntro onGetStarted={handleGetStarted} />;
+  }
 
   return (
     <div className="container mx-auto px-6 py-20 text-gray-800 bg-gray-50">
