@@ -1,3 +1,4 @@
+
 interface WebhookData {
   [key: string]: any; // Allow for any key-value pairs to support flat structure
 }
@@ -30,4 +31,44 @@ export const executeWebhook = async (data: WebhookData) => {
       ? JSON.stringify(phoneObject)
       : JSON.stringify(data),
   });
+};
+
+// New function to receive webhook data from external sources
+export const createWebhookReceiver = (endpoint: string) => {
+  // This simulates a webhook endpoint that would normally be on a server
+  // For client-side implementation, we will use a polling mechanism
+  
+  const fetchDataFromEndpoint = async () => {
+    try {
+      // First try with direct fetch (might be blocked by CORS)
+      const response = await fetch(endpoint, {
+        method: "GET",
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error: ${response.status}`);
+      }
+      
+      // Parse response text - handle case when response is not JSON
+      const text = await response.text();
+      try {
+        // Try to parse as JSON first
+        return JSON.parse(text);
+      } catch (e) {
+        // If not JSON, return the text itself
+        console.log("Response is not JSON:", text);
+        return { message: text, status: response.status };
+      }
+    } catch (error) {
+      console.error("Error fetching from webhook endpoint:", error);
+      throw error;
+    }
+  };
+  
+  // Return the function for fetching data
+  return fetchDataFromEndpoint;
 };

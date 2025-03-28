@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import LeadCreationForm from '@/components/leads/LeadCreationForm';
@@ -7,14 +6,17 @@ import CallCenter from '@/components/call-center';
 import { SupplyTeamDashboard } from '@/components/supply-team';
 import { useLeads } from '@/context/LeadsContext';
 import { Button } from '@/components/ui/button';
-import { Download, UserCheck, Package } from 'lucide-react';
+import { Download, UserCheck, Package, WebhookIcon } from 'lucide-react';
 import QualifiedLeadsApproval from '@/components/leads/QualifiedLeadsApproval';
 import LeadsIntro from '@/components/leads/LeadsIntro';
+import { toast } from 'sonner';
+import { executeWebhook } from '@/components/call-center/utils/webhook';
 
 const Leads = () => {
   const [activeTab, setActiveTab] = useState("crear");
   const [showIntro, setShowIntro] = useState(true);
   const { leads, updateLeadStatus } = useLeads();
+  const [isWebhookSyncing, setIsWebhookSyncing] = useState(false);
 
   // Check if user has visited before
   useEffect(() => {
@@ -67,6 +69,33 @@ const Leads = () => {
     document.body.removeChild(link);
   };
 
+  const handleSyncWithExternalSystems = async () => {
+    setIsWebhookSyncing(true);
+    
+    try {
+      // Send a summary of our leads to the external webhook
+      await executeWebhook({
+        action: "sync_leads_data",
+        timestamp: new Date().toISOString(),
+        totalLeads: leads.length,
+        leadsSummary: leads.map(lead => ({
+          id: lead.id,
+          nombre: lead.nombre,
+          empresa: lead.empresa,
+          estado: lead.estado,
+          fechaCreacion: lead.fechaCreacion
+        }))
+      });
+      
+      toast.success('Datos sincronizados correctamente con sistemas externos');
+    } catch (error) {
+      console.error("Error syncing with external systems:", error);
+      toast.error('Error al sincronizar datos');
+    } finally {
+      setIsWebhookSyncing(false);
+    }
+  };
+
   if (showIntro) {
     return <LeadsIntro onGetStarted={handleGetStarted} />;
   }
@@ -79,14 +108,24 @@ const Leads = () => {
           <p className="text-muted-foreground">Reclutamiento y seguimiento de custodios para servicios de seguridad</p>
         </div>
         
-        <Button 
-          onClick={handleDownloadCSV} 
-          variant="outline" 
-          className="mt-4 md:mt-0"
-        >
-          <Download className="mr-2 h-4 w-4" />
-          Descargar CSV
-        </Button>
+        <div className="mt-4 md:mt-0 flex flex-wrap gap-2">
+          <Button 
+            onClick={handleDownloadCSV} 
+            variant="outline" 
+          >
+            <Download className="mr-2 h-4 w-4" />
+            Descargar CSV
+          </Button>
+          
+          <Button 
+            onClick={handleSyncWithExternalSystems} 
+            variant="outline"
+            disabled={isWebhookSyncing}
+          >
+            <WebhookIcon className={`mr-2 h-4 w-4 ${isWebhookSyncing ? 'animate-spin' : ''}`} />
+            Sincronizar Datos
+          </Button>
+        </div>
       </div>
       
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">

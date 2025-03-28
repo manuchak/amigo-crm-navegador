@@ -1,14 +1,13 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Phone, FileCheck, Loader2, AlertCircle, RefreshCw } from 'lucide-react';
+import { Phone, FileCheck, Loader2, AlertCircle, RefreshCw, WebhookIcon } from 'lucide-react';
 import { toast } from 'sonner';
 import { Lead } from '@/context/LeadsContext';
 import ValidationDialog from './ValidationDialog';
-import { executeWebhook } from '../call-center/utils/webhook';
+import { executeWebhook, createWebhookReceiver } from '../call-center/utils/webhook';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 
 interface SheetData {
@@ -71,56 +70,26 @@ const SupplyTeamDashboard: React.FC = () => {
   const [operatorName, setOperatorName] = useState(() => {
     return localStorage.getItem('supplyOperatorName') || '';
   });
+  const [webhookStatus, setWebhookStatus] = useState<string>('idle');
+
+  const fetchWebhookData = createWebhookReceiver(WEBHOOK_URL);
 
   const fetchData = async () => {
     setIsLoading(true);
     setError(null);
+    setWebhookStatus('fetching');
     
     try {
-      // Try using a CORS proxy to bypass CORS issues
-      const proxyUrl = "https://api.allorigins.win/raw?url=";
-      const encodedUrl = encodeURIComponent(WEBHOOK_URL);
-      const urlToFetch = proxyUrl + encodedUrl;
-      
-      console.log("Fetching data using CORS proxy:", urlToFetch);
-      
-      let response = await fetch(urlToFetch, {
-        method: "GET",
-        headers: {
-          'Accept': 'application/json'
-        }
-      });
-      
-      // If proxy fails, try direct approach with no-cors mode
-      if (!response.ok) {
-        console.log("Proxy approach failed, trying direct webhook with no-cors mode");
-        response = await fetch(WEBHOOK_URL, {
-          method: "GET",
-          headers: {
-            'Accept': 'application/json',
-            'Content-Type': 'application/json'
-          },
-          mode: 'no-cors' // This will help bypass CORS issues
-        });
-      }
-      
-      // Since no-cors doesn't return proper response, we'll handle it specially
-      if (response.type === 'opaque') {
-        // no-cors response doesn't provide access to the body
-        // We'll treat this as an error and use sample data
-        throw new Error("No se pudo acceder al webhook usando modo no-cors");
-      }
-      
-      if (!response.ok) {
-        throw new Error(`HTTP error: ${response.status}`);
-      }
-      
-      const responseData = await response.json();
+      const responseData = await fetchWebhookData();
       console.log("Webhook data received:", responseData);
       
-      // Check if data exists and is an array
-      if (Array.isArray(responseData)) {
-        // Transform the data to match our SheetData interface
+      if (typeof responseData === 'object' && responseData.message) {
+        console.log("Received message from webhook:", responseData.message);
+        toast.success(`Webhook status: ${responseData.message}`);
+        
+        setData(sampleData);
+        setWebhookStatus('accepted');
+      } else if (Array.isArray(responseData)) {
         const formattedData = responseData.map((item, index) => ({
           id: item.id || String(index + 1),
           nombre: item.nombre || "Sin nombre",
@@ -136,7 +105,8 @@ const SupplyTeamDashboard: React.FC = () => {
         
         setData(formattedData);
         setError(null);
-        toast.success('Datos cargados correctamente');
+        setWebhookStatus('success');
+        toast.success('Datos cargados correctamente desde webhook');
       } else {
         throw new Error("La respuesta del webhook no es un arreglo de datos");
       }
@@ -144,50 +114,51 @@ const SupplyTeamDashboard: React.FC = () => {
       console.error("Error fetching data from webhook:", error);
       setData(sampleData);
       setError('Error al conectar con el webhook. Usando datos de ejemplo. Error: ' + (error instanceof Error ? error.message : 'Desconocido') + '. El webhook podría estar caído o haber cambiado.');
+      setWebhookStatus('error');
       toast.error('Error al cargar datos. Usando datos de ejemplo.');
     } finally {
       setIsLoading(false);
     }
   };
 
-  // Attempt with a POST request if GET fails
-  const tryPostRequest = async () => {
+  const pingWebhook = async () => {
     setIsLoading(true);
-    setError(null);
+    setWebhookStatus('pinging');
     
     try {
-      console.log("Attempting POST request to webhook:", WEBHOOK_URL);
       const response = await fetch(WEBHOOK_URL, {
         method: "POST",
         headers: {
-          'Accept': 'application/json',
           'Content-Type': 'application/json'
         },
         mode: 'no-cors',
-        body: JSON.stringify({ action: "fetch_supply_data" })
+        body: JSON.stringify({ 
+          action: "ping", 
+          source: "supply_dashboard",
+          timestamp: new Date().toISOString()
+        })
       });
       
-      toast.success('Solicitud POST enviada al webhook');
+      toast.success('Ping enviado al webhook');
+      setWebhookStatus('pinged');
       
-      // Since we're using no-cors, we need to refetch after a delay
-      setTimeout(fetchData, 2000);
+      setTimeout(fetchData, 1500);
     } catch (error) {
-      console.error("Error with POST request:", error);
-      setError('Error al intentar solicitud POST: ' + (error instanceof Error ? error.message : 'Desconocido'));
+      console.error("Error pinging webhook:", error);
+      setError('Error al hacer ping al webhook: ' + (error instanceof Error ? error.message : 'Desconocido'));
+      setWebhookStatus('error');
       setIsLoading(false);
     }
   };
 
   useEffect(() => {
     fetchData();
-    // Refresh every 5 minutes
     const interval = setInterval(fetchData, 5 * 60 * 1000);
     
     return () => clearInterval(interval);
   }, []);
 
   useEffect(() => {
-    // Save operator name to localStorage
     if (operatorName) {
       localStorage.setItem('supplyOperatorName', operatorName);
     }
@@ -207,7 +178,6 @@ const SupplyTeamDashboard: React.FC = () => {
     if (!selectedItem) return;
     
     try {
-      // Create a new Lead entry from the validated data
       const newLead: Lead = {
         id: parseInt(selectedItem.id) || Date.now(),
         nombre: validatedData.nombre || selectedItem.nombre,
@@ -217,7 +187,6 @@ const SupplyTeamDashboard: React.FC = () => {
         fechaCreacion: new Date().toISOString().split('T')[0],
       };
       
-      // Call webhook with validation data
       await executeWebhook({
         telefono: validatedData.telefono || selectedItem.telefono,
         leadId: newLead.id,
@@ -230,7 +199,6 @@ const SupplyTeamDashboard: React.FC = () => {
         datosValidados: { ...validatedData }
       });
       
-      // Update local state
       setData(prev => prev.map(item => 
         item.id === selectedItem.id 
           ? { 
@@ -275,7 +243,7 @@ const SupplyTeamDashboard: React.FC = () => {
     return (
       <div className="flex flex-col items-center justify-center h-64">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        <p className="mt-4 text-muted-foreground">Cargando datos...</p>
+        <p className="mt-4 text-muted-foreground">Cargando datos del webhook...</p>
       </div>
     );
   }
@@ -312,17 +280,19 @@ const SupplyTeamDashboard: React.FC = () => {
                   onClick={fetchData} 
                   size="sm"
                   variant="outline"
+                  disabled={webhookStatus === 'fetching'}
                 >
-                  <RefreshCw className="h-4 w-4 mr-1" />
-                  GET
+                  <RefreshCw className={`h-4 w-4 mr-1 ${webhookStatus === 'fetching' ? 'animate-spin' : ''}`} />
+                  Actualizar
                 </Button>
                 <Button 
-                  onClick={tryPostRequest} 
+                  onClick={pingWebhook} 
                   size="sm"
                   variant="outline"
+                  disabled={webhookStatus === 'pinging'}
                 >
-                  <RefreshCw className="h-4 w-4 mr-1" />
-                  POST
+                  <WebhookIcon className="h-4 w-4 mr-1" />
+                  Ping Webhook
                 </Button>
               </div>
             </div>
