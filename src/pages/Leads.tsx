@@ -4,9 +4,10 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import LeadCreationForm from '@/components/leads/LeadCreationForm';
 import LeadsDashboard from '@/components/leads/LeadsDashboard';
 import CallCenter from '@/components/call-center';
+import { SupplyTeamDashboard } from '@/components/supply-team';
 import { useLeads } from '@/context/LeadsContext';
 import { Button } from '@/components/ui/button';
-import { Download, UserCheck } from 'lucide-react';
+import { Download, UserCheck, Package } from 'lucide-react';
 import QualifiedLeadsApproval from '@/components/leads/QualifiedLeadsApproval';
 
 const Leads = () => {
@@ -78,6 +79,10 @@ const Leads = () => {
             Aprobación
           </TabsTrigger>
           <TabsTrigger value="callcenter">Call Center</TabsTrigger>
+          <TabsTrigger value="suministros">
+            <Package className="mr-1 h-4 w-4" />
+            Suministros
+          </TabsTrigger>
         </TabsList>
         
         <TabsContent value="crear" className="mt-6">
@@ -97,6 +102,10 @@ const Leads = () => {
             leads={leads}
             onUpdateLeadStatus={updateLeadStatus} 
           />
+        </TabsContent>
+        
+        <TabsContent value="suministros" className="mt-6">
+          <SupplyTeamDashboard />
         </TabsContent>
       </Tabs>
     </div>
