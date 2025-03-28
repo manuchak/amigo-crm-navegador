@@ -77,14 +77,39 @@ const SupplyTeamDashboard: React.FC = () => {
     setError(null);
     
     try {
-      console.log("Fetching data from webhook:", WEBHOOK_URL);
-      const response = await fetch(WEBHOOK_URL, {
+      // Try using a CORS proxy to bypass CORS issues
+      const proxyUrl = "https://api.allorigins.win/raw?url=";
+      const encodedUrl = encodeURIComponent(WEBHOOK_URL);
+      const urlToFetch = proxyUrl + encodedUrl;
+      
+      console.log("Fetching data using CORS proxy:", urlToFetch);
+      
+      let response = await fetch(urlToFetch, {
         method: "GET",
         headers: {
-          'Accept': 'application/json',
-          'Content-Type': 'application/json'
+          'Accept': 'application/json'
         }
       });
+      
+      // If proxy fails, try direct approach with no-cors mode
+      if (!response.ok) {
+        console.log("Proxy approach failed, trying direct webhook with no-cors mode");
+        response = await fetch(WEBHOOK_URL, {
+          method: "GET",
+          headers: {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json'
+          },
+          mode: 'no-cors' // This will help bypass CORS issues
+        });
+      }
+      
+      // Since no-cors doesn't return proper response, we'll handle it specially
+      if (response.type === 'opaque') {
+        // no-cors response doesn't provide access to the body
+        // We'll treat this as an error and use sample data
+        throw new Error("No se pudo acceder al webhook usando modo no-cors");
+      }
       
       if (!response.ok) {
         throw new Error(`HTTP error: ${response.status}`);
@@ -110,15 +135,45 @@ const SupplyTeamDashboard: React.FC = () => {
         }));
         
         setData(formattedData);
+        setError(null);
+        toast.success('Datos cargados correctamente');
       } else {
         throw new Error("La respuesta del webhook no es un arreglo de datos");
       }
     } catch (error) {
       console.error("Error fetching data from webhook:", error);
       setData(sampleData);
-      setError('No se pudo acceder al webhook. Usando datos de ejemplo. Error: ' + (error instanceof Error ? error.message : 'Desconocido'));
+      setError('Error al conectar con el webhook. Usando datos de ejemplo. Error: ' + (error instanceof Error ? error.message : 'Desconocido') + '. El webhook podría estar caído o haber cambiado.');
       toast.error('Error al cargar datos. Usando datos de ejemplo.');
     } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Attempt with a POST request if GET fails
+  const tryPostRequest = async () => {
+    setIsLoading(true);
+    setError(null);
+    
+    try {
+      console.log("Attempting POST request to webhook:", WEBHOOK_URL);
+      const response = await fetch(WEBHOOK_URL, {
+        method: "POST",
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json'
+        },
+        mode: 'no-cors',
+        body: JSON.stringify({ action: "fetch_supply_data" })
+      });
+      
+      toast.success('Solicitud POST enviada al webhook');
+      
+      // Since we're using no-cors, we need to refetch after a delay
+      setTimeout(fetchData, 2000);
+    } catch (error) {
+      console.error("Error with POST request:", error);
+      setError('Error al intentar solicitud POST: ' + (error instanceof Error ? error.message : 'Desconocido'));
       setIsLoading(false);
     }
   };
@@ -252,14 +307,24 @@ const SupplyTeamDashboard: React.FC = () => {
                   Guardar
                 </Button>
               </div>
-              <Button 
-                onClick={fetchData} 
-                size="sm"
-                variant="outline"
-              >
-                <RefreshCw className="h-4 w-4 mr-1" />
-                Actualizar
-              </Button>
+              <div className="flex items-center space-x-2">
+                <Button 
+                  onClick={fetchData} 
+                  size="sm"
+                  variant="outline"
+                >
+                  <RefreshCw className="h-4 w-4 mr-1" />
+                  GET
+                </Button>
+                <Button 
+                  onClick={tryPostRequest} 
+                  size="sm"
+                  variant="outline"
+                >
+                  <RefreshCw className="h-4 w-4 mr-1" />
+                  POST
+                </Button>
+              </div>
             </div>
           </div>
         </CardHeader>
