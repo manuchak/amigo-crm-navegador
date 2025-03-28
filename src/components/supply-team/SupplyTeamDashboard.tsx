@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -136,7 +135,11 @@ const SupplyTeamDashboard: React.FC = () => {
     }
   };
 
-  const getStatusBadge = (status: string) => {
+  const getStatusBadge = (status: string | undefined) => {
+    if (!status) {
+      return <Badge variant="secondary">Pendiente</Badge>;
+    }
+    
     switch (status.toLowerCase()) {
       case 'nuevo':
         return <Badge variant="default">Nuevo</Badge>;
