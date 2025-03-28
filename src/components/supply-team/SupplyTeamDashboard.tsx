@@ -1,9 +1,10 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Phone, FileCheck, Loader2 } from 'lucide-react';
+import { Phone, FileCheck, Loader2, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { Lead } from '@/context/LeadsContext';
 import ValidationDialog from './ValidationDialog';
@@ -22,24 +23,82 @@ interface SheetData {
   fechaValidacion?: string;
 }
 
+// Sample data to use as fallback when API fails
+const sampleData: SheetData[] = [
+  {
+    id: "1",
+    nombre: "Juan Pérez",
+    empresa: "ABC Company",
+    telefono: "555-1234",
+    email: "juan@example.com",
+    estado: "nuevo",
+    fechaCreacion: "2023-05-15",
+    validado: "no"
+  },
+  {
+    id: "2",
+    nombre: "María López",
+    empresa: "XYZ Industries",
+    telefono: "555-5678",
+    email: "maria@example.com",
+    estado: "pendiente",
+    fechaCreacion: "2023-05-16",
+    validado: "no"
+  },
+  {
+    id: "3",
+    nombre: "Carlos Gómez",
+    empresa: "Tech Solutions",
+    telefono: "555-9012",
+    email: "carlos@example.com",
+    estado: "validado",
+    fechaCreacion: "2023-05-14",
+    validado: "si",
+    validadoPor: "Ana",
+    fechaValidacion: "2023-05-17"
+  }
+];
+
 const SupplyTeamDashboard: React.FC = () => {
   const [data, setData] = useState<SheetData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [selectedItem, setSelectedItem] = useState<SheetData | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [operatorName, setOperatorName] = useState(() => {
     return localStorage.getItem('supplyOperatorName') || '';
   });
 
-  const csvUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQGlBVy3s8JH7QNsnf9vRs8urGbuGT0CtPzw4tmJV5O0wW5DkI3adBxUr_HK-ON3WfUPZHTOhuv_qUT/pub?output=csv';
+  // Original Google Sheets URL
+  const originalCsvUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQGlBVy3s8JH7QNsnf9vRs8urGbuGT0CtPzw4tmJV5O0wW5DkI3adBxUr_HK-ON3WfUPZHTOhuv_qUT/pub?output=csv';
+  
+  // Using a CORS proxy to bypass the CORS issue
+  const corsProxyUrl = 'https://corsproxy.io/?';
+  const csvUrl = `${corsProxyUrl}${encodeURIComponent(originalCsvUrl)}`;
 
   useEffect(() => {
     const fetchData = async () => {
+      setIsLoading(true);
+      setError(null);
+      
       try {
+        console.log("Fetching data from:", csvUrl);
         const response = await fetch(csvUrl);
+        
+        if (!response.ok) {
+          throw new Error(`HTTP error! Status: ${response.status}`);
+        }
+        
         const csvText = await response.text();
+        console.log("CSV data received:", csvText.substring(0, 100) + "..."); // Log first 100 chars
+        
         const rows = csvText.split('\n');
+        if (rows.length <= 1) {
+          throw new Error("No data rows found in CSV");
+        }
+        
         const headers = rows[0].split(',');
+        console.log("CSV headers:", headers);
         
         const parsedData = rows.slice(1).map((row, index) => {
           const values = row.split(',');
@@ -51,14 +110,19 @@ const SupplyTeamDashboard: React.FC = () => {
           });
           
           item.id = item.id || String(index + 1);
-          
           return item as SheetData;
         });
         
         setData(parsedData);
+        console.log("Parsed data:", parsedData);
       } catch (error) {
         console.error('Error fetching CSV data:', error);
-        toast.error('Error al cargar los datos. Intenta de nuevo.');
+        
+        // Use sample data as fallback
+        setData(sampleData);
+        
+        setError('No se pudo cargar datos desde Google Sheets. Usando datos de muestra.');
+        toast.error('Error al cargar los datos. Usando datos de ejemplo.');
       } finally {
         setIsLoading(false);
       }
@@ -69,7 +133,7 @@ const SupplyTeamDashboard: React.FC = () => {
     const interval = setInterval(fetchData, 5 * 60 * 1000);
     
     return () => clearInterval(interval);
-  }, []);
+  }, [csvUrl]);
 
   useEffect(() => {
     // Save operator name to localStorage
@@ -195,6 +259,18 @@ const SupplyTeamDashboard: React.FC = () => {
             </div>
           </div>
         </CardHeader>
+        {error && (
+          <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 mx-6 mb-4">
+            <div className="flex">
+              <div className="flex-shrink-0">
+                <AlertCircle className="h-5 w-5 text-yellow-400" />
+              </div>
+              <div className="ml-3">
+                <p className="text-sm text-yellow-700">{error}</p>
+              </div>
+            </div>
+          </div>
+        )}
         <CardContent>
           <div className="rounded-md border">
             <Table>
