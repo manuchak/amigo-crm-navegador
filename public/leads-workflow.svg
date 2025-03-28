@@ -1,31 +1,57 @@
 
 <svg width="600" height="400" viewBox="0 0 600 400" xmlns="http://www.w3.org/2000/svg">
-  <!-- Background -->
-  <rect width="600" height="400" fill="#F5F5F7" rx="20" ry="20"/>
+  <!-- Background with soft gradient -->
+  <rect width="600" height="400" fill="url(#backgroundGradient)" rx="20" ry="20"/>
+  
+  <!-- Curved Path for Flow -->
+  <path d="M100,200 C150,150 200,250 300,200 C400,150 450,250 500,200" 
+        stroke="#E0E0E0" stroke-width="4" stroke-dasharray="6,3" fill="none"/>
   
   <!-- Step 1: Creation -->
-  <rect x="50" y="150" width="120" height="100" rx="12" ry="12" fill="#FFFFFF" stroke="#E0E0E0" stroke-width="2"/>
-  <text x="110" y="185" font-family="SF Pro Display, -apple-system, BlinkMacSystemFont, sans-serif" font-size="14" text-anchor="middle" fill="#1D1D1F">Creación</text>
-  <text x="110" y="210" font-family="SF Pro Display, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" text-anchor="middle" fill="#86868B">Registro inicial</text>
+  <circle cx="100" cy="200" r="40" fill="#0E7D6C" stroke="white" stroke-width="4"/>
+  <circle cx="100" cy="200" r="30" fill="white"/>
+  <text x="100" y="205" font-family="SF Pro Display, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="600" text-anchor="middle" fill="#0E7D6C">1</text>
+  <text x="100" y="250" font-family="SF Pro Display, -apple-system, BlinkMacSystemFont, sans-serif" font-size="14" font-weight="600" text-anchor="middle" fill="#1D1D1F">Creación</text>
+  <text x="100" y="270" font-family="SF Pro Display, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" text-anchor="middle" fill="#86868B">Registro inicial</text>
   
-  <!-- Arrow 1-->
-  <line x1="170" y1="200" x2="220" y2="200" stroke="#0066CC" stroke-width="2"/>
-  <polygon points="220,200 215,195 215,205" fill="#0066CC"/>
+  <!-- Arrow 1 -->
+  <path d="M150,200 L200,200" stroke="#CCCCCC" stroke-width="2" stroke-dasharray="4,2"/>
+  <polygon points="200,200 195,196 195,204" fill="#CCCCCC"/>
   
   <!-- Step 2: Follow-up -->
-  <rect x="240" y="150" width="120" height="100" rx="12" ry="12" fill="#FFFFFF" stroke="#E0E0E0" stroke-width="2"/>
-  <text x="300" y="185" font-family="SF Pro Display, -apple-system, BlinkMacSystemFont, sans-serif" font-size="14" text-anchor="middle" fill="#1D1D1F">Seguimiento</text>
-  <text x="300" y="210" font-family="SF Pro Display, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" text-anchor="middle" fill="#86868B">Call Center</text>
+  <circle cx="235" cy="200" r="40" fill="#37A69B" stroke="white" stroke-width="4"/>
+  <circle cx="235" cy="200" r="30" fill="white"/>
+  <text x="235" y="205" font-family="SF Pro Display, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="600" text-anchor="middle" fill="#37A69B">2</text>
+  <text x="235" y="250" font-family="SF Pro Display, -apple-system, BlinkMacSystemFont, sans-serif" font-size="14" font-weight="600" text-anchor="middle" fill="#1D1D1F">Seguimiento</text>
+  <text x="235" y="270" font-family="SF Pro Display, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" text-anchor="middle" fill="#86868B">Call Center</text>
   
   <!-- Arrow 2 -->
-  <line x1="360" y1="200" x2="410" y2="200" stroke="#0066CC" stroke-width="2"/>
-  <polygon points="410,200 405,195 405,205" fill="#0066CC"/>
+  <path d="M285,200 L330,200" stroke="#CCCCCC" stroke-width="2" stroke-dasharray="4,2"/>
+  <polygon points="330,200 325,196 325,204" fill="#CCCCCC"/>
   
-  <!-- Step 3: Approval -->
-  <rect x="430" y="150" width="120" height="100" rx="12" ry="12" fill="#FFFFFF" stroke="#E0E0E0" stroke-width="2"/>
-  <text x="490" y="185" font-family="SF Pro Display, -apple-system, BlinkMacSystemFont, sans-serif" font-size="14" text-anchor="middle" fill="#1D1D1F">Aprobación</text>
-  <text x="490" y="210" font-family="SF Pro Display, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" text-anchor="middle" fill="#86868B">Suministros</text>
+  <!-- Step 3: Contact -->
+  <circle cx="365" cy="200" r="40" fill="#ED8A54" stroke="white" stroke-width="4"/>
+  <circle cx="365" cy="200" r="30" fill="white"/>
+  <text x="365" y="205" font-family="SF Pro Display, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="600" text-anchor="middle" fill="#ED8A54">3</text>
+  <text x="365" y="250" font-family="SF Pro Display, -apple-system, BlinkMacSystemFont, sans-serif" font-size="14" font-weight="600" text-anchor="middle" fill="#1D1D1F">Contacto</text>
+  <text x="365" y="270" font-family="SF Pro Display, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" text-anchor="middle" fill="#86868B">Entrevistas</text>
   
-  <!-- Title -->
-  <text x="300" y="80" font-family="SF Pro Display, -apple-system, BlinkMacSystemFont, sans-serif" font-size="24" font-weight="600" text-anchor="middle" fill="#1D1D1F">Flujo de Gestión de Custodios</text>
+  <!-- Arrow 3 -->
+  <path d="M415,200 L465,200" stroke="#CCCCCC" stroke-width="2" stroke-dasharray="4,2"/>
+  <polygon points="465,200 460,196 460,204" fill="#CCCCCC"/>
+  
+  <!-- Step 4: Approval -->
+  <circle cx="500" cy="200" r="40" fill="#E74C4C" stroke="white" stroke-width="4"/>
+  <circle cx="500" cy="200" r="30" fill="white"/>
+  <text x="500" y="205" font-family="SF Pro Display, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="600" text-anchor="middle" fill="#E74C4C">4</text>
+  <text x="500" y="250" font-family="SF Pro Display, -apple-system, BlinkMacSystemFont, sans-serif" font-size="14" font-weight="600" text-anchor="middle" fill="#1D1D1F">Aprobación</text>
+  <text x="500" y="270" font-family="SF Pro Display, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" text-anchor="middle" fill="#86868B">Suministros</text>
+  
+  <!-- Definitions for gradients and filters -->
+  <defs>
+    <linearGradient id="backgroundGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#F5F5F7" />
+      <stop offset="100%" stop-color="#E8E8ED" />
+    </linearGradient>
+  </defs>
 </svg>
