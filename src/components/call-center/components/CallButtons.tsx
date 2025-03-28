@@ -39,15 +39,20 @@ const CallButtons: React.FC<CallButtonsProps> = ({
     
     try {
       // Format data for VAPI.AI through Make.com webhook
+      // Send all lead data along with the phone number
       await executeWebhook({
         telefono: phoneNumber, // This will be extracted as a separate object in the webhook function
+        leadId: lead.id,
         nombre: lead.nombre,
         empresa: lead.empresa,
+        contacto: lead.contacto,
+        estado: lead.estado,
+        fechaCreacion: lead.fechaCreacion,
         timestamp: new Date().toISOString(),
         action: "outbound_call_requested"
       });
       
-      console.log("Webhook ejecutado para llamada saliente");
+      console.log("Webhook ejecutado para llamada saliente con todos los datos del lead");
       toast.success(`Llamada saliente iniciada para ${lead.nombre}`);
       
       // Continue with the call process
