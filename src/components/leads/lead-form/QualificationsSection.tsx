@@ -1,8 +1,9 @@
+
 import React from 'react';
 import { useFormContext } from 'react-hook-form';
 import { FormField, FormItem, FormLabel, FormControl } from '@/components/ui/form';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { ShieldCheck, Milestone, Weapon } from 'lucide-react';
+import { ShieldCheck, Milestone, Shield, Car } from 'lucide-react';
 import VehicleSection from './VehicleSection';
 
 const QualificationsSection = () => {
@@ -120,7 +121,7 @@ const QualificationsSection = () => {
         render={({ field }) => (
           <FormItem className="space-y-3">
             <FormLabel className="flex items-center gap-2">
-              <Weapon className="h-4 w-4 text-gray-500" />
+              <Shield className="h-4 w-4 text-gray-500" />
               ¿Es armado?
             </FormLabel>
             <FormControl>
