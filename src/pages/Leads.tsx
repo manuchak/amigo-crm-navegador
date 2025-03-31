@@ -6,17 +6,18 @@ import CallCenter from '@/components/call-center';
 import { SupplyTeamDashboard } from '@/components/supply-team';
 import { useLeads } from '@/context/LeadsContext';
 import { Button } from '@/components/ui/button';
-import { Download, UserCheck, Package, WebhookIcon } from 'lucide-react';
+import { Download, UserCheck, Package, WebhookIcon, Database } from 'lucide-react';
 import QualifiedLeadsApproval from '@/components/leads/QualifiedLeadsApproval';
 import LeadsIntro from '@/components/leads/LeadsIntro';
 import { toast } from 'sonner';
-import { executeWebhook } from '@/components/call-center/utils/webhook';
+import { executeWebhook, fetchLeadsFromExternalDatabase, LEADS_WEBHOOK_URL } from '@/components/call-center/utils/webhook';
 
 const Leads = () => {
   const [activeTab, setActiveTab] = useState("crear");
   const [showIntro, setShowIntro] = useState(true);
-  const { leads, updateLeadStatus } = useLeads();
+  const { leads, updateLeadStatus, setLeads } = useLeads();
   const [isWebhookSyncing, setIsWebhookSyncing] = useState(false);
+  const [isLeadsImporting, setIsLeadsImporting] = useState(false);
 
   // Check if user has visited before
   useEffect(() => {
@@ -96,6 +97,49 @@ const Leads = () => {
     }
   };
 
+  const handleImportLeadsFromDatabase = async () => {
+    setIsLeadsImporting(true);
+    
+    try {
+      const response = await fetchLeadsFromExternalDatabase();
+      
+      if (response && Array.isArray(response)) {
+        // Convert the imported leads to the application's Lead format
+        const importedLeads = response.map((item, index) => ({
+          id: parseInt(item.id) || Date.now() + index,
+          nombre: item.nombre || item.name || "Sin nombre",
+          empresa: item.empresa || item.company || "Custodio",
+          contacto: item.email ? 
+            `${item.email} | ${item.telefono || item.phone || ""}` : 
+            (item.telefono || item.phone || "Sin contacto"),
+          estado: item.estado || item.status || "Nuevo",
+          fechaCreacion: item.fechaCreacion || item.createdAt || new Date().toISOString().split('T')[0]
+        }));
+        
+        // Merge with existing leads, avoiding duplicates by ID
+        const existingIds = new Set(leads.map(lead => lead.id));
+        const newLeads = importedLeads.filter(lead => !existingIds.has(lead.id));
+        
+        if (newLeads.length > 0) {
+          setLeads([...newLeads, ...leads]);
+          toast.success(`${newLeads.length} nuevos leads importados correctamente`);
+        } else {
+          toast.info('No se encontraron nuevos leads para importar');
+        }
+      } else if (response && response.message) {
+        // Handle message response
+        toast.success(`Respuesta del servidor: ${response.message}`);
+      } else {
+        throw new Error('Formato de respuesta no válido');
+      }
+    } catch (error) {
+      console.error("Error importing leads:", error);
+      toast.error(`Error al importar leads: ${error instanceof Error ? error.message : 'Error desconocido'}`);
+    } finally {
+      setIsLeadsImporting(false);
+    }
+  };
+
   if (showIntro) {
     return <LeadsIntro onGetStarted={handleGetStarted} />;
   }
@@ -125,7 +169,36 @@ const Leads = () => {
             <WebhookIcon className={`mr-2 h-4 w-4 ${isWebhookSyncing ? 'animate-spin' : ''}`} />
             Sincronizar Datos
           </Button>
+          
+          <Button 
+            onClick={handleImportLeadsFromDatabase} 
+            variant="outline"
+            disabled={isLeadsImporting}
+          >
+            <Database className={`mr-2 h-4 w-4 ${isLeadsImporting ? 'animate-spin' : ''}`} />
+            Importar Leads
+          </Button>
         </div>
+      </div>
+      
+      <div className="mb-4 p-4 bg-white rounded-lg shadow-sm border border-gray-100">
+        <h3 className="text-sm font-medium mb-2">Webhook de Datos de Leads</h3>
+        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2">
+          <code className="text-xs bg-gray-100 p-2 rounded flex-1 overflow-auto">{LEADS_WEBHOOK_URL}</code>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => {
+              navigator.clipboard.writeText(LEADS_WEBHOOK_URL);
+              toast.success("URL copiada al portapapeles");
+            }}
+          >
+            Copiar URL
+          </Button>
+        </div>
+        <p className="text-xs text-muted-foreground mt-2">
+          Envía una petición GET a este endpoint para probar, o configúralo en tu sistema como destino de webhook.
+        </p>
       </div>
       
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">

@@ -72,3 +72,37 @@ export const createWebhookReceiver = (endpoint: string) => {
   // Return the function for fetching data
   return fetchDataFromEndpoint;
 };
+
+// New function specifically for fetching leads data from external database
+export const LEADS_WEBHOOK_URL = "https://hook.us2.make.com/3p8dr9wka8n5b84qo9wy1yplcbfjkr2e";
+
+export const fetchLeadsFromExternalDatabase = async () => {
+  try {
+    console.log("Fetching leads data from external database...");
+    const response = await fetch(LEADS_WEBHOOK_URL, {
+      method: "GET",
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json'
+      }
+    });
+    
+    if (!response.ok) {
+      throw new Error(`HTTP error: ${response.status}`);
+    }
+    
+    // Parse response text - handle case when response is not JSON
+    const text = await response.text();
+    try {
+      // Try to parse as JSON first
+      return JSON.parse(text);
+    } catch (e) {
+      // If not JSON, return the text itself
+      console.log("Response is not JSON:", text);
+      return { message: text, status: response.status };
+    }
+  } catch (error) {
+    console.error("Error fetching leads from external database:", error);
+    throw error;
+  }
+};
