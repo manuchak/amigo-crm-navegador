@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from '@/components/ui/table';
@@ -21,15 +20,14 @@ interface CallHistoryProps {
 }
 
 const CallHistory: React.FC<CallHistoryProps> = ({ callsForToday }) => {
-  // Updated to ensure we only return valid variants from badgeVariants
-  const getResultColor = (result: string): "success" | "warning" | "info" | "destructive" | "purple" => {
+  const getResultColor = (result: string) => {
     switch (result) {
       case "Contactado": return "success";
       case "No contestó": return "warning";
       case "Buzón de voz": return "info";
       case "Número equivocado": return "destructive";
       case "Programada": return "purple";
-      default: return "info";
+      default: return "secondary";
     }
   };
 

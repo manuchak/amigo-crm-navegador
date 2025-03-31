@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -30,7 +29,6 @@ interface SheetData {
   fechaValidacion?: string;
 }
 
-// Sample data to use as fallback when API fails
 const sampleData: SheetData[] = [
   {
     id: "1",
@@ -234,7 +232,7 @@ const SupplyTeamDashboard: React.FC = () => {
         return <Badge variant="default">Nuevo</Badge>;
       case 'validado':
       case 'si':
-        return <Badge variant="success" className="bg-green-500">Validado</Badge>;
+        return <Badge variant="success">Validado</Badge>;
       case 'pendiente':
         return <Badge variant="outline">Pendiente</Badge>;
       case 'rechazado':
