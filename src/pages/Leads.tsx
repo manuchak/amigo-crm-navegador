@@ -7,16 +7,13 @@ import CallCenter from '@/components/call-center';
 import { SupplyTeamDashboard } from '@/components/supply-team';
 import { useLeads } from '@/context/LeadsContext';
 import { Button } from '@/components/ui/button';
-import { Download, UserCheck, Package, WebhookIcon, Database, Key } from 'lucide-react';
+import { Download, UserCheck, Package, WebhookIcon, Database } from 'lucide-react';
 import QualifiedLeadsApproval from '@/components/leads/QualifiedLeadsApproval';
 import LeadsIntro from '@/components/leads/LeadsIntro';
 import { toast } from 'sonner';
 import { 
   executeWebhook, 
-  fetchLeadsFromExternalDatabase, 
-  LEADS_WEBHOOK_URL, 
-  LEADS_WEBHOOK_NAME,
-  LEADS_WEBHOOK_API_KEY 
+  fetchLeadsFromExternalDatabase
 } from '@/components/call-center/utils/webhook';
 
 const Leads = () => {
@@ -25,7 +22,6 @@ const Leads = () => {
   const { leads, updateLeadStatus, setLeads } = useLeads();
   const [isWebhookSyncing, setIsWebhookSyncing] = useState(false);
   const [isLeadsImporting, setIsLeadsImporting] = useState(false);
-  const [showApiKey, setShowApiKey] = useState(false);
 
   // Check if user has visited before
   useEffect(() => {
@@ -187,59 +183,6 @@ const Leads = () => {
             Importar Leads
           </Button>
         </div>
-      </div>
-      
-      <div className="mb-4 p-4 bg-white rounded-lg shadow-sm border border-gray-100">
-        <h3 className="text-sm font-medium mb-2">Webhook de Datos de Leads: {LEADS_WEBHOOK_NAME}</h3>
-        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2">
-          <code className="text-xs bg-gray-100 p-2 rounded flex-1 overflow-auto">{LEADS_WEBHOOK_URL}</code>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => {
-              navigator.clipboard.writeText(LEADS_WEBHOOK_URL);
-              toast.success("URL copiada al portapapeles");
-            }}
-          >
-            Copiar URL
-          </Button>
-        </div>
-        
-        <div className="mt-3 flex items-center gap-2">
-          <div className="flex items-center gap-2">
-            <Key className="h-4 w-4 text-muted-foreground" />
-            <span className="text-sm font-medium">API Key:</span>
-          </div>
-          
-          {showApiKey ? (
-            <code className="text-xs bg-gray-100 p-2 rounded">{LEADS_WEBHOOK_API_KEY}</code>
-          ) : (
-            <code className="text-xs bg-gray-100 p-2 rounded">•••••••••••••••••••</code>
-          )}
-          
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setShowApiKey(!showApiKey)}
-          >
-            {showApiKey ? "Ocultar" : "Mostrar"}
-          </Button>
-          
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => {
-              navigator.clipboard.writeText(LEADS_WEBHOOK_API_KEY);
-              toast.success("API Key copiada al portapapeles");
-            }}
-          >
-            Copiar API Key
-          </Button>
-        </div>
-        
-        <p className="text-xs text-muted-foreground mt-2">
-          Envía una petición GET a este endpoint con el parámetro api_key o en el header Authorization para autenticarte.
-        </p>
       </div>
       
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
