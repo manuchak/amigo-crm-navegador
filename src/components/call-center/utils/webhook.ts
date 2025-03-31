@@ -73,17 +73,21 @@ export const createWebhookReceiver = (endpoint: string) => {
   return fetchDataFromEndpoint;
 };
 
-// New function specifically for fetching leads data from external database
+// Constants for Leads webhook
 export const LEADS_WEBHOOK_URL = "https://hook.us2.make.com/3p8dr9wka8n5b84qo9wy1yplcbfjkr2e";
+export const LEADS_WEBHOOK_NAME = "CustodiosCRM Leads Data";
+export const LEADS_WEBHOOK_API_KEY = "cust_leads_api_43971892"; // API key for authentication
 
+// Function to fetch leads with API key authentication
 export const fetchLeadsFromExternalDatabase = async () => {
   try {
     console.log("Fetching leads data from external database...");
-    const response = await fetch(LEADS_WEBHOOK_URL, {
+    const response = await fetch(`${LEADS_WEBHOOK_URL}?api_key=${LEADS_WEBHOOK_API_KEY}`, {
       method: "GET",
       headers: {
         'Accept': 'application/json',
-        'Content-Type': 'application/json'
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${LEADS_WEBHOOK_API_KEY}` // Also send in authorization header
       }
     });
     
@@ -105,4 +109,13 @@ export const fetchLeadsFromExternalDatabase = async () => {
     console.error("Error fetching leads from external database:", error);
     throw error;
   }
+};
+
+// Helper function to create a webhook payload with API key for sending data
+export const createWebhookPayloadWithAuth = (data: any) => {
+  return {
+    ...data,
+    api_key: LEADS_WEBHOOK_API_KEY,
+    timestamp: new Date().toISOString()
+  };
 };
