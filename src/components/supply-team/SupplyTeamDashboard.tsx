@@ -1,13 +1,20 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Phone, FileCheck, Loader2, AlertCircle, RefreshCw, WebhookIcon } from 'lucide-react';
+import { Phone, FileCheck, Loader2, AlertCircle, RefreshCw, WebhookIcon, Database, Key } from 'lucide-react';
 import { toast } from 'sonner';
 import { Lead } from '@/context/LeadsContext';
 import ValidationDialog from './ValidationDialog';
-import { executeWebhook, createWebhookReceiver } from '../call-center/utils/webhook';
+import { 
+  executeWebhook, 
+  fetchLeadsFromExternalDatabase,
+  LEADS_WEBHOOK_URL,
+  LEADS_WEBHOOK_NAME,
+  LEADS_WEBHOOK_API_KEY
+} from '../call-center/utils/webhook';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 
 interface SheetData {
@@ -59,8 +66,6 @@ const sampleData: SheetData[] = [
   }
 ];
 
-const WEBHOOK_URL = "https://hook.us2.make.com/yrqf31b5xkve9j77vjfal7crsv6qqkf1";
-
 const SupplyTeamDashboard: React.FC = () => {
   const [data, setData] = useState<SheetData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -71,8 +76,7 @@ const SupplyTeamDashboard: React.FC = () => {
     return localStorage.getItem('supplyOperatorName') || '';
   });
   const [webhookStatus, setWebhookStatus] = useState<string>('idle');
-
-  const fetchWebhookData = createWebhookReceiver(WEBHOOK_URL);
+  const [showApiKey, setShowApiKey] = useState(false);
 
   const fetchData = async () => {
     setIsLoading(true);
@@ -80,8 +84,8 @@ const SupplyTeamDashboard: React.FC = () => {
     setWebhookStatus('fetching');
     
     try {
-      const responseData = await fetchWebhookData();
-      console.log("Webhook data received:", responseData);
+      const responseData = await fetchLeadsFromExternalDatabase();
+      console.log("Leads webhook data received:", responseData);
       
       if (typeof responseData === 'object' && responseData.message) {
         console.log("Received message from webhook:", responseData.message);
@@ -92,28 +96,28 @@ const SupplyTeamDashboard: React.FC = () => {
       } else if (Array.isArray(responseData)) {
         const formattedData = responseData.map((item, index) => ({
           id: item.id || String(index + 1),
-          nombre: item.nombre || "Sin nombre",
-          empresa: item.empresa || "Sin empresa",
-          telefono: item.telefono || "Sin teléfono",
+          nombre: item.nombre || item.name || "Sin nombre",
+          empresa: item.empresa || item.company || "Sin empresa",
+          telefono: item.telefono || item.phone || "Sin teléfono",
           email: item.email || "Sin email",
-          estado: item.estado || "nuevo",
-          fechaCreacion: item.fechaCreacion || new Date().toISOString().split('T')[0],
-          validado: item.validado || "no",
-          validadoPor: item.validadoPor,
-          fechaValidacion: item.fechaValidacion
+          estado: item.estado || item.status || "nuevo",
+          fechaCreacion: item.fechaCreacion || item.createdAt || new Date().toISOString().split('T')[0],
+          validado: item.validado || item.validated || "no",
+          validadoPor: item.validadoPor || item.validatedBy,
+          fechaValidacion: item.fechaValidacion || item.validationDate
         }));
         
         setData(formattedData);
         setError(null);
         setWebhookStatus('success');
-        toast.success('Datos cargados correctamente desde webhook');
+        toast.success('Datos cargados correctamente desde webhook de Leads');
       } else {
         throw new Error("La respuesta del webhook no es un arreglo de datos");
       }
     } catch (error) {
-      console.error("Error fetching data from webhook:", error);
+      console.error("Error fetching data from leads webhook:", error);
       setData(sampleData);
-      setError('Error al conectar con el webhook. Usando datos de ejemplo. Error: ' + (error instanceof Error ? error.message : 'Desconocido') + '. El webhook podría estar caído o haber cambiado.');
+      setError('Error al conectar con el webhook de Leads. Usando datos de ejemplo. Error: ' + (error instanceof Error ? error.message : 'Desconocido'));
       setWebhookStatus('error');
       toast.error('Error al cargar datos. Usando datos de ejemplo.');
     } finally {
@@ -126,20 +130,22 @@ const SupplyTeamDashboard: React.FC = () => {
     setWebhookStatus('pinging');
     
     try {
-      const response = await fetch(WEBHOOK_URL, {
+      const response = await fetch(LEADS_WEBHOOK_URL, {
         method: "POST",
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${LEADS_WEBHOOK_API_KEY}`
         },
         mode: 'no-cors',
         body: JSON.stringify({ 
           action: "ping", 
           source: "supply_dashboard",
-          timestamp: new Date().toISOString()
+          timestamp: new Date().toISOString(),
+          api_key: LEADS_WEBHOOK_API_KEY
         })
       });
       
-      toast.success('Ping enviado al webhook');
+      toast.success('Ping enviado al webhook de Leads');
       setWebhookStatus('pinged');
       
       setTimeout(fetchData, 1500);
@@ -243,7 +249,7 @@ const SupplyTeamDashboard: React.FC = () => {
     return (
       <div className="flex flex-col items-center justify-center h-64">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        <p className="mt-4 text-muted-foreground">Cargando datos del webhook...</p>
+        <p className="mt-4 text-muted-foreground">Cargando datos del webhook de Leads...</p>
       </div>
     );
   }
@@ -298,15 +304,57 @@ const SupplyTeamDashboard: React.FC = () => {
             </div>
           </div>
         </CardHeader>
-        {error && (
-          <div className="px-6 mb-4">
-            <Alert variant="warning">
+
+        <div className="px-6 mb-4">
+          <Alert variant="info">
+            <Database className="h-4 w-4" />
+            <AlertTitle>Webhook de Datos: {LEADS_WEBHOOK_NAME}</AlertTitle>
+            <AlertDescription className="flex flex-col sm:flex-row items-start gap-2">
+              <code className="text-xs bg-gray-100 p-2 rounded flex-1 overflow-auto">{LEADS_WEBHOOK_URL}</code>
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    navigator.clipboard.writeText(LEADS_WEBHOOK_URL);
+                    toast.success("URL copiada al portapapeles");
+                  }}
+                >
+                  Copiar URL
+                </Button>
+              </div>
+            </AlertDescription>
+            <div className="mt-2 flex items-center gap-2">
+              <div className="flex items-center gap-2">
+                <Key className="h-4 w-4 text-muted-foreground" />
+                <span className="text-sm font-medium">API Key:</span>
+              </div>
+              
+              {showApiKey ? (
+                <code className="text-xs bg-gray-100 p-2 rounded">{LEADS_WEBHOOK_API_KEY}</code>
+              ) : (
+                <code className="text-xs bg-gray-100 p-2 rounded">•••••••••••••••••••</code>
+              )}
+              
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowApiKey(!showApiKey)}
+              >
+                {showApiKey ? "Ocultar" : "Mostrar"}
+              </Button>
+            </div>
+          </Alert>
+          
+          {error && (
+            <Alert variant="warning" className="mt-3">
               <AlertCircle className="h-4 w-4" />
               <AlertTitle>Advertencia</AlertTitle>
               <AlertDescription>{error}</AlertDescription>
             </Alert>
-          </div>
-        )}
+          )}
+        </div>
+
         <CardContent>
           <div className="rounded-md border">
             <Table>
