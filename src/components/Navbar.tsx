@@ -2,7 +2,7 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { cn } from '@/lib/utils';
-import { Shield, CheckCircle } from 'lucide-react';
+import { Shield, CheckCircle, Settings } from 'lucide-react';
 
 const Navbar = () => {
   const location = useLocation();
@@ -11,7 +11,8 @@ const Navbar = () => {
     { name: 'Inicio', path: '/' },
     { name: 'Dashboard', path: '/dashboard' },
     { name: 'Leads', path: '/leads' },
-    { name: 'Requerimientos', path: '/requerimientos' }
+    { name: 'Requerimientos', path: '/requerimientos' },
+    { name: 'Administración', path: '/admin-config' }
   ];
   
   return (

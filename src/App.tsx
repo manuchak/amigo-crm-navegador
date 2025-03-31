@@ -9,6 +9,7 @@ import Index from "./pages/Index";
 import Dashboard from "./pages/Dashboard";
 import Leads from "./pages/Leads";
 import Requerimientos from "./pages/Requerimientos";
+import AdminConfig from "./pages/AdminConfig";
 import NotFound from "./pages/NotFound";
 import { LeadsProvider } from "./context/LeadsContext";
 
@@ -28,6 +29,7 @@ const App = () => {
               <Route path="/dashboard" element={<Dashboard />} />
               <Route path="/leads" element={<Leads />} />
               <Route path="/requerimientos" element={<Requerimientos />} />
+              <Route path="/admin-config" element={<AdminConfig />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </LeadsProvider>
