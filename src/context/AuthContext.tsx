@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { 
   getAuth, 
@@ -170,7 +169,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     } catch (error: any) {
       console.error('Error signing in with Google:', error);
-      toast.error('Error al iniciar sesión con Google');
+      
+      let errorMessage = 'Error al iniciar sesión con Google';
+      if (error.code === 'auth/api-key-not-valid') {
+        errorMessage = 'Error de configuración de Firebase. Contacte al administrador.';
+      } else if (error.code === 'auth/popup-closed-by-user') {
+        errorMessage = 'Inicio de sesión cancelado por el usuario';
+      } else if (error.code === 'auth/popup-blocked') {
+        errorMessage = 'El navegador bloqueó la ventana emergente. Por favor, permita ventanas emergentes para este sitio.';
+      }
+      
+      toast.error(errorMessage);
     }
   };
 
