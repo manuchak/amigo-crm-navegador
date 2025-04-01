@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { 
   getAuth, 
@@ -45,11 +46,21 @@ interface AuthContextProps {
   refreshUserData: () => Promise<void>;
 }
 
-const AuthContext = createContext<AuthContextProps | undefined>(undefined);
+// Create the context with a default value matching the interface structure
+const AuthContext = createContext<AuthContextProps>({
+  currentUser: null,
+  userData: null,
+  loading: true,
+  signInWithGoogle: async () => {},
+  signOut: async () => {},
+  updateUserRole: async () => {},
+  getAllUsers: async () => [],
+  refreshUserData: async () => {},
+});
 
 export const useAuth = () => {
   const context = useContext(AuthContext);
-  if (context === undefined) {
+  if (!context) {
     throw new Error('useAuth must be used within an AuthProvider');
   }
   return context;

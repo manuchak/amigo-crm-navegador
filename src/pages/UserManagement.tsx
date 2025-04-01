@@ -1,13 +1,19 @@
-
 import React, { useState, useEffect } from 'react';
-import { useAuth, UserData, UserRole } from '@/context/AuthContext';
-import { 
-  Table, TableBody, TableCell, TableHead, 
-  TableHeader, TableRow 
+import { useAuth, UserRole, UserData } from '@/context/AuthContext';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
 } from '@/components/ui/table';
-import { 
-  Card, CardContent, CardDescription, 
-  CardHeader, CardTitle 
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
 } from '@/components/ui/card';
 import {
   Select,
@@ -15,184 +21,191 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
+} from '@/components/ui/select';
 import {
   Dialog,
   DialogContent,
-  DialogHeader,
-  DialogTitle,
   DialogDescription,
   DialogFooter,
-} from "@/components/ui/dialog";
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
-import { 
-  Users, Search, UserCheck, Clock, ShieldAlert, 
-  CheckCircle, Shield, ShieldQuestion 
-} from 'lucide-react';
-import AuthGuard from '@/components/auth/AuthGuard';
+import { Button } from '@/components/ui/button';
+import { toast } from 'sonner';
+import { Loader2, UserCheck, UserX, Users } from 'lucide-react';
 
 const UserManagement = () => {
-  const { getAllUsers, updateUserRole } = useAuth();
+  const { getAllUsers, updateUserRole, userData: currentUserData } = useAuth();
   const [users, setUsers] = useState<UserData[]>([]);
   const [loading, setLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState('');
   const [selectedUser, setSelectedUser] = useState<UserData | null>(null);
-  const [dialogOpen, setDialogOpen] = useState(false);
-  const [selectedRole, setSelectedRole] = useState<UserRole | ''>('');
-
-  // Role definitions with display names and colors
-  const roles: {[key in UserRole]: {name: string, color: string}} = {
-    'unverified': { name: 'No verificado', color: 'bg-gray-500' },
-    'pending': { name: 'Pendiente', color: 'bg-yellow-500' },
-    'atención_afiliado': { name: 'Atención al Afiliado', color: 'bg-blue-500' },
-    'supply': { name: 'Supply', color: 'bg-green-500' },
-    'supply_admin': { name: 'Supply Admin', color: 'bg-indigo-500' },
-    'afiliados': { name: 'Afiliados', color: 'bg-purple-500' },
-    'admin': { name: 'Admin', color: 'bg-red-500' },
-    'owner': { name: 'Owner', color: 'bg-black' }
-  };
-
-  // Fetch users on component mount
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [newRole, setNewRole] = useState<UserRole | ''>('');
+  
   useEffect(() => {
     const fetchUsers = async () => {
-      setLoading(true);
-      const usersData = await getAllUsers();
-      setUsers(usersData);
-      setLoading(false);
+      try {
+        const allUsers = await getAllUsers();
+        setUsers(allUsers);
+      } catch (error) {
+        console.error('Error fetching users:', error);
+        toast.error('Error al cargar los usuarios');
+      } finally {
+        setLoading(false);
+      }
     };
     
     fetchUsers();
   }, [getAllUsers]);
-
-  // Handle role change
-  const handleRoleChange = async () => {
-    if (selectedUser && selectedRole) {
-      await updateUserRole(selectedUser.uid, selectedRole as UserRole);
+  
+  const formatDate = (date: Date) => {
+    return new Intl.DateTimeFormat('es-ES', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: 'numeric',
+      minute: 'numeric'
+    }).format(date);
+  };
+  
+  const formatRole = (role: UserRole) => {
+    const displayRoles: Record<UserRole, string> = {
+      'unverified': 'No verificado',
+      'pending': 'Pendiente',
+      'atención_afiliado': 'Atención al Afiliado',
+      'supply': 'Supply',
+      'supply_admin': 'Supply Admin',
+      'afiliados': 'Afiliados',
+      'admin': 'Administrador',
+      'owner': 'Propietario'
+    };
+    
+    return displayRoles[role] || role;
+  };
+  
+  const getRoleBadgeColor = (role: UserRole) => {
+    const colors: Record<UserRole, string> = {
+      'unverified': 'bg-gray-200 text-gray-800',
+      'pending': 'bg-yellow-100 text-yellow-800',
+      'atención_afiliado': 'bg-blue-100 text-blue-800',
+      'supply': 'bg-green-100 text-green-800',
+      'supply_admin': 'bg-emerald-100 text-emerald-800',
+      'afiliados': 'bg-purple-100 text-purple-800',
+      'admin': 'bg-red-100 text-red-800',
+      'owner': 'bg-slate-800 text-white'
+    };
+    
+    return colors[role] || 'bg-gray-100 text-gray-800';
+  };
+  
+  const handleEditClick = (user: UserData) => {
+    setSelectedUser(user);
+    setNewRole(user.role);
+    setIsEditDialogOpen(true);
+  };
+  
+  const handleRoleChange = (value: string) => {
+    setNewRole(value as UserRole);
+  };
+  
+  const handleUpdateRole = async () => {
+    if (!selectedUser || !newRole) return;
+    
+    try {
+      await updateUserRole(selectedUser.uid, newRole as UserRole);
       
-      // Update local state to reflect the change
+      // Update the user in the local state
       setUsers(users.map(user => 
-        user.uid === selectedUser.uid 
-          ? { ...user, role: selectedRole as UserRole } 
-          : user
+        user.uid === selectedUser.uid ? { ...user, role: newRole as UserRole } : user
       ));
       
-      // Close dialog
-      setDialogOpen(false);
-      setSelectedUser(null);
-      setSelectedRole('');
+      setIsEditDialogOpen(false);
+      toast.success(`Rol actualizado para ${selectedUser.displayName}`);
+    } catch (error) {
+      console.error('Error updating role:', error);
+      toast.error('Error al actualizar el rol del usuario');
     }
   };
-
-  // Filter users based on search term
-  const filteredUsers = users.filter(user => 
-    user.displayName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    user.email.toLowerCase().includes(searchTerm.toLowerCase())
-  );
-
-  // Get role badge component
-  const getRoleBadge = (role: UserRole) => {
-    let icon = <ShieldQuestion className="h-3 w-3 mr-1" />;
+  
+  const canEditUser = (user: UserData) => {
+    // Cannot edit yourself
+    if (currentUserData?.uid === user.uid) return false;
     
-    switch(role) {
-      case 'unverified':
-        icon = <ShieldAlert className="h-3 w-3 mr-1" />;
-        break;
-      case 'pending':
-        icon = <Clock className="h-3 w-3 mr-1" />;
-        break;
-      case 'admin':
-      case 'owner':
-        icon = <Shield className="h-3 w-3 mr-1" />;
-        break;
-      default:
-        icon = <UserCheck className="h-3 w-3 mr-1" />;
+    // Owner can edit anyone except other owners
+    if (currentUserData?.role === 'owner') {
+      return user.role !== 'owner';
     }
     
+    // Admin can edit anyone except owners and other admins
+    if (currentUserData?.role === 'admin') {
+      return !['admin', 'owner'].includes(user.role);
+    }
+    
+    // Others cannot edit
+    return false;
+  };
+
+  if (loading) {
     return (
-      <Badge 
-        variant="outline" 
-        className={`flex items-center ${role === 'owner' ? 'border-black bg-black text-white' : ''}`}
-      >
-        {icon}
-        {roles[role].name}
-      </Badge>
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="flex flex-col items-center gap-2">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <p className="text-muted-foreground">Cargando usuarios...</p>
+        </div>
+      </div>
     );
-  };
+  }
 
   return (
-    <AuthGuard allowedRoles={['admin', 'owner']}>
-      <div className="container mx-auto py-10">
-        <Card>
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <div className="bg-primary p-2 rounded-full">
-                  <Users className="h-5 w-5 text-primary-foreground" />
-                </div>
-                <div>
-                  <CardTitle>Gestión de Usuarios</CardTitle>
-                  <CardDescription>
-                    Administra los usuarios y sus niveles de permiso
-                  </CardDescription>
-                </div>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="relative">
-                  <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    type="search"
-                    placeholder="Buscar usuarios..."
-                    className="pl-8 w-[250px]"
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                  />
-                </div>
-              </div>
+    <div className="container mx-auto py-20 px-4">
+      <Card className="shadow-md">
+        <CardHeader>
+          <div className="flex items-center gap-2">
+            <Users className="h-6 w-6 text-primary" />
+            <div>
+              <CardTitle className="text-2xl">Gestión de Usuarios</CardTitle>
+              <CardDescription>
+                Administra los usuarios del sistema y sus niveles de permiso
+              </CardDescription>
             </div>
-          </CardHeader>
-          <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Usuario</TableHead>
-                  <TableHead>Email</TableHead>
-                  <TableHead>Estado</TableHead>
-                  <TableHead>Rol</TableHead>
-                  <TableHead>Último acceso</TableHead>
-                  <TableHead>Acciones</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {loading ? (
+          </div>
+        </CardHeader>
+        <CardContent>
+          {users.length === 0 ? (
+            <div className="text-center py-8">
+              <p className="text-muted-foreground">No hay usuarios registrados</p>
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
                   <TableRow>
-                    <TableCell colSpan={6} className="text-center py-10">
-                      <div className="flex justify-center">
-                        <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
-                      </div>
-                    </TableCell>
+                    <TableHead>Usuario</TableHead>
+                    <TableHead>Email</TableHead>
+                    <TableHead>Rol</TableHead>
+                    <TableHead>Verificado</TableHead>
+                    <TableHead>Creado</TableHead>
+                    <TableHead>Último Acceso</TableHead>
+                    <TableHead className="text-right">Acciones</TableHead>
                   </TableRow>
-                ) : filteredUsers.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={6} className="text-center py-10">
-                      No se encontraron usuarios
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  filteredUsers.map((user) => (
+                </TableHeader>
+                <TableBody>
+                  {users.map((user) => (
                     <TableRow key={user.uid}>
                       <TableCell className="font-medium">
                         <div className="flex items-center gap-2">
                           {user.photoURL ? (
-                            <img 
-                              src={user.photoURL} 
-                              alt={user.displayName} 
+                            <img
+                              src={user.photoURL}
+                              alt={user.displayName}
                               className="w-8 h-8 rounded-full"
                             />
                           ) : (
-                            <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center">
-                              <Users className="h-4 w-4" />
+                            <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+                              <span className="text-xs font-semibold">
+                                {user.displayName.substring(0, 2).toUpperCase()}
+                              </span>
                             </div>
                           )}
                           <span>{user.displayName}</span>
@@ -200,119 +213,95 @@ const UserManagement = () => {
                       </TableCell>
                       <TableCell>{user.email}</TableCell>
                       <TableCell>
-                        <Badge variant={user.emailVerified ? "success" : "destructive"}>
-                          {user.emailVerified ? (
-                            <span className="flex items-center gap-1">
-                              <CheckCircle className="h-3 w-3" />
-                              Verificado
-                            </span>
-                          ) : (
-                            <span className="flex items-center gap-1">
-                              <ShieldAlert className="h-3 w-3" />
-                              No verificado
-                            </span>
-                          )}
+                        <Badge className={`${getRoleBadgeColor(user.role)}`}>
+                          {formatRole(user.role)}
                         </Badge>
                       </TableCell>
                       <TableCell>
-                        {getRoleBadge(user.role)}
+                        {user.emailVerified ? (
+                          <div className="flex items-center">
+                            <UserCheck className="h-5 w-5 text-green-500 mr-1" />
+                            <span>Sí</span>
+                          </div>
+                        ) : (
+                          <div className="flex items-center">
+                            <UserX className="h-5 w-5 text-red-500 mr-1" />
+                            <span>No</span>
+                          </div>
+                        )}
                       </TableCell>
-                      <TableCell>
-                        {new Date(user.lastLogin).toLocaleString()}
-                      </TableCell>
-                      <TableCell>
+                      <TableCell>{formatDate(user.createdAt)}</TableCell>
+                      <TableCell>{formatDate(user.lastLogin)}</TableCell>
+                      <TableCell className="text-right">
                         <Button
                           variant="outline"
                           size="sm"
-                          onClick={() => {
-                            setSelectedUser(user);
-                            setSelectedRole(user.role);
-                            setDialogOpen(true);
-                          }}
+                          onClick={() => handleEditClick(user)}
+                          disabled={!canEditUser(user)}
                         >
-                          Cambiar rol
+                          Editar Rol
                         </Button>
                       </TableCell>
                     </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
-          </CardContent>
-        </Card>
-        
-        {/* Role change dialog */}
-        <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Cambiar rol de usuario</DialogTitle>
-              <DialogDescription>
-                Cambiar el rol de acceso para {selectedUser?.displayName}
-              </DialogDescription>
-            </DialogHeader>
-            <div className="py-4">
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <label className="text-sm font-medium leading-none">
-                    Usuario:
-                  </label>
-                  <div className="flex items-center gap-2">
-                    {selectedUser?.photoURL ? (
-                      <img 
-                        src={selectedUser.photoURL} 
-                        alt={selectedUser.displayName} 
-                        className="w-8 h-8 rounded-full"
-                      />
-                    ) : (
-                      <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center">
-                        <Users className="h-4 w-4" />
-                      </div>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Edit Role Dialog */}
+      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Editar Rol de Usuario</DialogTitle>
+            <DialogDescription>
+              Cambia el nivel de permiso para {selectedUser?.displayName}
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="grid gap-4 py-4">
+            <div className="grid grid-cols-4 items-center gap-4">
+              <label htmlFor="role" className="col-span-1 text-right">
+                Rol:
+              </label>
+              <div className="col-span-3">
+                <Select
+                  value={newRole}
+                  onValueChange={handleRoleChange}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecciona un rol" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="unverified">No verificado</SelectItem>
+                    <SelectItem value="pending">Pendiente</SelectItem>
+                    <SelectItem value="atención_afiliado">Atención al Afiliado</SelectItem>
+                    <SelectItem value="supply">Supply</SelectItem>
+                    <SelectItem value="supply_admin">Supply Admin</SelectItem>
+                    <SelectItem value="afiliados">Afiliados</SelectItem>
+                    <SelectItem value="admin">Administrador</SelectItem>
+                    {currentUserData?.role === 'owner' && (
+                      <SelectItem value="owner">Propietario</SelectItem>
                     )}
-                    <div>
-                      <p className="font-medium">{selectedUser?.displayName}</p>
-                      <p className="text-sm text-muted-foreground">{selectedUser?.email}</p>
-                    </div>
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <label className="text-sm font-medium leading-none">
-                    Rol actual:
-                  </label>
-                  <div>
-                    {selectedUser && getRoleBadge(selectedUser.role)}
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <label className="text-sm font-medium leading-none">
-                    Seleccionar nuevo rol:
-                  </label>
-                  <Select value={selectedRole} onValueChange={setSelectedRole}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Seleccionar rol" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {Object.entries(roles).map(([key, { name }]) => (
-                        <SelectItem key={key} value={key}>
-                          {name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
+                  </SelectContent>
+                </Select>
               </div>
             </div>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setDialogOpen(false)}>
-                Cancelar
-              </Button>
-              <Button onClick={handleRoleChange}>
-                Guardar cambios
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-      </div>
-    </AuthGuard>
+          </div>
+          
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>
+              Cancelar
+            </Button>
+            <Button onClick={handleUpdateRole} disabled={!newRole || newRole === selectedUser?.role}>
+              Actualizar Rol
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
   );
 };
 
