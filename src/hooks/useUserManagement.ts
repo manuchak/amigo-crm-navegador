@@ -1,29 +1,29 @@
 
 import { useState } from 'react';
-import { signOut as firebaseSignOut } from 'firebase/auth';
-import { auth } from '../lib/firebase';
-import { fetchUserData, updateUserRoleInDb, getUsersFromDb } from '@/utils/authUtils';
 import { UserRole, UserData } from '@/types/auth';
-import { User } from 'firebase/auth';
 import { toast } from 'sonner';
+import {
+  signOut as localSignOut,
+  updateUserRole as localUpdateUserRole,
+  getAllUsers as localGetAllUsers,
+  getCurrentUser
+} from '@/utils/localAuthStorage';
 
 export const useUserManagement = (
   setUserData: React.Dispatch<React.SetStateAction<UserData | null>>
 ) => {
   const [loading, setLoading] = useState(false);
   
-  const refreshUserData = async (user: User | null) => {
-    if (user) {
-      const userData = await fetchUserData(user);
-      if (userData) {
-        setUserData(userData);
-      }
+  const refreshUserData = async () => {
+    const userData = getCurrentUser();
+    if (userData) {
+      setUserData(userData);
     }
   };
   
   const signOut = async () => {
     try {
-      await firebaseSignOut(auth);
+      localSignOut();
       setUserData(null);
       toast.success('Sesión cerrada con éxito');
     } catch (error) {
@@ -35,13 +35,9 @@ export const useUserManagement = (
   const updateUserRole = async (uid: string, role: UserRole) => {
     setLoading(true);
     try {
-      await updateUserRoleInDb(uid, role);
+      localUpdateUserRole(uid, role);
       toast.success('Rol de usuario actualizado con éxito');
-      
-      const currentUser = auth.currentUser;
-      if (currentUser && currentUser.uid === uid) {
-        await refreshUserData(currentUser);
-      }
+      await refreshUserData();
     } catch (error) {
       console.error('Error updating user role:', error);
       toast.error('Error al actualizar el rol de usuario');
@@ -53,7 +49,7 @@ export const useUserManagement = (
   const getAllUsers = async (): Promise<UserData[]> => {
     setLoading(true);
     try {
-      const users = await getUsersFromDb();
+      const users = localGetAllUsers();
       return users;
     } catch (error) {
       console.error('Error getting all users:', error);

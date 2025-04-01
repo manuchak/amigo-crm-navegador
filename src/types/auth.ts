@@ -1,6 +1,4 @@
 
-import { User } from 'firebase/auth';
-
 // User roles in the system
 export type UserRole = 
   | 'unverified' 
@@ -24,14 +22,14 @@ export interface UserData {
 }
 
 export interface AuthContextProps {
-  currentUser: User | null;
+  currentUser: UserData | null;
   userData: UserData | null;
   loading: boolean;
   signOut: () => Promise<void>;
   updateUserRole: (uid: string, role: UserRole) => Promise<void>;
   getAllUsers: () => Promise<UserData[]>;
   refreshUserData: () => Promise<void>;
-  signIn: (email: string, password: string) => Promise<User | null>;
-  signUp: (email: string, password: string, displayName: string) => Promise<User | null>;
+  signIn: (email: string, password: string) => Promise<UserData | null>;
+  signUp: (email: string, password: string, displayName: string) => Promise<UserData | null>;
   resetPassword: (email: string) => Promise<void>;
 }

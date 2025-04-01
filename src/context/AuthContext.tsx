@@ -1,11 +1,9 @@
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { onAuthStateChanged, User } from 'firebase/auth';
-import { auth } from '../lib/firebase';
 import { UserData, AuthContextProps } from '@/types/auth';
-import { fetchUserData } from '@/utils/authUtils';
 import { useUserManagement } from '@/hooks/useUserManagement';
 import { useEmailPasswordAuth } from '@/hooks/useEmailPasswordAuth';
+import { getCurrentUser } from '@/utils/localAuthStorage';
 
 // Create the context with a default value
 const AuthContext = createContext<AuthContextProps>({
@@ -30,13 +28,12 @@ export const useAuth = () => {
 };
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [userData, setUserData] = useState<UserData | null>(null);
   const [loading, setLoading] = useState(true);
 
   // Custom hooks
   const { 
-    refreshUserData: refreshUserDataHook, 
+    refreshUserData, 
     signOut, 
     updateUserRole, 
     getAllUsers,
@@ -50,38 +47,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     isLoading: emailAuthLoading
   } = useEmailPasswordAuth(setUserData);
 
-  // Function to refresh current user data
-  const refreshUserData = async () => {
-    if (currentUser) {
-      await refreshUserDataHook(currentUser);
-    }
-  };
-
   useEffect(() => {
     try {
-      const unsubscribe = onAuthStateChanged(auth, async (user) => {
-        setCurrentUser(user);
-        if (user) {
-          const userData = await fetchUserData(user);
-          if (userData) {
-            setUserData(userData);
-          }
-        } else {
-          setUserData(null);
-        }
-        setLoading(false);
-      });
-
-      return unsubscribe;
-    } catch (error) {
-      console.error("Error en onAuthStateChanged:", error);
+      // Get current user from local storage
+      const storedUser = getCurrentUser();
+      if (storedUser) {
+        setUserData(storedUser);
+      }
       setLoading(false);
-      return () => {};
+    } catch (error) {
+      console.error("Error loading user data:", error);
+      setLoading(false);
     }
   }, []);
 
   const value = {
-    currentUser,
+    currentUser: userData, // In our local implementation, currentUser and userData are the same
     userData,
     loading: loading || userManagementLoading || emailAuthLoading,
     signOut,
