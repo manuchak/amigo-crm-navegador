@@ -12,6 +12,7 @@ import {
   UserTable, 
   EditRoleDialog, 
   UserManagementHeader,
+  RoleChangeConfirmation,
   formatDate,
   canEditUser
 } from '@/components/user-management';
@@ -22,6 +23,7 @@ const UserManagement = () => {
   const [loading, setLoading] = useState(true);
   const [selectedUser, setSelectedUser] = useState<UserData | null>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [isConfirmationOpen, setIsConfirmationOpen] = useState(false);
   const [newRole, setNewRole] = useState<UserRole>('unverified');
   
   useEffect(() => {
@@ -64,7 +66,7 @@ const UserManagement = () => {
       ));
       
       setIsEditDialogOpen(false);
-      toast.success(`Rol actualizado para ${selectedUser.displayName}`);
+      setIsConfirmationOpen(true);
     } catch (error) {
       console.error('Error updating role:', error);
       toast.error('Error al actualizar el rol del usuario');
@@ -122,6 +124,14 @@ const UserManagement = () => {
         onRoleChange={handleRoleChange}
         onUpdateRole={handleUpdateRole}
         currentUserRole={currentUserData?.role || 'unverified'}
+      />
+
+      {/* Confirmation Dialog */}
+      <RoleChangeConfirmation
+        isOpen={isConfirmationOpen}
+        onOpenChange={setIsConfirmationOpen}
+        user={selectedUser}
+        newRole={newRole}
       />
     </div>
   );
