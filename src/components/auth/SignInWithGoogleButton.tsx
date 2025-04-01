@@ -9,9 +9,13 @@ const SignInWithGoogleButton: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   
   const handleSignIn = async () => {
+    if (isLoading) return; // Prevenir múltiples clics
+    
     setIsLoading(true);
     try {
       await signInWithGoogle();
+    } catch (error) {
+      console.error("Error en handleSignIn:", error);
     } finally {
       setIsLoading(false);
     }
