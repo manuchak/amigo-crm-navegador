@@ -4,7 +4,8 @@ import {
   createUserWithEmailAndPassword, 
   signInWithEmailAndPassword,
   sendPasswordResetEmail,
-  sendEmailVerification
+  sendEmailVerification,
+  updateProfile
 } from 'firebase/auth';
 import { auth, db } from '../lib/firebase';
 import { createOrUpdateUser } from '@/utils/authUtils';
@@ -24,7 +25,7 @@ export const useEmailPasswordAuth = (
       const user = result.user;
       
       // Update profile with display name
-      await user.updateProfile({ displayName });
+      await updateProfile(user, { displayName });
       
       // Send verification email
       await sendEmailVerification(user);
