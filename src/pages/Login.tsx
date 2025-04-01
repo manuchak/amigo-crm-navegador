@@ -2,10 +2,8 @@
 import React, { useState } from 'react';
 import { Navigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Separator } from '@/components/ui/separator';
-import SignInWithGoogleButton from '@/components/auth/SignInWithGoogleButton';
 import EmailSignInForm from '@/components/auth/EmailSignInForm';
 import EmailSignUpForm from '@/components/auth/EmailSignUpForm';
 import ForgotPasswordForm from '@/components/auth/ForgotPasswordForm';
@@ -64,22 +62,11 @@ const Login = () => {
                 </TabsContent>
               </Tabs>
               
-              <div className="relative my-6">
-                <Separator />
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <span className="bg-card px-2 text-sm text-muted-foreground">
-                    O continúa con
-                  </span>
-                </div>
+              <div className="text-center text-sm mt-6 text-muted-foreground">
+                Al iniciar sesión, aceptas nuestros términos y condiciones de servicio.
               </div>
-              
-              <SignInWithGoogleButton />
             </>
           )}
-          
-          <div className="text-center text-sm mt-6 text-muted-foreground">
-            Al iniciar sesión, aceptas nuestros términos y condiciones de servicio.
-          </div>
         </CardContent>
       </Card>
     </div>

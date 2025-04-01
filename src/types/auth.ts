@@ -27,7 +27,6 @@ export interface AuthContextProps {
   currentUser: User | null;
   userData: UserData | null;
   loading: boolean;
-  signInWithGoogle: () => Promise<void>;
   signOut: () => Promise<void>;
   updateUserRole: (uid: string, role: UserRole) => Promise<void>;
   getAllUsers: () => Promise<UserData[]>;

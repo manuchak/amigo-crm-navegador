@@ -4,7 +4,6 @@ import { onAuthStateChanged, User } from 'firebase/auth';
 import { auth } from '../lib/firebase';
 import { UserData, AuthContextProps } from '@/types/auth';
 import { fetchUserData } from '@/utils/authUtils';
-import { useGoogleAuth } from '@/hooks/useGoogleAuth';
 import { useUserManagement } from '@/hooks/useUserManagement';
 import { useEmailPasswordAuth } from '@/hooks/useEmailPasswordAuth';
 
@@ -13,7 +12,6 @@ const AuthContext = createContext<AuthContextProps>({
   currentUser: null,
   userData: null,
   loading: true,
-  signInWithGoogle: async () => {},
   signOut: async () => {},
   updateUserRole: async () => {},
   getAllUsers: async () => [],
@@ -37,7 +35,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [loading, setLoading] = useState(true);
 
   // Custom hooks
-  const { signInWithGoogle, isLoading: googleAuthLoading } = useGoogleAuth(setUserData);
   const { 
     refreshUserData: refreshUserDataHook, 
     signOut, 
@@ -86,8 +83,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const value = {
     currentUser,
     userData,
-    loading: loading || userManagementLoading || googleAuthLoading || emailAuthLoading,
-    signInWithGoogle,
+    loading: loading || userManagementLoading || emailAuthLoading,
     signOut,
     updateUserRole,
     getAllUsers,
