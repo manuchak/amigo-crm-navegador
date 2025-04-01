@@ -1,3 +1,4 @@
+
 import { useState } from 'react';
 import { 
   createUserWithEmailAndPassword, 
@@ -55,7 +56,9 @@ export const useEmailPasswordAuth = (
       } else if (error.code === 'auth/invalid-email') {
         errorMessage = 'El correo electrónico no es válido.';
       } else if (error.code === 'auth/api-key-not-valid.-please-pass-a-valid-api-key.') {
-        errorMessage = 'Error de configuración: La clave API no es válida. Por favor, contacte al administrador.';
+        errorMessage = 'Error de Firebase: La clave API no es válida. Por favor, contacte al administrador.';
+      } else if (error.message && error.message.includes('API key not valid')) {
+        errorMessage = 'Error de Firebase: La clave API no es válida. Por favor, contacte al administrador.';
       } else if (error.code) {
         errorMessage = `Error: ${error.code}`;
       }
