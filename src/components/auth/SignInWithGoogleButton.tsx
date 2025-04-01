@@ -1,23 +1,19 @@
 
-import React, { useState } from 'react';
+import React from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Loader2 } from 'lucide-react';
 
 const SignInWithGoogleButton: React.FC = () => {
-  const { signInWithGoogle } = useAuth();
-  const [isLoading, setIsLoading] = useState(false);
+  const { signInWithGoogle, loading } = useAuth();
   
   const handleSignIn = async () => {
-    if (isLoading) return; // Prevenir múltiples clics
+    if (loading) return; // Prevenir múltiples clics
     
-    setIsLoading(true);
     try {
       await signInWithGoogle();
     } catch (error) {
       console.error("Error en handleSignIn:", error);
-    } finally {
-      setIsLoading(false);
     }
   };
   
@@ -26,9 +22,9 @@ const SignInWithGoogleButton: React.FC = () => {
       onClick={handleSignIn} 
       variant="outline" 
       className="w-full flex items-center gap-2"
-      disabled={isLoading}
+      disabled={loading}
     >
-      {isLoading ? (
+      {loading ? (
         <Loader2 className="h-4 w-4 animate-spin" />
       ) : (
         <div className="w-5 h-5 relative">
@@ -40,7 +36,7 @@ const SignInWithGoogleButton: React.FC = () => {
           </svg>
         </div>
       )}
-      <span>{isLoading ? 'Iniciando sesión...' : 'Iniciar sesión con Google'}</span>
+      <span>{loading ? 'Iniciando sesión...' : 'Iniciar sesión con Google'}</span>
     </Button>
   );
 };
