@@ -5,7 +5,7 @@ import { getFirestore } from 'firebase/firestore';
 
 // Your web app's Firebase configuration
 const firebaseConfig = {
-  apiKey: process.env.FIREBASE_API_KEY || "AIzaSyCiCKh7Lr_S2vDL41aZ0Qj4XWbZXQ0Rkww",
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY || "AIzaSyCiCKh7Lr_S2vDL41aZ0Qj4XWbZXQ0Rkww",
   authDomain: "custodioscrm.firebaseapp.com",
   projectId: "custodioscrm",
   storageBucket: "custodioscrm.appspot.com",
