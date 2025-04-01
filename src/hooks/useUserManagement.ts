@@ -6,7 +6,8 @@ import {
   signOut as localSignOut,
   updateUserRole as localUpdateUserRole,
   getAllUsers as localGetAllUsers,
-  getCurrentUser
+  getCurrentUser,
+  verifyUserEmail
 } from '@/utils/localAuthStorage';
 
 export const useUserManagement = (
@@ -15,9 +16,17 @@ export const useUserManagement = (
   const [loading, setLoading] = useState(false);
   
   const refreshUserData = async () => {
-    const userData = getCurrentUser();
-    if (userData) {
-      setUserData(userData);
+    setLoading(true);
+    try {
+      const userData = getCurrentUser();
+      if (userData) {
+        setUserData(userData);
+      }
+    } catch (error) {
+      console.error('Error refreshing user data:', error);
+      toast.error('Error al actualizar los datos de usuario');
+    } finally {
+      setLoading(false);
     }
   };
   
@@ -59,12 +68,27 @@ export const useUserManagement = (
       setLoading(false);
     }
   };
+
+  const verifyEmail = async (uid: string) => {
+    setLoading(true);
+    try {
+      verifyUserEmail(uid);
+      toast.success('Correo electrónico verificado con éxito');
+      await refreshUserData();
+    } catch (error) {
+      console.error('Error verifying email:', error);
+      toast.error('Error al verificar el correo electrónico');
+    } finally {
+      setLoading(false);
+    }
+  };
   
   return {
     refreshUserData,
     signOut,
     updateUserRole,
     getAllUsers,
+    verifyEmail,
     loading
   };
 };

@@ -5,11 +5,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/context/AuthContext';
 import { Mail, RefreshCw, LogOut } from 'lucide-react';
-import { sendEmailVerification } from 'firebase/auth';
 import { toast } from 'sonner';
 
 const VerifyEmail = () => {
-  const { currentUser, signOut } = useAuth();
+  const { currentUser, signOut, refreshUserData } = useAuth();
   
   // Redirect if not logged in
   if (!currentUser) {
@@ -23,8 +22,10 @@ const VerifyEmail = () => {
   
   const handleResendVerification = async () => {
     try {
-      await sendEmailVerification(currentUser);
-      toast.success('Se ha enviado un nuevo correo de verificación');
+      // In a real application, this would send a verification email
+      // For our local implementation, we'll just show a success toast
+      toast.success('Se ha enviado un nuevo correo de verificación (simulado)');
+      console.log('Verification email would be sent to:', currentUser.email);
     } catch (error) {
       console.error('Error sending verification email:', error);
       toast.error('Error al enviar el correo de verificación');
@@ -33,10 +34,33 @@ const VerifyEmail = () => {
 
   const handleRefresh = async () => {
     try {
-      // Reload the user to check if email is verified
-      await currentUser.reload();
-      if (currentUser.emailVerified) {
+      // In a real app, we would refresh the user data from the server
+      await refreshUserData();
+      
+      // For demo purposes, we'll simulate email verification
+      // In a real app, this would check with the server if the email has been verified
+      const updatedUser = JSON.parse(localStorage.getItem('current_user') || '{}');
+      const verificationSimulation = Math.random() > 0.5; // 50% chance of "verification"
+      
+      if (verificationSimulation) {
+        // Update local storage to mark email as verified
+        updatedUser.emailVerified = true;
+        localStorage.setItem('current_user', JSON.stringify(updatedUser));
+        
+        // Also update the user in the users list
+        const users = JSON.parse(localStorage.getItem('local_users') || '[]');
+        const updatedUsers = users.map(user => {
+          if (user.uid === updatedUser.uid) {
+            return { ...user, emailVerified: true };
+          }
+          return user;
+        });
+        localStorage.setItem('local_users', JSON.stringify(updatedUsers));
+        
+        // Refresh user data and redirect
+        await refreshUserData();
         window.location.href = '/dashboard';
+        toast.success('¡Correo verificado con éxito!');
       } else {
         toast.info('El correo electrónico aún no ha sido verificado');
       }

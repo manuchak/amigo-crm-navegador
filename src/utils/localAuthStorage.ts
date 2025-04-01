@@ -134,6 +134,33 @@ export const updateUserRole = (uid: string, role: UserRole): void => {
   }
 };
 
+// Verify user email
+export const verifyUserEmail = (uid: string): void => {
+  const users = getUsers();
+  const updatedUsers = users.map(user => {
+    if (user.uid === uid) {
+      return {
+        ...user,
+        emailVerified: true,
+        role: user.role === 'unverified' ? 'pending' : user.role
+      };
+    }
+    return user;
+  });
+  
+  saveUsers(updatedUsers);
+  
+  // Update current user if it's the same
+  const currentUser = getCurrentUser();
+  if (currentUser && currentUser.uid === uid) {
+    setCurrentUser({
+      ...currentUser,
+      emailVerified: true,
+      role: currentUser.role === 'unverified' ? 'pending' : currentUser.role
+    });
+  }
+};
+
 // Reset password
 export const resetPassword = (email: string): void => {
   const user = findUserByEmail(email);
