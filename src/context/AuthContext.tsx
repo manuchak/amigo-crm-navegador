@@ -1,6 +1,6 @@
+
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { 
-  getAuth, 
   signInWithPopup, 
   GoogleAuthProvider, 
   onAuthStateChanged, 
@@ -8,8 +8,8 @@ import {
   signOut as firebaseSignOut,
   User
 } from 'firebase/auth';
-import { getFirestore, doc, setDoc, getDoc, updateDoc, collection, getDocs } from 'firebase/firestore';
-import { app } from '../lib/firebase';
+import { doc, setDoc, getDoc, updateDoc, collection, getDocs } from 'firebase/firestore';
+import { auth, db } from '../lib/firebase';
 import { toast } from 'sonner';
 
 // User roles in the system
@@ -69,9 +69,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [userData, setUserData] = useState<UserData | null>(null);
   const [loading, setLoading] = useState(true);
-
-  const auth = getAuth(app);
-  const db = getFirestore(app);
 
   const fetchUserData = async (user: User) => {
     try {
@@ -144,8 +141,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const signInWithGoogle = async () => {
     try {
+      console.log("Iniciando sesión con Google...");
       const provider = new GoogleAuthProvider();
       const result = await signInWithPopup(auth, provider);
+      console.log("Resultado de autenticación:", result);
       const user = result.user;
       
       const userData = await createOrUpdateUser(user);
@@ -171,7 +170,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       console.error('Error signing in with Google:', error);
       
       let errorMessage = 'Error al iniciar sesión con Google';
-      if (error.code === 'auth/api-key-not-valid') {
+      if (error.code === 'auth/api-key-not-valid.-please-pass-a-valid-api-key.') {
         errorMessage = 'Error de configuración de Firebase. Contacte al administrador.';
       } else if (error.code === 'auth/popup-closed-by-user') {
         errorMessage = 'Inicio de sesión cancelado por el usuario';
