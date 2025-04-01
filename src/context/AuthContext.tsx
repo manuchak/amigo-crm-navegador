@@ -6,6 +6,7 @@ import { UserData, AuthContextProps } from '@/types/auth';
 import { fetchUserData } from '@/utils/authUtils';
 import { useGoogleAuth } from '@/hooks/useGoogleAuth';
 import { useUserManagement } from '@/hooks/useUserManagement';
+import { useEmailPasswordAuth } from '@/hooks/useEmailPasswordAuth';
 
 // Create the context with a default value
 const AuthContext = createContext<AuthContextProps>({
@@ -17,6 +18,9 @@ const AuthContext = createContext<AuthContextProps>({
   updateUserRole: async () => {},
   getAllUsers: async () => [],
   refreshUserData: async () => {},
+  signIn: async () => null,
+  signUp: async () => null,
+  resetPassword: async () => {},
 });
 
 export const useAuth = () => {
@@ -33,7 +37,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [loading, setLoading] = useState(true);
 
   // Custom hooks
-  const { signInWithGoogle } = useGoogleAuth(setUserData);
+  const { signInWithGoogle, isLoading: googleAuthLoading } = useGoogleAuth(setUserData);
   const { 
     refreshUserData: refreshUserDataHook, 
     signOut, 
@@ -41,6 +45,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     getAllUsers,
     loading: userManagementLoading
   } = useUserManagement(setUserData);
+  
+  const {
+    signIn,
+    signUp,
+    resetPassword,
+    isLoading: emailAuthLoading
+  } = useEmailPasswordAuth(setUserData);
 
   // Function to refresh current user data
   const refreshUserData = async () => {
@@ -75,12 +86,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const value = {
     currentUser,
     userData,
-    loading: loading || userManagementLoading,
+    loading: loading || userManagementLoading || googleAuthLoading || emailAuthLoading,
     signInWithGoogle,
     signOut,
     updateUserRole,
     getAllUsers,
-    refreshUserData
+    refreshUserData,
+    signIn,
+    signUp,
+    resetPassword
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

@@ -32,4 +32,7 @@ export interface AuthContextProps {
   updateUserRole: (uid: string, role: UserRole) => Promise<void>;
   getAllUsers: () => Promise<UserData[]>;
   refreshUserData: () => Promise<void>;
+  signIn: (email: string, password: string) => Promise<User | null>;
+  signUp: (email: string, password: string, displayName: string) => Promise<User | null>;
+  resetPassword: (email: string) => Promise<void>;
 }
