@@ -1,12 +1,11 @@
 
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { Navigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/context/AuthContext';
 import { Mail, RefreshCw, LogOut } from 'lucide-react';
 import { toast } from 'sonner';
-import { supabase } from '@/integrations/supabase/client';
 
 const VerifyEmail = () => {
   const { currentUser, signOut, refreshUserData } = useAuth();
@@ -26,29 +25,18 @@ const VerifyEmail = () => {
     try {
       setIsLoading(true);
       
-      // Create a verification link - in a real app this would include a token
-      const host = window.location.origin;
-      const verificationLink = `${host}/verify-token?email=${encodeURIComponent(currentUser.email)}&token=simulated-token`;
+      // Since email verification isn't working, we'll just show a message
+      // and simulate the process for testing purposes
       
-      // Send verification email using our edge function
-      const response = await supabase.functions.invoke('verify-email', {
-        body: {
-          email: currentUser.email,
-          name: currentUser.displayName || 'Usuario',
-          verificationLink: verificationLink
-        }
-      });
+      toast.success('Para propósitos de test, consideramos que el email ha sido enviado');
+      console.log('Email verification simulation for:', currentUser.email);
       
-      if (response.error) {
-        console.error('Error invoking function:', response.error);
-        throw new Error(response.error.message || 'Error sending verification email');
-      }
+      // Wait a bit to simulate the email sending process
+      await new Promise(resolve => setTimeout(resolve, 1000));
       
-      toast.success('Se ha enviado un nuevo correo de verificación');
-      console.log('Verification email sent to:', currentUser.email);
     } catch (error) {
-      console.error('Error sending verification email:', error);
-      toast.error('Error al enviar el correo de verificación');
+      console.error('Error in simulated verification:', error);
+      toast.error('Error al simular el envío del correo de verificación');
     } finally {
       setIsLoading(false);
     }
