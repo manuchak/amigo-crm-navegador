@@ -19,6 +19,7 @@ const AuthContext = createContext<AuthContextProps>({
   signUp: async () => null,
   resetPassword: async () => {},
   setUserAsVerifiedOwner: async () => {},
+  verifyEmail: async () => {},
 });
 
 export const useAuth = () => {
@@ -39,6 +40,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     signOut, 
     updateUserRole, 
     getAllUsers,
+    verifyEmail,
     setUserAsVerifiedOwner,
     loading: userManagementLoading
   } = useUserManagement(setUserData);
@@ -79,7 +81,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     signIn,
     signUp,
     resetPassword,
-    setUserAsVerifiedOwner
+    setUserAsVerifiedOwner,
+    verifyEmail
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

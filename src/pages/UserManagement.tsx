@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useAuth, UserRole, UserData } from '@/context/AuthContext';
+import { useAuth } from '@/context/AuthContext';
 import {
   Table,
   TableBody,
@@ -36,18 +36,20 @@ import { toast } from 'sonner';
 import { Loader2, UserCheck, UserX, Users } from 'lucide-react';
 
 const UserManagement = () => {
-  const { getAllUsers, updateUserRole, userData: currentUserData } = useAuth();
-  const [users, setUsers] = useState<UserData[]>([]);
+  const { getAllUsers, updateUserRole, verifyEmail, userData: currentUserData } = useAuth();
+  const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [selectedUser, setSelectedUser] = useState<UserData | null>(null);
+  const [selectedUser, setSelectedUser] = useState(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
-  const [newRole, setNewRole] = useState<UserRole | ''>('');
+  const [newRole, setNewRole] = useState('');
   
   useEffect(() => {
     const fetchUsers = async () => {
       try {
+        setLoading(true);
         const allUsers = await getAllUsers();
-        setUsers(allUsers);
+        console.log("Fetched users:", allUsers);
+        setUsers(allUsers || []);
       } catch (error) {
         console.error('Error fetching users:', error);
         toast.error('Error al cargar los usuarios');
@@ -59,18 +61,26 @@ const UserManagement = () => {
     fetchUsers();
   }, [getAllUsers]);
   
-  const formatDate = (date: Date) => {
-    return new Intl.DateTimeFormat('es-ES', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: 'numeric',
-      minute: 'numeric'
-    }).format(date);
+  const formatDate = (date) => {
+    if (!date) return 'N/A';
+    
+    try {
+      const dateObj = date instanceof Date ? date : new Date(date);
+      return new Intl.DateTimeFormat('es-ES', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+        hour: 'numeric',
+        minute: 'numeric'
+      }).format(dateObj);
+    } catch (error) {
+      console.error('Error formatting date:', error);
+      return 'Fecha inválida';
+    }
   };
   
-  const formatRole = (role: UserRole) => {
-    const displayRoles: Record<UserRole, string> = {
+  const formatRole = (role) => {
+    const displayRoles = {
       'unverified': 'No verificado',
       'pending': 'Pendiente',
       'atención_afiliado': 'Atención al Afiliado',
@@ -84,8 +94,8 @@ const UserManagement = () => {
     return displayRoles[role] || role;
   };
   
-  const getRoleBadgeColor = (role: UserRole) => {
-    const colors: Record<UserRole, string> = {
+  const getRoleBadgeColor = (role) => {
+    const colors = {
       'unverified': 'bg-gray-200 text-gray-800',
       'pending': 'bg-yellow-100 text-yellow-800',
       'atención_afiliado': 'bg-blue-100 text-blue-800',
@@ -99,25 +109,25 @@ const UserManagement = () => {
     return colors[role] || 'bg-gray-100 text-gray-800';
   };
   
-  const handleEditClick = (user: UserData) => {
+  const handleEditClick = (user) => {
     setSelectedUser(user);
     setNewRole(user.role);
     setIsEditDialogOpen(true);
   };
   
-  const handleRoleChange = (value: string) => {
-    setNewRole(value as UserRole);
+  const handleRoleChange = (value) => {
+    setNewRole(value);
   };
   
   const handleUpdateRole = async () => {
     if (!selectedUser || !newRole) return;
     
     try {
-      await updateUserRole(selectedUser.uid, newRole as UserRole);
+      await updateUserRole(selectedUser.uid, newRole);
       
       // Update the user in the local state
       setUsers(users.map(user => 
-        user.uid === selectedUser.uid ? { ...user, role: newRole as UserRole } : user
+        user.uid === selectedUser.uid ? { ...user, role: newRole } : user
       ));
       
       setIsEditDialogOpen(false);
@@ -128,7 +138,23 @@ const UserManagement = () => {
     }
   };
   
-  const canEditUser = (user: UserData) => {
+  const handleVerifyUser = async (user) => {
+    try {
+      await verifyEmail(user.uid);
+      
+      // Update the user in the local state
+      setUsers(users.map(u => 
+        u.uid === user.uid ? { ...u, emailVerified: true } : u
+      ));
+      
+      toast.success(`Email verificado para ${user.displayName}`);
+    } catch (error) {
+      console.error('Error verifying user email:', error);
+      toast.error('Error al verificar el email del usuario');
+    }
+  };
+  
+  const canEditUser = (user) => {
     // Cannot edit yourself
     if (currentUserData?.uid === user.uid) return false;
     
@@ -204,11 +230,11 @@ const UserManagement = () => {
                           ) : (
                             <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
                               <span className="text-xs font-semibold">
-                                {user.displayName.substring(0, 2).toUpperCase()}
+                                {user.displayName?.substring(0, 2).toUpperCase() || 'U'}
                               </span>
                             </div>
                           )}
-                          <span>{user.displayName}</span>
+                          <span>{user.displayName || 'Usuario sin nombre'}</span>
                         </div>
                       </TableCell>
                       <TableCell>{user.email}</TableCell>
@@ -233,14 +259,26 @@ const UserManagement = () => {
                       <TableCell>{formatDate(user.createdAt)}</TableCell>
                       <TableCell>{formatDate(user.lastLogin)}</TableCell>
                       <TableCell className="text-right">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleEditClick(user)}
-                          disabled={!canEditUser(user)}
-                        >
-                          Editar Rol
-                        </Button>
+                        <div className="flex justify-end gap-2">
+                          {!user.emailVerified && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleVerifyUser(user)}
+                              disabled={!canEditUser(user)}
+                            >
+                              Verificar Email
+                            </Button>
+                          )}
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleEditClick(user)}
+                            disabled={!canEditUser(user)}
+                          >
+                            Editar Rol
+                          </Button>
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))}
@@ -257,7 +295,7 @@ const UserManagement = () => {
           <DialogHeader>
             <DialogTitle>Editar Rol de Usuario</DialogTitle>
             <DialogDescription>
-              Cambia el nivel de permiso para {selectedUser?.displayName}
+              Cambia el nivel de permiso para {selectedUser?.displayName || 'este usuario'}
             </DialogDescription>
           </DialogHeader>
           
