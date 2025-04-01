@@ -40,6 +40,7 @@ const VerifyEmail = () => {
       });
       
       if (response.error) {
+        console.error('Error invoking function:', response.error);
         throw new Error(response.error.message || 'Error sending verification email');
       }
       
