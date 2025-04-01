@@ -1,4 +1,3 @@
-
 import { UserData, UserRole } from '@/types/auth';
 
 // Type for stored user with password
@@ -157,6 +156,33 @@ export const verifyUserEmail = (uid: string): void => {
       ...currentUser,
       emailVerified: true,
       role: currentUser.role === 'unverified' ? 'pending' : currentUser.role
+    });
+  }
+};
+
+// Set user as verified owner
+export const setAsVerifiedOwner = (uid: string): void => {
+  const users = getUsers();
+  const updatedUsers = users.map(user => {
+    if (user.uid === uid) {
+      return {
+        ...user,
+        emailVerified: true,
+        role: 'owner' as UserRole
+      };
+    }
+    return user;
+  });
+  
+  saveUsers(updatedUsers);
+  
+  // Update current user if it's the same
+  const currentUser = getCurrentUser();
+  if (currentUser && currentUser.uid === uid) {
+    setCurrentUser({
+      ...currentUser,
+      emailVerified: true,
+      role: 'owner'
     });
   }
 };

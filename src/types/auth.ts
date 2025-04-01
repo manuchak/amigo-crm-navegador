@@ -32,4 +32,5 @@ export interface AuthContextProps {
   signIn: (email: string, password: string) => Promise<UserData | null>;
   signUp: (email: string, password: string, displayName: string) => Promise<UserData | null>;
   resetPassword: (email: string) => Promise<void>;
+  setUserAsVerifiedOwner: (email: string) => Promise<void>;
 }

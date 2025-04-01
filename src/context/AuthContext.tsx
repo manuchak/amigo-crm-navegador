@@ -4,6 +4,7 @@ import { UserData, AuthContextProps } from '@/types/auth';
 import { useUserManagement } from '@/hooks/useUserManagement';
 import { useEmailPasswordAuth } from '@/hooks/useEmailPasswordAuth';
 import { getCurrentUser } from '@/utils/localAuthStorage';
+import { setSpecificUserAsVerifiedOwner } from '@/utils/setVerifiedOwner';
 
 // Create the context with a default value
 const AuthContext = createContext<AuthContextProps>({
@@ -17,6 +18,7 @@ const AuthContext = createContext<AuthContextProps>({
   signIn: async () => null,
   signUp: async () => null,
   resetPassword: async () => {},
+  setUserAsVerifiedOwner: async () => {},
 });
 
 export const useAuth = () => {
@@ -37,6 +39,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     signOut, 
     updateUserRole, 
     getAllUsers,
+    setUserAsVerifiedOwner,
     loading: userManagementLoading
   } = useUserManagement(setUserData);
   
@@ -54,6 +57,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (storedUser) {
         setUserData(storedUser);
       }
+      
+      // Set manuel.chacon@detectasecurity.io as verified owner
+      setSpecificUserAsVerifiedOwner('manuel.chacon@detectasecurity.io');
+      
       setLoading(false);
     } catch (error) {
       console.error("Error loading user data:", error);
@@ -71,7 +78,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     refreshUserData,
     signIn,
     signUp,
-    resetPassword
+    resetPassword,
+    setUserAsVerifiedOwner
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

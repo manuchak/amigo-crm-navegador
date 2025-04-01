@@ -7,7 +7,9 @@ import {
   updateUserRole as localUpdateUserRole,
   getAllUsers as localGetAllUsers,
   getCurrentUser,
-  verifyUserEmail
+  verifyUserEmail,
+  findUserByEmail,
+  setAsVerifiedOwner
 } from '@/utils/localAuthStorage';
 
 export const useUserManagement = (
@@ -83,12 +85,33 @@ export const useUserManagement = (
     }
   };
   
+  const setUserAsVerifiedOwner = async (email: string) => {
+    setLoading(true);
+    try {
+      const user = findUserByEmail(email);
+      if (!user) {
+        toast.error(`Usuario con email ${email} no encontrado`);
+        return;
+      }
+      
+      setAsVerifiedOwner(user.uid);
+      toast.success(`Usuario ${email} configurado como propietario verificado`);
+      await refreshUserData();
+    } catch (error) {
+      console.error('Error setting user as verified owner:', error);
+      toast.error('Error al configurar el usuario como propietario verificado');
+    } finally {
+      setLoading(false);
+    }
+  };
+  
   return {
     refreshUserData,
     signOut,
     updateUserRole,
     getAllUsers,
     verifyEmail,
+    setUserAsVerifiedOwner,
     loading
   };
 };
