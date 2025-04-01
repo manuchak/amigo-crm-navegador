@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { 
   createUserWithEmailAndPassword, 
@@ -20,9 +19,13 @@ export const useEmailPasswordAuth = (
   const signUp = async (email: string, password: string, displayName: string) => {
     setIsLoading(true);
     try {
+      console.log('Attempting to create user with email:', email);
+      
       // Create user account
       const result = await createUserWithEmailAndPassword(auth, email, password);
       const user = result.user;
+      
+      console.log('User created successfully, updating profile...');
       
       // Update profile with display name
       await updateProfile(user, { displayName });
@@ -51,6 +54,10 @@ export const useEmailPasswordAuth = (
         errorMessage = 'La contraseña es demasiado débil. Debe tener al menos 6 caracteres.';
       } else if (error.code === 'auth/invalid-email') {
         errorMessage = 'El correo electrónico no es válido.';
+      } else if (error.code === 'auth/api-key-not-valid.-please-pass-a-valid-api-key.') {
+        errorMessage = 'Error de configuración: La clave API no es válida. Por favor, contacte al administrador.';
+      } else if (error.code) {
+        errorMessage = `Error: ${error.code}`;
       }
       
       toast.error(errorMessage);

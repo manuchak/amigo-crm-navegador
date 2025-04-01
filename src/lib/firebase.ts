@@ -5,7 +5,7 @@ import { getFirestore } from 'firebase/firestore';
 
 // Your web app's Firebase configuration
 const firebaseConfig = {
-  apiKey: "AIzaSyCiCKh7Lr_S2vDL41aZ0Qj4XWbZXQ0Rkww",
+  apiKey: process.env.FIREBASE_API_KEY || "AIzaSyCiCKh7Lr_S2vDL41aZ0Qj4XWbZXQ0Rkww",
   authDomain: "custodioscrm.firebaseapp.com",
   projectId: "custodioscrm",
   storageBucket: "custodioscrm.appspot.com",
@@ -17,6 +17,7 @@ const firebaseConfig = {
 let app;
 if (!getApps().length) {
   try {
+    console.log("Initializing Firebase with config:", JSON.stringify(firebaseConfig));
     app = initializeApp(firebaseConfig);
     console.log("Firebase initialized successfully");
   } catch (error) {
