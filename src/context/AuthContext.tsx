@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { 
   getAuth, 
@@ -64,7 +63,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const auth = getAuth(app);
   const db = getFirestore(app);
 
-  // Fetch user data from Firestore
   const fetchUserData = async (user: User) => {
     try {
       const userRef = doc(db, 'users', user.uid);
@@ -74,7 +72,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const data = userSnap.data() as Omit<UserData, 'uid'>;
         setUserData({ uid: user.uid, ...data });
         
-        // Update last login time
         await updateDoc(userRef, {
           lastLogin: new Date()
         });
@@ -92,25 +89,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  // Create or update user in Firestore after sign-in
   const createOrUpdateUser = async (user: User): Promise<UserData> => {
     const userRef = doc(db, 'users', user.uid);
     const userSnap = await getDoc(userRef);
     
     let role: UserRole = 'unverified';
     
-    // Check if user exists
     if (userSnap.exists()) {
       const existingData = userSnap.data() as Omit<UserData, 'uid'>;
       role = existingData.role;
       
-      // Update last login
       await updateDoc(userRef, {
         lastLogin: new Date(),
         emailVerified: user.emailVerified
       });
     } else {
-      // Create new user
       const newUserData: Omit<UserData, 'uid'> = {
         email: user.email || '',
         displayName: user.displayName || '',
@@ -125,7 +118,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       role = 'unverified';
     }
     
-    // Return updated user data
     const userData: UserData = {
       uid: user.uid,
       email: user.email || '',
@@ -140,26 +132,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return userData;
   };
 
-  // Sign in with Google
   const signInWithGoogle = async () => {
     try {
       const provider = new GoogleAuthProvider();
       const result = await signInWithPopup(auth, provider);
       const user = result.user;
       
-      // Create or update user in Firestore
       const userData = await createOrUpdateUser(user);
       setUserData(userData);
       
-      // Check if email is verified
       if (!user.emailVerified) {
         await sendEmailVerification(user);
         toast.info('Se envió un correo de verificación a tu dirección de email');
       }
       
-      // Check user role
       if (userData.role === 'unverified' && user.emailVerified) {
-        // Update role to pending if email is verified
         await updateDoc(doc(db, 'users', user.uid), {
           role: 'pending'
         });
@@ -176,7 +163,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  // Sign out
   const signOut = async () => {
     try {
       await firebaseSignOut(auth);
@@ -188,14 +174,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  // Update user role (for admins)
   const updateUserRole = async (uid: string, role: UserRole) => {
     try {
       const userRef = doc(db, 'users', uid);
       await updateDoc(userRef, { role });
       toast.success('Rol de usuario actualizado con éxito');
       
-      // If updating the current user, refresh their data
       if (currentUser && currentUser.uid === uid) {
         await fetchUserData(currentUser);
       }
@@ -205,7 +189,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  // Get all users (for admins)
   const getAllUsers = async (): Promise<UserData[]> => {
     try {
       const usersCollection = collection(db, 'users');
@@ -230,7 +213,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  // Listen for auth state changes
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       setCurrentUser(user);
