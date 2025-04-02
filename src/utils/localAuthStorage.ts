@@ -1,3 +1,4 @@
+
 import { UserData, UserRole } from '@/types/auth';
 
 // Type for stored user with password
@@ -39,14 +40,14 @@ export const createUser = (
     throw new Error('auth/email-already-in-use');
   }
   
-  // Create new user
+  // Create new user - now with emailVerified set to true by default
   const newUser: StoredUser = {
     uid: crypto.randomUUID(),
     email,
     password,
     displayName,
-    role: 'unverified' as UserRole,
-    emailVerified: false,
+    role: 'pending' as UserRole, // Set initial role to pending instead of unverified
+    emailVerified: true, // Set to true by default - removing the verification requirement
     createdAt: new Date(),
     lastLogin: new Date()
   };

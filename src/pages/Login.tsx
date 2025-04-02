@@ -15,17 +15,12 @@ const Login = () => {
   const [authTab, setAuthTab] = useState<string>('signin');
   const [showForgotPassword, setShowForgotPassword] = useState(false);
   
-  // Redirect if already logged in and verified
-  if (currentUser && currentUser.emailVerified) {
+  // Redirect if already logged in - no longer checking email verification
+  if (currentUser) {
     if (userData?.role === 'pending') {
       return <Navigate to="/pending-approval" replace />;
     }
     return <Navigate to="/dashboard" replace />;
-  }
-  
-  // Redirect to verify email page if logged in but not verified
-  if (currentUser && !currentUser.emailVerified) {
-    return <Navigate to="/verify-email" replace />;
   }
   
   return (

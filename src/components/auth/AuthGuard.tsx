@@ -32,11 +32,6 @@ const AuthGuard: React.FC<AuthGuardProps> = ({
     return <Navigate to={redirectTo} replace />;
   }
 
-  // Email not verified
-  if (!currentUser.emailVerified) {
-    return <Navigate to="/verify-email" replace />;
-  }
-
   // Role not approved yet (still pending)
   if (userData?.role === 'pending') {
     return <Navigate to="/pending-approval" replace />;
@@ -51,7 +46,7 @@ const AuthGuard: React.FC<AuthGuardProps> = ({
     return <Navigate to="/unauthorized" replace />;
   }
 
-  // User is authenticated, email is verified, and has appropriate role
+  // User is authenticated and has appropriate role
   return <>{children}</>;
 };
 
