@@ -7,7 +7,7 @@ import CallCenter from '@/components/call-center';
 import { SupplyTeamDashboard } from '@/components/supply-team';
 import { useLeads } from '@/context/LeadsContext';
 import { Button } from '@/components/ui/button';
-import { Download, UserCheck, Package, WebhookIcon, Database } from 'lucide-react';
+import { Download, UserCheck, Package, WebhookIcon, Database, Loader2 } from 'lucide-react';
 import QualifiedLeadsApproval from '@/components/leads/QualifiedLeadsApproval';
 import LeadsIntro from '@/components/leads/LeadsIntro';
 import { toast } from 'sonner';
@@ -19,7 +19,7 @@ import {
 const Leads = () => {
   const [activeTab, setActiveTab] = useState("crear");
   const [showIntro, setShowIntro] = useState(true);
-  const { leads, updateLeadStatus, setLeads } = useLeads();
+  const { leads, updateLeadStatus, setLeads, loading, error, refetchLeads } = useLeads();
   const [isWebhookSyncing, setIsWebhookSyncing] = useState(false);
   const [isLeadsImporting, setIsLeadsImporting] = useState(false);
 
@@ -146,6 +146,31 @@ const Leads = () => {
 
   if (showIntro) {
     return <LeadsIntro onGetStarted={handleGetStarted} />;
+  }
+
+  if (loading) {
+    return (
+      <div className="container mx-auto px-6 py-20 text-gray-800 bg-gray-50">
+        <div className="flex flex-col items-center justify-center min-h-[60vh]">
+          <Loader2 className="w-12 h-12 text-primary animate-spin mb-4" />
+          <h2 className="text-xl font-medium">Cargando leads...</h2>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="container mx-auto px-6 py-20 text-gray-800 bg-gray-50">
+        <div className="flex flex-col items-center justify-center min-h-[60vh]">
+          <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4">
+            <strong className="font-bold">Error:</strong>
+            <span className="block sm:inline"> {error}</span>
+          </div>
+          <Button onClick={refetchLeads}>Intentar de nuevo</Button>
+        </div>
+      </div>
+    );
   }
 
   return (

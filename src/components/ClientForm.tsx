@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 
 interface ClientFormProps {
   onClientAdded: () => void;
@@ -38,19 +39,23 @@ const ClientForm: React.FC<ClientFormProps> = ({ onClientAdded }) => {
     setIsSubmitting(true);
 
     try {
-      // In a real implementation, this would connect to Supabase
-      // const { data, error } = await supabase
-      //   .from('clientes')
-      //   .insert([{
-      //     ...formData,
-      //     valor: parseFloat(formData.valor),
-      //     fechaCreacion: new Date().toISOString()
-      //   }]);
+      // Insert into Supabase leads table
+      const { error } = await supabase
+        .from('leads')
+        .insert([{
+          nombre: formData.nombre,
+          email: formData.email,
+          telefono: formData.telefono,
+          empresa: formData.empresa,
+          estado: formData.etapa,
+          fuente: 'CRM',
+          datos_adicionales: {
+            valor: parseFloat(formData.valor) || 0,
+            fechaCreacion: new Date().toISOString()
+          }
+        }]);
       
-      // if (error) throw error;
-      
-      // Simulating a successful submission
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      if (error) throw error;
       
       toast({
         title: "Cliente agregado",

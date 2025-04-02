@@ -1,4 +1,7 @@
+
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { leadService } from '@/services/leadService';
+import { toast } from 'sonner';
 
 // Types
 export interface Lead {
@@ -16,17 +19,18 @@ interface LeadsContextType {
   updateLeadStatus: (leadId: number, newStatus: string) => void;
   addLead: (lead: Lead) => void;
   deleteLead: (leadId: number) => void;
+  loading: boolean;
+  error: string | null;
+  refetchLeads: () => Promise<void>;
 }
 
-// Leads demo para desarrollo
+// Leads demo para desarrollo (se usarán solo si falla la carga desde Supabase)
 const defaultLeads = [
   { id: 1, nombre: 'Carlos Rodríguez', empresa: 'Custodio (armado)', contacto: 'carlos@ejemplo.com | +525512345678', estado: 'Nuevo', fechaCreacion: '2023-10-15' },
   { id: 2, nombre: 'María García', empresa: 'Custodio (con vehículo)', contacto: 'maria@ejemplo.com | +525587654321', estado: 'Contactado', fechaCreacion: '2023-10-10' },
   { id: 3, nombre: 'Juan López', empresa: 'Custodio (con vehículo y armado)', contacto: 'juan@ejemplo.com | +525599887766', estado: 'Calificado', fechaCreacion: '2023-10-05' },
   { id: 4, nombre: 'Ana Martínez', empresa: 'Custodio', contacto: 'ana@ejemplo.com | +525566778899', estado: 'Rechazado', fechaCreacion: '2023-09-28' },
   { id: 5, nombre: 'Roberto Sánchez', empresa: 'Custodio (armado)', contacto: 'roberto@ejemplo.com | +525544332211', estado: 'Nuevo', fechaCreacion: '2023-09-20' },
-  { id: 6, nombre: 'Laura Mendoza', empresa: 'Custodio (con vehículo)', contacto: 'laura@ejemplo.com | +525511223344', estado: 'Calificado', fechaCreacion: '2023-10-01' },
-  { id: 7, nombre: 'Pedro González', empresa: 'Custodio (armado)', contacto: 'pedro@ejemplo.com | +525533445566', estado: 'Calificado', fechaCreacion: '2023-09-25' },
 ];
 
 const LeadsContext = createContext<LeadsContextType | undefined>(undefined);
@@ -40,39 +44,105 @@ export const useLeads = () => {
 };
 
 export const LeadsProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [leads, setLeads] = useState<Lead[]>(defaultLeads);
+  const [leads, setLeads] = useState<Lead[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
   
-  // Cargar leads desde localStorage al iniciar
-  useEffect(() => {
-    const savedLeads = localStorage.getItem('leads');
-    if (savedLeads) {
-      setLeads(JSON.parse(savedLeads));
+  // Cargar leads desde Supabase al iniciar
+  const fetchLeads = async () => {
+    setLoading(true);
+    try {
+      const fetchedLeads = await leadService.getLeads();
+      setLeads(fetchedLeads);
+      setError(null);
+    } catch (err) {
+      console.error('Error al cargar leads desde Supabase:', err);
+      setError('Error al cargar leads. Usando datos de demostración.');
+      
+      // Cargar leads de demostración si falla la carga desde Supabase
+      const savedLeads = localStorage.getItem('leads');
+      if (savedLeads) {
+        setLeads(JSON.parse(savedLeads));
+      } else {
+        setLeads(defaultLeads);
+      }
+    } finally {
+      setLoading(false);
     }
+  };
+
+  useEffect(() => {
+    fetchLeads();
   }, []);
 
-  // Guardar leads en localStorage cuando cambien
-  useEffect(() => {
-    localStorage.setItem('leads', JSON.stringify(leads));
-  }, [leads]);
-
   // Actualizar estado de un lead
-  const updateLeadStatus = (leadId: number, newStatus: string) => {
-    setLeads(prevLeads => 
-      prevLeads.map(lead => 
-        lead.id === leadId ? { ...lead, estado: newStatus } : lead
-      )
-    );
+  const updateLeadStatus = async (leadId: number, newStatus: string) => {
+    try {
+      await leadService.updateLeadStatus(leadId, newStatus);
+      
+      // Actualizar estado local
+      setLeads(prevLeads => 
+        prevLeads.map(lead => 
+          lead.id === leadId ? { ...lead, estado: newStatus } : lead
+        )
+      );
+      
+      toast.success('Estado del lead actualizado correctamente');
+    } catch (err) {
+      console.error('Error al actualizar estado del lead:', err);
+      toast.error('Error al actualizar el estado del lead');
+      
+      // Actualizar solo localmente si la API falla
+      setLeads(prevLeads => 
+        prevLeads.map(lead => 
+          lead.id === leadId ? { ...lead, estado: newStatus } : lead
+        )
+      );
+    }
   };
 
   // Añadir nuevo lead
-  const addLead = (lead: Lead) => {
-    setLeads(prevLeads => [lead, ...prevLeads]);
+  const addLead = async (lead: Lead) => {
+    try {
+      await leadService.createLead(lead);
+      
+      // Actualizar lista local
+      setLeads(prevLeads => [lead, ...prevLeads]);
+      
+      toast.success('Lead registrado correctamente');
+    } catch (err) {
+      console.error('Error al crear lead en Supabase:', err);
+      toast.error('Error al crear lead en la base de datos');
+      
+      // Añadir solo localmente si la API falla
+      setLeads(prevLeads => [lead, ...prevLeads]);
+    }
   };
 
   // Eliminar lead
-  const deleteLead = (leadId: number) => {
-    setLeads(prevLeads => prevLeads.filter(lead => lead.id !== leadId));
+  const deleteLead = async (leadId: number) => {
+    try {
+      await leadService.deleteLead(leadId);
+      
+      // Actualizar lista local
+      setLeads(prevLeads => prevLeads.filter(lead => lead.id !== leadId));
+      
+      toast.success('Lead eliminado correctamente');
+    } catch (err) {
+      console.error('Error al eliminar lead:', err);
+      toast.error('Error al eliminar el lead');
+      
+      // Eliminar solo localmente si la API falla
+      setLeads(prevLeads => prevLeads.filter(lead => lead.id !== leadId));
+    }
   };
+
+  // Actualizar efecto para guardar en localStorage como respaldo
+  useEffect(() => {
+    if (leads.length > 0) {
+      localStorage.setItem('leads', JSON.stringify(leads));
+    }
+  }, [leads]);
 
   return (
     <LeadsContext.Provider value={{ 
@@ -80,7 +150,10 @@ export const LeadsProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       setLeads, 
       updateLeadStatus, 
       addLead,
-      deleteLead
+      deleteLead,
+      loading,
+      error,
+      refetchLeads: fetchLeads
     }}>
       {children}
     </LeadsContext.Provider>

@@ -66,7 +66,7 @@ export const useLeadForm = () => {
         nombre: data.nombre,
         empresa: categoria,
         contacto: contacto,
-        estado: 'Nuevo',
+        estado: a'Nuevo',
         fechaCreacion: new Date().toISOString().split('T')[0],
       };
       
@@ -84,14 +84,12 @@ export const useLeadForm = () => {
         fechaCreacion: nuevoLead.fechaCreacion,
         timestamp: new Date().toISOString(),
         action: "lead_created",
-        contactInfo: contacto
+        contactInfo: contacto,
+        fuente: "Form"
       });
       
-      // Añadir lead a la base de datos local
+      // Añadir lead a Supabase a través del contexto
       addLead(nuevoLead);
-      
-      // Notificar al usuario
-      toast.success('Lead creado correctamente');
       
       // Resetear formulario
       form.reset();
