@@ -31,7 +31,8 @@ export const convertToSupabaseLead = (lead: Lead, source: string = 'Form'): Omit
     estado: lead.estado,
     fuente: source,
     datos_adicionales: {
-      original_id: lead.id
+      original_id: lead.id,
+      fecha_creacion: lead.fechaCreacion
     }
   };
 };
@@ -44,7 +45,7 @@ export const convertFromSupabaseLead = (supabaseLead: SupabaseLead): Lead => {
     empresa: supabaseLead.empresa || '',
     contacto: `${supabaseLead.email} | ${supabaseLead.telefono}`,
     estado: supabaseLead.estado,
-    fechaCreacion: new Date(supabaseLead.created_at).toISOString().split('T')[0]
+    fechaCreacion: supabaseLead.datos_adicionales?.fecha_creacion || new Date(supabaseLead.created_at).toISOString().split('T')[0]
   };
 };
 
@@ -76,9 +77,20 @@ export const leadService = {
   async createLead(lead: Lead, source: string = 'Form'): Promise<SupabaseLead> {
     const supabaseLead = convertToSupabaseLead(lead, source);
     
+    // Log the lead being sent to Supabase for debugging
+    console.log('Creating lead in Supabase:', supabaseLead);
+    
     const { data, error } = await supabase
       .from('leads')
-      .insert([supabaseLead as any])
+      .insert([{
+        nombre: supabaseLead.nombre,
+        email: supabaseLead.email,
+        telefono: supabaseLead.telefono,
+        empresa: supabaseLead.empresa,
+        estado: supabaseLead.estado,
+        fuente: supabaseLead.fuente,
+        datos_adicionales: supabaseLead.datos_adicionales
+      }])
       .select()
       .single();
       

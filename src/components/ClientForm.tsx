@@ -51,9 +51,9 @@ const ClientForm: React.FC<ClientFormProps> = ({ onClientAdded }) => {
           fuente: 'CRM',
           datos_adicionales: {
             valor: parseFloat(formData.valor) || 0,
-            fechaCreacion: new Date().toISOString()
+            fecha_creacion: new Date().toISOString()
           }
-        } as any]);
+        }]);
       
       if (error) throw error;
       

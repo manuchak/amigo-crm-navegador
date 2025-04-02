@@ -88,8 +88,12 @@ export const useLeadForm = () => {
         fuente: "Form"
       });
       
+      console.log('Enviando lead a Supabase:', nuevoLead);
+      
       // Añadir lead a Supabase a través del contexto
-      addLead(nuevoLead);
+      await addLead(nuevoLead);
+      
+      toast.success('Lead registrado correctamente');
       
       // Resetear formulario
       form.reset();
