@@ -1,13 +1,18 @@
 
 import { findUserByEmail, setAsVerifiedOwner } from './localAuthStorage';
+import { createUser } from './localAuthStorage';
+import { toast } from 'sonner';
 
 // This function can be called to set a specific user as verified owner
 export const setSpecificUserAsVerifiedOwner = (email: string) => {
   try {
-    const user = findUserByEmail(email);
+    let user = findUserByEmail(email);
+    
+    // If user doesn't exist, create it first
     if (!user) {
-      console.error(`User with email ${email} not found`);
-      return false;
+      console.log(`User with email ${email} not found, creating account...`);
+      user = createUser(email, 'Custodios2024', `Admin ${email.split('@')[0]}`);
+      console.log(`User account created for ${email}`);
     }
     
     setAsVerifiedOwner(user.uid);

@@ -67,7 +67,7 @@ export const leadService = {
     }
     
     // Ensure data has the required fields before converting
-    return data.filter(lead => 
+    return data.filter((lead: any) => 
       lead.nombre && lead.email && lead.telefono && lead.estado
     ).map(lead => convertFromSupabaseLead(lead as SupabaseLead));
   },
