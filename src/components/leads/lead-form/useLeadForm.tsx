@@ -66,7 +66,7 @@ export const useLeadForm = () => {
         nombre: data.nombre,
         empresa: categoria,
         contacto: contacto,
-        estado: a'Nuevo',
+        estado: 'Nuevo',
         fechaCreacion: new Date().toISOString().split('T')[0],
       };
       
