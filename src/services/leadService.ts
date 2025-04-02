@@ -4,21 +4,20 @@ import { Lead } from "@/context/LeadsContext";
 
 // Tipo para los leads en Supabase
 export interface SupabaseLead {
-  id: string;
+  id: number;
+  created_at: string;
   nombre: string;
   email: string;
   telefono: string;
   empresa?: string;
   estado: string;
   categoria?: string;
-  contacto?: string;
-  fecha_creacion: string;
   fuente: string;
   datos_adicionales?: any;
 }
 
 // Convertir de lead de la aplicación a formato Supabase
-export const convertToSupabaseLead = (lead: Lead, source: string = 'Form'): Omit<SupabaseLead, 'id' | 'fecha_creacion'> => {
+export const convertToSupabaseLead = (lead: Lead, source: string = 'Form'): Omit<SupabaseLead, 'id' | 'created_at'> => {
   // Extraer email y teléfono del campo contacto
   const contactParts = lead.contacto.split(' | ');
   const email = contactParts[0] || '';
@@ -30,7 +29,6 @@ export const convertToSupabaseLead = (lead: Lead, source: string = 'Form'): Omit
     telefono,
     empresa: lead.empresa,
     estado: lead.estado,
-    contacto: lead.contacto,
     fuente: source,
     datos_adicionales: {
       original_id: lead.id
@@ -44,9 +42,9 @@ export const convertFromSupabaseLead = (supabaseLead: SupabaseLead): Lead => {
     id: supabaseLead.datos_adicionales?.original_id || Date.now(),
     nombre: supabaseLead.nombre,
     empresa: supabaseLead.empresa || '',
-    contacto: supabaseLead.contacto || `${supabaseLead.email} | ${supabaseLead.telefono}`,
+    contacto: `${supabaseLead.email} | ${supabaseLead.telefono}`,
     estado: supabaseLead.estado,
-    fechaCreacion: new Date(supabaseLead.fecha_creacion).toISOString().split('T')[0]
+    fechaCreacion: new Date(supabaseLead.created_at).toISOString().split('T')[0]
   };
 };
 
@@ -57,14 +55,21 @@ export const leadService = {
     const { data, error } = await supabase
       .from('leads')
       .select('*')
-      .order('fecha_creacion', { ascending: false });
+      .order('created_at', { ascending: false });
       
     if (error) {
       console.error('Error fetching leads:', error);
       throw error;
     }
     
-    return (data as SupabaseLead[]).map(convertFromSupabaseLead);
+    if (!data || data.length === 0) {
+      return [];
+    }
+    
+    // Ensure data has the required fields before converting
+    return data.filter(lead => 
+      lead.nombre && lead.email && lead.telefono && lead.estado
+    ).map(lead => convertFromSupabaseLead(lead as SupabaseLead));
   },
   
   // Crear un nuevo lead
@@ -73,7 +78,7 @@ export const leadService = {
     
     const { data, error } = await supabase
       .from('leads')
-      .insert([supabaseLead])
+      .insert([supabaseLead as any])
       .select()
       .single();
       
@@ -91,7 +96,7 @@ export const leadService = {
     const { data: existingLeads, error: fetchError } = await supabase
       .from('leads')
       .select('*')
-      .eq('datos_adicionales->>original_id', leadId);
+      .eq('datos_adicionales->>original_id', String(leadId));
       
     if (fetchError) {
       console.error('Error fetching lead for update:', fetchError);
@@ -123,7 +128,7 @@ export const leadService = {
     const { data: existingLeads, error: fetchError } = await supabase
       .from('leads')
       .select('*')
-      .eq('datos_adicionales->>original_id', leadId);
+      .eq('datos_adicionales->>original_id', String(leadId));
       
     if (fetchError) {
       console.error('Error fetching lead for delete:', fetchError);

@@ -53,7 +53,7 @@ const ClientForm: React.FC<ClientFormProps> = ({ onClientAdded }) => {
             valor: parseFloat(formData.valor) || 0,
             fechaCreacion: new Date().toISOString()
           }
-        }]);
+        } as any]);
       
       if (error) throw error;
       
