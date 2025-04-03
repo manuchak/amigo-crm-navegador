@@ -12,6 +12,9 @@ const HeroSection: React.FC = () => {
           src="/lovable-uploads/53b1a2a4-0108-47f7-b657-a87fe91d23ca.png" 
           alt="Vehículos de custodia" 
           className="object-cover object-center w-full h-full opacity-20"
+          width="1200"
+          height="675"
+          loading="eager"
         />
       </div>
       

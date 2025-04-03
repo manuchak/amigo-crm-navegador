@@ -31,6 +31,9 @@ const CompanySection: React.FC = () => {
               src="/lovable-uploads/aab9f616-2ed4-4904-95b0-5ef02b4589a9.png"
               alt="Oficinas de Detecta Security" 
               className="w-full h-auto object-cover"
+              width="800"
+              height="500"
+              loading="lazy"
             />
           </div>
           
