@@ -9,7 +9,7 @@ const HeroSection: React.FC = () => {
     <div className="relative bg-gradient-to-r from-gray-900 to-black text-white">
       <div className="absolute inset-0 overflow-hidden">
         <img 
-          src="/lovable-uploads/e825df0b-3cd1-4d84-9f7e-2865d5417bbe.png" 
+          src="/lovable-uploads/53b1a2a4-0108-47f7-b657-a87fe91d23ca.png" 
           alt="Vehículos de custodia" 
           className="object-cover object-center w-full h-full opacity-20"
         />

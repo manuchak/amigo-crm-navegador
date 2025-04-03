@@ -56,7 +56,6 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ onSuccess }) => {
     setIsSubmitting(true);
 
     try {
-      // Determine the category based on responses
       let categoria = 'Custodio';
       const atributos = [];
       
@@ -76,7 +75,6 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ onSuccess }) => {
         categoria += ` (${atributos.join(', ')})`;
       }
 
-      // Create a properly typed object for insertion
       const leadData: LeadData = {
         nombre: formData.nombre,
         email: formData.email,
@@ -90,7 +88,6 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ onSuccess }) => {
         fecha_creacion: new Date().toISOString()
       };
 
-      // Insert into Supabase
       const { error } = await supabase
         .from('leads')
         .insert(leadData as any);
@@ -102,7 +99,6 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ onSuccess }) => {
         duration: 5000
       });
       
-      // Reset form
       setFormData({
         nombre: '',
         email: '',
@@ -224,7 +220,7 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ onSuccess }) => {
         </div>
         
         <div className="space-y-2">
-          <Label htmlFor="esMilitar" className="text-gray-200">¿Eres militar o ex-militar?</Label>
+          <Label htmlFor="esMilitar" className="text-gray-200">¿Militar en situación de retiro?</Label>
           <Select 
             value={formData.esMilitar} 
             onValueChange={(value) => handleSelectChange('esMilitar', value)}
