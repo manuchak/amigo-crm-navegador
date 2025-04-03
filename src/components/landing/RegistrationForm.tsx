@@ -79,23 +79,18 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ onSuccess }) => {
         empresa += ` (${atributos.join(', ')})`;
       }
 
-      // Format phone number for database
-      let phoneNumber: number | null = null;
+      // Format phone number for database - store as string to match Supabase schema
+      let phoneNumber = '';
       if (fullPhoneNumber) {
-        const cleanedPhone = fullPhoneNumber.replace(/[^\d+]/g, '');
-        phoneNumber = Number(cleanedPhone.replace('+', ''));
-        // Validate phone number
-        if (isNaN(phoneNumber)) {
-          console.warn('Invalid phone number format, setting to null');
-          phoneNumber = null;
-        }
+        // Clean the phone number but keep it as a string
+        phoneNumber = fullPhoneNumber.replace(/[^\d+]/g, '');
       }
 
       // Map form data to database column names exactly
       const leadData: LeadData = {
         nombre: formData.nombre,
         email: formData.email,
-        telefono: phoneNumber,
+        telefono: phoneNumber, // Store as string
         empresa: empresa,
         estado: 'Nuevo',
         fuente: 'Landing',
@@ -166,7 +161,7 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ onSuccess }) => {
   if (isSuccess) {
     return (
       <div className="flex flex-col items-center justify-center py-6">
-        <BadgeCheck className="h-16 w-16 text-green-500 mb-4" />
+        <BadgeCheck className="h-16 w-16 text-accent mb-4" />
         <h3 className="text-2xl font-bold text-white mb-2">¡Registro exitoso!</h3>
         <p className="text-gray-200 text-center mb-6">
           Hemos recibido tus datos. Un representante se pondrá en contacto contigo pronto.
@@ -300,7 +295,7 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ onSuccess }) => {
           id="interesado" 
           checked={formData.interesado}
           onCheckedChange={handleCheckboxChange}
-          className="border-white/30 data-[state=checked]:bg-primary mt-1"
+          className="border-white/30 data-[state=checked]:bg-accent mt-1"
         />
         <Label htmlFor="interesado" className="text-sm text-gray-200">
           Estoy interesado en recibir información sobre oportunidades como custodio
@@ -309,7 +304,7 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ onSuccess }) => {
       
       <Button 
         type="submit" 
-        className="w-full bg-primary hover:bg-primary/90 text-white"
+        className="w-full bg-accent hover:bg-accent/90 text-white"
         disabled={isSubmitting}
       >
         {isSubmitting ? 'Enviando...' : 'Enviar solicitud'}
