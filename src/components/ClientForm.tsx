@@ -39,7 +39,7 @@ const ClientForm: React.FC<ClientFormProps> = ({ onClientAdded }) => {
     setIsSubmitting(true);
 
     try {
-      // Insert into Supabase leads table with the correct structure
+      // Insert the data within datos_adicionales field to match schema
       const { error } = await supabase
         .from('leads')
         .insert({

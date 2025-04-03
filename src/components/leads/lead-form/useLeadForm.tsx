@@ -5,6 +5,7 @@ import { z } from 'zod';
 import { useLeads } from '@/context/LeadsContext';
 import { executeWebhook } from '@/components/call-center/utils/webhook';
 import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
 
 // Schema de validación para el formulario
 const formSchema = z.object({
@@ -90,7 +91,32 @@ export const useLeadForm = () => {
       
       console.log('Enviando lead a Supabase:', nuevoLead);
       
-      // Añadir lead a Supabase a través del contexto
+      // Insertar directamente en Supabase
+      const { error } = await supabase
+        .from('leads')
+        .insert({
+          datos_adicionales: {
+            nombre: data.nombre,
+            email: data.email,
+            telefono: fullPhoneNumber,
+            empresa: categoria,
+            estado: 'Nuevo',
+            fuente: 'Form',
+            original_id: nuevoLead.id,
+            fecha_creacion: nuevoLead.fechaCreacion,
+            tieneVehiculo: data.tieneVehiculo,
+            experienciaSeguridad: data.experienciaSeguridad,
+            credencialSedena: data.credencialSedena,
+            esArmado: data.esArmado
+          }
+        });
+      
+      if (error) {
+        console.error('Error al insertar en Supabase:', error);
+        throw error;
+      }
+      
+      // Añadir lead al contexto local
       await addLead(nuevoLead);
       
       toast.success('Lead registrado correctamente');

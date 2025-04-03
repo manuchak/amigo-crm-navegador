@@ -6,23 +6,8 @@ import { Lead } from "@/context/LeadsContext";
 export interface SupabaseLead {
   id: number;
   created_at: string;
-  nombre: string;
-  email: string;
-  telefono: string;
-  empresa?: string;
-  estado: string;
-  categoria?: string;
-  fuente: string;
+  // No longer using these columns directly
   datos_adicionales?: any;
-}
-
-// Custom type that matches what we can insert into the Supabase table
-// based on the current database schema 
-interface SupabaseLeadInsert {
-  id?: number;
-  created_at?: string;
-  // Add any other custom fields here
-  // that are actually in the database schema
 }
 
 // Convertir de lead de la aplicación a formato Supabase
@@ -32,11 +17,8 @@ export const convertToSupabaseLead = (lead: Lead, source: string = 'Form'): any 
   const email = contactParts[0] || '';
   const telefono = contactParts[1] || '';
   
-  // Return only the fields that are actually in the database
+  // Return the structure that matches our database
   return {
-    // Only include id if it's not auto-generated in DB
-    // id: lead.id, // Uncomment if needed
-    // created_at is typically handled by Supabase
     datos_adicionales: {
       nombre: lead.nombre,
       email,
@@ -116,16 +98,35 @@ export const leadService = {
   async updateLeadStatus(leadId: number, newStatus: string): Promise<void> {
     console.log(`Updating lead ${leadId} status to ${newStatus}`);
     
-    // Based on the current structure, we need to update the status in datos_adicionales
+    // Get the current record first to preserve other datos_adicionales fields
+    const { data: currentRecord, error: fetchError } = await supabase
+      .from('leads')
+      .select('datos_adicionales')
+      .eq('datos_adicionales->original_id', String(leadId))
+      .single();
+      
+    if (fetchError) {
+      console.error('Error fetching lead for update:', fetchError);
+      throw fetchError;
+    }
+    
+    if (!currentRecord) {
+      console.error('Lead not found for update');
+      throw new Error('Lead not found');
+    }
+    
+    // Update the estado field while preserving other datos_adicionales
+    const updatedData = {
+      ...currentRecord,
+      datos_adicionales: {
+        ...currentRecord.datos_adicionales,
+        estado: newStatus
+      }
+    };
+    
     const { error } = await supabase
       .from('leads')
-      .update({
-        datos_adicionales: {
-          estado: newStatus,
-          // We need to use a function call here that preserves other fields
-          // This is a simplified version, in practice you would merge with existing data
-        }
-      })
+      .update(updatedData)
       .eq('datos_adicionales->original_id', String(leadId));
       
     if (error) {
