@@ -99,11 +99,27 @@ export const useLeadForm = () => {
       
       console.log('Enviando lead a Supabase:', nuevoLead);
       
+      // Format phone for database
+      let phoneNumber: number | null = null;
+      if (fullPhoneNumber) {
+        // Remove any non-digit characters except + (important for international format)
+        const cleanedPhone = fullPhoneNumber.replace(/[^\d+]/g, '');
+        
+        // Convert to number format by removing the + if present
+        phoneNumber = Number(cleanedPhone.replace('+', ''));
+        
+        // Check if valid number
+        if (isNaN(phoneNumber)) {
+          console.warn('Invalid phone number format, setting to null');
+          phoneNumber = null;
+        }
+      }
+      
       // Prepare lead data for Supabase - matching the exact column names in database
       const leadData: LeadData = {
         nombre: data.nombre,
         email: data.email,
-        telefono: fullPhoneNumber,
+        telefono: phoneNumber, // Use the formatted phone number
         empresa: categoria,
         estado: 'Nuevo',
         fuente: 'Form',
@@ -117,6 +133,8 @@ export const useLeadForm = () => {
         anovehiculo: data.anoVehiculo || null,
         valor: 0
       };
+      
+      console.log('Sending to createLead with formatted data:', leadData);
       
       // Use the leadService to create the lead
       const result = await createLead(leadData);

@@ -4,7 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 export interface LeadData {
   nombre?: string;
   email?: string;
-  telefono?: string | number;
+  telefono?: number | null; // Changed to match expected database type
   empresa?: string;
   estado?: string;
   fuente?: string;
@@ -67,29 +67,11 @@ export const createLead = async (leadData: LeadData) => {
       throw new Error('Missing required fields for lead creation');
     }
     
-    // Format phone number if present - ensure it's a number for Supabase
-    let phoneNumber: number | null = null;
-    
-    // Only format if it's not empty
-    if (leadData.telefono) {
-      // Remove any non-digit characters except +
-      const cleanedPhone = leadData.telefono.toString().replace(/[^\d+]/g, '');
-      
-      // Remove the + if present and convert to number
-      phoneNumber = Number(cleanedPhone.replace('+', ''));
-      
-      // Check if valid number
-      if (isNaN(phoneNumber)) {
-        console.warn('Invalid phone number format, setting to null');
-        phoneNumber = null;
-      }
-    }
-    
     // Prepare data for insertion - explicitly match database column types
     const insertData = {
       nombre: leadData.nombre,
       email: leadData.email,
-      telefono: phoneNumber,
+      telefono: leadData.telefono, // Already formatted as number in useLeadForm
       empresa: leadData.empresa || 'Custodio',
       estado: leadData.estado || 'Nuevo',
       fuente: leadData.fuente || 'Landing',
@@ -133,24 +115,42 @@ export const createLead = async (leadData: LeadData) => {
         throw directApiError;
       }
     } else {
-      // For authenticated users, use the Supabase client
-      const { data, error } = await supabase
-        .from('leads')
-        .insert(insertData)
-        .select();
+      // For authenticated users in the admin panel, let's try the direct REST API method first
+      try {
+        // Create the lead using a direct REST API request with public access (works even when authenticated)
+        const response = await fetch('https://beefjsdgrdeiymzxwxru.supabase.co/rest/v1/leads', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJlZWZqc2RncmRlaXltenh3eHJ1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDI5MzI1OTQsImV4cCI6MjA1ODUwODU5NH0.knvlRdFYtN2bl3t3I4O8v3dU_MWKDDuaBZkvukdU87w',
+            'Prefer': 'return=minimal'
+          },
+          body: JSON.stringify(insertData)
+        });
 
-      if (error) {
-        console.error('Error creating lead:', error);
-        // Log more detailed error info
-        console.error('Error code:', error.code);
-        console.error('Error details:', error.details);
-        console.error('Error hint:', error.hint);
-        console.error('Error message:', error.message);
-        throw error;
+        if (!response.ok) {
+          throw new Error(`API error: ${response.statusText}`);
+        }
+
+        console.log('Lead created successfully via direct API (admin panel)');
+        return { success: true };
+      } catch (directApiError) {
+        console.error('Direct API failed, falling back to supabase client:', directApiError);
+        
+        // Fall back to supabase client if direct API fails
+        const { data, error } = await supabase
+          .from('leads')
+          .insert(insertData)
+          .select();
+
+        if (error) {
+          console.error('Error creating lead with supabase client:', error);
+          throw error;
+        }
+        
+        console.log('Lead created successfully with supabase client:', data);
+        return data;
       }
-      
-      console.log('Lead created successfully:', data);
-      return data;
     }
   } catch (error) {
     console.error('Error in createLead:', error);
