@@ -103,14 +103,6 @@ const Navbar = () => {
             ))}
           </div>
           
-          <div className="flex items-center gap-2">
-            <img 
-              src="/lovable-uploads/7f0940ca-c426-4bd1-a60d-955b8a7c8967.png" 
-              alt="Detecta Security Logo" 
-              className="h-10 w-auto object-contain"
-            />
-          </div>
-          
           <div>
             {currentUser ? (
               <DropdownMenu>
