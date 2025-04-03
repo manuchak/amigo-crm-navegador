@@ -11,7 +11,11 @@ export const setSpecificUserAsVerifiedOwner = (email: string) => {
     if (!user) {
       console.log(`User with email ${email} not found, creating account...`);
       const password = 'Custodios2024'; 
-      user = createUser(email, password, `Admin ${email.split('@')[0]}`);
+      const userData = createUser(email, password, `Admin ${email.split('@')[0]}`);
+      user = {
+        ...userData,
+        password
+      };
       console.log(`User account created for ${email}`);
     }
     

@@ -19,6 +19,7 @@ import PendingApproval from "./pages/PendingApproval";
 import Unauthorized from "./pages/Unauthorized";
 import UserManagement from "./pages/UserManagement";
 import AuthGuard from "./components/auth/AuthGuard";
+import Landing from "./pages/Landing";
 
 const queryClient = new QueryClient();
 
@@ -31,53 +32,66 @@ const App = () => {
             <LeadsProvider>
               <Toaster />
               <Sonner />
-              <Navbar />
+              {/* Only show navbar on non-landing pages */}
               <Routes>
-                {/* Public routes */}
-                <Route path="/" element={<Index />} />
-                <Route path="/login" element={<Login />} />
-                <Route path="/verify-email" element={<VerifyEmail />} />
-                <Route path="/pending-approval" element={<PendingApproval />} />
-                <Route path="/unauthorized" element={<Unauthorized />} />
-                
-                {/* Protected routes */}
-                <Route path="/dashboard" element={
-                  <AuthGuard>
-                    <Dashboard />
-                  </AuthGuard>
-                } />
-                
-                <Route path="/leads" element={
-                  <AuthGuard allowedRoles={['atención_afiliado', 'admin', 'owner']}>
-                    <Leads />
-                  </AuthGuard>
-                } />
-                
-                <Route path="/requerimientos" element={
-                  <AuthGuard allowedRoles={['supply', 'supply_admin', 'admin', 'owner']}>
-                    <Requerimientos />
-                  </AuthGuard>
-                } />
-                
-                <Route path="/admin-config" element={
-                  <AuthGuard allowedRoles={['admin', 'owner']}>
-                    <AdminConfig />
-                  </AuthGuard>
-                } />
-                
-                <Route path="/user-management" element={
-                  <AuthGuard allowedRoles={['admin', 'owner']}>
-                    <UserManagement />
-                  </AuthGuard>
-                } />
-                
-                <Route path="*" element={<NotFound />} />
+                <Route path="/custodios" element={<Landing />} />
+                <Route path="*" element={<AppWithNavbar />} />
               </Routes>
             </LeadsProvider>
           </TooltipProvider>
         </BrowserRouter>
       </AuthProvider>
     </QueryClientProvider>
+  );
+};
+
+// Component that wraps routes that need the navbar
+const AppWithNavbar = () => {
+  return (
+    <>
+      <Navbar />
+      <Routes>
+        {/* Public routes */}
+        <Route path="/" element={<Index />} />
+        <Route path="/login" element={<Login />} />
+        <Route path="/verify-email" element={<VerifyEmail />} />
+        <Route path="/pending-approval" element={<PendingApproval />} />
+        <Route path="/unauthorized" element={<Unauthorized />} />
+        
+        {/* Protected routes */}
+        <Route path="/dashboard" element={
+          <AuthGuard>
+            <Dashboard />
+          </AuthGuard>
+        } />
+        
+        <Route path="/leads" element={
+          <AuthGuard allowedRoles={['atención_afiliado', 'admin', 'owner']}>
+            <Leads />
+          </AuthGuard>
+        } />
+        
+        <Route path="/requerimientos" element={
+          <AuthGuard allowedRoles={['supply', 'supply_admin', 'admin', 'owner']}>
+            <Requerimientos />
+          </AuthGuard>
+        } />
+        
+        <Route path="/admin-config" element={
+          <AuthGuard allowedRoles={['admin', 'owner']}>
+            <AdminConfig />
+          </AuthGuard>
+        } />
+        
+        <Route path="/user-management" element={
+          <AuthGuard allowedRoles={['admin', 'owner']}>
+            <UserManagement />
+          </AuthGuard>
+        } />
+        
+        <Route path="*" element={<NotFound />} />
+      </Routes>
+    </>
   );
 };
 

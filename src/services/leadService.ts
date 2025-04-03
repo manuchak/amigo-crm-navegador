@@ -82,15 +82,7 @@ export const leadService = {
     
     const { data, error } = await supabase
       .from('leads')
-      .insert([{
-        nombre: supabaseLead.nombre,
-        email: supabaseLead.email,
-        telefono: supabaseLead.telefono,
-        empresa: supabaseLead.empresa,
-        estado: supabaseLead.estado,
-        fuente: supabaseLead.fuente,
-        datos_adicionales: supabaseLead.datos_adicionales
-      }])
+      .insert([supabaseLead])
       .select()
       .single();
       
