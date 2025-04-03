@@ -91,11 +91,11 @@ export const useLeadForm = () => {
       
       console.log('Enviando lead a Supabase:', nuevoLead);
       
-      // Insertar directamente en Supabase con la estructura correcta
+      // Insertar los datos en el formato correcto para Supabase
       const { error } = await supabase
         .from('leads')
         .insert([{
-          datos_adicionales: {
+          datos: {
             nombre: data.nombre,
             email: data.email,
             telefono: fullPhoneNumber,

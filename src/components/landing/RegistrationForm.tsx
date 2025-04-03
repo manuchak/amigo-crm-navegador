@@ -13,19 +13,6 @@ interface RegistrationFormProps {
   onSuccess?: () => void;
 }
 
-interface LeadData {
-  nombre: string;
-  email: string;
-  telefono: string;
-  empresa: string;
-  estado: string;
-  fuente: string;
-  tieneVehiculo: string;
-  experienciaSeguridad: string;
-  esMilitar: string;
-  fecha_creacion: string;
-}
-
 const RegistrationForm: React.FC<RegistrationFormProps> = ({ onSuccess }) => {
   const [formData, setFormData] = useState({
     nombre: '',
@@ -76,22 +63,23 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ onSuccess }) => {
         categoria += ` (${atributos.join(', ')})`;
       }
 
-      const leadData: LeadData = {
-        nombre: formData.nombre,
-        email: formData.email,
-        telefono: formData.telefono,
-        empresa: categoria,
-        estado: 'Nuevo',
-        fuente: 'Landing',
-        tieneVehiculo: formData.tieneVehiculo,
-        experienciaSeguridad: formData.experienciaSeguridad,
-        esMilitar: formData.esMilitar,
-        fecha_creacion: new Date().toISOString()
-      };
-
+      // Prepare data for Supabase insertion
       const { error } = await supabase
         .from('leads')
-        .insert([leadData] as any);
+        .insert([{
+          datos: {
+            nombre: formData.nombre,
+            email: formData.email,
+            telefono: formData.telefono,
+            empresa: categoria,
+            estado: 'Nuevo',
+            fuente: 'Landing',
+            tieneVehiculo: formData.tieneVehiculo,
+            experienciaSeguridad: formData.experienciaSeguridad,
+            esMilitar: formData.esMilitar,
+            fecha_creacion: new Date().toISOString()
+          }
+        }]);
       
       if (error) throw error;
       
@@ -152,7 +140,7 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ onSuccess }) => {
           onChange={handleChange}
           placeholder="Tu nombre completo"
           required
-          className="bg-white/10 border-white/20 text-white placeholder:text-gray-400"
+          className="bg-white/10 border-white/20 text-white placeholder:text-gray-400 h-10"
         />
       </div>
       
@@ -167,7 +155,7 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ onSuccess }) => {
             onChange={handleChange}
             placeholder="tu@correo.com"
             required
-            className="bg-white/10 border-white/20 text-white placeholder:text-gray-400"
+            className="bg-white/10 border-white/20 text-white placeholder:text-gray-400 h-10"
           />
         </div>
         
@@ -180,7 +168,7 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ onSuccess }) => {
             onChange={handleChange}
             placeholder="55 1234 5678"
             required
-            className="bg-white/10 border-white/20 text-white placeholder:text-gray-400"
+            className="bg-white/10 border-white/20 text-white placeholder:text-gray-400 h-10"
           />
         </div>
       </div>

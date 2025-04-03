@@ -1,3 +1,4 @@
+
 import { supabase } from '@/integrations/supabase/client';
 
 export const fetchLeads = async () => {
@@ -19,11 +20,13 @@ export const fetchLeads = async () => {
   }
 };
 
-export const updateLeadStatus = async (id: string, estado: string) => {
+export const updateLeadStatus = async (id: number, estado: string) => {
   try {
     const { error } = await supabase
       .from('leads')
-      .update({ estado })
+      .update({ 
+        datos: { estado } 
+      })
       .eq('id', id);
 
     if (error) {
@@ -35,3 +38,40 @@ export const updateLeadStatus = async (id: string, estado: string) => {
     throw error;
   }
 };
+
+export const createLead = async (leadData) => {
+  try {
+    const { error } = await supabase
+      .from('leads')
+      .insert([{ 
+        datos: leadData 
+      }]);
+
+    if (error) {
+      console.error('Error creating lead:', error);
+      throw error;
+    }
+  } catch (error) {
+    console.error('Error in createLead:', error);
+    throw error;
+  }
+};
+
+export const deleteLead = async (id: number) => {
+  try {
+    const { error } = await supabase
+      .from('leads')
+      .delete()
+      .eq('id', id);
+
+    if (error) {
+      console.error('Error deleting lead:', error);
+      throw error;
+    }
+  } catch (error) {
+    console.error('Error in deleteLead:', error);
+    throw error;
+  }
+};
+
+// Note: We're exporting individual functions, not a 'leadService' object

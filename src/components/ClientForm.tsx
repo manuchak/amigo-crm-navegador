@@ -39,21 +39,21 @@ const ClientForm: React.FC<ClientFormProps> = ({ onClientAdded }) => {
     setIsSubmitting(true);
 
     try {
-      // Create lead data
-      const leadData = {
-        nombre: formData.nombre,
-        email: formData.email,
-        telefono: formData.telefono,
-        empresa: formData.empresa,
-        estado: formData.etapa,
-        fuente: 'CRM',
-        valor: parseFloat(formData.valor) || 0,
-        fecha_creacion: new Date().toISOString()
-      };
-      
+      // Create lead data for Supabase
       const { error } = await supabase
         .from('leads')
-        .insert([leadData] as any);
+        .insert([{
+          datos: {
+            nombre: formData.nombre,
+            email: formData.email,
+            telefono: formData.telefono,
+            empresa: formData.empresa,
+            estado: formData.etapa,
+            fuente: 'CRM',
+            valor: parseFloat(formData.valor) || 0,
+            fecha_creacion: new Date().toISOString()
+          }
+        }]);
       
       if (error) throw error;
       
@@ -87,7 +87,7 @@ const ClientForm: React.FC<ClientFormProps> = ({ onClientAdded }) => {
           onChange={handleChange}
           placeholder="Nombre del cliente"
           required
-          className="transition-all-medium focus:ring-2 focus:ring-primary/20"
+          className="transition-all-medium focus:ring-2 focus:ring-primary/20 h-10"
         />
       </div>
       
@@ -102,7 +102,7 @@ const ClientForm: React.FC<ClientFormProps> = ({ onClientAdded }) => {
             onChange={handleChange}
             placeholder="correo@ejemplo.com"
             required
-            className="transition-all-medium focus:ring-2 focus:ring-primary/20"
+            className="transition-all-medium focus:ring-2 focus:ring-primary/20 h-10"
           />
         </div>
         
@@ -115,7 +115,7 @@ const ClientForm: React.FC<ClientFormProps> = ({ onClientAdded }) => {
             onChange={handleChange}
             placeholder="+34 600 000 000"
             required
-            className="transition-all-medium focus:ring-2 focus:ring-primary/20"
+            className="transition-all-medium focus:ring-2 focus:ring-primary/20 h-10"
           />
         </div>
       </div>
@@ -129,7 +129,7 @@ const ClientForm: React.FC<ClientFormProps> = ({ onClientAdded }) => {
           onChange={handleChange}
           placeholder="Nombre de la empresa"
           required
-          className="transition-all-medium focus:ring-2 focus:ring-primary/20"
+          className="transition-all-medium focus:ring-2 focus:ring-primary/20 h-10"
         />
       </div>
       
@@ -140,7 +140,7 @@ const ClientForm: React.FC<ClientFormProps> = ({ onClientAdded }) => {
             value={formData.etapa} 
             onValueChange={handleSelectChange}
           >
-            <SelectTrigger className="transition-all-medium focus:ring-2 focus:ring-primary/20">
+            <SelectTrigger className="transition-all-medium focus:ring-2 focus:ring-primary/20 h-10">
               <SelectValue placeholder="Seleccionar etapa" />
             </SelectTrigger>
             <SelectContent>
@@ -163,7 +163,7 @@ const ClientForm: React.FC<ClientFormProps> = ({ onClientAdded }) => {
             onChange={handleChange}
             placeholder="0.00"
             required
-            className="transition-all-medium focus:ring-2 focus:ring-primary/20"
+            className="transition-all-medium focus:ring-2 focus:ring-primary/20 h-10"
           />
         </div>
       </div>

@@ -1,6 +1,5 @@
-
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { leadService } from '@/services/leadService';
+import * as leadService from '@/services/leadService';
 import { toast } from 'sonner';
 
 // Types
@@ -24,7 +23,7 @@ interface LeadsContextType {
   refetchLeads: () => Promise<void>;
 }
 
-// Leads demo para desarrollo (se usarán solo si falla la carga desde Supabase)
+// Leads demo para desarrollo
 const defaultLeads = [
   { id: 1, nombre: 'Carlos Rodríguez', empresa: 'Custodio (armado)', contacto: 'carlos@ejemplo.com | +525512345678', estado: 'Nuevo', fechaCreacion: '2023-10-15' },
   { id: 2, nombre: 'María García', empresa: 'Custodio (con vehículo)', contacto: 'maria@ejemplo.com | +525587654321', estado: 'Contactado', fechaCreacion: '2023-10-10' },
@@ -52,8 +51,22 @@ export const LeadsProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const fetchLeads = async () => {
     setLoading(true);
     try {
-      const fetchedLeads = await leadService.getLeads();
-      setLeads(fetchedLeads);
+      const fetchedLeads = await leadService.fetchLeads();
+      
+      // Transform the data to match our Lead interface
+      const transformedLeads = fetchedLeads.map(item => {
+        const datos = item.datos || {};
+        return {
+          id: item.id,
+          nombre: datos.nombre || 'Sin nombre',
+          empresa: datos.empresa || 'Custodio',
+          contacto: datos.email ? `${datos.email} | ${datos.telefono || ''}` : (datos.telefono || 'Sin contacto'),
+          estado: datos.estado || 'Nuevo',
+          fechaCreacion: datos.fecha_creacion || new Date().toISOString().split('T')[0]
+        };
+      });
+      
+      setLeads(transformedLeads);
       setError(null);
     } catch (err) {
       console.error('Error al cargar leads desde Supabase:', err);
@@ -104,7 +117,17 @@ export const LeadsProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   // Añadir nuevo lead
   const addLead = async (lead: Lead) => {
     try {
-      await leadService.createLead(lead);
+      // Transform lead to match the format expected by createLead
+      const leadData = {
+        nombre: lead.nombre,
+        empresa: lead.empresa,
+        email: lead.contacto.includes('|') ? lead.contacto.split('|')[0].trim() : '',
+        telefono: lead.contacto.includes('|') ? lead.contacto.split('|')[1].trim() : lead.contacto,
+        estado: lead.estado,
+        fecha_creacion: lead.fechaCreacion,
+      };
+      
+      await leadService.createLead(leadData);
       
       // Actualizar lista local
       setLeads(prevLeads => [lead, ...prevLeads]);
