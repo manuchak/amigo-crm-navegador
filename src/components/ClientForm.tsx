@@ -39,21 +39,21 @@ const ClientForm: React.FC<ClientFormProps> = ({ onClientAdded }) => {
     setIsSubmitting(true);
 
     try {
-      // Insert the data within datos_adicionales field to match schema
+      // Create lead data
+      const leadData = {
+        nombre: formData.nombre,
+        email: formData.email,
+        telefono: formData.telefono,
+        empresa: formData.empresa,
+        estado: formData.etapa,
+        fuente: 'CRM',
+        valor: parseFloat(formData.valor) || 0,
+        fecha_creacion: new Date().toISOString()
+      };
+      
       const { error } = await supabase
         .from('leads')
-        .insert([{
-          datos_adicionales: {
-            nombre: formData.nombre,
-            email: formData.email,
-            telefono: formData.telefono,
-            empresa: formData.empresa,
-            estado: formData.etapa,
-            fuente: 'CRM',
-            valor: parseFloat(formData.valor) || 0,
-            fecha_creacion: new Date().toISOString()
-          }
-        }]);
+        .insert([leadData] as any);
       
       if (error) throw error;
       

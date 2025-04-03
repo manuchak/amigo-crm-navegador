@@ -28,7 +28,7 @@ const CompanySection: React.FC = () => {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 items-center mb-12">
           <div className="rounded-xl overflow-hidden shadow-xl">
             <img 
-              src="/lovable-uploads/d2d23901-54f2-4c89-9239-1b78fba6cb63.png"
+              src="/lovable-uploads/aab9f616-2ed4-4904-95b0-5ef02b4589a9.png"
               alt="Oficinas de Detecta Security" 
               className="w-full h-auto object-cover"
             />

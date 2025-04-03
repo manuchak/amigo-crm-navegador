@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -90,7 +91,7 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ onSuccess }) => {
 
       const { error } = await supabase
         .from('leads')
-        .insert(leadData as any);
+        .insert([leadData] as any);
       
       if (error) throw error;
       
@@ -193,7 +194,7 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ onSuccess }) => {
             value={formData.tieneVehiculo} 
             onValueChange={(value) => handleSelectChange('tieneVehiculo', value)}
           >
-            <SelectTrigger className="bg-white/10 border-white/20 text-white">
+            <SelectTrigger id="tieneVehiculo" className="bg-white/10 border-white/20 text-white h-10">
               <SelectValue placeholder="Seleccionar" />
             </SelectTrigger>
             <SelectContent>
@@ -209,7 +210,7 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ onSuccess }) => {
             value={formData.experienciaSeguridad} 
             onValueChange={(value) => handleSelectChange('experienciaSeguridad', value)}
           >
-            <SelectTrigger className="bg-white/10 border-white/20 text-white">
+            <SelectTrigger id="experienciaSeguridad" className="bg-white/10 border-white/20 text-white h-10">
               <SelectValue placeholder="Seleccionar" />
             </SelectTrigger>
             <SelectContent>
@@ -225,7 +226,7 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ onSuccess }) => {
             value={formData.esMilitar} 
             onValueChange={(value) => handleSelectChange('esMilitar', value)}
           >
-            <SelectTrigger className="bg-white/10 border-white/20 text-white">
+            <SelectTrigger id="esMilitar" className="bg-white/10 border-white/20 text-white h-10">
               <SelectValue placeholder="Seleccionar" />
             </SelectTrigger>
             <SelectContent>
@@ -236,12 +237,12 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ onSuccess }) => {
         </div>
       </div>
       
-      <div className="flex items-center space-x-2 mt-4">
+      <div className="flex items-start space-x-2 mt-4">
         <Checkbox 
           id="interesado" 
           checked={formData.interesado}
           onCheckedChange={handleCheckboxChange}
-          className="border-white/30 data-[state=checked]:bg-primary"
+          className="border-white/30 data-[state=checked]:bg-primary mt-1"
         />
         <Label htmlFor="interesado" className="text-sm text-gray-200">
           Estoy interesado en recibir información sobre oportunidades como custodio
