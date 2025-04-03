@@ -5,7 +5,7 @@ import { executeWebhook } from '../utils/webhook';
 import { incrementCallCount } from '@/services/leadService';
 
 interface UseActiveCallProps {
-  leads: { id: number; nombre: string; empresa: string; contacto: string; estado: string; fechaCreacion: string }[];
+  leads: { id: number; nombre: string; empresa: string; contacto: string; estado: string; fechaCreacion: string; callCount?: number; lastCallDate?: string }[];
   onUpdateLeadStatus: (leadId: number, newStatus: string) => void;
 }
 

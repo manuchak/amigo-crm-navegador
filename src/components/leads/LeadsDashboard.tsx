@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -51,7 +50,6 @@ const LeadsDashboard = () => {
         action: "outbound_call_requested"
       });
       
-      // Update the lead status to "1er Contacto"
       updateLeadStatus(lead.id, "1er Contacto");
       
       toast({
