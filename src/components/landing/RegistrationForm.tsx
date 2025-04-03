@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -67,18 +66,16 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ onSuccess }) => {
       const { error } = await supabase
         .from('leads')
         .insert([{
-          datos: {
-            nombre: formData.nombre,
-            email: formData.email,
-            telefono: formData.telefono,
-            empresa: categoria,
-            estado: 'Nuevo',
-            fuente: 'Landing',
-            tieneVehiculo: formData.tieneVehiculo,
-            experienciaSeguridad: formData.experienciaSeguridad,
-            esMilitar: formData.esMilitar,
-            fecha_creacion: new Date().toISOString()
-          }
+          nombre: formData.nombre,
+          email: formData.email,
+          telefono: formData.telefono,
+          empresa: categoria,
+          estado: 'Nuevo',
+          fuente: 'Landing',
+          tieneVehiculo: formData.tieneVehiculo,
+          experienciaSeguridad: formData.experienciaSeguridad,
+          esMilitar: formData.esMilitar,
+          fecha_creacion: new Date().toISOString()
         }]);
       
       if (error) throw error;

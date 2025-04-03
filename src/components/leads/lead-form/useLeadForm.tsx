@@ -95,20 +95,18 @@ export const useLeadForm = () => {
       const { error } = await supabase
         .from('leads')
         .insert([{
-          datos: {
-            nombre: data.nombre,
-            email: data.email,
-            telefono: fullPhoneNumber,
-            empresa: categoria,
-            estado: 'Nuevo',
-            fuente: 'Form',
-            original_id: nuevoLead.id,
-            fecha_creacion: nuevoLead.fechaCreacion,
-            tieneVehiculo: data.tieneVehiculo,
-            experienciaSeguridad: data.experienciaSeguridad,
-            credencialSedena: data.credencialSedena,
-            esArmado: data.esArmado
-          }
+          nombre: data.nombre,
+          email: data.email,
+          telefono: fullPhoneNumber,
+          empresa: categoria,
+          estado: 'Nuevo',
+          fuente: 'Form',
+          original_id: nuevoLead.id,
+          fecha_creacion: nuevoLead.fechaCreacion,
+          tieneVehiculo: data.tieneVehiculo,
+          experienciaSeguridad: data.experienciaSeguridad,
+          credencialSedena: data.credencialSedena,
+          esArmado: data.esArmado
         }]);
       
       if (error) {

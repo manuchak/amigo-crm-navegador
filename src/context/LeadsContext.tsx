@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import * as leadService from '@/services/leadService';
 import { toast } from 'sonner';
@@ -55,14 +56,13 @@ export const LeadsProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       
       // Transform the data to match our Lead interface
       const transformedLeads = fetchedLeads.map(item => {
-        const datos = item.datos || {};
         return {
           id: item.id,
-          nombre: datos.nombre || 'Sin nombre',
-          empresa: datos.empresa || 'Custodio',
-          contacto: datos.email ? `${datos.email} | ${datos.telefono || ''}` : (datos.telefono || 'Sin contacto'),
-          estado: datos.estado || 'Nuevo',
-          fechaCreacion: datos.fecha_creacion || new Date().toISOString().split('T')[0]
+          nombre: item.nombre || 'Sin nombre',
+          empresa: item.empresa || 'Custodio',
+          contacto: item.email ? `${item.email} | ${item.telefono || ''}` : (item.telefono || 'Sin contacto'),
+          estado: item.estado || 'Nuevo',
+          fechaCreacion: item.fecha_creacion || new Date().toISOString().split('T')[0]
         };
       });
       

@@ -25,7 +25,7 @@ export const updateLeadStatus = async (id: number, estado: string) => {
     const { error } = await supabase
       .from('leads')
       .update({ 
-        datos: { estado } 
+        estado: estado
       })
       .eq('id', id);
 
@@ -39,13 +39,11 @@ export const updateLeadStatus = async (id: number, estado: string) => {
   }
 };
 
-export const createLead = async (leadData) => {
+export const createLead = async (leadData: any) => {
   try {
     const { error } = await supabase
       .from('leads')
-      .insert([{ 
-        datos: leadData 
-      }]);
+      .insert([leadData]);
 
     if (error) {
       console.error('Error creating lead:', error);
