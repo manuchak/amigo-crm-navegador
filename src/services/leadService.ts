@@ -24,9 +24,7 @@ export const updateLeadStatus = async (id: number, estado: string) => {
   try {
     const { error } = await supabase
       .from('leads')
-      .update({ 
-        estado: estado
-      })
+      .update({ estado })
       .eq('id', id);
 
     if (error) {

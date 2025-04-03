@@ -94,7 +94,7 @@ export const useLeadForm = () => {
       // Insertar los datos en el formato correcto para Supabase
       const { error } = await supabase
         .from('leads')
-        .insert([{
+        .insert({
           nombre: data.nombre,
           email: data.email,
           telefono: fullPhoneNumber,
@@ -103,11 +103,13 @@ export const useLeadForm = () => {
           fuente: 'Form',
           original_id: nuevoLead.id,
           fecha_creacion: nuevoLead.fechaCreacion,
-          tieneVehiculo: data.tieneVehiculo,
-          experienciaSeguridad: data.experienciaSeguridad,
-          credencialSedena: data.credencialSedena,
-          esArmado: data.esArmado
-        }]);
+          tienevehiculo: data.tieneVehiculo,
+          experienciaseguridad: data.experienciaSeguridad,
+          credencialsedena: data.credencialSedena,
+          esarmado: data.esArmado,
+          modelovehiculo: data.modeloVehiculo,
+          anovehiculo: data.anoVehiculo
+        });
       
       if (error) {
         console.error('Error al insertar en Supabase:', error);

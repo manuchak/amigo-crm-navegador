@@ -66,18 +66,18 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ onSuccess }) => {
       // Prepare data for Supabase insertion
       const { error } = await supabase
         .from('leads')
-        .insert([{
+        .insert({
           nombre: formData.nombre,
           email: formData.email,
           telefono: formData.telefono,
           empresa: empresa,
           estado: 'Nuevo',
           fuente: 'Landing',
-          tieneVehiculo: formData.tieneVehiculo,
-          experienciaSeguridad: formData.experienciaSeguridad,
-          esMilitar: formData.esMilitar,
+          tienevehiculo: formData.tieneVehiculo,
+          experienciaseguridad: formData.experienciaSeguridad,
+          esmilitar: formData.esMilitar,
           fecha_creacion: new Date().toISOString()
-        }]);
+        });
       
       if (error) throw error;
       

@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -42,7 +41,7 @@ const ClientForm: React.FC<ClientFormProps> = ({ onClientAdded }) => {
       // Create lead data for Supabase
       const { error } = await supabase
         .from('leads')
-        .insert([{
+        .insert({
           nombre: formData.nombre,
           email: formData.email,
           telefono: formData.telefono,
@@ -51,7 +50,7 @@ const ClientForm: React.FC<ClientFormProps> = ({ onClientAdded }) => {
           fuente: 'CRM',
           valor: parseFloat(formData.valor) || 0,
           fecha_creacion: new Date().toISOString()
-        }]);
+        });
       
       if (error) throw error;
       
