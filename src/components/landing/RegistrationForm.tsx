@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -8,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { BadgeCheck } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
+import { createLead } from '@/services/leadService';
 
 interface RegistrationFormProps {
   onSuccess?: () => void;
@@ -44,6 +44,8 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ onSuccess }) => {
     setIsSubmitting(true);
 
     try {
+      console.log('Form data being submitted:', formData);
+      
       let empresa = 'Custodio';
       const atributos = [];
       
@@ -64,22 +66,23 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ onSuccess }) => {
       }
 
       // Prepare data for Supabase insertion
-      const { error } = await supabase
-        .from('leads')
-        .insert({
-          nombre: formData.nombre,
-          email: formData.email,
-          telefono: formData.telefono,
-          empresa: empresa,
-          estado: 'Nuevo',
-          fuente: 'Landing',
-          tienevehiculo: formData.tieneVehiculo,
-          experienciaseguridad: formData.experienciaSeguridad,
-          esmilitar: formData.esMilitar,
-          fecha_creacion: new Date().toISOString()
-        });
+      const leadData = {
+        nombre: formData.nombre,
+        email: formData.email,
+        telefono: formData.telefono,
+        empresa: empresa,
+        estado: 'Nuevo',
+        fuente: 'Landing',
+        tienevehiculo: formData.tieneVehiculo,
+        experienciaseguridad: formData.experienciaSeguridad,
+        esmilitar: formData.esMilitar,
+        fecha_creacion: new Date().toISOString()
+      };
       
-      if (error) throw error;
+      console.log('Prepared lead data:', leadData);
+      
+      // Use the leadService to create the lead
+      await createLead(leadData);
       
       setIsSuccess(true);
       toast.success("¡Registro exitoso! Nos pondremos en contacto contigo pronto.", {

@@ -31,6 +31,8 @@ export const updateLeadStatus = async (id: number, estado: string) => {
       console.error('Error updating lead status:', error);
       throw error;
     }
+    
+    return { success: true };
   } catch (error) {
     console.error('Error in updateLeadStatus:', error);
     throw error;
@@ -39,14 +41,20 @@ export const updateLeadStatus = async (id: number, estado: string) => {
 
 export const createLead = async (leadData: any) => {
   try {
-    const { error } = await supabase
+    console.log('Attempting to create lead with data:', leadData);
+    
+    const { data, error } = await supabase
       .from('leads')
-      .insert([leadData]);
+      .insert(leadData)
+      .select();
 
     if (error) {
       console.error('Error creating lead:', error);
       throw error;
     }
+    
+    console.log('Lead created successfully:', data);
+    return data;
   } catch (error) {
     console.error('Error in createLead:', error);
     throw error;
@@ -64,6 +72,8 @@ export const deleteLead = async (id: number) => {
       console.error('Error deleting lead:', error);
       throw error;
     }
+    
+    return { success: true };
   } catch (error) {
     console.error('Error in deleteLead:', error);
     throw error;

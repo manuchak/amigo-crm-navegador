@@ -6,6 +6,7 @@ import { useLeads } from '@/context/LeadsContext';
 import { executeWebhook } from '@/components/call-center/utils/webhook';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
+import { createLead } from '@/services/leadService';
 
 // Schema de validación para el formulario
 const formSchema = z.object({
@@ -91,30 +92,26 @@ export const useLeadForm = () => {
       
       console.log('Enviando lead a Supabase:', nuevoLead);
       
-      // Insertar los datos en el formato correcto para Supabase
-      const { error } = await supabase
-        .from('leads')
-        .insert({
-          nombre: data.nombre,
-          email: data.email,
-          telefono: fullPhoneNumber,
-          empresa: categoria,
-          estado: 'Nuevo',
-          fuente: 'Form',
-          original_id: nuevoLead.id,
-          fecha_creacion: nuevoLead.fechaCreacion,
-          tienevehiculo: data.tieneVehiculo,
-          experienciaseguridad: data.experienciaSeguridad,
-          credencialsedena: data.credencialSedena,
-          esarmado: data.esArmado,
-          modelovehiculo: data.modeloVehiculo,
-          anovehiculo: data.anoVehiculo
-        });
+      // Prepare lead data for Supabase
+      const leadData = {
+        nombre: data.nombre,
+        email: data.email,
+        telefono: fullPhoneNumber,
+        empresa: categoria,
+        estado: 'Nuevo',
+        fuente: 'Form',
+        original_id: nuevoLead.id,
+        fecha_creacion: nuevoLead.fechaCreacion,
+        tienevehiculo: data.tieneVehiculo,
+        experienciaseguridad: data.experienciaSeguridad,
+        credencialsedena: data.credencialSedena,
+        esarmado: data.esArmado,
+        modelovehiculo: data.modeloVehiculo,
+        anovehiculo: data.anoVehiculo
+      };
       
-      if (error) {
-        console.error('Error al insertar en Supabase:', error);
-        throw error;
-      }
+      // Use the leadService to create the lead
+      await createLead(leadData);
       
       // Añadir lead al contexto local
       await addLead(nuevoLead);
