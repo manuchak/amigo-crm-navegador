@@ -73,20 +73,26 @@ export const createLead = async (leadData: LeadData) => {
       leadData.telefono = `+${leadData.telefono}`;
     }
     
-    // Set default values for fields if they're not provided
-    const leadToInsert = {
-      ...leadData,
+    // Create a clean object with only the fields that exist in the database
+    const cleanData = {
+      nombre: leadData.nombre,
+      email: leadData.email,
+      telefono: leadData.telefono,
+      empresa: leadData.empresa || 'Custodio',
       estado: leadData.estado || 'Nuevo',
       fuente: leadData.fuente || 'Landing',
       fecha_creacion: leadData.fecha_creacion || new Date().toISOString(),
+      tienevehiculo: leadData.tienevehiculo || 'NO',
+      experienciaseguridad: leadData.experienciaseguridad || 'NO',
+      esmilitar: leadData.esmilitar || 'NO',
       valor: leadData.valor || 0
     };
     
-    console.log('Inserting lead with data:', leadToInsert);
+    console.log('Inserting lead with sanitized data:', cleanData);
     
     const { data, error } = await supabase
       .from('leads')
-      .insert([leadToInsert])
+      .insert([cleanData])
       .select();
 
     if (error) {

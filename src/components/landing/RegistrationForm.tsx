@@ -93,7 +93,7 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ onSuccess }) => {
       
       console.log('Prepared lead data for Supabase:', leadData);
       
-      // Create webhook payload for external notification (optional)
+      // Try to execute webhook but don't let it block lead creation if it fails
       try {
         await executeWebhook({
           telefono: phoneNumber,
