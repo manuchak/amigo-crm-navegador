@@ -71,5 +71,3 @@ export const deleteLead = async (id: number) => {
     throw error;
   }
 };
-
-// Note: We're exporting individual functions, not a 'leadService' object

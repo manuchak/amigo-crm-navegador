@@ -11,16 +11,64 @@ export type Database = {
     Tables: {
       leads: {
         Row: {
+          anovehiculo: string | null
           created_at: string
+          credencialsedena: string | null
+          email: string | null
+          empresa: string | null
+          esarmado: string | null
+          esmilitar: string | null
+          estado: string | null
+          experienciaseguridad: string | null
+          fecha_creacion: string | null
+          fuente: string | null
           id: number
+          modelovehiculo: string | null
+          nombre: string | null
+          original_id: number | null
+          telefono: string | null
+          tienevehiculo: string | null
+          valor: number | null
         }
         Insert: {
+          anovehiculo?: string | null
           created_at?: string
+          credencialsedena?: string | null
+          email?: string | null
+          empresa?: string | null
+          esarmado?: string | null
+          esmilitar?: string | null
+          estado?: string | null
+          experienciaseguridad?: string | null
+          fecha_creacion?: string | null
+          fuente?: string | null
           id?: number
+          modelovehiculo?: string | null
+          nombre?: string | null
+          original_id?: number | null
+          telefono?: string | null
+          tienevehiculo?: string | null
+          valor?: number | null
         }
         Update: {
+          anovehiculo?: string | null
           created_at?: string
+          credencialsedena?: string | null
+          email?: string | null
+          empresa?: string | null
+          esarmado?: string | null
+          esmilitar?: string | null
+          estado?: string | null
+          experienciaseguridad?: string | null
+          fecha_creacion?: string | null
+          fuente?: string | null
           id?: number
+          modelovehiculo?: string | null
+          nombre?: string | null
+          original_id?: number | null
+          telefono?: string | null
+          tienevehiculo?: string | null
+          valor?: number | null
         }
         Relationships: []
       }

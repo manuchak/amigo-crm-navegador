@@ -1,9 +1,8 @@
-
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import * as leadService from '@/services/leadService';
 import { toast } from 'sonner';
 
-// Types
+// Updated Lead interface to match Supabase schema
 export interface Lead {
   id: number;
   nombre: string;
@@ -11,6 +10,11 @@ export interface Lead {
   contacto: string;
   estado: string;
   fechaCreacion: string;
+  email?: string;
+  telefono?: string;
+  tieneVehiculo?: string;
+  experienciaSeguridad?: string;
+  esMilitar?: string;
 }
 
 interface LeadsContextType {
@@ -56,13 +60,22 @@ export const LeadsProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       
       // Transform the data to match our Lead interface
       const transformedLeads = fetchedLeads.map(item => {
+        const contactInfo = item.email || item.telefono ? 
+          `${item.email || ''} | ${item.telefono || ''}`.trim() : 
+          'Sin contacto';
+
         return {
           id: item.id,
           nombre: item.nombre || 'Sin nombre',
           empresa: item.empresa || 'Custodio',
-          contacto: item.email ? `${item.email} | ${item.telefono || ''}` : (item.telefono || 'Sin contacto'),
+          contacto: contactInfo,
           estado: item.estado || 'Nuevo',
-          fechaCreacion: item.fecha_creacion || new Date().toISOString().split('T')[0]
+          fechaCreacion: item.fecha_creacion || new Date().toISOString().split('T')[0],
+          email: item.email,
+          telefono: item.telefono,
+          tieneVehiculo: item.tieneVehiculo,
+          experienciaSeguridad: item.experienciaSeguridad,
+          esMilitar: item.esMilitar
         };
       });
       

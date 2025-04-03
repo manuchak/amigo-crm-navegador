@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -43,7 +44,7 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ onSuccess }) => {
     setIsSubmitting(true);
 
     try {
-      let categoria = 'Custodio';
+      let empresa = 'Custodio';
       const atributos = [];
       
       if (formData.tieneVehiculo === 'SI') {
@@ -59,7 +60,7 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ onSuccess }) => {
       }
       
       if (atributos.length > 0) {
-        categoria += ` (${atributos.join(', ')})`;
+        empresa += ` (${atributos.join(', ')})`;
       }
 
       // Prepare data for Supabase insertion
@@ -69,7 +70,7 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ onSuccess }) => {
           nombre: formData.nombre,
           email: formData.email,
           telefono: formData.telefono,
-          empresa: categoria,
+          empresa: empresa,
           estado: 'Nuevo',
           fuente: 'Landing',
           tieneVehiculo: formData.tieneVehiculo,
@@ -85,6 +86,7 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ onSuccess }) => {
         duration: 5000
       });
       
+      // Reset form
       setFormData({
         nombre: '',
         email: '',
