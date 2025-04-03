@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -72,12 +71,17 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ onSuccess }) => {
         empresa += ` (${atributos.join(', ')})`;
       }
 
-      // Format phone number correctly - ensure it has international prefix
-      const phoneNumber = formData.telefono.startsWith('+') 
-        ? formData.telefono 
-        : `+52${formData.telefono}`;
+      // Format phone number - ensure it's a string and in the correct format
+      // Remove any non-digit characters except +
+      let phoneNumber = formData.telefono.replace(/[^\d+]/g, '');
+      
+      // Ensure it has a + prefix (add if missing)
+      if (!phoneNumber.startsWith('+')) {
+        // Add Mexico country code if not present
+        phoneNumber = `+52${phoneNumber}`;
+      }
 
-      // Prepare data for Supabase insertion - matching the exact column names in database
+      // Map form data to database column names exactly
       const leadData: LeadData = {
         nombre: formData.nombre,
         email: formData.email,
@@ -88,12 +92,15 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ onSuccess }) => {
         fecha_creacion: new Date().toISOString(),
         tienevehiculo: formData.tieneVehiculo,
         experienciaseguridad: formData.experienciaSeguridad,
-        esmilitar: formData.esMilitar
+        esmilitar: formData.esMilitar,
+        credencialsedena: 'NO',  // Default value
+        esarmado: 'NO'           // Default value
       };
       
       console.log('Prepared lead data for Supabase:', leadData);
       
-      // Try to execute webhook but don't let it block lead creation if it fails
+      // Execute webhook (optional - don't let it block form submission)
+      let webhookSuccess = false;
       try {
         await executeWebhook({
           telefono: phoneNumber,
@@ -108,13 +115,14 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ onSuccess }) => {
           contactInfo: `${formData.email} | ${phoneNumber}`,
           fuente: "Landing"
         });
+        webhookSuccess = true;
         console.log('Webhook executed successfully');
       } catch (webhookError) {
         console.error('Error executing webhook:', webhookError);
         // Continue with lead creation even if webhook fails
       }
       
-      // Use the leadService to create the lead in Supabase
+      // Create the lead in Supabase
       const result = await createLead(leadData);
       console.log('Lead creation result:', result);
       

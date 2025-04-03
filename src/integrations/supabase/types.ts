@@ -26,7 +26,7 @@ export type Database = {
           modelovehiculo: string | null
           nombre: string | null
           original_id: number | null
-          telefono: string | null
+          telefono: number | null
           tienevehiculo: string | null
           valor: number | null
         }
@@ -46,7 +46,7 @@ export type Database = {
           modelovehiculo?: string | null
           nombre?: string | null
           original_id?: number | null
-          telefono?: string | null
+          telefono?: number | null
           tienevehiculo?: string | null
           valor?: number | null
         }
@@ -66,7 +66,7 @@ export type Database = {
           modelovehiculo?: string | null
           nombre?: string | null
           original_id?: number | null
-          telefono?: string | null
+          telefono?: number | null
           tienevehiculo?: string | null
           valor?: number | null
         }

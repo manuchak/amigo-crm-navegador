@@ -67,17 +67,22 @@ export const createLead = async (leadData: LeadData) => {
       throw new Error('Missing required fields for lead creation');
     }
     
-    // Validate phone number format
-    if (leadData.telefono && !leadData.telefono.startsWith('+')) {
-      console.log('Adding + prefix to phone number');
-      leadData.telefono = `+${leadData.telefono}`;
+    // Format phone number - ensure it's a string and has international prefix
+    let phoneNumber = leadData.telefono;
+    if (typeof phoneNumber === 'string') {
+      if (!phoneNumber.startsWith('+')) {
+        phoneNumber = `+${phoneNumber}`;
+      }
+    } else {
+      console.error('Phone number is not a string:', phoneNumber);
+      throw new Error('Phone number format is invalid');
     }
     
-    // Create a clean object with only the fields that exist in the database
-    const cleanData = {
+    // Prepare data for insertion - explicitly map to column names
+    const insertData = {
       nombre: leadData.nombre,
       email: leadData.email,
-      telefono: leadData.telefono,
+      telefono: phoneNumber,
       empresa: leadData.empresa || 'Custodio',
       estado: leadData.estado || 'Nuevo',
       fuente: leadData.fuente || 'Landing',
@@ -85,18 +90,37 @@ export const createLead = async (leadData: LeadData) => {
       tienevehiculo: leadData.tienevehiculo || 'NO',
       experienciaseguridad: leadData.experienciaseguridad || 'NO',
       esmilitar: leadData.esmilitar || 'NO',
+      credencialsedena: leadData.credencialsedena || 'NO',
+      esarmado: leadData.esarmado || 'NO',
+      modelovehiculo: leadData.modelovehiculo || null,
+      anovehiculo: leadData.anovehiculo || null,
       valor: leadData.valor || 0
     };
     
-    console.log('Inserting lead with sanitized data:', cleanData);
+    console.log('Inserting lead with formatted data:', insertData);
     
+    // First, attempt to fetch database schema to verify columns
+    const { error: schemaError } = await supabase
+      .from('leads')
+      .select('*')
+      .limit(1);
+      
+    if (schemaError) {
+      console.error('Error checking leads table schema:', schemaError);
+    }
+    
+    // Insert data with error handling
     const { data, error } = await supabase
       .from('leads')
-      .insert([cleanData])
+      .insert([insertData])
       .select();
 
     if (error) {
       console.error('Error creating lead:', error);
+      // Log more detailed error info
+      console.error('Error code:', error.code);
+      console.error('Error details:', error.details);
+      console.error('Error hint:', error.hint);
       throw error;
     }
     
