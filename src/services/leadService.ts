@@ -105,25 +105,53 @@ export const createLead = async (leadData: LeadData) => {
     };
     
     console.log('Inserting lead with formatted data:', insertData);
-    
-    // Insert data with error handling
-    const { data, error } = await supabase
-      .from('leads')
-      .insert(insertData)
-      .select();
 
-    if (error) {
-      console.error('Error creating lead:', error);
-      // Log more detailed error info
-      console.error('Error code:', error.code);
-      console.error('Error details:', error.details);
-      console.error('Error hint:', error.hint);
-      console.error('Error message:', error.message);
-      throw error;
+    // For anonymous form submissions, we'll create a fetch request to a serverless function
+    if (leadData.fuente === 'Landing') {
+      try {
+        // Create the lead using a direct REST API request with public access
+        const response = await fetch('https://beefjsdgrdeiymzxwxru.supabase.co/rest/v1/leads', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJlZWZqc2RncmRlaXltenh3eHJ1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDI5MzI1OTQsImV4cCI6MjA1ODUwODU5NH0.knvlRdFYtN2bl3t3I4O8v3dU_MWKDDuaBZkvukdU87w',
+            'Prefer': 'return=minimal'
+          },
+          body: JSON.stringify(insertData)
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          console.error('Direct API error:', errorData);
+          throw new Error(`API error: ${errorData.message || response.statusText}`);
+        }
+
+        console.log('Lead created successfully via direct API');
+        return { success: true };
+      } catch (directApiError) {
+        console.error('Error with direct API call:', directApiError);
+        throw directApiError;
+      }
+    } else {
+      // For authenticated users, use the Supabase client
+      const { data, error } = await supabase
+        .from('leads')
+        .insert(insertData)
+        .select();
+
+      if (error) {
+        console.error('Error creating lead:', error);
+        // Log more detailed error info
+        console.error('Error code:', error.code);
+        console.error('Error details:', error.details);
+        console.error('Error hint:', error.hint);
+        console.error('Error message:', error.message);
+        throw error;
+      }
+      
+      console.log('Lead created successfully:', data);
+      return data;
     }
-    
-    console.log('Lead created successfully:', data);
-    return data;
   } catch (error) {
     console.error('Error in createLead:', error);
     throw error;
