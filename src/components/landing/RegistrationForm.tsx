@@ -72,11 +72,23 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ onSuccess }) => {
         empresa += ` (${atributos.join(', ')})`;
       }
 
+      // Format phone number for database
+      let phoneNumber: number | null = null;
+      if (formData.telefono) {
+        const cleanedPhone = formData.telefono.replace(/[^\d+]/g, '');
+        phoneNumber = Number(cleanedPhone.replace('+', ''));
+        // Validate phone number
+        if (isNaN(phoneNumber)) {
+          console.warn('Invalid phone number format, setting to null');
+          phoneNumber = null;
+        }
+      }
+
       // Map form data to database column names exactly
       const leadData: LeadData = {
         nombre: formData.nombre,
         email: formData.email,
-        telefono: formData.telefono,
+        telefono: phoneNumber,
         empresa: empresa,
         estado: 'Nuevo',
         fuente: 'Landing',
@@ -94,7 +106,7 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ onSuccess }) => {
       try {
         const leadId = Date.now();
         await executeWebhook({
-          telefono: formData.telefono,
+          telefono: formData.telefono, // Use original format for webhook
           leadName: formData.nombre,
           leadId: leadId,
           empresa: empresa,

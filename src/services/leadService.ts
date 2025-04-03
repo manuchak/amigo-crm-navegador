@@ -4,7 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 export interface LeadData {
   nombre?: string;
   email?: string;
-  telefono?: string;
+  telefono?: string | number;
   empresa?: string;
   estado?: string;
   fuente?: string;
@@ -67,25 +67,29 @@ export const createLead = async (leadData: LeadData) => {
       throw new Error('Missing required fields for lead creation');
     }
     
-    // Format phone number if present - ensure it's a string
-    let phoneNumber = leadData.telefono || '';
+    // Format phone number if present - ensure it's a number for Supabase
+    let phoneNumber: number | null = null;
     
     // Only format if it's not empty
-    if (phoneNumber) {
+    if (leadData.telefono) {
       // Remove any non-digit characters except +
-      phoneNumber = phoneNumber.toString().replace(/[^\d+]/g, '');
+      const cleanedPhone = leadData.telefono.toString().replace(/[^\d+]/g, '');
       
-      // Ensure it has international prefix
-      if (!phoneNumber.startsWith('+')) {
-        phoneNumber = `+52${phoneNumber}`;
+      // Remove the + if present and convert to number
+      phoneNumber = Number(cleanedPhone.replace('+', ''));
+      
+      // Check if valid number
+      if (isNaN(phoneNumber)) {
+        console.warn('Invalid phone number format, setting to null');
+        phoneNumber = null;
       }
     }
     
-    // Prepare data for insertion - explicitly map to column names with proper defaults
+    // Prepare data for insertion - explicitly match database column types
     const insertData = {
       nombre: leadData.nombre,
       email: leadData.email,
-      telefono: phoneNumber || null,
+      telefono: phoneNumber,
       empresa: leadData.empresa || 'Custodio',
       estado: leadData.estado || 'Nuevo',
       fuente: leadData.fuente || 'Landing',
@@ -105,7 +109,7 @@ export const createLead = async (leadData: LeadData) => {
     // Insert data with error handling
     const { data, error } = await supabase
       .from('leads')
-      .insert([insertData])
+      .insert(insertData)
       .select();
 
     if (error) {

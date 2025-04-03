@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -38,17 +39,28 @@ const ClientForm: React.FC<ClientFormProps> = ({ onClientAdded }) => {
     setIsSubmitting(true);
 
     try {
-      // Create lead data for Supabase
+      // Format phone number for database
+      let phoneNumber: number | null = null;
+      if (formData.telefono) {
+        const cleanedPhone = formData.telefono.replace(/[^\d+]/g, '');
+        phoneNumber = Number(cleanedPhone.replace('+', ''));
+        if (isNaN(phoneNumber)) phoneNumber = null;
+      }
+      
+      // Parse valor as number
+      const valorNumeric = parseFloat(formData.valor) || 0;
+      
+      // Create lead data for Supabase with proper types
       const { error } = await supabase
         .from('leads')
         .insert({
           nombre: formData.nombre,
           email: formData.email,
-          telefono: formData.telefono,
+          telefono: phoneNumber,
           empresa: formData.empresa,
           estado: formData.etapa,
           fuente: 'CRM',
-          valor: parseFloat(formData.valor) || 0,
+          valor: valorNumeric,
           fecha_creacion: new Date().toISOString()
         });
       
