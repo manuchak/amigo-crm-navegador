@@ -91,10 +91,10 @@ export const useLeadForm = () => {
       
       console.log('Enviando lead a Supabase:', nuevoLead);
       
-      // Insertar directamente en Supabase
+      // Insertar directamente en Supabase con la estructura correcta
       const { error } = await supabase
         .from('leads')
-        .insert({
+        .insert([{
           datos_adicionales: {
             nombre: data.nombre,
             email: data.email,
@@ -109,7 +109,7 @@ export const useLeadForm = () => {
             credencialSedena: data.credencialSedena,
             esArmado: data.esArmado
           }
-        });
+        }]);
       
       if (error) {
         console.error('Error al insertar en Supabase:', error);

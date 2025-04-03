@@ -6,7 +6,6 @@ import { Lead } from "@/context/LeadsContext";
 export interface SupabaseLead {
   id: number;
   created_at: string;
-  // No longer using these columns directly
   datos_adicionales?: any;
 }
 
@@ -33,7 +32,7 @@ export const convertToSupabaseLead = (lead: Lead, source: string = 'Form'): any 
 };
 
 // Convertir de formato Supabase a lead de la aplicación
-export const convertFromSupabaseLead = (supabaseLead: any): Lead => {
+export const convertFromSupabaseLead = (supabaseLead: SupabaseLead): Lead => {
   const datos = supabaseLead.datos_adicionales || {};
   
   return {
@@ -68,7 +67,7 @@ export const leadService = {
     }
     
     // Convert the data to our app's Lead format
-    return data.map(lead => convertFromSupabaseLead(lead));
+    return data.map(lead => convertFromSupabaseLead(lead as SupabaseLead));
   },
   
   // Crear un nuevo lead
@@ -81,7 +80,7 @@ export const leadService = {
     
     const { data, error } = await supabase
       .from('leads')
-      .insert(supabaseData)
+      .insert([supabaseData])
       .select()
       .single();
       
@@ -117,7 +116,6 @@ export const leadService = {
     
     // Update the estado field while preserving other datos_adicionales
     const updatedData = {
-      ...currentRecord,
       datos_adicionales: {
         ...currentRecord.datos_adicionales,
         estado: newStatus
