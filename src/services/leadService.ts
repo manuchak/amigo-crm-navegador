@@ -63,26 +63,29 @@ export const createLead = async (leadData: LeadData) => {
     console.log('Attempting to create lead with data:', leadData);
     
     // Ensure we have all the required fields
-    if (!leadData.nombre || !leadData.email || !leadData.telefono) {
+    if (!leadData.nombre || !leadData.email) {
       throw new Error('Missing required fields for lead creation');
     }
     
-    // Format phone number - ensure it's a string and has international prefix
-    let phoneNumber = leadData.telefono;
-    if (typeof phoneNumber === 'string') {
+    // Format phone number if present - ensure it's a string
+    let phoneNumber = leadData.telefono || '';
+    
+    // Only format if it's not empty
+    if (phoneNumber) {
+      // Remove any non-digit characters except +
+      phoneNumber = phoneNumber.toString().replace(/[^\d+]/g, '');
+      
+      // Ensure it has international prefix
       if (!phoneNumber.startsWith('+')) {
-        phoneNumber = `+${phoneNumber}`;
+        phoneNumber = `+52${phoneNumber}`;
       }
-    } else {
-      console.error('Phone number is not a string:', phoneNumber);
-      throw new Error('Phone number format is invalid');
     }
     
-    // Prepare data for insertion - explicitly map to column names
+    // Prepare data for insertion - explicitly map to column names with proper defaults
     const insertData = {
       nombre: leadData.nombre,
       email: leadData.email,
-      telefono: phoneNumber,
+      telefono: phoneNumber || null,
       empresa: leadData.empresa || 'Custodio',
       estado: leadData.estado || 'Nuevo',
       fuente: leadData.fuente || 'Landing',
@@ -99,16 +102,6 @@ export const createLead = async (leadData: LeadData) => {
     
     console.log('Inserting lead with formatted data:', insertData);
     
-    // First, attempt to fetch database schema to verify columns
-    const { error: schemaError } = await supabase
-      .from('leads')
-      .select('*')
-      .limit(1);
-      
-    if (schemaError) {
-      console.error('Error checking leads table schema:', schemaError);
-    }
-    
     // Insert data with error handling
     const { data, error } = await supabase
       .from('leads')
@@ -121,6 +114,7 @@ export const createLead = async (leadData: LeadData) => {
       console.error('Error code:', error.code);
       console.error('Error details:', error.details);
       console.error('Error hint:', error.hint);
+      console.error('Error message:', error.message);
       throw error;
     }
     

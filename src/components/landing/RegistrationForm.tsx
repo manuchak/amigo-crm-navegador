@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -71,21 +72,11 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ onSuccess }) => {
         empresa += ` (${atributos.join(', ')})`;
       }
 
-      // Format phone number - ensure it's a string and in the correct format
-      // Remove any non-digit characters except +
-      let phoneNumber = formData.telefono.replace(/[^\d+]/g, '');
-      
-      // Ensure it has a + prefix (add if missing)
-      if (!phoneNumber.startsWith('+')) {
-        // Add Mexico country code if not present
-        phoneNumber = `+52${phoneNumber}`;
-      }
-
       // Map form data to database column names exactly
       const leadData: LeadData = {
         nombre: formData.nombre,
         email: formData.email,
-        telefono: phoneNumber,
+        telefono: formData.telefono,
         empresa: empresa,
         estado: 'Nuevo',
         fuente: 'Landing',
@@ -100,22 +91,21 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ onSuccess }) => {
       console.log('Prepared lead data for Supabase:', leadData);
       
       // Execute webhook (optional - don't let it block form submission)
-      let webhookSuccess = false;
       try {
+        const leadId = Date.now();
         await executeWebhook({
-          telefono: phoneNumber,
+          telefono: formData.telefono,
           leadName: formData.nombre,
-          leadId: Date.now(),
+          leadId: leadId,
           empresa: empresa,
           email: formData.email,
           estado: 'Nuevo',
           fechaCreacion: new Date().toISOString().split('T')[0],
           timestamp: new Date().toISOString(),
           action: "lead_created",
-          contactInfo: `${formData.email} | ${phoneNumber}`,
+          contactInfo: `${formData.email} | ${formData.telefono}`,
           fuente: "Landing"
         });
-        webhookSuccess = true;
         console.log('Webhook executed successfully');
       } catch (webhookError) {
         console.error('Error executing webhook:', webhookError);
