@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
@@ -101,6 +102,15 @@ const Navbar = () => {
                 {item.name}
               </Link>
             ))}
+          </div>
+          
+          {/* Detecta Logo */}
+          <div className="flex items-center mr-4">
+            <img 
+              src="/lovable-uploads/bd760b66-2258-4c6d-bd1a-6ce88a2a929b.png" 
+              alt="Detecta Logo" 
+              className="h-8 w-auto"
+            />
           </div>
           
           <div>

@@ -17,8 +17,15 @@ const HeroSection: React.FC = () => {
       
       <div className="relative container mx-auto px-4 md:px-6 py-12 md:py-16 lg:py-20">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 items-center">
+          {/* Form Section */}
+          <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-6 md:p-8 shadow-xl border border-white/20 order-1 lg:order-1 animate-fade-in">
+            <div id="registro">
+              <RegistrationForm />
+            </div>
+          </div>
+          
           {/* Hero Content */}
-          <div className="space-y-6 order-1">
+          <div className="space-y-6 order-2 lg:order-2">
             <div className="inline-block bg-primary/90 px-4 py-1 rounded-full text-sm font-medium mb-2">
               Oportunidad Exclusiva
             </div>
@@ -37,13 +44,6 @@ const HeroSection: React.FC = () => {
               >
                 Conoce más <ArrowRight className="ml-2" />
               </Button>
-            </div>
-          </div>
-          
-          {/* Form Section */}
-          <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-6 md:p-8 shadow-xl border border-white/20 order-2 animate-fade-in">
-            <div id="registro">
-              <RegistrationForm />
             </div>
           </div>
         </div>
