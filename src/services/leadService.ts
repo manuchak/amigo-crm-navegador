@@ -15,8 +15,8 @@ export interface LeadData {
   credencialsedena?: string;
   esmilitar?: string;
   esarmado?: string;
-  modelovehiculo?: string;
-  anovehiculo?: string;
+  modelovehiculo?: string | null;
+  anovehiculo?: string | null;
   valor?: number;
 }
 

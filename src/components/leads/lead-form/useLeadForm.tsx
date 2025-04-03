@@ -58,21 +58,23 @@ export const useLeadForm = () => {
         categoria += ` (${atributos.join(' y ')})`;
       }
       
-      // Formar datos de contacto
-      const contacto = `${data.email} | ${data.prefijo}${data.telefono}`;
-      
-      // Crear nuevo lead
-      const nuevoLead = {
-        id: Date.now(),
-        nombre: data.nombre,
-        empresa: categoria,
-        contacto: contacto,
-        estado: 'Nuevo',
-        fechaCreacion: new Date().toISOString().split('T')[0],
-      };
-      
       // Construct the full phone number with prefix
       const fullPhoneNumber = `${data.prefijo}${data.telefono}`;
+      
+      // Generate a unique ID for the new lead
+      const newId = Date.now();
+      
+      // Crear nuevo lead for context
+      const nuevoLead = {
+        id: newId,
+        nombre: data.nombre,
+        empresa: categoria,
+        contacto: `${data.email} | ${fullPhoneNumber}`,
+        estado: 'Nuevo',
+        fechaCreacion: new Date().toISOString().split('T')[0],
+        email: data.email,
+        telefono: fullPhoneNumber
+      };
       
       // Enviar datos al webhook with phone as a separate field
       try {
@@ -86,7 +88,7 @@ export const useLeadForm = () => {
           fechaCreacion: nuevoLead.fechaCreacion,
           timestamp: new Date().toISOString(),
           action: "lead_created",
-          contactInfo: contacto,
+          contactInfo: nuevoLead.contacto,
           fuente: "Form"
         });
         console.log('Webhook executed successfully');
@@ -105,26 +107,27 @@ export const useLeadForm = () => {
         empresa: categoria,
         estado: 'Nuevo',
         fuente: 'Form',
-        original_id: nuevoLead.id,
+        original_id: newId,
         fecha_creacion: nuevoLead.fechaCreacion,
         tienevehiculo: data.tieneVehiculo,
         experienciaseguridad: data.experienciaSeguridad,
         credencialsedena: data.credencialSedena,
         esarmado: data.esArmado,
-        modelovehiculo: data.modeloVehiculo,
-        anovehiculo: data.anoVehiculo
+        modelovehiculo: data.modeloVehiculo || null,
+        anovehiculo: data.anoVehiculo || null,
+        valor: 0
       };
       
       // Use the leadService to create the lead
       const result = await createLead(leadData);
       console.log('Lead creation result:', result);
       
-      // Añadir lead al contexto local
+      // Add lead to local context
       await addLead(nuevoLead);
       
       toast.success('Lead registrado correctamente');
       
-      // Resetear formulario
+      // Reset form
       form.reset();
       
     } catch (error) {
