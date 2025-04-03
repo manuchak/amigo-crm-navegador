@@ -140,6 +140,24 @@ export const updateLeadStatus = async (id: number, estado: string): Promise<void
   }
 };
 
+// Add deleteLead function to fix the missing method error
+export const deleteLead = async (id: number): Promise<void> => {
+  try {
+    const { error } = await supabase
+      .from('leads')
+      .delete()
+      .eq('id', id);
+    
+    if (error) {
+      console.error('Error deleting lead:', error);
+      throw error;
+    }
+  } catch (error) {
+    console.error('Error in deleteLead:', error);
+    throw error;
+  }
+};
+
 // Direct API call to create lead
 export const createLeadDirectAPI = async (leadData: LeadData): Promise<any> => {
   try {

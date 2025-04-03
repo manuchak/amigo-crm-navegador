@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -39,14 +38,6 @@ const ClientForm: React.FC<ClientFormProps> = ({ onClientAdded }) => {
     setIsSubmitting(true);
 
     try {
-      // Format phone number for database
-      let phoneNumber: number | null = null;
-      if (formData.telefono) {
-        const cleanedPhone = formData.telefono.replace(/[^\d+]/g, '');
-        phoneNumber = Number(cleanedPhone.replace('+', ''));
-        if (isNaN(phoneNumber)) phoneNumber = null;
-      }
-      
       // Parse valor as number
       const valorNumeric = parseFloat(formData.valor) || 0;
       
@@ -56,7 +47,7 @@ const ClientForm: React.FC<ClientFormProps> = ({ onClientAdded }) => {
         .insert({
           nombre: formData.nombre,
           email: formData.email,
-          telefono: phoneNumber,
+          telefono: formData.telefono,
           empresa: formData.empresa,
           estado: formData.etapa,
           fuente: 'CRM',

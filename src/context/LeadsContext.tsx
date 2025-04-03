@@ -57,7 +57,7 @@ export const LeadsProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const fetchLeads = async () => {
     setLoading(true);
     try {
-      const fetchedLeads = await leadService.fetchLeads();
+      const fetchedLeads = await leadService.getLeads();
       
       // Transform the data to match our Lead interface
       const transformedLeads = fetchedLeads.map((item: any) => {
@@ -134,11 +134,18 @@ export const LeadsProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       // Transform lead to match the format expected by createLead
       const leadData = {
         nombre: lead.nombre,
+        email: lead.email || '',
+        telefono: lead.telefono || '',
         empresa: lead.empresa,
-        email: lead.contacto.includes('|') ? lead.contacto.split('|')[0].trim() : '',
-        telefono: lead.contacto.includes('|') ? lead.contacto.split('|')[1].trim() : lead.contacto,
         estado: lead.estado,
         fecha_creacion: lead.fechaCreacion,
+        fuente: 'Form',
+        tienevehiculo: lead.tieneVehiculo || 'NO',
+        experienciaseguridad: lead.experienciaSeguridad || 'NO',
+        esmilitar: lead.esMilitar || 'NO',
+        credencialsedena: 'NO',
+        esarmado: 'NO',
+        valor: 0
       };
       
       await leadService.createLead(leadData);
