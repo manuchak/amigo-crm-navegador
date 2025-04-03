@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -19,6 +18,7 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ onSuccess }) => {
     nombre: '',
     email: '',
     telefono: '',
+    telefonoPrefijo: '+52', 
     tieneVehiculo: 'NO',
     experienciaSeguridad: 'NO',
     esMilitar: 'NO',
@@ -30,6 +30,10 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ onSuccess }) => {
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handlePrefixChange = (value: string) => {
+    setFormData(prev => ({ ...prev, telefonoPrefijo: value }));
   };
 
   const handleSelectChange = (name: string, value: string) => {
@@ -51,6 +55,9 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ onSuccess }) => {
     setIsSubmitting(true);
 
     try {
+      // Combine prefix with phone number for full phone number
+      const fullPhoneNumber = `${formData.telefonoPrefijo}${formData.telefono}`;
+      
       console.log('Form data being submitted:', formData);
       
       let empresa = 'Custodio';
@@ -74,8 +81,8 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ onSuccess }) => {
 
       // Format phone number for database
       let phoneNumber: number | null = null;
-      if (formData.telefono) {
-        const cleanedPhone = formData.telefono.replace(/[^\d+]/g, '');
+      if (fullPhoneNumber) {
+        const cleanedPhone = fullPhoneNumber.replace(/[^\d+]/g, '');
         phoneNumber = Number(cleanedPhone.replace('+', ''));
         // Validate phone number
         if (isNaN(phoneNumber)) {
@@ -106,7 +113,7 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ onSuccess }) => {
       try {
         const leadId = Date.now();
         await executeWebhook({
-          telefono: formData.telefono, // Use original format for webhook
+          telefono: fullPhoneNumber, // Use original format for webhook
           leadName: formData.nombre,
           leadId: leadId,
           empresa: empresa,
@@ -115,7 +122,7 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ onSuccess }) => {
           fechaCreacion: new Date().toISOString().split('T')[0],
           timestamp: new Date().toISOString(),
           action: "lead_created",
-          contactInfo: `${formData.email} | ${formData.telefono}`,
+          contactInfo: `${formData.email} | ${fullPhoneNumber}`,
           fuente: "Landing"
         });
         console.log('Webhook executed successfully');
@@ -138,6 +145,7 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ onSuccess }) => {
         nombre: '',
         email: '',
         telefono: '',
+        telefonoPrefijo: '+52', // Reset to default
         tieneVehiculo: 'NO',
         experienciaSeguridad: 'NO',
         esMilitar: 'NO',
@@ -207,15 +215,31 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ onSuccess }) => {
         
         <div className="space-y-2">
           <Label htmlFor="telefono" className="text-gray-200">Teléfono *</Label>
-          <Input
-            id="telefono"
-            name="telefono"
-            value={formData.telefono}
-            onChange={handleChange}
-            placeholder="55 1234 5678"
-            required
-            className="bg-white/10 border-white/20 text-white placeholder:text-gray-400 h-10"
-          />
+          <div className="flex space-x-2">
+            <Select
+              value={formData.telefonoPrefijo}
+              onValueChange={handlePrefixChange}
+            >
+              <SelectTrigger className="w-[90px] bg-white/10 border-white/20 text-white">
+                <SelectValue placeholder="+52" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="+52">+52 (México)</SelectItem>
+                <SelectItem value="+1">+1 (USA)</SelectItem>
+                <SelectItem value="+34">+34 (España)</SelectItem>
+                <SelectItem value="+57">+57 (Colombia)</SelectItem>
+              </SelectContent>
+            </Select>
+            <Input
+              id="telefono"
+              name="telefono"
+              value={formData.telefono}
+              onChange={handleChange}
+              placeholder="55 1234 5678"
+              required
+              className="flex-1 bg-white/10 border-white/20 text-white placeholder:text-gray-400 h-10"
+            />
+          </div>
         </div>
       </div>
       
