@@ -72,26 +72,31 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ onSuccess }) => {
         empresa += ` (${atributos.join(', ')})`;
       }
 
+      // Format phone number correctly - ensure it has international prefix
+      const phoneNumber = formData.telefono.startsWith('+') 
+        ? formData.telefono 
+        : `+52${formData.telefono}`;
+
       // Prepare data for Supabase insertion - matching the exact column names in database
       const leadData: LeadData = {
         nombre: formData.nombre,
         email: formData.email,
-        telefono: formData.telefono,
+        telefono: phoneNumber,
         empresa: empresa,
         estado: 'Nuevo',
         fuente: 'Landing',
+        fecha_creacion: new Date().toISOString(),
         tienevehiculo: formData.tieneVehiculo,
         experienciaseguridad: formData.experienciaSeguridad,
-        esmilitar: formData.esMilitar,
-        fecha_creacion: new Date().toISOString()
+        esmilitar: formData.esMilitar
       };
       
-      console.log('Prepared lead data:', leadData);
+      console.log('Prepared lead data for Supabase:', leadData);
       
-      // Create webhook payload for external notification
+      // Create webhook payload for external notification (optional)
       try {
         await executeWebhook({
-          telefono: formData.telefono,
+          telefono: phoneNumber,
           leadName: formData.nombre,
           leadId: Date.now(),
           empresa: empresa,
@@ -100,7 +105,7 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ onSuccess }) => {
           fechaCreacion: new Date().toISOString().split('T')[0],
           timestamp: new Date().toISOString(),
           action: "lead_created",
-          contactInfo: `${formData.email} | ${formData.telefono}`,
+          contactInfo: `${formData.email} | ${phoneNumber}`,
           fuente: "Landing"
         });
         console.log('Webhook executed successfully');
@@ -109,9 +114,8 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ onSuccess }) => {
         // Continue with lead creation even if webhook fails
       }
       
-      // Use the leadService to create the lead
+      // Use the leadService to create the lead in Supabase
       const result = await createLead(leadData);
-      
       console.log('Lead creation result:', result);
       
       setIsSuccess(true);

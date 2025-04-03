@@ -17,6 +17,7 @@ export interface LeadData {
   esarmado?: string;
   modelovehiculo?: string;
   anovehiculo?: string;
+  valor?: number;
 }
 
 export const fetchLeads = async () => {
@@ -66,9 +67,26 @@ export const createLead = async (leadData: LeadData) => {
       throw new Error('Missing required fields for lead creation');
     }
     
+    // Validate phone number format
+    if (leadData.telefono && !leadData.telefono.startsWith('+')) {
+      console.log('Adding + prefix to phone number');
+      leadData.telefono = `+${leadData.telefono}`;
+    }
+    
+    // Set default values for fields if they're not provided
+    const leadToInsert = {
+      ...leadData,
+      estado: leadData.estado || 'Nuevo',
+      fuente: leadData.fuente || 'Landing',
+      fecha_creacion: leadData.fecha_creacion || new Date().toISOString(),
+      valor: leadData.valor || 0
+    };
+    
+    console.log('Inserting lead with data:', leadToInsert);
+    
     const { data, error } = await supabase
       .from('leads')
-      .insert([leadData])
+      .insert([leadToInsert])
       .select();
 
     if (error) {
