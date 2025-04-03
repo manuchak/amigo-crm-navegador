@@ -12,6 +12,19 @@ interface RegistrationFormProps {
   onSuccess?: () => void;
 }
 
+interface LeadData {
+  nombre: string;
+  email: string;
+  telefono: string;
+  empresa: string;
+  estado: string;
+  fuente: string;
+  tieneVehiculo: string;
+  experienciaSeguridad: string;
+  esMilitar: string;
+  fecha_creacion: string;
+}
+
 const RegistrationForm: React.FC<RegistrationFormProps> = ({ onSuccess }) => {
   const [formData, setFormData] = useState({
     nombre: '',
@@ -63,21 +76,24 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ onSuccess }) => {
         categoria += ` (${atributos.join(', ')})`;
       }
 
-      // Insert into Supabase with correct table structure
+      // Create a properly typed object for insertion
+      const leadData: LeadData = {
+        nombre: formData.nombre,
+        email: formData.email,
+        telefono: formData.telefono,
+        empresa: categoria,
+        estado: 'Nuevo',
+        fuente: 'Landing',
+        tieneVehiculo: formData.tieneVehiculo,
+        experienciaSeguridad: formData.experienciaSeguridad,
+        esMilitar: formData.esMilitar,
+        fecha_creacion: new Date().toISOString()
+      };
+
+      // Insert into Supabase
       const { error } = await supabase
         .from('leads')
-        .insert({
-          nombre: formData.nombre,
-          email: formData.email,
-          telefono: formData.telefono,
-          empresa: categoria,
-          estado: 'Nuevo',
-          fuente: 'Landing',
-          tieneVehiculo: formData.tieneVehiculo,
-          experienciaSeguridad: formData.experienciaSeguridad,
-          esMilitar: formData.esMilitar,
-          fecha_creacion: new Date().toISOString()
-        });
+        .insert(leadData as any);
       
       if (error) throw error;
       

@@ -9,7 +9,7 @@ const HeroSection: React.FC = () => {
     <div className="relative bg-gradient-to-r from-gray-900 to-black text-white">
       <div className="absolute inset-0 overflow-hidden">
         <img 
-          src="/lovable-uploads/3a29a8f2-6473-434e-8cb0-3b8a28c4697e.png" 
+          src="/lovable-uploads/e825df0b-3cd1-4d84-9f7e-2865d5417bbe.png" 
           alt="Vehículos de custodia" 
           className="object-cover object-center w-full h-full opacity-20"
         />
@@ -17,14 +17,14 @@ const HeroSection: React.FC = () => {
       
       <div className="relative container mx-auto px-4 md:px-6 py-12 md:py-16 lg:py-20">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 items-center">
-          {/* Form Section */}
+          {/* Form Section - Now on the left side */}
           <div className="bg-white/10 backdrop-blur-lg rounded-2xl p-6 md:p-8 shadow-xl border border-white/20 order-1 lg:order-1 animate-fade-in">
             <div id="registro">
               <RegistrationForm />
             </div>
           </div>
           
-          {/* Hero Content */}
+          {/* Hero Content - Now on the right side */}
           <div className="space-y-6 order-2 lg:order-2">
             <div className="inline-block bg-primary/90 px-4 py-1 rounded-full text-sm font-medium mb-2">
               Oportunidad Exclusiva

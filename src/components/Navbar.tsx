@@ -104,14 +104,7 @@ const Navbar = () => {
             ))}
           </div>
           
-          {/* Detecta Logo */}
-          <div className="flex items-center mr-4">
-            <img 
-              src="/lovable-uploads/bd760b66-2258-4c6d-bd1a-6ce88a2a929b.png" 
-              alt="Detecta Logo" 
-              className="h-8 w-auto"
-            />
-          </div>
+          {/* Removed Detecta Logo */}
           
           <div>
             {currentUser ? (
