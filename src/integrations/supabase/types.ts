@@ -12,6 +12,7 @@ export type Database = {
       leads: {
         Row: {
           anovehiculo: string | null
+          call_count: number
           created_at: string
           credencialsedena: string | null
           email: string | null
@@ -23,6 +24,7 @@ export type Database = {
           fecha_creacion: string | null
           fuente: string | null
           id: number
+          last_call_date: string | null
           modelovehiculo: string | null
           nombre: string | null
           original_id: number | null
@@ -32,6 +34,7 @@ export type Database = {
         }
         Insert: {
           anovehiculo?: string | null
+          call_count?: number
           created_at?: string
           credencialsedena?: string | null
           email?: string | null
@@ -43,6 +46,7 @@ export type Database = {
           fecha_creacion?: string | null
           fuente?: string | null
           id?: number
+          last_call_date?: string | null
           modelovehiculo?: string | null
           nombre?: string | null
           original_id?: number | null
@@ -52,6 +56,7 @@ export type Database = {
         }
         Update: {
           anovehiculo?: string | null
+          call_count?: number
           created_at?: string
           credencialsedena?: string | null
           email?: string | null
@@ -63,6 +68,7 @@ export type Database = {
           fecha_creacion?: string | null
           fuente?: string | null
           id?: number
+          last_call_date?: string | null
           modelovehiculo?: string | null
           nombre?: string | null
           original_id?: number | null

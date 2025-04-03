@@ -19,6 +19,8 @@ export interface LeadData {
   anovehiculo?: string;
   modelovehiculo?: string;
   valor?: number;
+  call_count?: number;
+  last_call_date?: string;
 }
 
 // Normalized Lead data for frontend display
@@ -30,6 +32,8 @@ export interface Lead {
   estado: string;
   fechaCreacion: string;
   valor?: number;
+  callCount?: number;
+  lastCallDate?: string;
 }
 
 // Original Supabase Lead shape
@@ -48,7 +52,9 @@ export const normalizeLeads = (leads: SupabaseLead[]): Lead[] => {
     fechaCreacion: lead.fecha_creacion 
       ? new Date(lead.fecha_creacion).toLocaleDateString('es-MX') 
       : 'Fecha desconocida',
-    valor: lead.valor || undefined
+    valor: lead.valor || undefined,
+    callCount: lead.call_count,
+    lastCallDate: lead.last_call_date ? new Date(lead.last_call_date).toLocaleDateString('es-MX') : undefined
   }));
 };
 
@@ -92,7 +98,8 @@ export const createLead = async (leadData: LeadData): Promise<Lead> => {
         esarmado: leadData.esarmado,
         anovehiculo: leadData.anovehiculo || null,
         modelovehiculo: leadData.modelovehiculo || null,
-        valor: leadData.valor || null
+        valor: leadData.valor || null,
+        call_count: 0 // Initialize call count to zero
       }])
       .select()
       .single();
@@ -114,7 +121,8 @@ export const createLead = async (leadData: LeadData): Promise<Lead> => {
       fechaCreacion: data.fecha_creacion 
         ? new Date(data.fecha_creacion).toLocaleDateString('es-MX') 
         : 'Fecha desconocida',
-      valor: data.valor || undefined
+      valor: data.valor || undefined,
+      callCount: data.call_count
     };
   } catch (error) {
     console.error('Error in createLead:', error);
@@ -154,6 +162,27 @@ export const deleteLead = async (id: number): Promise<void> => {
     }
   } catch (error) {
     console.error('Error in deleteLead:', error);
+    throw error;
+  }
+};
+
+// New function to increment call count and update last call date
+export const incrementCallCount = async (id: number): Promise<void> => {
+  try {
+    const { error } = await supabase
+      .from('leads')
+      .update({
+        call_count: supabase.rpc('increment', { row_id: id, field_name: 'call_count' }),
+        last_call_date: new Date().toISOString()
+      })
+      .eq('id', id);
+    
+    if (error) {
+      console.error('Error incrementing call count:', error);
+      throw error;
+    }
+  } catch (error) {
+    console.error('Error in incrementCallCount:', error);
     throw error;
   }
 };

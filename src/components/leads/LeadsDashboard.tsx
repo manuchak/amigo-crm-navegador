@@ -1,10 +1,10 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
-import { PhoneCall, ClipboardList, Filter, Phone } from 'lucide-react';
+import { PhoneCall, ClipboardList, Filter, Phone, RefreshCw } from 'lucide-react';
 import { useLeads } from '@/context/LeadsContext';
 import { useToast } from '@/hooks/use-toast';
 import { Badge } from '@/components/ui/badge';
@@ -15,12 +15,13 @@ import { HoverCard, HoverCardTrigger, HoverCardContent } from '@/components/ui/h
 import CallLogDialog from './CallLogDialog';
 
 const LeadsDashboard = () => {
-  const { leads, updateLeadStatus } = useLeads();
+  const { leads, updateLeadStatus, refetchLeads } = useLeads();
   const { toast } = useToast();
   const [filter, setFilter] = useState("todos");
-  const { getCallCountForLead, getCallsForLead } = useCallHistory();
+  const { getCallsForLead } = useCallHistory();
   const [selectedLeadId, setSelectedLeadId] = useState<number | null>(null);
   const [isCallLogOpen, setIsCallLogOpen] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   
   const filteredLeads = filter === "todos" 
     ? leads 
@@ -70,6 +71,26 @@ const LeadsDashboard = () => {
   const handleViewCallLogs = (leadId: number) => {
     setSelectedLeadId(leadId);
     setIsCallLogOpen(true);
+  };
+  
+  const handleRefreshData = async () => {
+    setIsRefreshing(true);
+    try {
+      await refetchLeads();
+      toast({
+        title: "Datos actualizados",
+        description: "Se han cargado los datos más recientes",
+      });
+    } catch (error) {
+      console.error("Error refreshing data:", error);
+      toast({
+        title: "Error",
+        description: "No se pudieron actualizar los datos",
+        variant: "destructive",
+      });
+    } finally {
+      setIsRefreshing(false);
+    }
   };
   
   const getStatusColor = (status: string) => {
@@ -132,6 +153,16 @@ const LeadsDashboard = () => {
             </div>
             
             <div className="flex items-center gap-2">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={handleRefreshData}
+                disabled={isRefreshing}
+              >
+                <RefreshCw className={`h-4 w-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
+                Actualizar
+              </Button>
+              
               <Filter className="h-4 w-4" />
               <Select value={filter} onValueChange={setFilter}>
                 <SelectTrigger className="w-[180px]">
@@ -158,14 +189,15 @@ const LeadsDashboard = () => {
                   <TableHead>Contacto</TableHead>
                   <TableHead>Estado</TableHead>
                   <TableHead>Llamadas</TableHead>
-                  <TableHead>Fecha</TableHead>
+                  <TableHead>Última Llamada</TableHead>
+                  <TableHead>Fecha Creación</TableHead>
                   <TableHead className="text-right">Acciones</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {filteredLeads.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={7} className="text-center py-8 text-gray-400">
+                    <TableCell colSpan={8} className="text-center py-8 text-gray-400">
                       No hay custodios registrados
                     </TableCell>
                   </TableRow>
@@ -186,7 +218,7 @@ const LeadsDashboard = () => {
                             <div className="flex items-center">
                               <Badge variant="outline" className="cursor-pointer">
                                 <Phone className="h-3 w-3 mr-1" />
-                                {getCallCountForLead(lead.id)}
+                                {lead.callCount || 0}
                               </Badge>
                             </div>
                           </HoverCardTrigger>
@@ -195,7 +227,7 @@ const LeadsDashboard = () => {
                               <div className="space-y-1">
                                 <h4 className="text-sm font-semibold">Historial de llamadas</h4>
                                 <p className="text-sm text-muted-foreground">
-                                  Se han realizado {getCallCountForLead(lead.id)} intentos de llamada a este custodio.
+                                  Se han realizado {lead.callCount || 0} intentos de llamada a este custodio.
                                 </p>
                                 <p className="text-xs text-muted-foreground">
                                   Haz clic en "Detalles" para ver el registro completo.
@@ -205,6 +237,7 @@ const LeadsDashboard = () => {
                           </HoverCardContent>
                         </HoverCard>
                       </TableCell>
+                      <TableCell>{lead.lastCallDate || 'No hay llamadas'}</TableCell>
                       <TableCell>{lead.fechaCreacion}</TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-2">

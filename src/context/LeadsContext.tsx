@@ -16,6 +16,8 @@ export interface Lead {
   tieneVehiculo?: string;
   experienciaSeguridad?: string;
   esMilitar?: string;
+  callCount?: number;
+  lastCallDate?: string;
 }
 
 interface LeadsContextType {
@@ -71,12 +73,14 @@ export const LeadsProvider: React.FC<{ children: React.ReactNode }> = ({ childre
           empresa: item.empresa || 'Custodio',
           contacto: contactInfo,
           estado: item.estado || 'Nuevo',
-          fechaCreacion: item.fecha_creacion || new Date().toISOString().split('T')[0],
+          fechaCreacion: item.fechaCreacion || new Date().toISOString().split('T')[0],
           email: item.email,
           telefono: item.telefono,
-          tieneVehiculo: item.tienevehiculo,
-          experienciaSeguridad: item.experienciaseguridad,
-          esMilitar: item.esmilitar
+          tieneVehiculo: item.tieneVehiculo,
+          experienciaSeguridad: item.experienciaSeguridad,
+          esMilitar: item.esMilitar,
+          callCount: item.callCount || 0,
+          lastCallDate: item.lastCallDate
         };
       });
       

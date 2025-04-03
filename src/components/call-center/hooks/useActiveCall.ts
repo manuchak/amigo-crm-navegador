@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
 import { executeWebhook } from '../utils/webhook';
+import { incrementCallCount } from '@/services/leadService';
 
 interface UseActiveCallProps {
   leads: { id: number; nombre: string; empresa: string; contacto: string; estado: string; fechaCreacion: string }[];
@@ -63,6 +64,13 @@ export const useActiveCall = ({ leads, onUpdateLeadStatus }: UseActiveCallProps)
     
     // Guardamos el timer en un atributo para limpiarlo después
     (window as any).callTimer = timer;
+    
+    // Increment call count in Supabase
+    try {
+      await incrementCallCount(selectedLead);
+    } catch (error) {
+      console.error("Error incrementing call count:", error);
+    }
     
     // Execute webhook
     try {
