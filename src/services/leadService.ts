@@ -1,6 +1,24 @@
 
 import { supabase } from '@/integrations/supabase/client';
 
+export interface LeadData {
+  nombre?: string;
+  email?: string;
+  telefono?: string;
+  empresa?: string;
+  estado?: string;
+  fuente?: string;
+  original_id?: number;
+  fecha_creacion?: string;
+  tienevehiculo?: string;
+  experienciaseguridad?: string;
+  credencialsedena?: string;
+  esmilitar?: string;
+  esarmado?: string;
+  modelovehiculo?: string;
+  anovehiculo?: string;
+}
+
 export const fetchLeads = async () => {
   try {
     const { data, error } = await supabase
@@ -39,13 +57,18 @@ export const updateLeadStatus = async (id: number, estado: string) => {
   }
 };
 
-export const createLead = async (leadData: any) => {
+export const createLead = async (leadData: LeadData) => {
   try {
     console.log('Attempting to create lead with data:', leadData);
     
+    // Ensure we have all the required fields
+    if (!leadData.nombre || !leadData.email || !leadData.telefono) {
+      throw new Error('Missing required fields for lead creation');
+    }
+    
     const { data, error } = await supabase
       .from('leads')
-      .insert(leadData)
+      .insert([leadData])
       .select();
 
     if (error) {

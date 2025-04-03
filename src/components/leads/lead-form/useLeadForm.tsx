@@ -5,8 +5,7 @@ import { z } from 'zod';
 import { useLeads } from '@/context/LeadsContext';
 import { executeWebhook } from '@/components/call-center/utils/webhook';
 import { toast } from 'sonner';
-import { supabase } from '@/integrations/supabase/client';
-import { createLead } from '@/services/leadService';
+import { createLead, LeadData } from '@/services/leadService';
 
 // Schema de validación para el formulario
 const formSchema = z.object({
@@ -76,24 +75,30 @@ export const useLeadForm = () => {
       const fullPhoneNumber = `${data.prefijo}${data.telefono}`;
       
       // Enviar datos al webhook with phone as a separate field
-      await executeWebhook({
-        telefono: fullPhoneNumber,
-        leadName: data.nombre,
-        leadId: nuevoLead.id,
-        empresa: categoria,
-        email: data.email,
-        estado: 'Nuevo',
-        fechaCreacion: nuevoLead.fechaCreacion,
-        timestamp: new Date().toISOString(),
-        action: "lead_created",
-        contactInfo: contacto,
-        fuente: "Form"
-      });
+      try {
+        await executeWebhook({
+          telefono: fullPhoneNumber,
+          leadName: data.nombre,
+          leadId: nuevoLead.id,
+          empresa: categoria,
+          email: data.email,
+          estado: 'Nuevo',
+          fechaCreacion: nuevoLead.fechaCreacion,
+          timestamp: new Date().toISOString(),
+          action: "lead_created",
+          contactInfo: contacto,
+          fuente: "Form"
+        });
+        console.log('Webhook executed successfully');
+      } catch (webhookError) {
+        console.error('Error executing webhook:', webhookError);
+        // Continue with lead creation even if webhook fails
+      }
       
       console.log('Enviando lead a Supabase:', nuevoLead);
       
-      // Prepare lead data for Supabase
-      const leadData = {
+      // Prepare lead data for Supabase - matching the exact column names in database
+      const leadData: LeadData = {
         nombre: data.nombre,
         email: data.email,
         telefono: fullPhoneNumber,
@@ -111,7 +116,8 @@ export const useLeadForm = () => {
       };
       
       // Use the leadService to create the lead
-      await createLead(leadData);
+      const result = await createLead(leadData);
+      console.log('Lead creation result:', result);
       
       // Añadir lead al contexto local
       await addLead(nuevoLead);

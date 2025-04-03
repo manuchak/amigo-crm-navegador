@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -6,8 +7,8 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { BadgeCheck } from 'lucide-react';
 import { toast } from 'sonner';
-import { supabase } from '@/integrations/supabase/client';
-import { createLead } from '@/services/leadService';
+import { createLead, LeadData } from '@/services/leadService';
+import { executeWebhook } from '@/components/call-center/utils/webhook';
 
 interface RegistrationFormProps {
   onSuccess?: () => void;
@@ -41,6 +42,12 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ onSuccess }) => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!formData.nombre || !formData.email || !formData.telefono) {
+      toast.error("Por favor completa todos los campos requeridos.");
+      return;
+    }
+    
     setIsSubmitting(true);
 
     try {
@@ -65,8 +72,8 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ onSuccess }) => {
         empresa += ` (${atributos.join(', ')})`;
       }
 
-      // Prepare data for Supabase insertion
-      const leadData = {
+      // Prepare data for Supabase insertion - matching the exact column names in database
+      const leadData: LeadData = {
         nombre: formData.nombre,
         email: formData.email,
         telefono: formData.telefono,
@@ -81,8 +88,31 @@ const RegistrationForm: React.FC<RegistrationFormProps> = ({ onSuccess }) => {
       
       console.log('Prepared lead data:', leadData);
       
+      // Create webhook payload for external notification
+      try {
+        await executeWebhook({
+          telefono: formData.telefono,
+          leadName: formData.nombre,
+          leadId: Date.now(),
+          empresa: empresa,
+          email: formData.email,
+          estado: 'Nuevo',
+          fechaCreacion: new Date().toISOString().split('T')[0],
+          timestamp: new Date().toISOString(),
+          action: "lead_created",
+          contactInfo: `${formData.email} | ${formData.telefono}`,
+          fuente: "Landing"
+        });
+        console.log('Webhook executed successfully');
+      } catch (webhookError) {
+        console.error('Error executing webhook:', webhookError);
+        // Continue with lead creation even if webhook fails
+      }
+      
       // Use the leadService to create the lead
-      await createLead(leadData);
+      const result = await createLead(leadData);
+      
+      console.log('Lead creation result:', result);
       
       setIsSuccess(true);
       toast.success("¡Registro exitoso! Nos pondremos en contacto contigo pronto.", {
