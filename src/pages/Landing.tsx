@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -60,17 +59,17 @@ const Landing = () => {
         categoria += ` (${atributos.join(', ')})`;
       }
 
-      // Insert into Supabase leads table
+      // Insert into Supabase leads table with the correct structure
       const { error } = await supabase
         .from('leads')
         .insert({
-          nombre: formData.nombre,
-          email: formData.email,
-          telefono: formData.telefono,
-          empresa: categoria,
-          estado: 'Nuevo',
-          fuente: 'Landing',
           datos_adicionales: {
+            nombre: formData.nombre,
+            email: formData.email,
+            telefono: formData.telefono,
+            empresa: categoria,
+            estado: 'Nuevo',
+            fuente: 'Landing',
             tieneVehiculo: formData.tieneVehiculo,
             experienciaSeguridad: formData.experienciaSeguridad,
             esMilitar: formData.esMilitar,

@@ -39,17 +39,17 @@ const ClientForm: React.FC<ClientFormProps> = ({ onClientAdded }) => {
     setIsSubmitting(true);
 
     try {
-      // Insert into Supabase leads table
+      // Insert into Supabase leads table with the correct structure
       const { error } = await supabase
         .from('leads')
         .insert({
-          nombre: formData.nombre,
-          email: formData.email,
-          telefono: formData.telefono,
-          empresa: formData.empresa,
-          estado: formData.etapa,
-          fuente: 'CRM',
           datos_adicionales: {
+            nombre: formData.nombre,
+            email: formData.email,
+            telefono: formData.telefono,
+            empresa: formData.empresa,
+            estado: formData.etapa,
+            fuente: 'CRM',
             valor: parseFloat(formData.valor) || 0,
             fecha_creacion: new Date().toISOString()
           }
