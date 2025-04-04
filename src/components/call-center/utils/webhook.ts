@@ -1,4 +1,6 @@
 
+import { LeadData, createLeadDirectAPI } from '@/services/leadService';
+
 interface WebhookData {
   [key: string]: any; // Allow for any key-value pairs to support flat structure
 }

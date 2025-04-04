@@ -168,10 +168,26 @@ export const deleteLead = async (id: number): Promise<void> => {
 // Function to increment the call count for a lead
 export const incrementCallCount = async (leadId: number): Promise<void> => {
   try {
+    // First, let's get the current call count
+    const { data: leadData, error: fetchError } = await supabase
+      .from('leads')
+      .select('call_count')
+      .eq('id', leadId)
+      .single();
+    
+    if (fetchError) {
+      console.error('Error fetching lead call count:', fetchError);
+      throw fetchError;
+    }
+    
+    // Calculate the new call count
+    const newCallCount = (leadData?.call_count || 0) + 1;
+    
+    // Update the lead with the new call count and timestamp
     const { error } = await supabase
       .from('leads')
       .update({ 
-        call_count: supabase.rpc('increment_call_count', { row_id: leadId }),
+        call_count: newCallCount,
         last_call_date: new Date().toISOString()
       })
       .eq('id', leadId);
