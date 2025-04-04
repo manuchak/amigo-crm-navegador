@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -60,7 +59,12 @@ const VapiCallLogs: React.FC<VapiCallLogsProps> = ({ limit = 10, onRefresh }) =>
         throw error;
       }
 
-      setCallLogs(data || []);
+      // Type check and ensure data matches our VapiCallLog interface
+      if (data) {
+        setCallLogs(data as unknown as VapiCallLog[]);
+      } else {
+        setCallLogs([]);
+      }
     } catch (error) {
       console.error('Error fetching VAPI call logs:', error);
       toast.error('Error al cargar registros de llamadas');

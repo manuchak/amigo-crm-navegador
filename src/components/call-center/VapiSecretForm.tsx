@@ -45,8 +45,12 @@ const VapiSecretForm: React.FC<VapiSecretFormProps> = ({ onSuccess }) => {
         body: { apiKey },
       });
       
-      if (functionError || !data.success) {
-        throw new Error(data?.message || functionError?.message || 'Error guardando la clave API');
+      if (functionError) {
+        throw new Error(functionError.message || 'Error guardando la clave API');
+      }
+      
+      if (!data?.success) {
+        throw new Error(data?.message || 'Error guardando la clave API');
       }
       
       setSuccess(true);
@@ -56,7 +60,7 @@ const VapiSecretForm: React.FC<VapiSecretFormProps> = ({ onSuccess }) => {
       if (onSuccess) {
         onSuccess();
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error saving VAPI API key:', err);
       setError(err.message || 'Error al guardar la clave API');
     } finally {
