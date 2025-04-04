@@ -48,7 +48,7 @@ const CallButtons: React.FC<CallButtonsProps> = ({
         estado: lead.estado,
         fechaCreacion: lead.fechaCreacion,
         email: lead.email,
-        telefono: phoneNumber,
+        // Removed duplicate telefono property
         tieneVehiculo: lead.tieneVehiculo,
         experienciaSeguridad: lead.experienciaSeguridad,
         esMilitar: lead.esMilitar,

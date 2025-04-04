@@ -1,3 +1,4 @@
+
 interface WebhookData {
   [key: string]: any; // Allow for any key-value pairs to support flat structure
 }
@@ -116,3 +117,57 @@ export const createWebhookPayloadWithAuth = (data: any) => {
     timestamp: new Date().toISOString()
   };
 };
+
+// New function to handle incoming webhook data and add it to the leads table
+export const processIncomingWebhookData = async (data: any) => {
+  // Map the incoming webhook data to the LeadData format
+  const leadData = mapWebhookDataToLeadData(data);
+  
+  // Use the existing createLead function to add the lead to the database
+  try {
+    const result = await createLeadDirectAPI(leadData);
+    console.log("Lead created successfully from webhook data:", result);
+    return result;
+  } catch (error) {
+    console.error("Error creating lead from webhook data:", error);
+    throw error;
+  }
+};
+
+// Helper function to map webhook data to LeadData format
+function mapWebhookDataToLeadData(data: any): LeadData {
+  // Default values
+  const defaults = {
+    nombre: 'Sin nombre',
+    email: '',
+    telefono: '',
+    empresa: 'Custodio',
+    estado: 'Nuevo',
+    fuente: 'Make.com Webhook',
+    fecha_creacion: new Date().toISOString(),
+    tienevehiculo: 'NO',
+    experienciaseguridad: 'NO',
+    esmilitar: 'NO',
+    credencialsedena: 'NO',
+    esarmado: 'NO',
+  };
+
+  // Map the incoming data to our schema, using defaults for missing fields
+  return {
+    nombre: data.nombre || data.name || defaults.nombre,
+    email: data.email || defaults.email,
+    telefono: data.telefono || data.phone || defaults.telefono,
+    empresa: data.empresa || data.company || defaults.empresa,
+    estado: data.estado || data.status || defaults.estado,
+    fuente: data.fuente || data.source || defaults.fuente,
+    fecha_creacion: data.fecha_creacion || data.created_at || defaults.fecha_creacion,
+    tienevehiculo: data.tienevehiculo || data.has_vehicle || defaults.tienevehiculo,
+    experienciaseguridad: data.experienciaseguridad || data.security_experience || defaults.experienciaseguridad,
+    esmilitar: data.esmilitar || data.is_military || defaults.esmilitar,
+    credencialsedena: data.credencialsedena || data.sedena_credential || defaults.credencialsedena,
+    esarmado: data.esarmado || data.is_armed || defaults.esarmado,
+    anovehiculo: data.anovehiculo || data.vehicle_year || null,
+    modelovehiculo: data.modelovehiculo || data.vehicle_model || null,
+    valor: parseFloat(data.valor) || 0,
+  };
+}
