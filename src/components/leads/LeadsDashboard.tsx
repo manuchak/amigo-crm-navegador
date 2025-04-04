@@ -47,6 +47,20 @@ const LeadsDashboard = () => {
       
       await executeWebhook({
         telefono: phoneNumber,
+        id: lead.id,
+        nombre: lead.nombre,
+        empresa: lead.empresa,
+        contacto: lead.contacto,
+        estado: lead.estado,
+        fechaCreacion: lead.fechaCreacion,
+        email: lead.email,
+        tieneVehiculo: lead.tieneVehiculo,
+        experienciaSeguridad: lead.experienciaSeguridad,
+        esMilitar: lead.esMilitar,
+        callCount: lead.callCount || 0,
+        lastCallDate: lead.lastCallDate,
+        valor: lead.valor,
+        timestamp: new Date().toISOString(),
         action: "outbound_call_requested"
       });
       

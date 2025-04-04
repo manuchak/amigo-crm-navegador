@@ -38,16 +38,23 @@ const CallButtons: React.FC<CallButtonsProps> = ({
     const phoneNumber = contactInfo[1] || '';
     
     try {
-      // Format data for VAPI.AI through Make.com webhook
-      // Send all lead data along with the phone number
+      // Send all lead data to the webhook
       await executeWebhook({
         telefono: phoneNumber, // This will be extracted as a separate object in the webhook function
-        leadId: lead.id,
+        id: lead.id,
         nombre: lead.nombre,
         empresa: lead.empresa,
         contacto: lead.contacto,
         estado: lead.estado,
         fechaCreacion: lead.fechaCreacion,
+        email: lead.email,
+        telefono: phoneNumber,
+        tieneVehiculo: lead.tieneVehiculo,
+        experienciaSeguridad: lead.experienciaSeguridad,
+        esMilitar: lead.esMilitar,
+        callCount: lead.callCount || 0,
+        lastCallDate: lead.lastCallDate,
+        valor: lead.valor,
         timestamp: new Date().toISOString(),
         action: "outbound_call_requested"
       });

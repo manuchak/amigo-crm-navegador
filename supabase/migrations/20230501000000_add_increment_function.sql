@@ -1,16 +1,11 @@
 
-CREATE OR REPLACE FUNCTION increment(row_id bigint, field_name text)
-RETURNS integer AS $$
-DECLARE
-  current_value integer;
-  incremented_value integer;
-BEGIN
-  EXECUTE format('SELECT %I FROM leads WHERE id = $1', field_name)
-  INTO current_value
-  USING row_id;
-  
-  incremented_value := COALESCE(current_value, 0) + 1;
-  
-  RETURN incremented_value;
-END;
-$$ LANGUAGE plpgsql;
+-- Function to safely increment a counter field
+CREATE OR REPLACE FUNCTION increment_call_count(row_id BIGINT)
+RETURNS INTEGER
+LANGUAGE SQL
+AS $$
+  UPDATE leads
+  SET call_count = COALESCE(call_count, 0) + 1
+  WHERE id = row_id
+  RETURNING call_count;
+$$;

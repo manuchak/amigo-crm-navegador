@@ -1,4 +1,3 @@
-
 interface WebhookData {
   [key: string]: any; // Allow for any key-value pairs to support flat structure
 }
@@ -14,11 +13,8 @@ export const executeWebhook = async (data: WebhookData) => {
     delete data.telefono;
   }
   
-  // Only send the minimal required data
-  console.log("Phone object:", phoneObject);
-  
-  // If we want to keep other data as a separate array, transform it
-  const jsonTransformado = Object.values(data);
+  // Log the data being sent to webhook
+  console.log("Sending to webhook:", { phoneObject, data });
   
   return fetch(webhookUrl, {
     method: "POST",
@@ -26,10 +22,11 @@ export const executeWebhook = async (data: WebhookData) => {
       "Content-Type": "application/json",
     },
     mode: "no-cors",
-    // Only send the phone as a separate object if we have a phone number
-    body: Object.keys(phoneObject).length > 0 
-      ? JSON.stringify(phoneObject)
-      : JSON.stringify(data),
+    // Send all lead data along with phone in a structured format
+    body: JSON.stringify({
+      ...phoneObject,
+      lead_data: data
+    }),
   });
 };
 

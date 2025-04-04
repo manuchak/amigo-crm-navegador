@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { Database } from '@/integrations/supabase/types';
 
@@ -166,16 +165,16 @@ export const deleteLead = async (id: number): Promise<void> => {
   }
 };
 
-// New function to increment call count and update last call date
-export const incrementCallCount = async (id: number): Promise<void> => {
+// Function to increment the call count for a lead
+export const incrementCallCount = async (leadId: number): Promise<void> => {
   try {
     const { error } = await supabase
       .from('leads')
-      .update({
-        call_count: supabase.rpc('increment', { row_id: id, field_name: 'call_count' }),
+      .update({ 
+        call_count: supabase.rpc('increment_call_count', { row_id: leadId }),
         last_call_date: new Date().toISOString()
       })
-      .eq('id', id);
+      .eq('id', leadId);
     
     if (error) {
       console.error('Error incrementing call count:', error);

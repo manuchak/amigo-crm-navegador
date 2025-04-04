@@ -102,6 +102,39 @@ export type Database = {
         }
         Relationships: []
       }
+      validated_leads: {
+        Row: {
+          car_brand: string | null
+          car_model: string | null
+          car_year: number | null
+          created_at: string
+          custodio_name: string | null
+          id: number
+          security_exp: string | null
+          sedena_id: string | null
+        }
+        Insert: {
+          car_brand?: string | null
+          car_model?: string | null
+          car_year?: number | null
+          created_at?: string
+          custodio_name?: string | null
+          id?: number
+          security_exp?: string | null
+          sedena_id?: string | null
+        }
+        Update: {
+          car_brand?: string | null
+          car_model?: string | null
+          car_year?: number | null
+          created_at?: string
+          custodio_name?: string | null
+          id?: number
+          security_exp?: string | null
+          sedena_id?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
