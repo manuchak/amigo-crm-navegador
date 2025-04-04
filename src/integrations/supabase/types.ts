@@ -135,6 +135,66 @@ export type Database = {
         }
         Relationships: []
       }
+      vapi_call_logs: {
+        Row: {
+          assistant_id: string
+          caller_phone_number: string | null
+          conversation_id: string | null
+          created_at: string | null
+          direction: string | null
+          duration: number | null
+          end_time: string | null
+          id: string
+          log_id: string
+          metadata: Json | null
+          organization_id: string
+          phone_number: string | null
+          recording_url: string | null
+          start_time: string | null
+          status: string | null
+          transcript: Json | null
+          updated_at: string | null
+        }
+        Insert: {
+          assistant_id: string
+          caller_phone_number?: string | null
+          conversation_id?: string | null
+          created_at?: string | null
+          direction?: string | null
+          duration?: number | null
+          end_time?: string | null
+          id?: string
+          log_id: string
+          metadata?: Json | null
+          organization_id: string
+          phone_number?: string | null
+          recording_url?: string | null
+          start_time?: string | null
+          status?: string | null
+          transcript?: Json | null
+          updated_at?: string | null
+        }
+        Update: {
+          assistant_id?: string
+          caller_phone_number?: string | null
+          conversation_id?: string | null
+          created_at?: string | null
+          direction?: string | null
+          duration?: number | null
+          end_time?: string | null
+          id?: string
+          log_id?: string
+          metadata?: Json | null
+          organization_id?: string
+          phone_number?: string | null
+          recording_url?: string | null
+          start_time?: string | null
+          status?: string | null
+          transcript?: Json | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

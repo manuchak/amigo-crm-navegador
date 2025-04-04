@@ -7,7 +7,7 @@ import CallCenter from '@/components/call-center';
 import { SupplyTeamDashboard } from '@/components/supply-team';
 import { useLeads } from '@/context/LeadsContext';
 import { Button } from '@/components/ui/button';
-import { Download, UserCheck, Package, WebhookIcon, Database, Loader2 } from 'lucide-react';
+import { Download, UserCheck, Package, WebhookIcon, Database, Loader2, PhoneCall } from 'lucide-react';
 import QualifiedLeadsApproval from '@/components/leads/QualifiedLeadsApproval';
 import LeadsIntro from '@/components/leads/LeadsIntro';
 import { toast } from 'sonner';
@@ -15,6 +15,7 @@ import {
   executeWebhook, 
   fetchLeadsFromExternalDatabase
 } from '@/components/call-center/utils/webhook';
+import VapiCallLogs from '@/components/call-center/VapiCallLogs';
 
 const Leads = () => {
   const [activeTab, setActiveTab] = useState("crear");
@@ -22,6 +23,7 @@ const Leads = () => {
   const { leads, updateLeadStatus, setLeads, loading, error, refetchLeads } = useLeads();
   const [isWebhookSyncing, setIsWebhookSyncing] = useState(false);
   const [isLeadsImporting, setIsLeadsImporting] = useState(false);
+  const [activeCallCenterTab, setActiveCallCenterTab] = useState("dialer");
 
   // Check if user has visited before
   useEffect(() => {
@@ -238,10 +240,29 @@ const Leads = () => {
         </TabsContent>
         
         <TabsContent value="callcenter" className="mt-6">
-          <CallCenter 
-            leads={leads}
-            onUpdateLeadStatus={updateLeadStatus} 
-          />
+          <Tabs value={activeCallCenterTab} onValueChange={setActiveCallCenterTab}>
+            <TabsList className="mb-4">
+              <TabsTrigger value="dialer">
+                <PhoneCall className="mr-1 h-4 w-4" />
+                Marcador
+              </TabsTrigger>
+              <TabsTrigger value="vapi-logs">
+                <PhoneCall className="mr-1 h-4 w-4" />
+                Registros VAPI
+              </TabsTrigger>
+            </TabsList>
+            
+            <TabsContent value="dialer" className="mt-4">
+              <CallCenter 
+                leads={leads}
+                onUpdateLeadStatus={updateLeadStatus} 
+              />
+            </TabsContent>
+            
+            <TabsContent value="vapi-logs" className="mt-4">
+              <VapiCallLogs limit={20} />
+            </TabsContent>
+          </Tabs>
         </TabsContent>
         
         <TabsContent value="suministros" className="mt-6">
