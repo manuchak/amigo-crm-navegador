@@ -5,9 +5,10 @@ import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Loader2, PhoneCall, Clock, RefreshCw } from 'lucide-react';
+import { Loader2, PhoneCall, Clock, RefreshCw, AlertTriangle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 interface QualifiedLead {
   lead_id: number;
@@ -21,9 +22,12 @@ interface QualifiedLead {
 const QualifiedLeadsPanel: React.FC = () => {
   const [qualifiedLeads, setQualifiedLeads] = useState<QualifiedLead[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   const fetchQualifiedLeads = async () => {
     setLoading(true);
+    setError(null);
+    
     try {
       // Call the database function we created to get qualified leads from call transcripts
       const { data, error } = await supabase.rpc('get_qualified_leads_from_calls');
@@ -35,6 +39,7 @@ const QualifiedLeadsPanel: React.FC = () => {
       setQualifiedLeads(data || []);
     } catch (error: any) {
       console.error('Error fetching qualified leads:', error);
+      setError(error.message || 'Error al cargar leads calificados');
       toast.error('Error al cargar leads calificados');
     } finally {
       setLoading(false);
@@ -43,6 +48,7 @@ const QualifiedLeadsPanel: React.FC = () => {
 
   // Trigger automatic refresh of VAPI logs and then fetch qualified leads
   const handleRefreshData = async () => {
+    setError(null);
     try {
       // First call the edge function to fetch latest logs from VAPI API
       const { data: syncData, error: syncError } = await supabase.functions.invoke('fetch-vapi-logs', {
@@ -54,12 +60,17 @@ const QualifiedLeadsPanel: React.FC = () => {
         throw syncError;
       }
       
-      toast.success(syncData?.message || 'Logs sincronizados correctamente');
+      if (!syncData.success) {
+        throw new Error(syncData.message || 'Error al sincronizar logs');
+      }
+      
+      toast.success(syncData.message || 'Logs sincronizados correctamente');
       
       // Then fetch the qualified leads with fresh data
       await fetchQualifiedLeads();
     } catch (error: any) {
       console.error('Error refreshing data:', error);
+      setError(error.message || 'Error al sincronizar datos');
       toast.error('Error al sincronizar datos');
     }
   };
@@ -112,6 +123,14 @@ const QualifiedLeadsPanel: React.FC = () => {
       </CardHeader>
       
       <CardContent>
+        {error && (
+          <Alert variant="destructive" className="mb-4">
+            <AlertTriangle className="h-4 w-4" />
+            <AlertTitle>Error</AlertTitle>
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
+        )}
+        
         {loading ? (
           <div className="flex justify-center items-center py-10">
             <Loader2 className="h-6 w-6 animate-spin text-primary" />

@@ -1,10 +1,11 @@
 
 import React, { useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { PhoneCall, MessageSquare, Filter, Users } from 'lucide-react';
+import { PhoneCall, MessageSquare, Filter, Users, Settings } from 'lucide-react';
 import CallCenter from './CallCenter';
 import VapiCallLogs from './VapiCallLogs';
 import QualifiedLeadsPanel from './QualifiedLeadsPanel';
+import VapiConfigPanel from './VapiConfigPanel';
 
 interface CallCenterTabsProps {
   leads: any[];
@@ -29,6 +30,10 @@ const CallCenterTabs: React.FC<CallCenterTabsProps> = ({ leads, onUpdateLeadStat
           <Users className="mr-1 h-4 w-4" />
           Leads Calificados
         </TabsTrigger>
+        <TabsTrigger value="vapi-config">
+          <Settings className="mr-1 h-4 w-4" />
+          Configuración API
+        </TabsTrigger>
       </TabsList>
       
       <TabsContent value="dialer" className="mt-4">
@@ -44,6 +49,10 @@ const CallCenterTabs: React.FC<CallCenterTabsProps> = ({ leads, onUpdateLeadStat
 
       <TabsContent value="qualified-leads" className="mt-4">
         <QualifiedLeadsPanel />
+      </TabsContent>
+
+      <TabsContent value="vapi-config" className="mt-4">
+        <VapiConfigPanel />
       </TabsContent>
     </Tabs>
   );

@@ -9,3 +9,6 @@ verify_jwt = false
 
 [functions.store-vapi-key]
 verify_jwt = true
+
+[functions.test-vapi-connection]
+verify_jwt = false
