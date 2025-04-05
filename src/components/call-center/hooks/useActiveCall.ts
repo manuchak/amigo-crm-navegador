@@ -3,9 +3,10 @@ import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
 import { executeWebhook } from '../utils/webhook';
 import { incrementCallCount } from '@/services/leadService';
+import { supabase } from '@/integrations/supabase/client';
 
 interface UseActiveCallProps {
-  leads: { id: number; nombre: string; empresa: string; contacto: string; estado: string; fechaCreacion: string; callCount?: number; lastCallDate?: string }[];
+  leads: { id: number; nombre: string; empresa: string; contacto: string; estado: string; fechaCreacion: string; callCount?: number; lastCallDate?: string; telefono?: string }[];
   onUpdateLeadStatus: (leadId: number, newStatus: string) => void;
 }
 
@@ -15,6 +16,7 @@ export const useActiveCall = ({ leads, onUpdateLeadStatus }: UseActiveCallProps)
   const [notes, setNotes] = useState('');
   const [callDuration, setCallDuration] = useState('00:00');
   const [isCallActive, setIsCallActive] = useState(false);
+  const [vapiCallId, setVapiCallId] = useState<string | null>(null);
 
   // Listen for lead selection from the leads tab
   useEffect(() => {
@@ -38,6 +40,37 @@ export const useActiveCall = ({ leads, onUpdateLeadStatus }: UseActiveCallProps)
 
   const lead = leads.find(l => l.id === selectedLead);
 
+  // Helper to initiate a VAPI call
+  const initiateVapiCall = async (phoneNumber: string) => {
+    try {
+      // Call the VAPI API through our edge function
+      const { data, error } = await supabase.functions.invoke('initiate-vapi-call', {
+        body: { 
+          phoneNumber: phoneNumber,
+          leadName: lead?.nombre || 'Cliente',
+          leadId: lead?.id || 0
+        }
+      });
+      
+      if (error) {
+        throw new Error(`Error al iniciar llamada VAPI: ${error.message}`);
+      }
+      
+      if (!data?.success) {
+        throw new Error(data?.message || 'Error desconocido al iniciar la llamada');
+      }
+      
+      console.log('VAPI call initiated:', data);
+      setVapiCallId(data.callId);
+      
+      return data.callId;
+    } catch (err) {
+      console.error('Failed to initiate VAPI call:', err);
+      toast.error('No se pudo iniciar la llamada automática. Se continuará con llamada manual.');
+      return null;
+    }
+  };
+
   const handleStartCall = async () => {
     if (!selectedLead) {
       toast.error("Por favor selecciona un lead para llamar");
@@ -52,6 +85,21 @@ export const useActiveCall = ({ leads, onUpdateLeadStatus }: UseActiveCallProps)
     
     setIsCallActive(true);
     toast.success(`Iniciando llamada a ${lead?.nombre}`);
+    
+    // Extract phone number from lead
+    let phoneNumber = lead.telefono;
+    if (!phoneNumber && lead.contacto) {
+      // Try to extract from contacto field which might be in format "email | phone"
+      const parts = lead.contacto.split('|');
+      if (parts.length > 1) {
+        phoneNumber = parts[1].trim();
+      }
+    }
+    
+    // If we have a phone number, try to initiate a VAPI call
+    if (phoneNumber) {
+      await initiateVapiCall(phoneNumber);
+    }
     
     // Iniciar un temporizador para la duración de la llamada
     let seconds = 0;
@@ -78,7 +126,8 @@ export const useActiveCall = ({ leads, onUpdateLeadStatus }: UseActiveCallProps)
         leadName: lead?.nombre,
         leadId: selectedLead,
         timestamp: new Date().toISOString(),
-        action: "call_started"
+        action: "call_started",
+        vapiCallId: vapiCallId
       });
       
       console.log("Webhook executed successfully");
@@ -91,6 +140,7 @@ export const useActiveCall = ({ leads, onUpdateLeadStatus }: UseActiveCallProps)
     setCallResult('');
     setNotes('');
     setCallDuration('00:00');
+    setVapiCallId(null);
   };
 
   return {
@@ -105,6 +155,7 @@ export const useActiveCall = ({ leads, onUpdateLeadStatus }: UseActiveCallProps)
     setIsCallActive,
     lead,
     handleStartCall,
-    resetCallState
+    resetCallState,
+    vapiCallId
   };
 };

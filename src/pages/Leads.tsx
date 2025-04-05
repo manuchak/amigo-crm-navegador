@@ -63,47 +63,47 @@ const Leads = () => {
   }
 
   return (
-    <div className="container mx-auto px-6 py-20 bg-white">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold tracking-tight mb-2">Gestión de Custodios</h1>
-        <p className="text-slate-500">Reclutamiento y seguimiento de custodios para servicios de seguridad</p>
+    <div className="container mx-auto px-6 py-16 bg-white">
+      <div className="mb-6">
+        <h1 className="text-2xl font-medium mb-1">Gestión de Custodios</h1>
+        <p className="text-slate-500 text-sm">Reclutamiento y seguimiento de custodios para servicios de seguridad</p>
       </div>
       
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="mb-6 bg-slate-100 p-1 rounded-xl">
-          <TabsTrigger value="crear" className="rounded-lg">Crear Lead</TabsTrigger>
-          <TabsTrigger value="seguimiento" className="rounded-lg">Seguimiento</TabsTrigger>
-          <TabsTrigger value="aprobacion" className="rounded-lg">
+        <TabsList className="mb-6 bg-slate-100 p-1 rounded-lg">
+          <TabsTrigger value="crear" className="rounded-md">Crear Lead</TabsTrigger>
+          <TabsTrigger value="seguimiento" className="rounded-md">Seguimiento</TabsTrigger>
+          <TabsTrigger value="aprobacion" className="rounded-md">
             <UserCheck className="mr-1 h-4 w-4" />
             Aprobación
           </TabsTrigger>
-          <TabsTrigger value="callcenter" className="rounded-lg">Call Center</TabsTrigger>
-          <TabsTrigger value="suministros" className="rounded-lg">
+          <TabsTrigger value="callcenter" className="rounded-md">Call Center</TabsTrigger>
+          <TabsTrigger value="suministros" className="rounded-md">
             <Package className="mr-1 h-4 w-4" />
             Suministros
           </TabsTrigger>
         </TabsList>
         
-        <TabsContent value="crear" className="mt-6">
+        <TabsContent value="crear" className="mt-4">
           <LeadCreationForm />
         </TabsContent>
         
-        <TabsContent value="seguimiento" className="mt-6">
+        <TabsContent value="seguimiento" className="mt-4">
           <LeadsDashboard />
         </TabsContent>
         
-        <TabsContent value="aprobacion" className="mt-6">
+        <TabsContent value="aprobacion" className="mt-4">
           <QualifiedLeadsApproval />
         </TabsContent>
         
-        <TabsContent value="callcenter" className="mt-6">
+        <TabsContent value="callcenter" className="mt-4">
           <CallCenterTabs 
             leads={leads}
             onUpdateLeadStatus={updateLeadStatus} 
           />
         </TabsContent>
         
-        <TabsContent value="suministros" className="mt-6">
+        <TabsContent value="suministros" className="mt-4">
           <SupplyTeamDashboard />
         </TabsContent>
       </Tabs>

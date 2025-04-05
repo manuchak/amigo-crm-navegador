@@ -13,7 +13,7 @@ interface VapiSecretFormProps {
 }
 
 const VapiSecretForm: React.FC<VapiSecretFormProps> = ({ onSuccess }) => {
-  const [apiKey, setApiKey] = useState('');
+  const [apiKey, setApiKey] = useState('4e1d9a9c-de28-4e68-926c-3b5ca5a3ecb9');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
@@ -111,14 +111,14 @@ const VapiSecretForm: React.FC<VapiSecretFormProps> = ({ onSuccess }) => {
           </label>
           <Input
             id="apiKey"
-            type="password"
+            type="text"
             value={apiKey}
             onChange={(e) => setApiKey(e.target.value)}
             placeholder="vapi_xxxxxxxxxxxxxxxx"
             className="w-full"
           />
           <p className="text-xs text-gray-500">
-            Puedes encontrar tu clave API en la configuración de tu cuenta VAPI.
+            La clave API proporcionada ya está configurada. Puedes modificarla si es necesario.
           </p>
         </div>
       </CardContent>

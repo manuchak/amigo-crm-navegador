@@ -2,7 +2,6 @@
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Separator } from '@/components/ui/separator';
 import { Loader2, AlertTriangle, CheckCircle, KeyRound } from 'lucide-react';
@@ -18,11 +17,54 @@ const VapiConfigPanel: React.FC<VapiConfigPanelProps> = ({ onConfigUpdate }) => 
   const [testing, setTesting] = useState(false);
   const [testResult, setTestResult] = useState<{success: boolean; message: string; assistants_count?: number} | null>(null);
   const [showApiForm, setShowApiForm] = useState(false);
+  const [keyStatus, setKeyStatus] = useState<'checking' | 'not_found' | 'found' | 'error'>('checking');
 
-  // On mount, automatically test the connection to determine if VAPI is configured
+  // On mount, check if the VAPI key exists and automatically save it if not
   useEffect(() => {
-    testVapiConnection();
+    checkVapiKeyExists();
   }, []);
+
+  const checkVapiKeyExists = async () => {
+    setKeyStatus('checking');
+    try {
+      // Check if key exists by testing connection
+      const { data, error } = await supabase.functions.invoke('test-vapi-connection', {
+        method: 'POST',
+        body: {}
+      });
+      
+      if (error || !data?.success) {
+        console.log('VAPI key not found or invalid, will attempt to save the new key');
+        setKeyStatus('not_found');
+        
+        // Automatically save the provided key
+        const apiKey = '4e1d9a9c-de28-4e68-926c-3b5ca5a3ecb9';
+        
+        // Store it in Supabase
+        const { data: storeData, error: storeError } = await supabase.functions.invoke('store-vapi-key', {
+          body: { apiKey },
+        });
+        
+        if (storeError || !storeData?.success) {
+          console.error('Failed to auto-save VAPI key:', storeError || storeData);
+          toast.error('No se pudo guardar la clave API automáticamente');
+          setKeyStatus('error');
+        } else {
+          console.log('VAPI key saved automatically');
+          toast.success('Clave API guardada automáticamente');
+          setKeyStatus('found');
+          testVapiConnection(); // Test the connection after saving
+        }
+      } else {
+        setKeyStatus('found');
+        setTestResult(data);
+        if (onConfigUpdate) onConfigUpdate(true);
+      }
+    } catch (err) {
+      console.error('Error checking VAPI key:', err);
+      setKeyStatus('error');
+    }
+  };
 
   const testVapiConnection = async () => {
     setTesting(true);
@@ -115,6 +157,26 @@ const VapiConfigPanel: React.FC<VapiConfigPanelProps> = ({ onConfigUpdate }) => 
       </CardHeader>
       
       <CardContent className="space-y-4">
+        {keyStatus === 'checking' && (
+          <Alert className="bg-blue-50 border-blue-200">
+            <Loader2 className="h-4 w-4 animate-spin text-blue-600" />
+            <AlertTitle className="text-blue-800">Verificando configuración</AlertTitle>
+            <AlertDescription className="text-blue-700">
+              Comprobando si la clave API de VAPI está configurada...
+            </AlertDescription>
+          </Alert>
+        )}
+        
+        {keyStatus === 'not_found' && (
+          <Alert variant="destructive">
+            <AlertTriangle className="h-4 w-4" />
+            <AlertTitle>Clave API no encontrada</AlertTitle>
+            <AlertDescription>
+              La clave API de VAPI no está configurada. Intentando configurar automáticamente...
+            </AlertDescription>
+          </Alert>
+        )}
+        
         {testResult && (
           <Alert variant={testResult.success ? "success" : "destructive"} className={
             testResult.success ? "bg-green-50 border-green-500" : ""

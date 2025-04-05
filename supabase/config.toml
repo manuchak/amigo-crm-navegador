@@ -12,3 +12,7 @@ verify_jwt = true
 
 [functions.test-vapi-connection]
 verify_jwt = false
+
+[functions.initiate-vapi-call]
+verify_jwt = true
+
