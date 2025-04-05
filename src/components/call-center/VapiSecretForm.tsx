@@ -4,8 +4,9 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { AlertTriangle, CheckCircle } from 'lucide-react';
+import { AlertTriangle, CheckCircle, Loader2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
 interface VapiSecretFormProps {
   onSuccess?: () => void;
@@ -28,6 +29,7 @@ const VapiSecretForm: React.FC<VapiSecretFormProps> = ({ onSuccess }) => {
     
     try {
       // First validate the API key by making a test call to the VAPI API
+      console.log("Validating API key with VAPI directly...");
       const response = await fetch('https://api.vapi.ai/assistants', {
         method: 'GET',
         headers: {
@@ -40,21 +42,27 @@ const VapiSecretForm: React.FC<VapiSecretFormProps> = ({ onSuccess }) => {
         throw new Error(`La clave API parece ser inválida: ${response.status} ${response.statusText}`);
       }
       
+      console.log("API key is valid, storing in database...");
+      
       // If valid, store it in Supabase
       const { data, error: functionError } = await supabase.functions.invoke('store-vapi-key', {
         body: { apiKey },
       });
       
       if (functionError) {
+        console.error("Error invoking edge function:", functionError);
         throw new Error(functionError.message || 'Error guardando la clave API');
       }
       
       if (!data?.success) {
+        console.error("Edge function returned error:", data);
         throw new Error(data?.message || 'Error guardando la clave API');
       }
       
+      console.log("API key stored successfully!");
       setSuccess(true);
       setApiKey('');
+      toast.success('La clave API de VAPI se ha guardado correctamente');
       
       // Call the success callback if provided
       if (onSuccess) {
@@ -63,6 +71,7 @@ const VapiSecretForm: React.FC<VapiSecretFormProps> = ({ onSuccess }) => {
     } catch (err: any) {
       console.error('Error saving VAPI API key:', err);
       setError(err.message || 'Error al guardar la clave API');
+      toast.error(`Error: ${err.message || 'Error al guardar la clave API'}`);
     } finally {
       setLoading(false);
     }
@@ -119,7 +128,14 @@ const VapiSecretForm: React.FC<VapiSecretFormProps> = ({ onSuccess }) => {
           onClick={handleSaveApiKey} 
           disabled={loading || !apiKey.trim()}
         >
-          {loading ? 'Guardando...' : 'Guardar clave API'}
+          {loading ? (
+            <>
+              <Loader2 className="h-4 w-4 animate-spin mr-2" />
+              Guardando...
+            </>
+          ) : (
+            'Guardar clave API'
+          )}
         </Button>
       </CardFooter>
     </Card>

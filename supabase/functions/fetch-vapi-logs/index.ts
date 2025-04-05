@@ -17,16 +17,30 @@ Deno.serve(async (req) => {
     const supabaseUrl = Deno.env.get('SUPABASE_URL') as string
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') as string
     const supabase = createClient(supabaseUrl, supabaseKey)
+    
+    // Get the VAPI API key from the database
+    console.log('Fetching VAPI API key from database')
+    const { data: secretData, error: secretError } = await supabase
+      .from('secrets')
+      .select('value')
+      .eq('name', 'VAPI_API_KEY')
+      .maybeSingle()
+    
+    if (secretError) {
+      console.error('Error fetching VAPI API key from database:', secretError)
+      throw new Error('Failed to fetch API key from database')
+    }
+    
+    const VAPI_API_KEY = secretData?.value
+    
+    if (!VAPI_API_KEY) {
+      throw new Error('VAPI API key not found in database. Please configure it first.')
+    }
 
     // VAPI API settings - using environment variables and constants
     const VAPI_API_URL = 'https://api.vapi.ai/logs'
     const VAPI_ORG_ID = 'dc74331a-39ef-4370-a0c4-333c1563cdad'
     const VAPI_ASSISTANT_ID = '0b7c2a96-0360-4fef-9956-e847fd696ea2'
-    const VAPI_API_KEY = Deno.env.get('VAPI_API_KEY')
-
-    if (!VAPI_API_KEY) {
-      throw new Error('VAPI API key not found in environment variables')
-    }
 
     // Request parameters
     const params = new URLSearchParams({

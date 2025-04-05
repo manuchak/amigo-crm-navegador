@@ -31,13 +31,24 @@ Deno.serve(async (req) => {
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') as string
     const supabase = createClient(supabaseUrl, supabaseKey)
 
-    // Store the API key in the Supabase secrets
-    // Note: This is a dummy operation since we can't actually modify secrets via edge functions
-    // In a real implementation, you'd use another secure storage method
-    console.log('Storing VAPI API key')
-
-    // Set the secret in Deno env
-    // Deno.env.set('VAPI_API_KEY', apiKey) - doesn't work in production
+    // Store the API key in the database for persistence
+    const { data: secretData, error: secretError } = await supabase
+      .from('secrets')
+      .upsert(
+        { 
+          name: 'VAPI_API_KEY', 
+          value: apiKey,
+          updated_at: new Date().toISOString()
+        }, 
+        { onConflict: 'name', ignoreDuplicates: false }
+      )
+    
+    if (secretError) {
+      console.error('Error storing VAPI API key in database:', secretError)
+      throw new Error('Failed to store API key in database')
+    }
+    
+    console.log('VAPI API key stored successfully in database')
 
     // Return success response
     return new Response(

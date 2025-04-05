@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -10,10 +10,19 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import VapiSecretForm from './VapiSecretForm';
 
-const VapiConfigPanel = () => {
+interface VapiConfigPanelProps {
+  onConfigUpdate?: (isConfigured: boolean) => void;
+}
+
+const VapiConfigPanel: React.FC<VapiConfigPanelProps> = ({ onConfigUpdate }) => {
   const [testing, setTesting] = useState(false);
   const [testResult, setTestResult] = useState<{success: boolean; message: string; assistants_count?: number} | null>(null);
   const [showApiForm, setShowApiForm] = useState(false);
+
+  // On mount, automatically test the connection to determine if VAPI is configured
+  useEffect(() => {
+    testVapiConnection();
+  }, []);
 
   const testVapiConnection = async () => {
     setTesting(true);
@@ -31,6 +40,11 @@ const VapiConfigPanel = () => {
       
       setTestResult(data);
       
+      // Call onConfigUpdate if provided
+      if (onConfigUpdate) {
+        onConfigUpdate(data.success);
+      }
+      
       if (data.success) {
         toast.success('Conexión con VAPI exitosa');
       } else {
@@ -38,6 +52,12 @@ const VapiConfigPanel = () => {
       }
     } catch (error) {
       console.error('Error testing VAPI connection:', error);
+      
+      // In case of error, we consider the API not configured
+      if (onConfigUpdate) {
+        onConfigUpdate(false);
+      }
+      
       setTestResult({
         success: false,
         message: error.message || 'Error conectando con VAPI'
@@ -147,7 +167,7 @@ const VapiConfigPanel = () => {
           
           <Button 
             onClick={syncVapiLogs}
-            disabled={testing}
+            disabled={testing || testResult?.success !== true}
             className="mt-2"
           >
             {testing ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
