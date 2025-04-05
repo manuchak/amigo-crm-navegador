@@ -247,19 +247,19 @@ const SupplyTeamDashboard: React.FC = () => {
     return (
       <div className="flex flex-col items-center justify-center h-64">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        <p className="mt-4 text-muted-foreground">Cargando datos del webhook de Leads...</p>
+        <p className="mt-4 text-slate-500">Cargando datos del webhook de Leads...</p>
       </div>
     );
   }
 
   return (
     <div className="space-y-6">
-      <Card>
+      <Card className="shadow-sm border-slate-100">
         <CardHeader>
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center">
             <div>
-              <CardTitle>Dashboard de Suministros</CardTitle>
-              <CardDescription>Validación de leads generados por formulario</CardDescription>
+              <CardTitle className="text-lg">Dashboard de Suministros</CardTitle>
+              <CardDescription className="text-sm text-slate-500">Validación de leads generados por formulario</CardDescription>
             </div>
             <div className="mt-4 md:mt-0 flex items-center space-x-4">
               <div className="flex items-center space-x-2">
@@ -268,13 +268,14 @@ const SupplyTeamDashboard: React.FC = () => {
                   placeholder="Tu nombre (Operador)"
                   value={operatorName}
                   onChange={(e) => setOperatorName(e.target.value)}
-                  className="px-3 py-1 border rounded text-sm"
+                  className="px-3 py-1.5 border border-slate-200 rounded-lg text-sm"
                 />
                 <Button 
                   onClick={() => toast.success('Nombre guardado')} 
                   variant="outline" 
                   size="sm"
                   disabled={!operatorName}
+                  className="border-slate-200"
                 >
                   Guardar
                 </Button>
@@ -285,6 +286,7 @@ const SupplyTeamDashboard: React.FC = () => {
                   size="sm"
                   variant="outline"
                   disabled={webhookStatus === 'fetching'}
+                  className="border-slate-200"
                 >
                   <RefreshCw className={`h-4 w-4 mr-1 ${webhookStatus === 'fetching' ? 'animate-spin' : ''}`} />
                   Actualizar
@@ -294,6 +296,7 @@ const SupplyTeamDashboard: React.FC = () => {
                   size="sm"
                   variant="outline"
                   disabled={webhookStatus === 'pinging'}
+                  className="border-slate-200"
                 >
                   <WebhookIcon className="h-4 w-4 mr-1" />
                   Ping Webhook
@@ -304,11 +307,11 @@ const SupplyTeamDashboard: React.FC = () => {
         </CardHeader>
 
         <div className="px-6 mb-4">
-          <Alert variant="info">
+          <Alert variant="info" className="bg-blue-50/50 border border-blue-100">
             <Database className="h-4 w-4" />
-            <AlertTitle>Webhook de Datos: {LEADS_WEBHOOK_NAME}</AlertTitle>
+            <AlertTitle className="text-sm font-medium">Webhook de Datos: {LEADS_WEBHOOK_NAME}</AlertTitle>
             <AlertDescription className="flex flex-col sm:flex-row items-start gap-2">
-              <code className="text-xs bg-gray-100 p-2 rounded flex-1 overflow-auto">{LEADS_WEBHOOK_URL}</code>
+              <code className="text-xs bg-slate-100 p-2 rounded flex-1 overflow-auto">{LEADS_WEBHOOK_URL}</code>
               <div className="flex flex-wrap gap-2">
                 <Button
                   variant="ghost"
@@ -317,6 +320,7 @@ const SupplyTeamDashboard: React.FC = () => {
                     navigator.clipboard.writeText(LEADS_WEBHOOK_URL);
                     toast.success("URL copiada al portapapeles");
                   }}
+                  className="text-slate-700"
                 >
                   Copiar URL
                 </Button>
@@ -324,20 +328,21 @@ const SupplyTeamDashboard: React.FC = () => {
             </AlertDescription>
             <div className="mt-2 flex items-center gap-2">
               <div className="flex items-center gap-2">
-                <Key className="h-4 w-4 text-muted-foreground" />
+                <Key className="h-4 w-4 text-slate-400" />
                 <span className="text-sm font-medium">API Key:</span>
               </div>
               
               {showApiKey ? (
-                <code className="text-xs bg-gray-100 p-2 rounded">{LEADS_WEBHOOK_API_KEY}</code>
+                <code className="text-xs bg-slate-100 p-2 rounded">{LEADS_WEBHOOK_API_KEY}</code>
               ) : (
-                <code className="text-xs bg-gray-100 p-2 rounded">•••••••••••••••••••</code>
+                <code className="text-xs bg-slate-100 p-2 rounded">•••••••••••••••••••</code>
               )}
               
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={() => setShowApiKey(!showApiKey)}
+                className="text-slate-700"
               >
                 {showApiKey ? "Ocultar" : "Mostrar"}
               </Button>
@@ -345,27 +350,27 @@ const SupplyTeamDashboard: React.FC = () => {
           </Alert>
           
           {error && (
-            <Alert variant="warning" className="mt-3">
+            <Alert variant="warning" className="mt-3 bg-amber-50/50 border border-amber-100">
               <AlertCircle className="h-4 w-4" />
-              <AlertTitle>Advertencia</AlertTitle>
+              <AlertTitle className="text-sm font-medium">Advertencia</AlertTitle>
               <AlertDescription>{error}</AlertDescription>
             </Alert>
           )}
         </div>
 
         <CardContent>
-          <div className="rounded-md border">
+          <div className="rounded-md border border-slate-100">
             <Table>
               <TableHeader>
-                <TableRow className="bg-gray-50 hover:bg-gray-100">
-                  <TableHead>ID</TableHead>
-                  <TableHead>Nombre</TableHead>
-                  <TableHead>Empresa</TableHead>
-                  <TableHead>Contacto</TableHead>
-                  <TableHead>Estado</TableHead>
-                  <TableHead>Fecha Registro</TableHead>
-                  <TableHead>Validado</TableHead>
-                  <TableHead className="text-right">Acciones</TableHead>
+                <TableRow className="bg-slate-50 hover:bg-slate-100">
+                  <TableHead className="text-xs font-medium text-slate-500">ID</TableHead>
+                  <TableHead className="text-xs font-medium text-slate-500">Nombre</TableHead>
+                  <TableHead className="text-xs font-medium text-slate-500">Empresa</TableHead>
+                  <TableHead className="text-xs font-medium text-slate-500">Contacto</TableHead>
+                  <TableHead className="text-xs font-medium text-slate-500">Estado</TableHead>
+                  <TableHead className="text-xs font-medium text-slate-500">Fecha Registro</TableHead>
+                  <TableHead className="text-xs font-medium text-slate-500">Validado</TableHead>
+                  <TableHead className="text-right text-xs font-medium text-slate-500">Acciones</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -377,7 +382,7 @@ const SupplyTeamDashboard: React.FC = () => {
                   </TableRow>
                 ) : (
                   data.map((item) => (
-                    <TableRow key={item.id} className="hover:bg-gray-50">
+                    <TableRow key={item.id} className="hover:bg-slate-50">
                       <TableCell>{item.id}</TableCell>
                       <TableCell className="font-medium">{item.nombre}</TableCell>
                       <TableCell>{item.empresa}</TableCell>

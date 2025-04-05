@@ -24,25 +24,30 @@ export function LeadFormDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[550px] max-h-[90vh] overflow-y-auto bg-white">
+      <DialogContent className="sm:max-w-[550px] max-h-[90vh] overflow-y-auto bg-white rounded-xl">
         <DialogHeader>
-          <DialogTitle className="text-xl font-bold">
+          <DialogTitle className="text-xl font-semibold text-slate-800">
             Registro de Nuevo Lead
           </DialogTitle>
-          <DialogDescription>
+          <DialogDescription className="text-slate-500">
             Ingresa la información del prospecto de custodio
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
           <form
             onSubmit={form.handleSubmit(handleSubmit)}
-            className="space-y-4 py-4"
+            className="space-y-5 py-4"
           >
             <ContactInfo form={form} />
             <QualificationsForm form={form} watchTieneCarro={watchTieneCarro} />
 
             <DialogFooter>
-              <Button type="submit">Registrar Lead</Button>
+              <Button 
+                type="submit"
+                className="w-full sm:w-auto bg-primary hover:bg-primary/90 text-white"
+              >
+                Registrar Lead
+              </Button>
             </DialogFooter>
           </form>
         </Form>

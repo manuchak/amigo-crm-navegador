@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+
+import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { PhoneCall, ClipboardList, Filter, Phone, RefreshCw } from 'lucide-react';
@@ -121,45 +121,45 @@ const LeadsDashboard = () => {
 
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-        <Card>
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-2">
+        <Card className="shadow-sm border-slate-100">
           <CardHeader className="pb-2">
-            <CardDescription>Total de Leads</CardDescription>
-            <CardTitle className="text-2xl">{stats.total}</CardTitle>
+            <CardDescription className="text-xs text-slate-500">Total de Leads</CardDescription>
+            <CardTitle className="text-2xl font-light">{stats.total}</CardTitle>
           </CardHeader>
         </Card>
-        <Card>
+        <Card className="shadow-sm border-slate-100">
           <CardHeader className="pb-2">
-            <CardDescription>Nuevos</CardDescription>
-            <CardTitle className="text-2xl">{stats.nuevos}</CardTitle>
+            <CardDescription className="text-xs text-slate-500">Nuevos</CardDescription>
+            <CardTitle className="text-2xl font-light">{stats.nuevos}</CardTitle>
           </CardHeader>
         </Card>
-        <Card>
+        <Card className="shadow-sm border-slate-100">
           <CardHeader className="pb-2">
-            <CardDescription>Contactados</CardDescription>
-            <CardTitle className="text-2xl">{stats.contactados}</CardTitle>
+            <CardDescription className="text-xs text-slate-500">Contactados</CardDescription>
+            <CardTitle className="text-2xl font-light">{stats.contactados}</CardTitle>
           </CardHeader>
         </Card>
-        <Card>
+        <Card className="shadow-sm border-slate-100">
           <CardHeader className="pb-2">
-            <CardDescription>Calificados</CardDescription>
-            <CardTitle className="text-2xl">{stats.calificados}</CardTitle>
+            <CardDescription className="text-xs text-slate-500">Calificados</CardDescription>
+            <CardTitle className="text-2xl font-light">{stats.calificados}</CardTitle>
           </CardHeader>
         </Card>
-        <Card>
+        <Card className="shadow-sm border-slate-100">
           <CardHeader className="pb-2">
-            <CardDescription>Rechazados</CardDescription>
-            <CardTitle className="text-2xl">{stats.rechazados}</CardTitle>
+            <CardDescription className="text-xs text-slate-500">Rechazados</CardDescription>
+            <CardTitle className="text-2xl font-light">{stats.rechazados}</CardTitle>
           </CardHeader>
         </Card>
       </div>
       
-      <Card>
+      <Card className="shadow-sm border-slate-100">
         <CardHeader>
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
             <div>
-              <CardTitle>Lista de Custodios</CardTitle>
-              <CardDescription>
+              <CardTitle className="text-lg">Lista de Custodios</CardTitle>
+              <CardDescription className="text-sm text-slate-500">
                 {filteredLeads.length} custodios registrados
               </CardDescription>
             </div>
@@ -170,57 +170,60 @@ const LeadsDashboard = () => {
                 size="sm" 
                 onClick={handleRefreshData}
                 disabled={isRefreshing}
+                className="border-slate-200"
               >
                 <RefreshCw className={`h-4 w-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
                 Actualizar
               </Button>
               
-              <Filter className="h-4 w-4" />
-              <Select value={filter} onValueChange={setFilter}>
-                <SelectTrigger className="w-[180px]">
-                  <SelectValue placeholder="Filtrar por" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="todos">Todos</SelectItem>
-                  <SelectItem value="armados">Armados</SelectItem>
-                  <SelectItem value="vehiculo">Con vehículo</SelectItem>
-                  <SelectItem value="nuevos">Nuevos</SelectItem>
-                  <SelectItem value="contactados">Contactados</SelectItem>
-                </SelectContent>
-              </Select>
+              <div className="flex items-center gap-2">
+                <Filter className="h-4 w-4 text-slate-400" />
+                <Select value={filter} onValueChange={setFilter}>
+                  <SelectTrigger className="w-[180px] border-slate-200 text-sm">
+                    <SelectValue placeholder="Filtrar por" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="todos">Todos</SelectItem>
+                    <SelectItem value="armados">Armados</SelectItem>
+                    <SelectItem value="vehiculo">Con vehículo</SelectItem>
+                    <SelectItem value="nuevos">Nuevos</SelectItem>
+                    <SelectItem value="contactados">Contactados</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
           </div>
         </CardHeader>
         <CardContent>
-          <div className="rounded-md border">
+          <div className="rounded-md border border-slate-100">
             <Table>
               <TableHeader>
-                <TableRow className="bg-gray-50 hover:bg-gray-100">
-                  <TableHead>Nombre</TableHead>
-                  <TableHead>Categoría</TableHead>
-                  <TableHead>Contacto</TableHead>
-                  <TableHead>Estado</TableHead>
-                  <TableHead>Llamadas</TableHead>
-                  <TableHead>Última Llamada</TableHead>
-                  <TableHead>Fecha Creación</TableHead>
-                  <TableHead className="text-right">Acciones</TableHead>
+                <TableRow className="bg-slate-50 hover:bg-slate-100">
+                  <TableHead className="text-xs font-medium text-slate-500">Nombre</TableHead>
+                  <TableHead className="text-xs font-medium text-slate-500">Categoría</TableHead>
+                  <TableHead className="text-xs font-medium text-slate-500">Contacto</TableHead>
+                  <TableHead className="text-xs font-medium text-slate-500">Estado</TableHead>
+                  <TableHead className="text-xs font-medium text-slate-500">Llamadas</TableHead>
+                  <TableHead className="text-xs font-medium text-slate-500">Última Llamada</TableHead>
+                  <TableHead className="text-xs font-medium text-slate-500">Fecha Creación</TableHead>
+                  <TableHead className="text-right text-xs font-medium text-slate-500">Acciones</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {filteredLeads.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={8} className="text-center py-8 text-gray-400">
+                    <TableCell colSpan={8} className="text-center py-8 text-slate-400">
                       No hay custodios registrados
                     </TableCell>
                   </TableRow>
                 ) : (
                   filteredLeads.map((lead) => (
-                    <TableRow key={lead.id} className="hover:bg-gray-50">
+                    <TableRow key={lead.id} className="hover:bg-slate-50">
                       <TableCell className="font-medium">{lead.nombre}</TableCell>
-                      <TableCell>{lead.empresa}</TableCell>
-                      <TableCell>{lead.contacto}</TableCell>
+                      <TableCell className="text-sm text-slate-600">{lead.empresa}</TableCell>
+                      <TableCell className="text-sm text-slate-600">{lead.contacto}</TableCell>
                       <TableCell>
-                        <Badge variant={getStatusColor(lead.estado)}>
+                        <Badge variant={getStatusColor(lead.estado)} className="font-normal">
                           {lead.estado}
                         </Badge>
                       </TableCell>
@@ -228,7 +231,7 @@ const LeadsDashboard = () => {
                         <HoverCard>
                           <HoverCardTrigger asChild>
                             <div className="flex items-center">
-                              <Badge variant="outline" className="cursor-pointer">
+                              <Badge variant="outline" className="cursor-pointer bg-slate-50 border-slate-200 text-slate-700">
                                 <Phone className="h-3 w-3 mr-1" />
                                 {lead.callCount || 0}
                               </Badge>
@@ -238,10 +241,10 @@ const LeadsDashboard = () => {
                             <div className="flex justify-between space-x-4">
                               <div className="space-y-1">
                                 <h4 className="text-sm font-semibold">Historial de llamadas</h4>
-                                <p className="text-sm text-muted-foreground">
+                                <p className="text-sm text-slate-500">
                                   Se han realizado {lead.callCount || 0} intentos de llamada a este custodio.
                                 </p>
-                                <p className="text-xs text-muted-foreground">
+                                <p className="text-xs text-slate-400">
                                   Haz clic en "Detalles" para ver el registro completo.
                                 </p>
                               </div>
@@ -249,14 +252,15 @@ const LeadsDashboard = () => {
                           </HoverCardContent>
                         </HoverCard>
                       </TableCell>
-                      <TableCell>{lead.lastCallDate || 'No hay llamadas'}</TableCell>
-                      <TableCell>{lead.fechaCreacion}</TableCell>
+                      <TableCell className="text-sm text-slate-600">{lead.lastCallDate || 'No hay llamadas'}</TableCell>
+                      <TableCell className="text-sm text-slate-600">{lead.fechaCreacion}</TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-2">
                           <Button 
                             variant="ghost" 
                             size="sm"
                             onClick={() => handleCall(lead)}
+                            className="text-slate-700 hover:text-primary"
                           >
                             <PhoneCall className="h-4 w-4 mr-1" />
                             Llamar
@@ -265,6 +269,7 @@ const LeadsDashboard = () => {
                             variant="ghost" 
                             size="sm"
                             onClick={() => handleViewCallLogs(lead.id)}
+                            className="text-slate-700 hover:text-primary"
                           >
                             <ClipboardList className="h-4 w-4 mr-1" />
                             Detalles

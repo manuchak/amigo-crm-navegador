@@ -8,6 +8,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useLeads } from '@/context/LeadsContext';
 import { executeWebhook } from '@/components/call-center/utils/webhook';
 import { toast } from 'sonner';
+import { Phone } from 'lucide-react';
 
 interface LeadsTableProps {
   isLoading: boolean;
@@ -62,17 +63,19 @@ const LeadsTable: React.FC<LeadsTableProps> = ({ isLoading, onCallLead }) => {
 
   return (
     <Tabs defaultValue="Todos" className="w-full">
-      <TabsList className="mb-6 bg-white">
+      <TabsList className="mb-6 bg-white rounded-lg p-1 border border-slate-100">
         {estadosLead.map(estado => (
-          <TabsTrigger key={estado} value={estado}>{estado}</TabsTrigger>
+          <TabsTrigger key={estado} value={estado} className="rounded-md text-sm">
+            {estado}
+          </TabsTrigger>
         ))}
       </TabsList>
       
       {estadosLead.map(estado => (
         <TabsContent key={estado} value={estado}>
-          <Card>
+          <Card className="shadow-sm border-slate-100">
             <CardHeader className="pb-2">
-              <CardTitle>Leads {estado !== 'Todos' ? `- ${estado}` : ''}</CardTitle>
+              <CardTitle className="text-lg">Leads {estado !== 'Todos' ? `- ${estado}` : ''}</CardTitle>
             </CardHeader>
             <CardContent>
               {isLoading ? (
@@ -84,41 +87,43 @@ const LeadsTable: React.FC<LeadsTableProps> = ({ isLoading, onCallLead }) => {
               ) : (
                 <Table>
                   <TableHeader>
-                    <TableRow>
-                      <TableHead>Nombre</TableHead>
-                      <TableHead>Empresa</TableHead>
-                      <TableHead>Contacto</TableHead>
-                      <TableHead>Estado</TableHead>
-                      <TableHead>Fecha</TableHead>
-                      <TableHead className="text-right">Acciones</TableHead>
+                    <TableRow className="bg-slate-50">
+                      <TableHead className="text-xs font-medium text-slate-500">Nombre</TableHead>
+                      <TableHead className="text-xs font-medium text-slate-500">Empresa</TableHead>
+                      <TableHead className="text-xs font-medium text-slate-500">Contacto</TableHead>
+                      <TableHead className="text-xs font-medium text-slate-500">Estado</TableHead>
+                      <TableHead className="text-xs font-medium text-slate-500">Fecha</TableHead>
+                      <TableHead className="text-right text-xs font-medium text-slate-500">Acciones</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {leads
                       .filter(lead => estado === 'Todos' || lead.estado === estado)
                       .map(lead => (
-                        <TableRow key={lead.id}>
+                        <TableRow key={lead.id} className="hover:bg-slate-50">
                           <TableCell className="font-medium">{lead.nombre}</TableCell>
-                          <TableCell>{lead.empresa}</TableCell>
-                          <TableCell>{lead.contacto}</TableCell>
+                          <TableCell className="text-sm text-slate-600">{lead.empresa}</TableCell>
+                          <TableCell className="text-sm text-slate-600">{lead.contacto}</TableCell>
                           <TableCell>
                             <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                              lead.estado === 'Nuevo' ? 'bg-blue-100 text-blue-700' :
-                              lead.estado === 'Contactado' ? 'bg-yellow-100 text-yellow-700' :
-                              lead.estado === 'En progreso' ? 'bg-purple-100 text-purple-700' :
-                              lead.estado === 'Calificado' ? 'bg-green-100 text-green-700' :
-                              'bg-red-100 text-red-700'
+                              lead.estado === 'Nuevo' ? 'bg-blue-50 text-blue-600' :
+                              lead.estado === 'Contactado' ? 'bg-amber-50 text-amber-600' :
+                              lead.estado === 'En progreso' ? 'bg-purple-50 text-purple-600' :
+                              lead.estado === 'Calificado' ? 'bg-green-50 text-green-600' :
+                              'bg-red-50 text-red-600'
                             }`}>
                               {lead.estado}
                             </span>
                           </TableCell>
-                          <TableCell>{lead.fechaCreacion}</TableCell>
+                          <TableCell className="text-sm text-slate-600">{lead.fechaCreacion}</TableCell>
                           <TableCell className="text-right">
                             <Button 
                               variant="ghost" 
                               size="sm"
                               onClick={() => handleCallButton(lead.id)}
+                              className="text-slate-700 hover:text-primary"
                             >
+                              <Phone className="h-4 w-4 mr-1" />
                               Llamar
                             </Button>
                           </TableCell>

@@ -71,32 +71,32 @@ const Navbar = () => {
   const navItems = getNavItems();
   
   return (
-    <nav className="glass fixed top-0 left-0 right-0 z-50 px-6 py-4">
+    <nav className="fixed top-0 left-0 right-0 z-50 px-6 py-3 bg-white/80 backdrop-blur-lg border-b border-slate-100 shadow-sm">
       <div className="container mx-auto flex items-center justify-between">
         <Link 
           to="/" 
-          className="font-semibold text-xl tracking-tight flex items-center gap-2"
+          className="font-medium text-lg tracking-tight flex items-center gap-2"
         >
-          <div className="bg-gradient-to-br from-primary to-accent rounded-full p-1.5 flex items-center justify-center">
-            <Shield size={20} className="text-primary-foreground" />
+          <div className="bg-primary rounded-full p-1.5 flex items-center justify-center">
+            <Shield size={18} className="text-white" />
           </div>
           <span className="flex flex-col items-start">
-            <span className="font-bold text-primary">CustodiosCRM</span>
-            <span className="text-xs text-muted-foreground">by Detecta</span>
+            <span className="font-semibold text-slate-800">CustodiosCRM</span>
+            <span className="text-xs text-slate-400">by Detecta</span>
           </span>
         </Link>
         
-        <div className="flex items-center space-x-4">
-          <div className="flex items-center space-x-1 mr-4">
+        <div className="flex items-center space-x-2">
+          <div className="flex items-center">
             {navItems.map((item) => (
               <Link
                 key={item.path}
                 to={item.path}
                 className={cn(
-                  "px-4 py-2 rounded-full transition-all-medium",
+                  "px-3 py-1.5 rounded-full text-sm transition-colors",
                   location.pathname === item.path
-                    ? "bg-primary text-primary-foreground"
-                    : "hover:bg-secondary"
+                    ? "bg-slate-100 text-slate-900 font-medium"
+                    : "text-slate-600 hover:bg-slate-50"
                 )}
               >
                 {item.name}
@@ -104,19 +104,17 @@ const Navbar = () => {
             ))}
           </div>
           
-          {/* Removed Detecta Logo */}
-          
-          <div>
+          <div className="ml-4">
             {currentUser ? (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" className="relative h-10 w-10 rounded-full">
-                    <Avatar className="h-10 w-10">
+                  <Button variant="ghost" className="relative h-8 w-8 rounded-full p-0 border border-slate-200">
+                    <Avatar className="h-8 w-8">
                       <AvatarImage 
                         src={currentUser.photoURL || undefined} 
                         alt={currentUser.displayName || "User"} 
                       />
-                      <AvatarFallback>
+                      <AvatarFallback className="bg-slate-100 text-slate-700 text-xs">
                         {currentUser.displayName 
                           ? getInitials(currentUser.displayName) 
                           : 'U'
@@ -125,13 +123,13 @@ const Navbar = () => {
                     </Avatar>
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent className="w-56" align="end" forceMount>
+                <DropdownMenuContent className="w-56" align="end">
                   <DropdownMenuLabel className="font-normal">
                     <div className="flex flex-col space-y-1">
                       <p className="text-sm font-medium leading-none">
                         {currentUser.displayName}
                       </p>
-                      <p className="text-xs leading-none text-muted-foreground">
+                      <p className="text-xs leading-none text-slate-500">
                         {currentUser.email}
                       </p>
                       {userData && (
@@ -155,7 +153,7 @@ const Navbar = () => {
                     </>
                   )}
                   <DropdownMenuItem 
-                    className="cursor-pointer"
+                    className="cursor-pointer text-red-500 focus:text-red-500"
                     onClick={signOut}
                   >
                     <LogIn className="mr-2 h-4 w-4 rotate-180" />
@@ -164,7 +162,7 @@ const Navbar = () => {
                 </DropdownMenuContent>
               </DropdownMenu>
             ) : (
-              <Button onClick={() => navigate('/login')} variant="default">
+              <Button onClick={() => navigate('/login')} variant="subtle" size="sm" className="shadow-none">
                 <LogIn className="mr-2 h-4 w-4" />
                 <span>Iniciar sesión</span>
               </Button>
