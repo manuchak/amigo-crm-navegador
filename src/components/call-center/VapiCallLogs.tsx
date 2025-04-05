@@ -1,16 +1,17 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
 import { Loader2, RefreshCw, Phone, PhoneForwarded, Info, Calendar } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { format, parseISO } from 'date-fns';
+import { format, parseISO, subDays, startOfDay, endOfDay } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import VapiCallFilters, { CallFilters } from './VapiCallFilters';
 
 interface VapiCallLog {
   id: string;
@@ -39,11 +40,18 @@ interface VapiCallLogsProps {
 
 const VapiCallLogs: React.FC<VapiCallLogsProps> = ({ limit = 10, onRefresh }) => {
   const [callLogs, setCallLogs] = useState<VapiCallLog[]>([]);
+  const [filteredLogs, setFilteredLogs] = useState<VapiCallLog[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [syncing, setSyncing] = useState<boolean>(false);
   const [selectedLog, setSelectedLog] = useState<VapiCallLog | null>(null);
   const [dialogOpen, setDialogOpen] = useState<boolean>(false);
   const [activeTab, setActiveTab] = useState<string>('details');
+  const [filters, setFilters] = useState<CallFilters>({
+    status: null,
+    direction: null,
+    duration: null,
+    dateRange: null
+  });
 
   // Fetch logs from the database
   const fetchCallLogs = async () => {
@@ -61,9 +69,12 @@ const VapiCallLogs: React.FC<VapiCallLogsProps> = ({ limit = 10, onRefresh }) =>
 
       // Type check and ensure data matches our VapiCallLog interface
       if (data) {
-        setCallLogs(data as unknown as VapiCallLog[]);
+        const logs = data as unknown as VapiCallLog[];
+        setCallLogs(logs);
+        applyFilters(logs, filters);
       } else {
         setCallLogs([]);
+        setFilteredLogs([]);
       }
     } catch (error) {
       console.error('Error fetching VAPI call logs:', error);
@@ -71,6 +82,70 @@ const VapiCallLogs: React.FC<VapiCallLogsProps> = ({ limit = 10, onRefresh }) =>
     } finally {
       setLoading(false);
     }
+  };
+
+  // Apply filters to the call logs
+  const applyFilters = (logs: VapiCallLog[], activeFilters: CallFilters) => {
+    let filtered = [...logs];
+    
+    // Filter by status
+    if (activeFilters.status) {
+      filtered = filtered.filter(log => 
+        log.status?.toLowerCase() === activeFilters.status
+      );
+    }
+    
+    // Filter by direction
+    if (activeFilters.direction) {
+      filtered = filtered.filter(log => 
+        log.direction?.toLowerCase() === activeFilters.direction
+      );
+    }
+    
+    // Filter by duration
+    if (activeFilters.duration) {
+      const durationSeconds = activeFilters.duration;
+      filtered = filtered.filter(log => {
+        if (durationSeconds === 30) {
+          return (log.duration || 0) < 30;
+        } else if (durationSeconds === 60) {
+          return (log.duration || 0) > 60;
+        } else if (durationSeconds === 300) {
+          return (log.duration || 0) > 300;
+        }
+        return true;
+      });
+    }
+    
+    // Filter by date range
+    if (activeFilters.dateRange) {
+      const now = new Date();
+      let startDate: Date;
+      
+      if (activeFilters.dateRange === 'today') {
+        startDate = startOfDay(now);
+      } else if (activeFilters.dateRange === 'week') {
+        startDate = subDays(now, 7);
+      } else if (activeFilters.dateRange === 'month') {
+        startDate = subDays(now, 30);
+      } else {
+        startDate = new Date(0); // Beginning of time
+      }
+      
+      filtered = filtered.filter(log => {
+        if (!log.start_time) return false;
+        const logDate = new Date(log.start_time);
+        return logDate >= startDate;
+      });
+    }
+    
+    setFilteredLogs(filtered);
+  };
+
+  // Handle filter changes
+  const handleFilterChange = (newFilters: CallFilters) => {
+    setFilters(newFilters);
+    applyFilters(callLogs, newFilters);
   };
 
   // Sync logs from the VAPI API
@@ -163,10 +238,15 @@ const VapiCallLogs: React.FC<VapiCallLogsProps> = ({ limit = 10, onRefresh }) =>
     }
   };
 
-  // Load call logs on mount
+  // Load call logs on mount and when filters change
   useEffect(() => {
     fetchCallLogs();
   }, [limit]);
+  
+  // Apply filters when logs or filters change
+  useEffect(() => {
+    applyFilters(callLogs, filters);
+  }, [callLogs, filters]);
 
   return (
     <div className="space-y-4">
@@ -199,12 +279,16 @@ const VapiCallLogs: React.FC<VapiCallLogsProps> = ({ limit = 10, onRefresh }) =>
           </div>
         </CardHeader>
         <CardContent>
+          <div className="mb-4">
+            <VapiCallFilters onFilterChange={handleFilterChange} activeFilters={filters} />
+          </div>
+          
           {loading ? (
             <div className="flex justify-center items-center py-10">
               <Loader2 className="h-6 w-6 animate-spin text-primary" />
               <span className="ml-2">Cargando registros de llamadas...</span>
             </div>
-          ) : callLogs.length === 0 ? (
+          ) : filteredLogs.length === 0 ? (
             <div className="text-center py-10 text-muted-foreground">
               <Phone className="h-10 w-10 mx-auto mb-2 opacity-30" />
               <p>No hay registros de llamadas disponibles</p>
@@ -232,7 +316,7 @@ const VapiCallLogs: React.FC<VapiCallLogsProps> = ({ limit = 10, onRefresh }) =>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {callLogs.map((log) => (
+                  {filteredLogs.map((log) => (
                     <TableRow key={log.id} className="hover:bg-gray-50">
                       <TableCell>
                         <div className="flex items-center">

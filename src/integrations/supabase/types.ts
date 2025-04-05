@@ -200,7 +200,17 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      get_qualified_leads_from_calls: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          lead_id: number
+          lead_name: string
+          lead_phone: string
+          call_count: number
+          last_call_date: string
+          transcript: Json
+        }[]
+      }
     }
     Enums: {
       [_ in never]: never
