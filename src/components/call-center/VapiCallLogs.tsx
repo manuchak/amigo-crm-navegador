@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -54,7 +53,6 @@ const VapiCallLogs: React.FC<VapiCallLogsProps> = ({ limit = 10, onRefresh }) =>
     dateRange: null
   });
 
-  // Fetch logs from the database
   const fetchCallLogs = async () => {
     setLoading(true);
     try {
@@ -68,7 +66,6 @@ const VapiCallLogs: React.FC<VapiCallLogsProps> = ({ limit = 10, onRefresh }) =>
         throw error;
       }
 
-      // Type check and ensure data matches our VapiCallLog interface
       if (data) {
         const logs = data as unknown as VapiCallLog[];
         setCallLogs(logs);
@@ -85,25 +82,21 @@ const VapiCallLogs: React.FC<VapiCallLogsProps> = ({ limit = 10, onRefresh }) =>
     }
   };
 
-  // Apply filters to the call logs
   const applyFilters = (logs: VapiCallLog[], activeFilters: CallFilters) => {
     let filtered = [...logs];
     
-    // Filter by status
     if (activeFilters.status) {
       filtered = filtered.filter(log => 
         log.status?.toLowerCase() === activeFilters.status
       );
     }
     
-    // Filter by direction
     if (activeFilters.direction) {
       filtered = filtered.filter(log => 
         log.direction?.toLowerCase() === activeFilters.direction
       );
     }
     
-    // Filter by duration
     if (activeFilters.duration) {
       const durationSeconds = activeFilters.duration;
       filtered = filtered.filter(log => {
@@ -118,7 +111,6 @@ const VapiCallLogs: React.FC<VapiCallLogsProps> = ({ limit = 10, onRefresh }) =>
       });
     }
     
-    // Filter by date range
     if (activeFilters.dateRange) {
       const now = new Date();
       let startDate: Date;
@@ -130,7 +122,7 @@ const VapiCallLogs: React.FC<VapiCallLogsProps> = ({ limit = 10, onRefresh }) =>
       } else if (activeFilters.dateRange === 'month') {
         startDate = subDays(now, 30);
       } else {
-        startDate = new Date(0); // Beginning of time
+        startDate = new Date(0);
       }
       
       filtered = filtered.filter(log => {
@@ -143,53 +135,49 @@ const VapiCallLogs: React.FC<VapiCallLogsProps> = ({ limit = 10, onRefresh }) =>
     setFilteredLogs(filtered);
   };
 
-  // Handle filter changes
   const handleFilterChange = (newFilters: CallFilters) => {
     setFilters(newFilters);
     applyFilters(callLogs, newFilters);
   };
 
-  // Sync logs from the VAPI API
   const syncCallLogs = async () => {
     setSyncing(true);
     try {
-      // Call the edge function to fetch and store VAPI logs
       const response = await supabase.functions.invoke('fetch-vapi-logs', {
         method: 'POST',
         body: {
-          // You can add parameters here if needed
-          // start_date: '2023-01-01T00:00:00Z'
         },
       });
 
-      if (!response.data.success) {
+      if (response.error) {
+        throw new Error(response.error.message || 'Error calling VAPI fetch function');
+      }
+
+      if (response.data && response.data.success === false) {
         throw new Error(response.data.message || 'Error syncing call logs');
       }
 
-      toast.success(response.data.message || 'Registros sincronizados con éxito');
+      const message = response.data?.message || 'Registros sincronizados con éxito';
+      toast.success(message);
       
-      // Refresh the logs after syncing
       fetchCallLogs();
       
-      // Call the onRefresh callback if provided
       if (onRefresh) {
         onRefresh();
       }
     } catch (error) {
       console.error('Error syncing VAPI call logs:', error);
-      toast.error('Error al sincronizar registros de llamadas');
+      toast.error(`Error al sincronizar: ${error.message || 'Error desconocido'}`);
     } finally {
       setSyncing(false);
     }
   };
 
-  // Show details dialog
   const handleViewDetails = (log: VapiCallLog) => {
     setSelectedLog(log);
     setDialogOpen(true);
   };
 
-  // Format duration in seconds to mm:ss
   const formatDuration = (seconds: number | null) => {
     if (!seconds) return '00:00';
     const mins = Math.floor(seconds / 60);
@@ -197,7 +185,6 @@ const VapiCallLogs: React.FC<VapiCallLogsProps> = ({ limit = 10, onRefresh }) =>
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
 
-  // Format date
   const formatDate = (dateString: string | null) => {
     if (!dateString) return 'N/A';
     try {
@@ -207,7 +194,6 @@ const VapiCallLogs: React.FC<VapiCallLogsProps> = ({ limit = 10, onRefresh }) =>
     }
   };
 
-  // Get status badge variant
   const getStatusBadge = (status: string | null) => {
     if (!status) return <Badge variant="secondary">Desconocido</Badge>;
     
@@ -225,7 +211,6 @@ const VapiCallLogs: React.FC<VapiCallLogsProps> = ({ limit = 10, onRefresh }) =>
     }
   };
 
-  // Get direction badge variant
   const getDirectionBadge = (direction: string | null) => {
     if (!direction) return <Badge variant="secondary">Desconocido</Badge>;
     
@@ -239,12 +224,10 @@ const VapiCallLogs: React.FC<VapiCallLogsProps> = ({ limit = 10, onRefresh }) =>
     }
   };
 
-  // Load call logs on mount and when filters change
   useEffect(() => {
     fetchCallLogs();
   }, [limit]);
   
-  // Apply filters when logs or filters change
   useEffect(() => {
     applyFilters(callLogs, filters);
   }, [callLogs, filters]);

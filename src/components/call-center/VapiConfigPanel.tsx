@@ -18,6 +18,7 @@ const VapiConfigPanel: React.FC<VapiConfigPanelProps> = ({ onConfigUpdate }) => 
   const [testResult, setTestResult] = useState<{success: boolean; message: string; assistants_count?: number} | null>(null);
   const [showApiForm, setShowApiForm] = useState(false);
   const [keyStatus, setKeyStatus] = useState<'checking' | 'not_found' | 'found' | 'error'>('checking');
+  const defaultApiKey = '4e1d9a9c-de28-4e68-926c-3b5ca5a3ecb9';
 
   // On mount, check if the VAPI key exists and automatically save it if not
   useEffect(() => {
@@ -27,22 +28,26 @@ const VapiConfigPanel: React.FC<VapiConfigPanelProps> = ({ onConfigUpdate }) => 
   const checkVapiKeyExists = async () => {
     setKeyStatus('checking');
     try {
-      // Check if key exists by testing connection
-      const { data, error } = await supabase.functions.invoke('test-vapi-connection', {
-        method: 'POST',
-        body: {}
-      });
+      // Check if key exists in database first
+      const { data, error } = await supabase
+        .from('secrets')
+        .select('value')
+        .eq('name', 'VAPI_API_KEY')
+        .maybeSingle();
+        
+      if (error) {
+        console.error('Error checking VAPI key in database:', error);
+        setKeyStatus('error');
+        return;
+      }
       
-      if (error || !data?.success) {
-        console.log('VAPI key not found or invalid, will attempt to save the new key');
+      if (!data?.value) {
+        console.log('VAPI key not found in database, will attempt to save the default key');
         setKeyStatus('not_found');
         
-        // Automatically save the provided key
-        const apiKey = '4e1d9a9c-de28-4e68-926c-3b5ca5a3ecb9';
-        
-        // Store it in Supabase
+        // Automatically save the default key
         const { data: storeData, error: storeError } = await supabase.functions.invoke('store-vapi-key', {
-          body: { apiKey },
+          body: { apiKey: defaultApiKey },
         });
         
         if (storeError || !storeData?.success) {
@@ -57,8 +62,7 @@ const VapiConfigPanel: React.FC<VapiConfigPanelProps> = ({ onConfigUpdate }) => 
         }
       } else {
         setKeyStatus('found');
-        setTestResult(data);
-        if (onConfigUpdate) onConfigUpdate(true);
+        testVapiConnection(); // Test the connection since key exists
       }
     } catch (err) {
       console.error('Error checking VAPI key:', err);
@@ -240,7 +244,7 @@ const VapiConfigPanel: React.FC<VapiConfigPanelProps> = ({ onConfigUpdate }) => 
       
       {showApiForm && (
         <CardFooter className="flex flex-col border-t pt-4">
-          <VapiSecretForm onSuccess={handleApiFormSuccess} />
+          <VapiSecretForm onSuccess={handleApiFormSuccess} defaultApiKey={defaultApiKey} />
           <Button 
             variant="ghost" 
             className="mt-2" 

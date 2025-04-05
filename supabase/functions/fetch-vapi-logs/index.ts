@@ -31,10 +31,24 @@ Deno.serve(async (req) => {
       throw new Error('Failed to fetch API key from database')
     }
     
-    const VAPI_API_KEY = secretData?.value
+    // If API key is not found in database, use the default one
+    let VAPI_API_KEY = secretData?.value
     
     if (!VAPI_API_KEY) {
-      throw new Error('VAPI API key not found in database. Please configure it first.')
+      console.log('VAPI API key not found in database, using default key')
+      // Use default API key as fallback
+      VAPI_API_KEY = '4e1d9a9c-de28-4e68-926c-3b5ca5a3ecb9'
+      
+      // Try to store the default key in the database for future use
+      try {
+        await supabase.from('secrets').insert([
+          { name: 'VAPI_API_KEY', value: VAPI_API_KEY }
+        ])
+        console.log('Default VAPI API key stored in database')
+      } catch (storeError) {
+        // Continue even if storing fails
+        console.error('Failed to store default VAPI API key:', storeError)
+      }
     }
 
     // VAPI API settings - using environment variables and constants
