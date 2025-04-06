@@ -80,10 +80,10 @@ const vapiApiClient = {
   // VAPI Assistant ID
   VAPI_ASSISTANT_ID: '0b7c2a96-0360-4fef-9956-e847fd696ea2',
   
-  // Endpoint configurations to try - FIXED PATHS REMOVING "/v1/" PREFIX
+  // Endpoint configurations to try - Now all using GET methods
   getEndpointConfigs() {
     return [
-      // Try directly calling /calls with GET first (removed /v1/ prefix)
+      // Try directly calling /calls with GET first
       {
         url: 'https://api.vapi.ai/calls',
         method: 'GET',
@@ -94,7 +94,7 @@ const vapiApiClient = {
           limit: '100'
         }).toString()
       },
-      // Try /call-logs with GET (removed /v1/ prefix)
+      // Try /call-logs with GET
       {
         url: 'https://api.vapi.ai/call-logs',
         method: 'GET',
@@ -105,7 +105,7 @@ const vapiApiClient = {
           limit: '100'
         }).toString()
       },
-      // Try /analytics/calls with GET instead of POST
+      // Try /analytics/calls with GET
       {
         url: 'https://api.vapi.ai/analytics/calls',
         method: 'GET',
@@ -116,9 +116,28 @@ const vapiApiClient = {
           limit: '100'
         }).toString()
       },
-      // Try alternate endpoint pattern
+      // Try v1 prefix with GET for /calls
       {
-        url: 'https://api.vapi.ai/api/assistants/calls',
+        url: 'https://api.vapi.ai/v1/calls',
+        method: 'GET',
+        paramsFormatter: (startDate, endDate) => new URLSearchParams({
+          assistant_id: this.VAPI_ASSISTANT_ID,
+          start_time: startDate,
+          end_time: endDate,
+          limit: '100'
+        }).toString()
+      },
+      // Try classic REST API pattern
+      {
+        url: `https://api.vapi.ai/assistants/${this.VAPI_ASSISTANT_ID}/calls`,
+        method: 'GET',
+        paramsFormatter: (startDate, endDate) => new URLSearchParams({
+          limit: '100'
+        }).toString()
+      },
+      // Try another common REST pattern
+      {
+        url: 'https://api.vapi.ai/assistants/calls',
         method: 'GET',
         paramsFormatter: (startDate, endDate) => new URLSearchParams({
           assistant_id: this.VAPI_ASSISTANT_ID,
@@ -178,10 +197,13 @@ const vapiApiClient = {
       }
     }
     
-    // Try new discovery endpoint
+    // Try new discovery endpoint as a last resort
     try {
-      console.log("Trying discovery endpoint at /api/assistants");
-      const discoveryResponse = await fetch(`https://api.vapi.ai/api/assistants/${this.VAPI_ASSISTANT_ID}`, {
+      console.log("Trying discovery endpoint at /api/assistants/id");
+      const discoveryUrl = `https://api.vapi.ai/api/assistants/${this.VAPI_ASSISTANT_ID}`;
+      console.log(`Making GET request to discovery endpoint: ${discoveryUrl}`);
+      
+      const discoveryResponse = await fetch(discoveryUrl, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${apiKey}`,
@@ -194,28 +216,28 @@ const vapiApiClient = {
         console.log("Discovery data:", JSON.stringify(discoveryData).substring(0, 200) + '...');
         
         // If discovery works, try the most likely endpoint based on discovery
-        try {
-          console.log("Trying direct call to /api/assistants/{id}/calls");
-          const callsResponse = await fetch(`https://api.vapi.ai/api/assistants/${this.VAPI_ASSISTANT_ID}/calls`, {
-            method: 'GET',
-            headers: {
-              'Authorization': `Bearer ${apiKey}`,
-              'Content-Type': 'application/json',
-            }
-          });
-          
-          if (!callsResponse.ok) {
-            const errorText = await callsResponse.text();
-            throw new Error(`VAPI API discovery calls endpoint returned ${callsResponse.status}: ${errorText}`);
+        const callsUrl = `https://api.vapi.ai/api/assistants/${this.VAPI_ASSISTANT_ID}/calls`;
+        console.log(`Trying direct call to ${callsUrl}`);
+        
+        const callsResponse = await fetch(callsUrl, {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${apiKey}`,
+            'Content-Type': 'application/json',
           }
-          
+        });
+        
+        if (callsResponse.ok) {
           const data = await callsResponse.json();
           console.log(`Success with discovery calls endpoint! Response:`, JSON.stringify(data).substring(0, 200) + '...');
-          
           return responseParser.extractLogsFromResponse(data);
-        } catch (callsError) {
-          console.error("Error with discovery calls endpoint:", callsError);
+        } else {
+          const errorText = await callsResponse.text();
+          console.error(`VAPI API discovery calls endpoint returned ${callsResponse.status}: ${errorText}`);
         }
+      } else {
+        const errorText = await discoveryResponse.text();
+        console.error(`VAPI API discovery endpoint returned ${discoveryResponse.status}: ${errorText}`);
       }
     } catch (discoveryError) {
       console.error("Error with discovery endpoint:", discoveryError);
