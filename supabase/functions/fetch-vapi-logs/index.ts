@@ -81,7 +81,7 @@ Deno.serve(async (req) => {
 
     console.log(`Fetching VAPI logs from ${startDateISO} to ${endDateISO}`)
 
-    // Build the analytics request payload
+    // Build the analytics request payload - using the correct format according to VAPI API
     const analyticsPayload = {
       queries: [
         {
@@ -101,10 +101,8 @@ Deno.serve(async (req) => {
           },
           operations: [
             {
-              operation: "group",
-              columns: ["id", "assistant_id", "organization_id", "conversation_id", "phone_number", 
-                        "caller_phone_number", "start_time", "end_time", "duration", "status", 
-                        "direction", "recording_url", "metadata", "transcript"]
+              operation: "history",
+              column: "id"
             }
           ]
         }
@@ -112,6 +110,7 @@ Deno.serve(async (req) => {
     }
 
     console.log('Making request to VAPI analytics endpoint')
+    console.log('Request payload:', JSON.stringify(analyticsPayload))
 
     // Make request to VAPI analytics API
     const response = await fetch(VAPI_API_URL, {
@@ -125,6 +124,7 @@ Deno.serve(async (req) => {
 
     if (!response.ok) {
       const errorText = await response.text()
+      console.error(`VAPI API error response: ${response.status}`, errorText)
       throw new Error(`VAPI API returned ${response.status}: ${errorText}`)
     }
 
