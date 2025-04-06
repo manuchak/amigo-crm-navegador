@@ -6,7 +6,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Loader2 } from 'lucide-react';
+import { Loader2, KeyRound } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
@@ -64,7 +64,10 @@ const VapiSecretForm: React.FC<VapiSecretFormProps> = ({ onSuccess, defaultApiKe
           name="apiKey"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Clave API de VAPI</FormLabel>
+              <FormLabel className="flex items-center gap-1">
+                <KeyRound className="h-4 w-4" /> 
+                Clave API de VAPI
+              </FormLabel>
               <FormControl>
                 <Input 
                   placeholder="Ingresa la clave API de VAPI" 

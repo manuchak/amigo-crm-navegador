@@ -51,46 +51,76 @@ Deno.serve(async (req) => {
       }
     }
 
-    // VAPI API settings - using environment variables and constants
-    const VAPI_API_URL = 'https://api.vapi.ai/logs'
+    // VAPI API settings
+    const VAPI_API_URL = 'https://api.vapi.ai/analytics'
     const VAPI_ORG_ID = 'dc74331a-39ef-4370-a0c4-333c1563cdad'
     const VAPI_ASSISTANT_ID = '0b7c2a96-0360-4fef-9956-e847fd696ea2'
-
-    // Request parameters
-    const params = new URLSearchParams({
-      organization_id: VAPI_ORG_ID,
-      assistant_id: VAPI_ASSISTANT_ID,
-      limit: '100', // Fetch up to 100 logs at a time
-    })
-
+    
     // Get request body for any additional parameters
-    let additionalParams = {}
+    let requestParams: any = {}
     if (req.method === 'POST') {
       try {
-        additionalParams = await req.json()
-        
-        // Add any additional parameters to the URL params
-        if (additionalParams.start_date) {
-          params.append('start_date', additionalParams.start_date)
-        }
-        if (additionalParams.end_date) {
-          params.append('end_date', additionalParams.end_date)
-        }
+        requestParams = await req.json()
       } catch (e) {
         // If parsing fails, proceed with default parameters
         console.error('Failed to parse request body:', e)
       }
     }
+    
+    // Get date range from request or use default (last 30 days)
+    const now = new Date()
+    const startDate = requestParams.start_date ? 
+      new Date(requestParams.start_date) : 
+      new Date(now.setDate(now.getDate() - 30))
+    const endDate = requestParams.end_date ?
+      new Date(requestParams.end_date) :
+      new Date()
+      
+    const startDateISO = startDate.toISOString()
+    const endDateISO = endDate.toISOString()
 
-    console.log(`Fetching VAPI logs with params: ${params.toString()}`)
+    console.log(`Fetching VAPI logs from ${startDateISO} to ${endDateISO}`)
 
-    // Make request to VAPI API
-    const response = await fetch(`${VAPI_API_URL}?${params.toString()}`, {
-      method: 'GET',
+    // Build the analytics request payload
+    const analyticsPayload = {
+      queries: [
+        {
+          table: "call",
+          name: "call_logs",
+          filters: {
+            assistant_id: [VAPI_ASSISTANT_ID],
+            organization_id: [VAPI_ORG_ID],
+            start_time: {
+              op: ">=",
+              value: startDateISO
+            },
+            end_time: {
+              op: "<=",
+              value: endDateISO
+            }
+          },
+          operations: [
+            {
+              operation: "group",
+              columns: ["id", "assistant_id", "organization_id", "conversation_id", "phone_number", 
+                        "caller_phone_number", "start_time", "end_time", "duration", "status", 
+                        "direction", "recording_url", "metadata", "transcript"]
+            }
+          ]
+        }
+      ]
+    }
+
+    console.log('Making request to VAPI analytics endpoint')
+
+    // Make request to VAPI analytics API
+    const response = await fetch(VAPI_API_URL, {
+      method: 'POST',
       headers: {
         'Authorization': `Bearer ${VAPI_API_KEY}`,
         'Content-Type': 'application/json',
-      }
+      },
+      body: JSON.stringify(analyticsPayload)
     })
 
     if (!response.ok) {
@@ -99,15 +129,30 @@ Deno.serve(async (req) => {
     }
 
     const data = await response.json()
-    console.log(`Retrieved ${data.logs?.length || 0} logs from VAPI API`)
+    console.log('VAPI analytics response:', JSON.stringify(data).substring(0, 200) + '...')
+
+    // Process and extract logs from the analytics response
+    let logs = []
+    
+    if (data && Array.isArray(data) && data.length > 0) {
+      const callLogsResult = data.find(item => item.name === 'call_logs')
+      
+      if (callLogsResult && callLogsResult.result && Array.isArray(callLogsResult.result)) {
+        logs = callLogsResult.result
+        console.log(`Retrieved ${logs.length} logs from VAPI API`)
+      } else {
+        console.log('No logs found in VAPI API response')
+        logs = []
+      }
+    }
 
     // Process and store logs in the database
     let insertedCount = 0
     let updatedCount = 0
     let errorCount = 0
 
-    if (data.logs && data.logs.length > 0) {
-      for (const log of data.logs) {
+    if (logs && logs.length > 0) {
+      for (const log of logs) {
         try {
           // Check if log already exists in the database
           const { data: existingLog, error: checkError } = await supabase
@@ -179,7 +224,7 @@ Deno.serve(async (req) => {
       JSON.stringify({
         success: true,
         message: `VAPI logs processed: ${insertedCount} inserted, ${updatedCount} updated, ${errorCount} errors`,
-        total_logs: data.logs?.length || 0,
+        total_logs: logs?.length || 0,
         inserted: insertedCount,
         updated: updatedCount,
         errors: errorCount
