@@ -71,31 +71,29 @@ function getDateRange(requestParams = {}) {
 
 // Function to fetch logs from VAPI API
 async function fetchVapiLogs(apiKey, startDate, endDate) {
-  // VAPI API settings
-  const VAPI_API_URL = 'https://api.vapi.ai/call-logs'
+  // Updated VAPI API settings - using analytics endpoint instead of call-logs
+  const VAPI_API_URL = 'https://api.vapi.ai/analytics/calls'
   const VAPI_ASSISTANT_ID = '0b7c2a96-0360-4fef-9956-e847fd696ea2'
   
-  // Build the request options
+  // Build the request options with POST method and JSON body
   const requestOptions = {
-    method: 'GET',
+    method: 'POST',
     headers: {
       'Authorization': `Bearer ${apiKey}`,
       'Content-Type': 'application/json',
-    }
+    },
+    body: JSON.stringify({
+      assistant_id: VAPI_ASSISTANT_ID,
+      start_time: startDate,
+      end_time: endDate,
+    })
   }
-
-  // We'll use query parameters for the GET request
-  const queryParams = new URLSearchParams({
-    assistant_id: VAPI_ASSISTANT_ID,
-    start_time: startDate,
-    end_time: endDate,
-  });
   
-  const requestUrl = `${VAPI_API_URL}?${queryParams.toString()}`;
-  console.log('Making request to VAPI call-logs endpoint:', requestUrl);
+  console.log('Making request to VAPI analytics/calls endpoint:', VAPI_API_URL);
+  console.log('Request payload:', requestOptions.body);
 
-  // Make request to VAPI call-logs API
-  const response = await fetch(requestUrl, requestOptions);
+  // Make request to VAPI analytics/calls API
+  const response = await fetch(VAPI_API_URL, requestOptions);
 
   if (!response.ok) {
     const errorText = await response.text()
@@ -104,7 +102,7 @@ async function fetchVapiLogs(apiKey, startDate, endDate) {
   }
 
   const data = await response.json()
-  console.log('VAPI call-logs response:', JSON.stringify(data).substring(0, 200) + '...')
+  console.log('VAPI analytics/calls response:', JSON.stringify(data).substring(0, 200) + '...')
 
   // Extract logs from the response
   let logs = []
@@ -112,8 +110,12 @@ async function fetchVapiLogs(apiKey, startDate, endDate) {
   if (data && Array.isArray(data.calls)) {
     logs = data.calls
     console.log(`Retrieved ${logs.length} logs from VAPI API`)
+  } else if (data && Array.isArray(data.data)) {
+    // Alternative response format
+    logs = data.data
+    console.log(`Retrieved ${logs.length} logs from VAPI API (alternative format)`)
   } else {
-    console.log('No logs found in VAPI API response or unexpected format')
+    console.log('No logs found in VAPI API response or unexpected format:', JSON.stringify(data).substring(0, 200))
   }
 
   return logs
