@@ -1,5 +1,4 @@
 
-
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.7'
 
 // Define CORS headers for all responses
@@ -72,73 +71,97 @@ function getDateRange(requestParams = {}) {
 
 // Function to fetch logs from VAPI API
 async function fetchVapiLogs(apiKey, startDate, endDate) {
-  // VAPI API settings with corrected endpoint - using /calls instead of /call-logs
-  const VAPI_API_URL = 'https://api.vapi.ai/calls'
+  // VAPI API settings - testing different endpoints and methods
   const VAPI_ASSISTANT_ID = '0b7c2a96-0360-4fef-9956-e847fd696ea2'
   
-  // Build the request with GET method and query parameters
-  const params = new URLSearchParams({
-    assistant_id: VAPI_ASSISTANT_ID,
-    start_time: startDate,
-    end_time: endDate
-  });
-  
-  const requestUrl = `${VAPI_API_URL}?${params.toString()}`;
-  
-  console.log(`Making request to VAPI endpoint: ${requestUrl}`);
-  
-  try {
-    // Build the request options with GET method
-    const requestOptions = {
+  // Try different endpoints with both GET and POST methods
+  const endpoints = [
+    {
+      url: 'https://api.vapi.ai/analytics/calls',
+      method: 'POST',
+      bodyFormatter: () => ({
+        assistant_id: VAPI_ASSISTANT_ID,
+        start_time: startDate,
+        end_time: endDate
+      })
+    },
+    {
+      url: 'https://api.vapi.ai/calls',
       method: 'GET',
-      headers: {
-        'Authorization': `Bearer ${apiKey}`,
-        'Content-Type': 'application/json',
-      }
+      paramsFormatter: () => new URLSearchParams({
+        assistant_id: VAPI_ASSISTANT_ID,
+        start_time: startDate,
+        end_time: endDate
+      })
+    },
+    {
+      url: 'https://api.vapi.ai/v1/analytics/calls',
+      method: 'POST',
+      bodyFormatter: () => ({
+        assistant_id: VAPI_ASSISTANT_ID,
+        start_time: startDate,
+        end_time: endDate
+      })
     }
-
-    // Make request to VAPI calls API
-    const response = await fetch(requestUrl, requestOptions);
-
-    if (!response.ok) {
-      const errorText = await response.text()
-      console.error(`VAPI API error response: ${response.status}`, errorText)
+  ]
+  
+  let lastError = null
+  
+  // Try each endpoint until one works
+  for (const endpoint of endpoints) {
+    try {
+      console.log(`Trying VAPI endpoint: ${endpoint.url} with ${endpoint.method} method`)
       
-      // If the first attempt fails, try with alternative endpoint format
-      if (response.status === 404) {
-        console.log('First attempt failed with 404, trying alternative endpoint format')
-        
-        // Try alternative endpoint structure with /v1/ prefix
-        const altApiUrl = `https://api.vapi.ai/v1/calls`
-        const altRequestUrl = `${altApiUrl}?${params.toString()}`
-        
-        console.log(`Trying alternative VAPI endpoint: ${altRequestUrl}`)
-        
-        const altResponse = await fetch(altRequestUrl, requestOptions)
-        
-        if (!altResponse.ok) {
-          const altErrorText = await altResponse.text()
-          console.error(`Alternative VAPI API error response: ${altResponse.status}`, altErrorText)
-          throw new Error(`VAPI API returned ${altResponse.status}: ${altErrorText}`)
+      const requestOptions = {
+        method: endpoint.method,
+        headers: {
+          'Authorization': `Bearer ${apiKey}`,
+          'Content-Type': 'application/json',
         }
-        
-        const altData = await altResponse.json()
-        console.log('Alternative VAPI endpoint response:', JSON.stringify(altData).substring(0, 200) + '...')
-        return extractLogsFromResponse(altData)
       }
       
-      throw new Error(`VAPI API returned ${response.status}: ${errorText}`)
+      let requestUrl = endpoint.url
+      
+      // Add query parameters for GET requests
+      if (endpoint.method === 'GET' && endpoint.paramsFormatter) {
+        const params = endpoint.paramsFormatter()
+        requestUrl = `${requestUrl}?${params.toString()}`
+        console.log(`Full GET URL: ${requestUrl}`)
+      }
+      
+      // Add body for POST requests
+      if (endpoint.method === 'POST' && endpoint.bodyFormatter) {
+        requestOptions.body = JSON.stringify(endpoint.bodyFormatter())
+        console.log(`POST body: ${requestOptions.body}`)
+      }
+      
+      const response = await fetch(requestUrl, requestOptions)
+      
+      if (!response.ok) {
+        const errorText = await response.text()
+        console.error(`VAPI API error response (${endpoint.url}): ${response.status}`, errorText)
+        lastError = new Error(`VAPI API returned ${response.status}: ${errorText}`)
+        // Continue to the next endpoint
+        continue
+      }
+      
+      const data = await response.json()
+      console.log(`Success with ${endpoint.url}! Response:`, JSON.stringify(data).substring(0, 200) + '...')
+      
+      return extractLogsFromResponse(data)
+    } catch (error) {
+      console.error(`Error with ${endpoint.url}:`, error)
+      lastError = error
+      // Continue to the next endpoint
     }
-
-    const data = await response.json()
-    console.log('VAPI response:', JSON.stringify(data).substring(0, 200) + '...')
-    
-    return extractLogsFromResponse(data)
-    
-  } catch (error) {
-    console.error('Error fetching VAPI logs:', error)
-    throw error
   }
+  
+  // If we've tried all endpoints and none worked, throw the last error
+  if (lastError) {
+    throw lastError
+  }
+  
+  throw new Error("All VAPI API endpoints failed")
 }
 
 // Helper function to extract logs from various response formats
@@ -154,11 +177,15 @@ function extractLogsFromResponse(data) {
   } else if (data && Array.isArray(data)) {
     logs = data
     console.log(`Retrieved ${logs.length} logs from VAPI API (array format)`)
+  } else if (data && data.results && Array.isArray(data.results)) {
+    logs = data.results
+    console.log(`Retrieved ${logs.length} logs from VAPI API (results format)`)
   } else if (data && typeof data === 'object' && data.metadata && Array.isArray(data.metadata.calls)) {
     logs = data.metadata.calls
     console.log(`Retrieved ${logs.length} logs from VAPI API (metadata.calls format)`)
   } else {
-    console.log('No logs found in VAPI API response or unexpected format:', JSON.stringify(data).substring(0, 200))
+    console.log('Response data structure:', JSON.stringify(data).substring(0, 300))
+    console.log('No logs found in VAPI API response or unexpected format')
   }
 
   return logs
@@ -325,4 +352,3 @@ Deno.serve(async (req) => {
   
   return handleRequest(req)
 })
-
