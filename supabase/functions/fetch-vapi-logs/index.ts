@@ -52,7 +52,7 @@ Deno.serve(async (req) => {
     }
 
     // VAPI API settings
-    const VAPI_API_URL = 'https://api.vapi.ai/analytics'
+    const VAPI_API_URL = 'https://api.vapi.ai/call-logs'
     const VAPI_ORG_ID = 'dc74331a-39ef-4370-a0c4-333c1563cdad'
     const VAPI_ASSISTANT_ID = '0b7c2a96-0360-4fef-9956-e847fd696ea2'
     
@@ -81,46 +81,28 @@ Deno.serve(async (req) => {
 
     console.log(`Fetching VAPI logs from ${startDateISO} to ${endDateISO}`)
 
-    // Build the analytics request payload - using the correct format according to VAPI API
-    const analyticsPayload = {
-      queries: [
-        {
-          table: "call",
-          name: "call_logs",
-          filters: {
-            assistant_id: [VAPI_ASSISTANT_ID],
-            organization_id: [VAPI_ORG_ID],
-            start_time: {
-              op: ">=",
-              value: startDateISO
-            },
-            end_time: {
-              op: "<=",
-              value: endDateISO
-            }
-          },
-          operations: [
-            {
-              operation: "history",
-              column: "id"
-            }
-          ]
-        }
-      ]
-    }
-
-    console.log('Making request to VAPI analytics endpoint')
-    console.log('Request payload:', JSON.stringify(analyticsPayload))
-
-    // Make request to VAPI analytics API
-    const response = await fetch(VAPI_API_URL, {
-      method: 'POST',
+    // Build the request payload - using the correct format for the call-logs endpoint
+    // This is different from the analytics endpoint and doesn't require the complex query structure
+    const requestOptions = {
+      method: 'GET',
       headers: {
         'Authorization': `Bearer ${VAPI_API_KEY}`,
         'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(analyticsPayload)
-    })
+      }
+    }
+
+    // We'll use query parameters instead of a request body for the GET request
+    const queryParams = new URLSearchParams({
+      assistant_id: VAPI_ASSISTANT_ID,
+      start_time: startDateISO,
+      end_time: endDateISO,
+    });
+    
+    const requestUrl = `${VAPI_API_URL}?${queryParams.toString()}`;
+    console.log('Making request to VAPI call-logs endpoint:', requestUrl);
+
+    // Make request to VAPI call-logs API
+    const response = await fetch(requestUrl, requestOptions);
 
     if (!response.ok) {
       const errorText = await response.text()
@@ -129,21 +111,17 @@ Deno.serve(async (req) => {
     }
 
     const data = await response.json()
-    console.log('VAPI analytics response:', JSON.stringify(data).substring(0, 200) + '...')
+    console.log('VAPI call-logs response:', JSON.stringify(data).substring(0, 200) + '...')
 
-    // Process and extract logs from the analytics response
+    // Process and extract logs from the call-logs response
     let logs = []
     
-    if (data && Array.isArray(data) && data.length > 0) {
-      const callLogsResult = data.find(item => item.name === 'call_logs')
-      
-      if (callLogsResult && callLogsResult.result && Array.isArray(callLogsResult.result)) {
-        logs = callLogsResult.result
-        console.log(`Retrieved ${logs.length} logs from VAPI API`)
-      } else {
-        console.log('No logs found in VAPI API response')
-        logs = []
-      }
+    if (data && Array.isArray(data.calls)) {
+      logs = data.calls
+      console.log(`Retrieved ${logs.length} logs from VAPI API`)
+    } else {
+      console.log('No logs found in VAPI API response or unexpected format')
+      logs = []
     }
 
     // Process and store logs in the database
