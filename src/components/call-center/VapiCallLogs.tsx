@@ -1,10 +1,11 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, RefreshCw, Phone, PhoneForwarded, Info, Calendar } from 'lucide-react';
+import { Loader2, RefreshCw, Phone, PhoneForwarded, Info, Calendar, Download, ExternalLink } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { format, parseISO, subDays, startOfDay, endOfDay } from 'date-fns';
@@ -12,6 +13,7 @@ import { es } from 'date-fns/locale';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import VapiCallFilters, { CallFilters } from './VapiCallFilters';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 interface VapiCallLog {
   id: string;
@@ -46,6 +48,12 @@ const VapiCallLogs: React.FC<VapiCallLogsProps> = ({ limit = 10, onRefresh }) =>
   const [selectedLog, setSelectedLog] = useState<VapiCallLog | null>(null);
   const [dialogOpen, setDialogOpen] = useState<boolean>(false);
   const [activeTab, setActiveTab] = useState<string>('details');
+  const [syncStats, setSyncStats] = useState<{
+    total: number;
+    inserted: number;
+    updated: number;
+    errors: number;
+  } | null>(null);
   const [filters, setFilters] = useState<CallFilters>({
     status: null,
     direction: null,
@@ -142,11 +150,11 @@ const VapiCallLogs: React.FC<VapiCallLogsProps> = ({ limit = 10, onRefresh }) =>
 
   const syncCallLogs = async () => {
     setSyncing(true);
+    setSyncStats(null);
     try {
       const response = await supabase.functions.invoke('fetch-vapi-logs', {
         method: 'POST',
-        body: {
-        },
+        body: {},
       });
 
       if (response.error) {
@@ -155,6 +163,15 @@ const VapiCallLogs: React.FC<VapiCallLogsProps> = ({ limit = 10, onRefresh }) =>
 
       if (response.data && response.data.success === false) {
         throw new Error(response.data.message || 'Error syncing call logs');
+      }
+
+      if (response.data) {
+        setSyncStats({
+          total: response.data.total_logs || 0,
+          inserted: response.data.inserted || 0,
+          updated: response.data.updated || 0,
+          errors: response.data.errors || 0
+        });
       }
 
       const message = response.data?.message || 'Registros sincronizados con éxito';
@@ -176,6 +193,13 @@ const VapiCallLogs: React.FC<VapiCallLogsProps> = ({ limit = 10, onRefresh }) =>
   const handleViewDetails = (log: VapiCallLog) => {
     setSelectedLog(log);
     setDialogOpen(true);
+  };
+
+  const handleDownloadRecording = (url: string) => {
+    if (!url) return;
+    
+    window.open(url, '_blank');
+    toast.success('Descarga de grabación iniciada');
   };
 
   const formatDuration = (seconds: number | null) => {
@@ -263,6 +287,34 @@ const VapiCallLogs: React.FC<VapiCallLogsProps> = ({ limit = 10, onRefresh }) =>
           </div>
         </CardHeader>
         <CardContent>
+          {syncStats && (
+            <Alert className="mb-4 bg-primary/10">
+              <AlertDescription className="text-sm text-primary-foreground">
+                <div className="flex justify-between items-center">
+                  <span>Última sincronización:</span>
+                  <div className="flex space-x-4">
+                    <div className="flex items-center">
+                      <Badge variant="outline" className="mr-2">Total: {syncStats.total}</Badge>
+                      <Badge variant="outline" className="bg-green-100 text-green-800 border-green-200">
+                        Nuevos: {syncStats.inserted}
+                      </Badge>
+                    </div>
+                    <div className="flex items-center">
+                      <Badge variant="outline" className="bg-blue-100 text-blue-800 border-blue-200 mr-2">
+                        Actualizados: {syncStats.updated}
+                      </Badge>
+                      {syncStats.errors > 0 && (
+                        <Badge variant="outline" className="bg-red-100 text-red-800 border-red-200">
+                          Errores: {syncStats.errors}
+                        </Badge>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </AlertDescription>
+            </Alert>
+          )}
+
           <div className="mb-4">
             <VapiCallFilters onFilterChange={handleFilterChange} activeFilters={filters} />
           </div>
@@ -413,10 +465,32 @@ const VapiCallLogs: React.FC<VapiCallLogsProps> = ({ limit = 10, onRefresh }) =>
                     {selectedLog.recording_url && (
                       <div className="mt-4">
                         <p className="text-sm font-medium mb-2">Grabación</p>
-                        <audio controls className="w-full">
-                          <source src={selectedLog.recording_url} type="audio/mpeg" />
-                          Tu navegador no soporta el elemento de audio.
-                        </audio>
+                        <div className="flex flex-col space-y-2">
+                          <audio controls className="w-full">
+                            <source src={selectedLog.recording_url} type="audio/mpeg" />
+                            Tu navegador no soporta el elemento de audio.
+                          </audio>
+                          <div className="flex space-x-2">
+                            <Button 
+                              variant="outline" 
+                              size="sm"
+                              onClick={() => handleDownloadRecording(selectedLog.recording_url || '')}
+                              className="flex items-center"
+                            >
+                              <Download className="h-4 w-4 mr-1" />
+                              Descargar grabación
+                            </Button>
+                            <Button 
+                              variant="outline" 
+                              size="sm"
+                              onClick={() => window.open(selectedLog.recording_url || '', '_blank')}
+                              className="flex items-center"
+                            >
+                              <ExternalLink className="h-4 w-4 mr-1" />
+                              Abrir en nueva pestaña
+                            </Button>
+                          </div>
+                        </div>
                       </div>
                     )}
                   </div>

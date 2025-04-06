@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { PhoneCall, MessageSquare, Filter, Users, Settings } from 'lucide-react';
+import { PhoneCall, MessageSquare, Filter, Users, Settings, RefreshCw } from 'lucide-react';
 import CallCenter from './CallCenter';
 import VapiCallLogs from './VapiCallLogs';
 import QualifiedLeadsPanel from './QualifiedLeadsPanel';
@@ -17,10 +17,16 @@ interface CallCenterTabsProps {
 const CallCenterTabs: React.FC<CallCenterTabsProps> = ({ leads, onUpdateLeadStatus }) => {
   const [activeTab, setActiveTab] = useState('dialer');
   const [vapiConfigured, setVapiConfigured] = useState<boolean | null>(null);
+  const [refreshCallLogs, setRefreshCallLogs] = useState<number>(0);
   
   // Function to update VAPI configuration status
   const handleVapiConfigUpdate = (isConfigured: boolean) => {
     setVapiConfigured(isConfigured);
+  };
+
+  // Function to trigger a refresh of call logs
+  const handleRefreshCallLogs = () => {
+    setRefreshCallLogs(prev => prev + 1);
   };
 
   return (
@@ -63,7 +69,11 @@ const CallCenterTabs: React.FC<CallCenterTabsProps> = ({ leads, onUpdateLeadStat
         </TabsContent>
         
         <TabsContent value="vapi-logs" className="mt-4">
-          <VapiCallLogs limit={20} />
+          <VapiCallLogs 
+            key={`logs-${refreshCallLogs}`} 
+            limit={20} 
+            onRefresh={handleRefreshCallLogs} 
+          />
         </TabsContent>
 
         <TabsContent value="qualified-leads" className="mt-4">
