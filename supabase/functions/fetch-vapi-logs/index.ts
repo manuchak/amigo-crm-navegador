@@ -74,33 +74,39 @@ async function fetchVapiLogs(apiKey, startDate, endDate) {
   // VAPI API settings - testing different endpoints and methods
   const VAPI_ASSISTANT_ID = '0b7c2a96-0360-4fef-9956-e847fd696ea2'
   
-  // Try different endpoints with both GET and POST methods
+  // List of endpoints to try in order
   const endpoints = [
-    {
-      url: 'https://api.vapi.ai/analytics/calls',
-      method: 'POST',
-      bodyFormatter: () => ({
-        assistant_id: VAPI_ASSISTANT_ID,
-        start_time: startDate,
-        end_time: endDate
-      })
-    },
+    // Try directly calling /calls with GET first
     {
       url: 'https://api.vapi.ai/calls',
       method: 'GET',
       paramsFormatter: () => new URLSearchParams({
         assistant_id: VAPI_ASSISTANT_ID,
         start_time: startDate,
-        end_time: endDate
-      })
+        end_time: endDate,
+        limit: '100'
+      }).toString()
     },
+    // Try /call-logs with GET
     {
-      url: 'https://api.vapi.ai/v1/analytics/calls',
+      url: 'https://api.vapi.ai/call-logs',
+      method: 'GET',
+      paramsFormatter: () => new URLSearchParams({
+        assistant_id: VAPI_ASSISTANT_ID,
+        from: startDate,
+        to: endDate,
+        limit: '100'
+      }).toString()
+    },
+    // Try /analytics/calls with POST
+    {
+      url: 'https://api.vapi.ai/analytics/calls',
       method: 'POST',
       bodyFormatter: () => ({
         assistant_id: VAPI_ASSISTANT_ID,
         start_time: startDate,
-        end_time: endDate
+        end_time: endDate,
+        limit: 100
       })
     }
   ]
@@ -112,29 +118,32 @@ async function fetchVapiLogs(apiKey, startDate, endDate) {
     try {
       console.log(`Trying VAPI endpoint: ${endpoint.url} with ${endpoint.method} method`)
       
-      const requestOptions = {
-        method: endpoint.method,
-        headers: {
-          'Authorization': `Bearer ${apiKey}`,
-          'Content-Type': 'application/json',
-        }
+      let requestUrl = endpoint.url
+      const headers = {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
       }
       
-      let requestUrl = endpoint.url
+      let requestOptions = {
+        method: endpoint.method,
+        headers
+      }
       
-      // Add query parameters for GET requests
+      // For GET requests, add query params to URL
       if (endpoint.method === 'GET' && endpoint.paramsFormatter) {
         const params = endpoint.paramsFormatter()
-        requestUrl = `${requestUrl}?${params.toString()}`
+        requestUrl = `${requestUrl}?${params}`
         console.log(`Full GET URL: ${requestUrl}`)
       }
       
-      // Add body for POST requests
+      // For POST requests, add body
       if (endpoint.method === 'POST' && endpoint.bodyFormatter) {
-        requestOptions.body = JSON.stringify(endpoint.bodyFormatter())
-        console.log(`POST body: ${requestOptions.body}`)
+        const body = endpoint.bodyFormatter()
+        requestOptions.body = JSON.stringify(body)
+        console.log(`POST body:`, JSON.stringify(body))
       }
       
+      console.log(`Making ${endpoint.method} request to ${requestUrl}`)
       const response = await fetch(requestUrl, requestOptions)
       
       if (!response.ok) {
@@ -156,6 +165,32 @@ async function fetchVapiLogs(apiKey, startDate, endDate) {
     }
   }
   
+  // Try fallback direct API request with /api/ prefix
+  try {
+    console.log("Trying fallback with direct API call to /api/calls")
+    const response = await fetch(`https://api.vapi.ai/api/calls?assistant_id=${VAPI_ASSISTANT_ID}&page=1&page_size=100`, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+      }
+    })
+    
+    if (!response.ok) {
+      const errorText = await response.text()
+      console.error(`VAPI API fallback error: ${response.status}`, errorText)
+      lastError = new Error(`VAPI API fallback returned ${response.status}: ${errorText}`)
+      throw lastError
+    }
+    
+    const data = await response.json()
+    console.log(`Success with fallback! Response:`, JSON.stringify(data).substring(0, 200) + '...')
+    
+    return extractLogsFromResponse(data)
+  } catch (error) {
+    console.error("Fallback attempt failed:", error)
+  }
+  
   // If we've tried all endpoints and none worked, throw the last error
   if (lastError) {
     throw lastError
@@ -167,6 +202,12 @@ async function fetchVapiLogs(apiKey, startDate, endDate) {
 // Helper function to extract logs from various response formats
 function extractLogsFromResponse(data) {
   let logs = []
+  
+  // Log the exact structure received to help diagnose format
+  console.log("Response data type:", typeof data)
+  console.log("Response has data property:", "data" in data)
+  console.log("Response has calls property:", "calls" in data)
+  console.log("Response is array:", Array.isArray(data))
   
   if (data && Array.isArray(data.calls)) {
     logs = data.calls
@@ -183,7 +224,14 @@ function extractLogsFromResponse(data) {
   } else if (data && typeof data === 'object' && data.metadata && Array.isArray(data.metadata.calls)) {
     logs = data.metadata.calls
     console.log(`Retrieved ${logs.length} logs from VAPI API (metadata.calls format)`)
+  } else if (data && data.data && typeof data.data === 'object' && Array.isArray(data.data.records)) {
+    logs = data.data.records
+    console.log(`Retrieved ${logs.length} logs from VAPI API (data.records format)`)
+  } else if (data && data.records && Array.isArray(data.records)) {
+    logs = data.records
+    console.log(`Retrieved ${logs.length} logs from VAPI API (records format)`)
   } else {
+    // If no recognized format is found, log the structure for debugging
     console.log('Response data structure:', JSON.stringify(data).substring(0, 300))
     console.log('No logs found in VAPI API response or unexpected format')
   }
@@ -200,6 +248,8 @@ async function processAndStoreLogs(supabase, logs) {
   if (!logs || logs.length === 0) {
     return { insertedCount, updatedCount, errorCount }
   }
+
+  console.log(`Processing ${logs.length} logs from VAPI API`)
 
   for (const log of logs) {
     try {
@@ -226,7 +276,7 @@ async function processAndStoreLogs(supabase, logs) {
       // Prepare the log data with fallbacks for missing fields
       const logData = {
         log_id: log.id,
-        assistant_id: log.assistant_id || log.assistantId || VAPI_ASSISTANT_ID,
+        assistant_id: log.assistant_id || log.assistantId || '0b7c2a96-0360-4fef-9956-e847fd696ea2',
         organization_id: log.organization_id || log.organizationId || 'unknown',
         conversation_id: log.conversation_id || log.conversationId || null,
         phone_number: log.phone_number || log.phoneNumber || null,
