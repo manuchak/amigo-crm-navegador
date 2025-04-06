@@ -1,4 +1,5 @@
 
+
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.7'
 
 // Define CORS headers for all responses
@@ -71,8 +72,8 @@ function getDateRange(requestParams = {}) {
 
 // Function to fetch logs from VAPI API
 async function fetchVapiLogs(apiKey, startDate, endDate) {
-  // VAPI API settings - corrected endpoint and method
-  const VAPI_API_URL = 'https://api.vapi.ai/call-logs'
+  // VAPI API settings with corrected endpoint - using /calls instead of /call-logs
+  const VAPI_API_URL = 'https://api.vapi.ai/calls'
   const VAPI_ASSISTANT_ID = '0b7c2a96-0360-4fef-9956-e847fd696ea2'
   
   // Build the request with GET method and query parameters
@@ -84,43 +85,78 @@ async function fetchVapiLogs(apiKey, startDate, endDate) {
   
   const requestUrl = `${VAPI_API_URL}?${params.toString()}`;
   
-  // Build the request options with GET method
-  const requestOptions = {
-    method: 'GET',
-    headers: {
-      'Authorization': `Bearer ${apiKey}`,
-      'Content-Type': 'application/json',
-    }
-  }
+  console.log(`Making request to VAPI endpoint: ${requestUrl}`);
   
-  console.log('Making request to VAPI call-logs endpoint:', requestUrl);
+  try {
+    // Build the request options with GET method
+    const requestOptions = {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+      }
+    }
 
-  // Make request to VAPI call-logs API
-  const response = await fetch(requestUrl, requestOptions);
+    // Make request to VAPI calls API
+    const response = await fetch(requestUrl, requestOptions);
 
-  if (!response.ok) {
-    const errorText = await response.text()
-    console.error(`VAPI API error response: ${response.status}`, errorText)
-    throw new Error(`VAPI API returned ${response.status}: ${errorText}`)
+    if (!response.ok) {
+      const errorText = await response.text()
+      console.error(`VAPI API error response: ${response.status}`, errorText)
+      
+      // If the first attempt fails, try with alternative endpoint format
+      if (response.status === 404) {
+        console.log('First attempt failed with 404, trying alternative endpoint format')
+        
+        // Try alternative endpoint structure with /v1/ prefix
+        const altApiUrl = `https://api.vapi.ai/v1/calls`
+        const altRequestUrl = `${altApiUrl}?${params.toString()}`
+        
+        console.log(`Trying alternative VAPI endpoint: ${altRequestUrl}`)
+        
+        const altResponse = await fetch(altRequestUrl, requestOptions)
+        
+        if (!altResponse.ok) {
+          const altErrorText = await altResponse.text()
+          console.error(`Alternative VAPI API error response: ${altResponse.status}`, altErrorText)
+          throw new Error(`VAPI API returned ${altResponse.status}: ${altErrorText}`)
+        }
+        
+        const altData = await altResponse.json()
+        console.log('Alternative VAPI endpoint response:', JSON.stringify(altData).substring(0, 200) + '...')
+        return extractLogsFromResponse(altData)
+      }
+      
+      throw new Error(`VAPI API returned ${response.status}: ${errorText}`)
+    }
+
+    const data = await response.json()
+    console.log('VAPI response:', JSON.stringify(data).substring(0, 200) + '...')
+    
+    return extractLogsFromResponse(data)
+    
+  } catch (error) {
+    console.error('Error fetching VAPI logs:', error)
+    throw error
   }
+}
 
-  const data = await response.json()
-  console.log('VAPI call-logs response:', JSON.stringify(data).substring(0, 200) + '...')
-
-  // Extract logs from the response
+// Helper function to extract logs from various response formats
+function extractLogsFromResponse(data) {
   let logs = []
   
   if (data && Array.isArray(data.calls)) {
     logs = data.calls
-    console.log(`Retrieved ${logs.length} logs from VAPI API`)
+    console.log(`Retrieved ${logs.length} logs from VAPI API (calls format)`)
   } else if (data && Array.isArray(data.data)) {
-    // Alternative response format
     logs = data.data
-    console.log(`Retrieved ${logs.length} logs from VAPI API (alternative format)`)
+    console.log(`Retrieved ${logs.length} logs from VAPI API (data format)`)
   } else if (data && Array.isArray(data)) {
-    // Direct array format
     logs = data
-    console.log(`Retrieved ${logs.length} logs from VAPI API (direct array format)`)
+    console.log(`Retrieved ${logs.length} logs from VAPI API (array format)`)
+  } else if (data && typeof data === 'object' && data.metadata && Array.isArray(data.metadata.calls)) {
+    logs = data.metadata.calls
+    console.log(`Retrieved ${logs.length} logs from VAPI API (metadata.calls format)`)
   } else {
     console.log('No logs found in VAPI API response or unexpected format:', JSON.stringify(data).substring(0, 200))
   }
@@ -140,6 +176,13 @@ async function processAndStoreLogs(supabase, logs) {
 
   for (const log of logs) {
     try {
+      // Skip if log doesn't have an ID
+      if (!log.id) {
+        console.log('Skipping log without ID:', log)
+        errorCount++
+        continue
+      }
+      
       // Check if log already exists in the database
       const { data: existingLog, error: checkError } = await supabase
         .from('vapi_call_logs')
@@ -153,21 +196,21 @@ async function processAndStoreLogs(supabase, logs) {
         continue
       }
 
-      // Prepare the log data
+      // Prepare the log data with fallbacks for missing fields
       const logData = {
         log_id: log.id,
-        assistant_id: log.assistant_id,
-        organization_id: log.organization_id,
-        conversation_id: log.conversation_id,
-        phone_number: log.phone_number,
-        caller_phone_number: log.caller_phone_number,
-        start_time: log.start_time,
-        end_time: log.end_time,
-        duration: log.duration,
-        status: log.status,
-        direction: log.direction,
+        assistant_id: log.assistant_id || log.assistantId || VAPI_ASSISTANT_ID,
+        organization_id: log.organization_id || log.organizationId || 'unknown',
+        conversation_id: log.conversation_id || log.conversationId || null,
+        phone_number: log.phone_number || log.phoneNumber || null,
+        caller_phone_number: log.caller_phone_number || log.callerPhoneNumber || null,
+        start_time: log.start_time || log.startTime || null,
+        end_time: log.end_time || log.endTime || null,
+        duration: log.duration || null,
+        status: log.status || null,
+        direction: log.direction || null,
         transcript: log.transcript || null,
-        recording_url: log.recording_url,
+        recording_url: log.recording_url || log.recordingUrl || null,
         metadata: log.metadata || {}
       }
 
@@ -199,7 +242,7 @@ async function processAndStoreLogs(supabase, logs) {
         }
       }
     } catch (err) {
-      console.error(`Error processing log ${log.id}:`, err)
+      console.error(`Error processing log ${log?.id || 'unknown'}:`, err)
       errorCount++
     }
   }
@@ -282,3 +325,4 @@ Deno.serve(async (req) => {
   
   return handleRequest(req)
 })
+
