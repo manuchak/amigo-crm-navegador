@@ -80,10 +80,10 @@ const vapiApiClient = {
   // VAPI Assistant ID
   VAPI_ASSISTANT_ID: '0b7c2a96-0360-4fef-9956-e847fd696ea2',
   
-  // Endpoint configurations to try
+  // Endpoint configurations to try - FIXED PATHS REMOVING "/v1/" PREFIX
   getEndpointConfigs() {
     return [
-      // Try directly calling /calls with GET first
+      // Try directly calling /calls with GET first (removed /v1/ prefix)
       {
         url: 'https://api.vapi.ai/calls',
         method: 'GET',
@@ -94,7 +94,7 @@ const vapiApiClient = {
           limit: '100'
         }).toString()
       },
-      // Try /call-logs with GET
+      // Try /call-logs with GET (removed /v1/ prefix)
       {
         url: 'https://api.vapi.ai/call-logs',
         method: 'GET',
@@ -105,16 +105,25 @@ const vapiApiClient = {
           limit: '100'
         }).toString()
       },
-      // Try /analytics/calls with POST
+      // Try /analytics/calls with GET instead of POST
       {
         url: 'https://api.vapi.ai/analytics/calls',
-        method: 'POST',
-        bodyFormatter: (startDate, endDate) => ({
+        method: 'GET',
+        paramsFormatter: (startDate, endDate) => new URLSearchParams({
           assistant_id: this.VAPI_ASSISTANT_ID,
           start_time: startDate,
           end_time: endDate,
-          limit: 100
-        })
+          limit: '100'
+        }).toString()
+      },
+      // Try alternate endpoint pattern
+      {
+        url: 'https://api.vapi.ai/api/assistants/calls',
+        method: 'GET',
+        paramsFormatter: (startDate, endDate) => new URLSearchParams({
+          assistant_id: this.VAPI_ASSISTANT_ID,
+          limit: '100'
+        }).toString()
       }
     ];
   },
@@ -147,13 +156,6 @@ const vapiApiClient = {
           console.log(`Full GET URL: ${requestUrl}`);
         }
         
-        // For POST requests, add body
-        if (endpoint.method === 'POST' && endpoint.bodyFormatter) {
-          const body = endpoint.bodyFormatter(startDate, endDate);
-          requestOptions.body = JSON.stringify(body);
-          console.log(`POST body:`, JSON.stringify(body));
-        }
-        
         console.log(`Making ${endpoint.method} request to ${requestUrl}`);
         const response = await fetch(requestUrl, requestOptions);
         
@@ -176,10 +178,10 @@ const vapiApiClient = {
       }
     }
     
-    // Try fallback direct API request with /api/ prefix
+    // Try new discovery endpoint
     try {
-      console.log("Trying fallback with direct API call to /api/calls");
-      const response = await fetch(`https://api.vapi.ai/api/calls?assistant_id=${this.VAPI_ASSISTANT_ID}&page=1&page_size=100`, {
+      console.log("Trying discovery endpoint at /api/assistants");
+      const discoveryResponse = await fetch(`https://api.vapi.ai/api/assistants/${this.VAPI_ASSISTANT_ID}`, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${apiKey}`,
@@ -187,19 +189,36 @@ const vapiApiClient = {
         }
       });
       
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error(`VAPI API fallback error: ${response.status}`, errorText);
-        lastError = new Error(`VAPI API fallback returned ${response.status}: ${errorText}`);
-        throw lastError;
+      if (discoveryResponse.ok) {
+        const discoveryData = await discoveryResponse.json();
+        console.log("Discovery data:", JSON.stringify(discoveryData).substring(0, 200) + '...');
+        
+        // If discovery works, try the most likely endpoint based on discovery
+        try {
+          console.log("Trying direct call to /api/assistants/{id}/calls");
+          const callsResponse = await fetch(`https://api.vapi.ai/api/assistants/${this.VAPI_ASSISTANT_ID}/calls`, {
+            method: 'GET',
+            headers: {
+              'Authorization': `Bearer ${apiKey}`,
+              'Content-Type': 'application/json',
+            }
+          });
+          
+          if (!callsResponse.ok) {
+            const errorText = await callsResponse.text();
+            throw new Error(`VAPI API discovery calls endpoint returned ${callsResponse.status}: ${errorText}`);
+          }
+          
+          const data = await callsResponse.json();
+          console.log(`Success with discovery calls endpoint! Response:`, JSON.stringify(data).substring(0, 200) + '...');
+          
+          return responseParser.extractLogsFromResponse(data);
+        } catch (callsError) {
+          console.error("Error with discovery calls endpoint:", callsError);
+        }
       }
-      
-      const data = await response.json();
-      console.log(`Success with fallback! Response:`, JSON.stringify(data).substring(0, 200) + '...');
-      
-      return responseParser.extractLogsFromResponse(data);
-    } catch (error) {
-      console.error("Fallback attempt failed:", error);
+    } catch (discoveryError) {
+      console.error("Error with discovery endpoint:", discoveryError);
     }
     
     // If we've tried all endpoints and none worked, throw the last error
@@ -244,6 +263,9 @@ const responseParser = {
     } else if (data && data.records && Array.isArray(data.records)) {
       logs = data.records;
       console.log(`Retrieved ${logs.length} logs from VAPI API (records format)`);
+    } else if (data && data.items && Array.isArray(data.items)) {
+      logs = data.items;
+      console.log(`Retrieved ${logs.length} logs from VAPI API (items format)`);
     } else {
       // If no recognized format is found, log the structure for debugging
       console.log('Response data structure:', JSON.stringify(data).substring(0, 300));
