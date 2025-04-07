@@ -64,7 +64,7 @@ export const useUserManagementMethods = (
     }
   };
   
-  const setUserAsVerifiedOwner = async (email: string) => {
+  const setUserAsVerifiedOwner = async (email: string, showNotification: boolean = true) => {
     if (!email) {
       console.error("No email provided for setUserAsVerifiedOwner");
       return;
@@ -99,7 +99,11 @@ export const useUserManagementMethods = (
         }
       }
       
-      toast.success(`Usuario ${email} configurado como propietario verificado`);
+      // Only show success notification if explicitly requested
+      if (showNotification) {
+        toast.success(`Usuario ${email} configurado como propietario verificado`);
+      }
+      
       await refreshUserData();
     } catch (error: any) {
       console.error('Error setting user as verified owner:', error);

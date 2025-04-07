@@ -5,7 +5,6 @@ import { toast } from 'sonner';
 import { useAuthState } from '@/hooks/useAuthState';
 import { useAuthMethods } from '@/hooks/auth';
 import { useUserManagementMethods } from '@/hooks/useUserManagementMethods';
-import { SPECIAL_USERS } from '@/hooks/auth/constants';
 import { getCurrentUser } from '@/utils/localAuthStorage';
 
 // Create the context with a default value
@@ -51,7 +50,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setUserAsVerifiedOwner
   } = useUserManagementMethods(setUserData, setLoading, refreshUserData);
 
-  // Set up auth state on initialization
+  // Set up auth state on initialization, but without automatically setting verified owner
   useEffect(() => {
     const setupAuth = async () => {
       try {
@@ -68,16 +67,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           setUserData(null);
         }
         
-        // Ensure Manuel Chacon's account is set as verified owner
-        try {
-          const ownerEmail = SPECIAL_USERS.SYSTEM_OWNER;
-          console.log(`Ensuring ${ownerEmail} has owner privileges...`);
-          await setUserAsVerifiedOwner(ownerEmail);
-          console.log("Owner privileges setup complete");
-        } catch (error) {
-          console.error("Error setting verified owner:", error);
-          // Continue even if this fails - don't block app initialization
-        }
+        // Removed the automatic setting of Manuel Chacon as verified owner
+        // This was causing the toast notification on every refresh
+        
       } catch (error) {
         console.error("Error setting up authentication:", error);
       } finally {
