@@ -14,9 +14,6 @@ import NotFound from "./pages/NotFound";
 import { LeadsProvider } from "./context/LeadsContext";
 import { AuthProvider } from "./context/AuthContext";
 import Login from "./pages/Login";
-import VerifyEmail from "./pages/VerifyEmail";
-import VerifyConfirmation from "./pages/VerifyConfirmation";
-import PendingApproval from "./pages/PendingApproval";
 import Unauthorized from "./pages/Unauthorized";
 import UserManagement from "./pages/UserManagement";
 import AuthGuard from "./components/auth/AuthGuard";
@@ -55,9 +52,6 @@ const AppWithNavbar = () => {
         {/* Public routes */}
         <Route path="/" element={<Index />} />
         <Route path="/login" element={<Login />} />
-        <Route path="/verify-email" element={<VerifyEmail />} />
-        <Route path="/verify-confirmation" element={<VerifyConfirmation />} />
-        <Route path="/pending-approval" element={<PendingApproval />} />
         <Route path="/unauthorized" element={<Unauthorized />} />
         
         {/* Protected routes */}

@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Navigate, useNavigate } from 'react-router-dom';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Separator } from '@/components/ui/separator';
 import EmailSignInForm from '@/components/auth/EmailSignInForm';
@@ -11,7 +11,7 @@ import { useAuth } from '@/context/AuthContext';
 import { Shield, Loader2 } from 'lucide-react';
 
 const Login = () => {
-  const { currentUser, userData, loading } = useAuth();
+  const { currentUser, loading } = useAuth();
   const [authTab, setAuthTab] = useState<string>('signin');
   const [showForgotPassword, setShowForgotPassword] = useState(false);
   const navigate = useNavigate();
@@ -19,15 +19,9 @@ const Login = () => {
   useEffect(() => {
     // Redirect if already logged in
     if (currentUser) {
-      if (!currentUser.emailVerified) {
-        navigate('/verify-email');
-      } else if (userData?.role === 'pending') {
-        navigate('/pending-approval');
-      } else {
-        navigate('/dashboard');
-      }
+      navigate('/dashboard');
     }
-  }, [currentUser, userData, navigate]);
+  }, [currentUser, navigate]);
   
   // If we're still loading, show a loading indicator
   if (loading) {

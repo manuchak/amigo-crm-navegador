@@ -40,14 +40,14 @@ export const createUser = (
     throw new Error('auth/email-already-in-use');
   }
   
-  // Create new user - now with emailVerified set to true by default
+  // Create new user - with emailVerified always true (simplified authentication)
   const newUser: StoredUser = {
     uid: crypto.randomUUID(),
     email,
     password,
     displayName,
-    role: 'pending' as UserRole, // Set initial role to pending instead of unverified
-    emailVerified: true, // Set to true by default - removing the verification requirement
+    role: 'pending' as UserRole, // Set initial role to pending
+    emailVerified: true, // Always verified (simplified authentication)
     createdAt: new Date(),
     lastLogin: new Date()
   };
@@ -56,8 +56,11 @@ export const createUser = (
   users.push(newUser);
   saveUsers(users);
   
-  // Return user data without password
+  // Set as current user
   const { password: _, ...userData } = newUser;
+  setCurrentUser(userData);
+  
+  // Return user data without password
   return userData;
 };
 

@@ -32,11 +32,6 @@ const AuthGuard: React.FC<AuthGuardProps> = ({
     return <Navigate to={redirectTo} replace />;
   }
 
-  // Role not approved yet (still pending)
-  if (userData?.role === 'pending') {
-    return <Navigate to="/pending-approval" replace />;
-  }
-
   // Check if user has one of the allowed roles (if specified)
   if (
     allowedRoles.length > 0 && 

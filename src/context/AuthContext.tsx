@@ -1,13 +1,12 @@
 
 import React, { createContext, useContext, useEffect } from 'react';
 import { UserData, AuthContextProps } from '@/types/auth';
-import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useAuthState } from '@/hooks/useAuthState';
 import { useAuthMethods } from '@/hooks/auth';
 import { useUserManagementMethods } from '@/hooks/useUserManagementMethods';
-import { mapUserData } from '@/hooks/useSupabaseMappings';
 import { SPECIAL_USERS } from '@/hooks/auth/constants';
+import { getCurrentUser } from '@/utils/localAuthStorage';
 
 // Create the context with a default value
 const AuthContext = createContext<AuthContextProps>({
@@ -35,7 +34,7 @@ export const useAuth = () => {
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   // Use our hooks to manage state and methods
-  const { userData, setUserData, session, setSession, loading, setLoading } = useAuthState();
+  const { userData, setUserData, loading, setLoading } = useAuthState();
   
   const { 
     refreshUserData, 
@@ -52,48 +51,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setUserAsVerifiedOwner
   } = useUserManagementMethods(setUserData, setLoading, refreshUserData);
 
-  // Set up auth state listener
+  // Set up auth state on initialization
   useEffect(() => {
-    let authUnsubscribe: (() => void) | null = null;
-    
     const setupAuth = async () => {
       try {
         setLoading(true);
         console.log("Setting up auth state...");
         
-        // First set up the auth state change listener
-        const { data: authListener } = supabase.auth.onAuthStateChange(
-          async (event, currentSession) => {
-            // Handle auth state changes
-            console.log("Auth state change event:", event);
-            setSession(currentSession);
-            
-            if (currentSession?.user) {
-              console.log("User authenticated:", currentSession.user.email);
-              const mappedUserData = await mapUserData(currentSession.user);
-              setUserData(mappedUserData);
-            } else {
-              console.log("No active session");
-              setUserData(null);
-            }
-          }
-        );
-        
-        // Store unsubscribe function
-        authUnsubscribe = () => {
-          console.log("Unsubscribing from auth state changes");
-          authListener.subscription.unsubscribe();
-        };
-        
-        // Then get the initial session
-        console.log("Fetching initial session");
-        const { data: { session: currentSession } } = await supabase.auth.getSession();
-        setSession(currentSession);
-        
-        if (currentSession?.user) {
-          console.log("Initial session found for user:", currentSession.user.email);
-          const mappedUserData = await mapUserData(currentSession.user);
-          setUserData(mappedUserData);
+        // Check for existing user session in local storage
+        const storedUser = getCurrentUser();
+        if (storedUser) {
+          console.log("Active user session found:", storedUser.email);
+          setUserData(storedUser);
+        } else {
+          console.log("No active session");
+          setUserData(null);
         }
         
         // Ensure Manuel Chacon's account is set as verified owner
@@ -114,13 +86,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
     
     setupAuth();
-    
-    // Cleanup subscription on unmount
-    return () => {
-      if (authUnsubscribe) {
-        authUnsubscribe();
-      }
-    };
   }, []);
 
   const value = {

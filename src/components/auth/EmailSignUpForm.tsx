@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { useAuth } from '@/context/AuthContext';
-import { Navigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 
 const formSchema = z.object({
   name: z.string().min(2, 'El nombre debe tener al menos 2 caracteres'),
@@ -24,7 +24,7 @@ type FormData = z.infer<typeof formSchema>;
 
 const EmailSignUpForm: React.FC<{ onSuccess?: () => void }> = ({ onSuccess }) => {
   const { signUp, loading } = useAuth();
-  const [registrationComplete, setRegistrationComplete] = useState(false);
+  const navigate = useNavigate();
   
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
@@ -39,17 +39,13 @@ const EmailSignUpForm: React.FC<{ onSuccess?: () => void }> = ({ onSuccess }) =>
   const onSubmit = async (data: FormData) => {
     try {
       await signUp(data.email, data.password, data.name);
-      setRegistrationComplete(true);
+      // Simplified auth - redirect directly to dashboard after signup
+      navigate('/dashboard');
       if (onSuccess) onSuccess();
     } catch (error) {
       // Error is handled by the hook
     }
   };
-
-  // Redirect to verification page after registration
-  if (registrationComplete) {
-    return <Navigate to="/verify-email" />;
-  }
 
   return (
     <Form {...form}>

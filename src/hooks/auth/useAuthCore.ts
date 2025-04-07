@@ -1,9 +1,7 @@
 
-import { supabase } from '@/integrations/supabase/client';
 import { UserData } from '@/types/auth';
 import { toast } from 'sonner';
-import { createTimeoutPromise, getAuthErrorMessage } from './utils';
-import { mapUserData } from '../useSupabaseMappings';
+import { getCurrentUser } from '@/utils/localAuthStorage';
 
 export const useAuthCore = (
   setUserData: React.Dispatch<React.SetStateAction<UserData | null>>,
@@ -12,20 +10,9 @@ export const useAuthCore = (
   // Function to refresh user data
   const refreshUserData = async () => {
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session?.user) {
-        const mappedUserData = await mapUserData(session.user);
-        if (mappedUserData) {
-          setUserData(mappedUserData);
-          
-          // Update last login timestamp
-          await supabase
-            .from('profiles')
-            .update({ 
-              last_login: new Date().toISOString() 
-            })
-            .eq('id', session.user.id);
-        }
+      const userData = getCurrentUser();
+      if (userData) {
+        setUserData(userData);
       }
     } catch (error) {
       console.error('Error refreshing user data:', error);
@@ -36,7 +23,7 @@ export const useAuthCore = (
   // Basic signOut functionality
   const signOut = async () => {
     try {
-      await supabase.auth.signOut();
+      localStorage.removeItem('current_user');
       setUserData(null);
       toast.success('Sesión cerrada con éxito');
     } catch (error) {
