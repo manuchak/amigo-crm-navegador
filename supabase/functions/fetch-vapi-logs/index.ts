@@ -16,23 +16,22 @@ const CONFIG = {
     {
       url: 'https://api.vapi.ai/call',
       method: 'GET',
-      description: 'Primary calls endpoint'
+      description: 'Primary calls endpoint',
+      supportsDates: false
     },
     {
       url: 'https://api.vapi.ai/calls',
       method: 'GET',
-      description: 'Alternative calls endpoint'
+      description: 'Alternative calls endpoint',
+      supportsDates: false
     },
     {
       url: 'https://api.vapi.ai/call-logs',
       method: 'GET',
-      description: 'Call logs endpoint'
-    },
-    {
-      url: 'https://api.vapi.ai/analytics/call',
-      method: 'GET',
-      description: 'Analytics endpoint'
+      description: 'Call logs endpoint',
+      supportsDates: false
     }
+    // Removed the analytics endpoint as it's returning 404
   ],
   // Mapping configuration to match VAPI API fields to Supabase columns
   FIELD_MAPPING: {
@@ -177,8 +176,15 @@ class VapiApiClient {
     }
     
     // Add metadata parameters to request customer phone numbers explicitly
+    // Make sure we don't add duplicate parameters
+    const addedParams = new Set()
+    
     CONFIG.METADATA_REQUEST_FIELDS.forEach(field => {
-      params.append(`includeMetadata[${field}]`, 'true')
+      const paramName = `includeMetadata[${field}]`
+      if (!addedParams.has(paramName)) {
+        params.append(paramName, 'true')
+        addedParams.add(paramName)
+      }
     });
     
     return params.toString()
@@ -193,7 +199,7 @@ class VapiApiClient {
         url: endpoint.url,
         method: endpoint.method,
         description: endpoint.description,
-        supportsDates: endpoint.url.includes('analytics')
+        supportsDates: endpoint.supportsDates
       }
     })
   }
@@ -678,36 +684,11 @@ class DatabaseManager {
       }
     }
     
-    // Enhanced phone number extraction with more thorough checks
-    // Get all possible phone number fields
-    const phoneFields = ResponseParser.inspectPhoneNumberFields(log);
-    
-    console.log("All detected phone fields:", phoneFields);
-    
     // Extract phone number with enhanced prioritization
-    const phoneNumber = 
-      phoneFields.phone_number || 
-      phoneFields.phoneNumber || 
-      phoneFields['metadata.phone_number'] || 
-      phoneFields.number ||
-      phoneFields.phone ||
-      ResponseParser.findFieldValue(log, 'phone_number') ||
-      '';
+    const phoneNumber = ResponseParser.findFieldValue(log, 'phone_number') || '';
     
     // Extract caller number with enhanced prioritization
-    const callerNumber = 
-      phoneFields.caller_phone_number || 
-      phoneFields.callerPhoneNumber || 
-      phoneFields.callerNumber ||
-      phoneFields.caller_number ||
-      phoneFields.from || 
-      phoneFields.fromNumber ||
-      phoneFields.from_number ||
-      phoneFields['metadata.caller_phone_number'] ||
-      phoneFields['metadata.from'] ||
-      phoneFields['metadata.callerNumber'] ||
-      ResponseParser.findFieldValue(log, 'caller_phone_number') ||
-      '';
+    const callerNumber = ResponseParser.findFieldValue(log, 'caller_phone_number') || '';
     
     // Enhanced phone number conversion to string
     const customerNumber = 

@@ -15,4 +15,3 @@ verify_jwt = false
 
 [functions.initiate-vapi-call]
 verify_jwt = true
-
