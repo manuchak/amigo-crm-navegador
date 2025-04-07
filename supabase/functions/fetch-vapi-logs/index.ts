@@ -7,303 +7,360 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
-// Function to create a Supabase client
+/**
+ * Configuration for VAPI integration
+ */
+const CONFIG = {
+  DEFAULT_API_KEY: '4e1d9a9c-de28-4e68-926c-3b5ca5a3ecb9',
+  VAPI_ASSISTANT_ID: '0b7c2a96-0360-4fef-9956-e847fd696ea2',
+  API_ENDPOINTS: [
+    {
+      url: 'https://api.vapi.ai/call',
+      method: 'GET',
+      description: 'Primary calls endpoint'
+    },
+    {
+      url: 'https://api.vapi.ai/calls',
+      method: 'GET',
+      description: 'Alternative calls endpoint'
+    },
+    {
+      url: 'https://api.vapi.ai/call-logs',
+      method: 'GET',
+      description: 'Call logs endpoint'
+    },
+    {
+      url: 'https://api.vapi.ai/analytics/call',
+      method: 'GET',
+      description: 'Analytics endpoint'
+    }
+  ]
+}
+
+/**
+ * Creates a Supabase client
+ */
 function createSupabaseClient() {
   const supabaseUrl = Deno.env.get('SUPABASE_URL') as string
   const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') as string
+  
+  if (!supabaseUrl || !supabaseKey) {
+    throw new Error('Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY')
+  }
+  
   return createClient(supabaseUrl, supabaseKey)
 }
 
-// Helper module for API key management
-const vapiKeyManager = {
-  // Fetch the VAPI API key from the database
-  async getApiKey(supabase) {
+/**
+ * API Key Management Module
+ */
+class ApiKeyManager {
+  /**
+   * Fetch the VAPI API key from the database
+   */
+  static async getApiKey(supabase) {
     console.log('Fetching VAPI API key from database')
-    const { data: secretData, error: secretError } = await supabase
-      .from('secrets')
-      .select('value')
-      .eq('name', 'VAPI_API_KEY')
-      .maybeSingle()
-    
-    if (secretError) {
-      console.error('Error fetching VAPI API key from database:', secretError)
-      throw new Error('Failed to fetch API key from database')
-    }
-    
-    // If API key is not found in database, use the default one
-    let VAPI_API_KEY = secretData?.value
-    
-    if (!VAPI_API_KEY) {
-      console.log('VAPI API key not found in database, using default key')
-      // Use default API key as fallback
-      VAPI_API_KEY = '4e1d9a9c-de28-4e68-926c-3b5ca5a3ecb9'
-      
-      // Try to store the default key in the database for future use
-      try {
-        await supabase.from('secrets').insert([
-          { name: 'VAPI_API_KEY', value: VAPI_API_KEY }
-        ])
-        console.log('Default VAPI API key stored in database')
-      } catch (storeError) {
-        // Continue even if storing fails
-        console.error('Failed to store default VAPI API key:', storeError)
-      }
-    }
-
-    return VAPI_API_KEY
-  }
-}
-
-// Helper module for date handling
-const dateHelper = {
-  // Determine date range for fetching logs
-  getDateRange(requestParams = {}) {
-    const now = new Date()
-    const startDate = requestParams.start_date ? 
-      new Date(requestParams.start_date) : 
-      new Date(now.setDate(now.getDate() - 30))
-    const endDate = requestParams.end_date ?
-      new Date(requestParams.end_date) :
-      new Date()
-      
-    const startDateISO = startDate.toISOString()
-    const endDateISO = endDate.toISOString()
-
-    console.log(`Fetching VAPI logs from ${startDateISO} to ${endDateISO}`)
-    
-    return { startDateISO, endDateISO }
-  }
-}
-
-// VAPI API client module
-const vapiApiClient = {
-  // VAPI Assistant ID
-  VAPI_ASSISTANT_ID: '0b7c2a96-0360-4fef-9956-e847fd696ea2',
-  
-  // Endpoint configurations to try - Using the updated correct endpoint format
-  getEndpointConfigs() {
-    return [
-      // Use the correct GET endpoint recommended in the documentation
-      {
-        url: 'https://api.vapi.ai/call',
-        method: 'GET',
-        paramsFormatter: () => new URLSearchParams({
-          assistantId: this.VAPI_ASSISTANT_ID,
-          limit: '100'
-        }).toString()
-      },
-      // Fallback options if primary endpoint doesn't work
-      {
-        url: 'https://api.vapi.ai/calls',
-        method: 'GET',
-        paramsFormatter: () => new URLSearchParams({
-          assistantId: this.VAPI_ASSISTANT_ID,
-          limit: '100'
-        }).toString()
-      },
-      {
-        url: 'https://api.vapi.ai/call-logs',
-        method: 'GET',
-        paramsFormatter: () => new URLSearchParams({
-          assistantId: this.VAPI_ASSISTANT_ID,
-          limit: '100'
-        }).toString()
-      },
-      // Try with time parameters
-      {
-        url: 'https://api.vapi.ai/call',
-        method: 'GET',
-        paramsFormatter: (startDate, endDate) => new URLSearchParams({
-          assistantId: this.VAPI_ASSISTANT_ID,
-          startTime: startDate,
-          endTime: endDate,
-          limit: '100'
-        }).toString()
-      },
-      // Try specifically with analytics endpoint
-      {
-        url: 'https://api.vapi.ai/analytics/call',
-        method: 'GET',
-        paramsFormatter: () => new URLSearchParams({
-          assistantId: this.VAPI_ASSISTANT_ID,
-          limit: '100'
-        }).toString()
-      }
-    ];
-  },
-  
-  // Fetch logs from VAPI API trying multiple endpoints
-  async fetchLogs(apiKey, startDate, endDate) {
-    const endpoints = this.getEndpointConfigs();
-    let lastError = null;
-    
-    // Try each endpoint until one works
-    for (const endpoint of endpoints) {
-      try {
-        console.log(`Trying VAPI endpoint: ${endpoint.url} with ${endpoint.method} method`);
-        
-        let requestUrl = endpoint.url;
-        const headers = {
-          'Authorization': `Bearer ${apiKey}`,
-          'Content-Type': 'application/json',
-        };
-        
-        let requestOptions = {
-          method: endpoint.method,
-          headers
-        };
-        
-        // For GET requests, add query params to URL
-        if (endpoint.method === 'GET' && endpoint.paramsFormatter) {
-          const params = endpoint.paramsFormatter(startDate, endDate);
-          requestUrl = `${requestUrl}?${params}`;
-          console.log(`Full GET URL: ${requestUrl}`);
-        }
-        
-        console.log(`Making ${endpoint.method} request to ${requestUrl}`);
-        const response = await fetch(requestUrl, requestOptions);
-        
-        if (!response.ok) {
-          const errorText = await response.text();
-          console.error(`VAPI API error response (${endpoint.url}): ${response.status}`, errorText);
-          lastError = new Error(`VAPI API returned ${response.status}: ${errorText}`);
-          // Continue to the next endpoint
-          continue;
-        }
-        
-        const data = await response.json();
-        console.log(`Success with ${endpoint.url}! Response:`, JSON.stringify(data).substring(0, 200) + '...');
-        
-        return responseParser.extractLogsFromResponse(data);
-      } catch (error) {
-        console.error(`Error with ${endpoint.url}:`, error);
-        lastError = error;
-        // Continue to the next endpoint
-      }
-    }
-    
-    // Try API discovery endpoint as a last resort
     try {
-      console.log("Trying API discovery endpoint");
-      const apiUrl = 'https://api.vapi.ai/api';
+      const { data: secretData, error: secretError } = await supabase
+        .from('secrets')
+        .select('value')
+        .eq('name', 'VAPI_API_KEY')
+        .maybeSingle()
+      
+      if (secretError) {
+        console.error('Error fetching VAPI API key from database:', secretError)
+        throw new Error('Failed to fetch API key from database')
+      }
+      
+      // If API key is not found in database, use the default one
+      let apiKey = secretData?.value
+      
+      if (!apiKey) {
+        console.log('VAPI API key not found in database, using default key')
+        apiKey = CONFIG.DEFAULT_API_KEY
+        
+        // Try to store the default key in the database for future use
+        try {
+          await supabase.from('secrets').insert([
+            { name: 'VAPI_API_KEY', value: apiKey }
+          ])
+          console.log('Default VAPI API key stored in database')
+        } catch (storeError) {
+          // Continue even if storing fails
+          console.error('Failed to store default VAPI API key:', storeError)
+        }
+      }
+
+      return apiKey
+    } catch (error) {
+      console.error('Error in getApiKey:', error)
+      // Fall back to default key on error
+      return CONFIG.DEFAULT_API_KEY
+    }
+  }
+}
+
+/**
+ * Date Range Helper
+ */
+class DateRangeHelper {
+  /**
+   * Get start and end dates for fetching logs
+   */
+  static getDateRange(requestParams = {}) {
+    try {
+      const now = new Date()
+      const startDate = requestParams.start_date ? 
+        new Date(requestParams.start_date) : 
+        new Date(now.setDate(now.getDate() - 30))
+      const endDate = requestParams.end_date ?
+        new Date(requestParams.end_date) :
+        new Date()
+        
+      const startDateISO = startDate.toISOString()
+      const endDateISO = endDate.toISOString()
+
+      console.log(`Fetching VAPI logs from ${startDateISO} to ${endDateISO}`)
+      
+      return { startDateISO, endDateISO }
+    } catch (error) {
+      console.error('Error parsing date range:', error)
+      const now = new Date()
+      const thirtyDaysAgo = new Date(now.setDate(now.getDate() - 30))
+      return {
+        startDateISO: thirtyDaysAgo.toISOString(),
+        endDateISO: new Date().toISOString()
+      }
+    }
+  }
+}
+
+/**
+ * VAPI API Client
+ */
+class VapiApiClient {
+  /**
+   * Format query parameters for an endpoint
+   */
+  static formatParams(endpointConfig, startDate, endDate) {
+    const params = new URLSearchParams({
+      assistantId: CONFIG.VAPI_ASSISTANT_ID,
+      limit: '100'
+    })
+    
+    // Add date range if supported by endpoint
+    if (endpointConfig.supportsDates) {
+      params.append('startTime', startDate)
+      params.append('endTime', endDate)
+    }
+    
+    return params.toString()
+  }
+  
+  /**
+   * Get all endpoint configurations
+   */
+  static getEndpointConfigs() {
+    return CONFIG.API_ENDPOINTS.map(endpoint => {
+      return {
+        url: endpoint.url,
+        method: endpoint.method,
+        description: endpoint.description,
+        supportsDates: endpoint.url.includes('analytics')
+      }
+    })
+  }
+  
+  /**
+   * Try API discovery as a last resort
+   */
+  static async tryApiDiscovery(apiKey) {
+    try {
+      console.log("Trying API discovery endpoint")
+      const apiUrl = 'https://api.vapi.ai/api'
       const response = await fetch(apiUrl, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${apiKey}`,
           'Content-Type': 'application/json',
         }
-      });
+      })
       
-      if (response.ok) {
-        const apiDoc = await response.json();
-        console.log("API discovery data:", JSON.stringify(apiDoc).substring(0, 200) + '...');
+      if (!response.ok) {
+        return null
+      }
+      
+      const apiDoc = await response.json()
+      console.log("API discovery data:", JSON.stringify(apiDoc).substring(0, 200) + '...')
+      
+      // If we find a specific endpoint in the API documentation, try it
+      if (apiDoc && apiDoc.paths) {
+        const callEndpoint = Object.keys(apiDoc.paths).find(path => 
+          path.includes("/call") || path.includes("/calls")
+        )
         
-        // If we find a specific endpoint in the API documentation, try it
-        if (apiDoc && apiDoc.paths) {
-          const callEndpoint = Object.keys(apiDoc.paths).find(path => 
-            path.includes("/call") || path.includes("/calls")
-          );
+        if (callEndpoint) {
+          const fullUrl = `https://api.vapi.ai${callEndpoint}?assistantId=${CONFIG.VAPI_ASSISTANT_ID}&limit=100`
+          console.log(`Trying discovered endpoint: ${fullUrl}`)
           
-          if (callEndpoint) {
-            const fullUrl = `https://api.vapi.ai${callEndpoint}?assistantId=${this.VAPI_ASSISTANT_ID}&limit=100`;
-            console.log(`Trying discovered endpoint: ${fullUrl}`);
-            
-            const callResponse = await fetch(fullUrl, {
-              method: 'GET',
-              headers: {
-                'Authorization': `Bearer ${apiKey}`,
-                'Content-Type': 'application/json',
-              }
-            });
-            
-            if (callResponse.ok) {
-              const data = await callResponse.json();
-              console.log(`Success with discovered endpoint! Response:`, JSON.stringify(data).substring(0, 200) + '...');
-              return responseParser.extractLogsFromResponse(data);
+          const callResponse = await fetch(fullUrl, {
+            method: 'GET',
+            headers: {
+              'Authorization': `Bearer ${apiKey}`,
+              'Content-Type': 'application/json',
             }
+          })
+          
+          if (callResponse.ok) {
+            return await callResponse.json()
           }
         }
       }
-    } catch (discoveryError) {
-      console.error("Error with API discovery:", discoveryError);
+      
+      return null
+    } catch (error) {
+      console.error("Error with API discovery:", error)
+      return null
+    }
+  }
+  
+  /**
+   * Fetch logs from VAPI API trying multiple endpoints
+   */
+  static async fetchLogs(apiKey, startDate, endDate) {
+    const endpoints = this.getEndpointConfigs()
+    let lastError = null
+    
+    // Try each endpoint until one works
+    for (const endpoint of endpoints) {
+      try {
+        console.log(`Trying VAPI endpoint: ${endpoint.url} with ${endpoint.method} method`)
+        
+        const params = this.formatParams(endpoint, startDate, endDate)
+        const requestUrl = `${endpoint.url}?${params}`
+        console.log(`Full GET URL: ${requestUrl}`)
+        
+        const response = await fetch(requestUrl, {
+          method: endpoint.method,
+          headers: {
+            'Authorization': `Bearer ${apiKey}`,
+            'Content-Type': 'application/json',
+          }
+        })
+        
+        if (!response.ok) {
+          const errorText = await response.text()
+          console.error(`VAPI API error response (${endpoint.url}): ${response.status}`, errorText)
+          lastError = new Error(`VAPI API returned ${response.status}: ${errorText}`)
+          continue
+        }
+        
+        const data = await response.json()
+        console.log(`Success with ${endpoint.url}! Response:`, JSON.stringify(data).substring(0, 200) + '...')
+        
+        return ResponseParser.extractLogsFromResponse(data)
+      } catch (error) {
+        console.error(`Error with ${endpoint.url}:`, error)
+        lastError = error
+      }
     }
     
-    // If we've tried all endpoints and none worked, throw the last error
+    // Try API discovery as a last resort
+    const discoveryData = await this.tryApiDiscovery(apiKey)
+    if (discoveryData) {
+      return ResponseParser.extractLogsFromResponse(discoveryData)
+    }
+    
+    // If all attempts failed, throw the last error
     if (lastError) {
-      throw lastError;
+      throw lastError
     }
     
-    throw new Error("All VAPI API endpoints failed");
+    throw new Error("All VAPI API endpoints failed")
   }
 }
 
-// Response parser module
-const responseParser = {
-  // Extract logs from various response formats
-  extractLogsFromResponse(data) {
-    let logs = [];
+/**
+ * Response Parser
+ */
+class ResponseParser {
+  /**
+   * Extract logs from various response formats
+   */
+  static extractLogsFromResponse(data) {
+    if (!data) {
+      console.log('No data received from VAPI API')
+      return []
+    }
     
     // Log the exact structure received to help diagnose format
-    console.log("Response data type:", typeof data);
-    console.log("Response has data property:", "data" in data);
-    console.log("Response has calls property:", "calls" in data);
-    console.log("Response is array:", Array.isArray(data));
+    console.log("Response data type:", typeof data)
+    console.log("Response has data property:", "data" in data)
+    console.log("Response has calls property:", "calls" in data)
+    console.log("Response is array:", Array.isArray(data))
     
-    if (data && Array.isArray(data)) {
-      logs = data;
-      console.log(`Retrieved ${logs.length} logs from VAPI API (array format)`);
+    let logs = []
+    
+    // Try different response formats
+    if (Array.isArray(data)) {
+      logs = data
+      console.log(`Retrieved ${logs.length} logs from VAPI API (array format)`)
     } else if (data && Array.isArray(data.data)) {
-      logs = data.data;
-      console.log(`Retrieved ${logs.length} logs from VAPI API (data format)`);
+      logs = data.data
+      console.log(`Retrieved ${logs.length} logs from VAPI API (data format)`)
     } else if (data && Array.isArray(data.calls)) {
-      logs = data.calls;
-      console.log(`Retrieved ${logs.length} logs from VAPI API (calls format)`);
+      logs = data.calls
+      console.log(`Retrieved ${logs.length} logs from VAPI API (calls format)`)
     } else if (data && data.results && Array.isArray(data.results)) {
-      logs = data.results;
-      console.log(`Retrieved ${logs.length} logs from VAPI API (results format)`);
+      logs = data.results
+      console.log(`Retrieved ${logs.length} logs from VAPI API (results format)`)
     } else if (data && typeof data === 'object' && data.metadata && Array.isArray(data.metadata.calls)) {
-      logs = data.metadata.calls;
-      console.log(`Retrieved ${logs.length} logs from VAPI API (metadata.calls format)`);
+      logs = data.metadata.calls
+      console.log(`Retrieved ${logs.length} logs from VAPI API (metadata.calls format)`)
     } else if (data && data.data && typeof data.data === 'object' && Array.isArray(data.data.records)) {
-      logs = data.data.records;
-      console.log(`Retrieved ${logs.length} logs from VAPI API (data.records format)`);
+      logs = data.data.records
+      console.log(`Retrieved ${logs.length} logs from VAPI API (data.records format)`)
     } else if (data && data.records && Array.isArray(data.records)) {
-      logs = data.records;
-      console.log(`Retrieved ${logs.length} logs from VAPI API (records format)`);
+      logs = data.records
+      console.log(`Retrieved ${logs.length} logs from VAPI API (records format)`)
     } else if (data && data.items && Array.isArray(data.items)) {
-      logs = data.items;
-      console.log(`Retrieved ${logs.length} logs from VAPI API (items format)`);
+      logs = data.items
+      console.log(`Retrieved ${logs.length} logs from VAPI API (items format)`)
     } else {
       // If no recognized format is found, log the structure for debugging
-      console.log('Response data structure:', JSON.stringify(data).substring(0, 300));
-      console.log('No logs found in VAPI API response or unexpected format');
+      console.log('Response data structure:', JSON.stringify(data).substring(0, 300))
+      console.log('No logs found in VAPI API response or unexpected format')
     }
 
-    return logs;
+    return logs || []
   }
 }
 
-// Database operations module
-const dbManager = {
-  // Process and store logs in the database
-  async processAndStoreLogs(supabase, logs) {
-    let insertedCount = 0;
-    let updatedCount = 0;
-    let errorCount = 0;
+/**
+ * Database Operations
+ */
+class DatabaseManager {
+  /**
+   * Process and store logs in the database
+   */
+  static async processAndStoreLogs(supabase, logs) {
+    let insertedCount = 0
+    let updatedCount = 0
+    let errorCount = 0
 
     if (!logs || logs.length === 0) {
-      return { insertedCount, updatedCount, errorCount };
+      return { insertedCount, updatedCount, errorCount }
     }
 
-    console.log(`Processing ${logs.length} logs from VAPI API`);
+    console.log(`Processing ${logs.length} logs from VAPI API`)
 
     for (const log of logs) {
       try {
         // Skip if log doesn't have an ID
         if (!log.id) {
-          console.log('Skipping log without ID:', log);
-          errorCount++;
-          continue;
+          console.log('Skipping log without ID:', log)
+          errorCount++
+          continue
         }
         
         // Check if log already exists in the database
@@ -311,106 +368,114 @@ const dbManager = {
           .from('vapi_call_logs')
           .select('id')
           .eq('log_id', log.id)
-          .maybeSingle();
+          .maybeSingle()
 
         if (checkError) {
-          console.error(`Error checking if log ${log.id} exists:`, checkError);
-          errorCount++;
-          continue;
+          console.error(`Error checking if log ${log.id} exists:`, checkError)
+          errorCount++
+          continue
         }
 
         // Prepare the log data with fallbacks for missing fields
-        const logData = {
-          log_id: log.id,
-          assistant_id: log.assistant_id || log.assistantId || '0b7c2a96-0360-4fef-9956-e847fd696ea2',
-          organization_id: log.organization_id || log.organizationId || 'unknown',
-          conversation_id: log.conversation_id || log.conversationId || null,
-          phone_number: log.phone_number || log.phoneNumber || null,
-          caller_phone_number: log.caller_phone_number || log.callerPhoneNumber || null,
-          start_time: log.start_time || log.startTime || null,
-          end_time: log.end_time || log.endTime || null,
-          duration: log.duration || null,
-          status: log.status || null,
-          direction: log.direction || null,
-          transcript: log.transcript || null,
-          recording_url: log.recording_url || log.recordingUrl || null,
-          metadata: log.metadata || {},
-          
-          // New fields we added to the database
-          assistant_name: log.assistant_name || log.assistantName || null,
-          assistant_phone_number: log.assistant_phone_number || log.assistantPhoneNumber || log.phoneNumber || null,
-          customer_number: log.customer_number || log.customerNumber || log.caller_phone_number || log.callerPhoneNumber || null,
-          call_type: log.call_type || log.callType || null,
-          cost: log.cost || null,
-          ended_reason: log.ended_reason || log.endedReason || log.ended_reason_detail || log.endedReasonDetail || null,
-          success_evaluation: log.success_evaluation || log.successEvaluation || null
-        };
+        const logData = this.normalizeLogData(log)
 
         // Insert or update the log
         if (!existingLog) {
           // Insert new log
           const { error: insertError } = await supabase
             .from('vapi_call_logs')
-            .insert([logData]);
+            .insert([logData])
 
           if (insertError) {
-            console.error(`Error inserting log ${log.id}:`, insertError);
-            errorCount++;
+            console.error(`Error inserting log ${log.id}:`, insertError)
+            errorCount++
           } else {
-            insertedCount++;
+            insertedCount++
           }
         } else {
           // Update existing log
           const { error: updateError } = await supabase
             .from('vapi_call_logs')
             .update(logData)
-            .eq('log_id', log.id);
+            .eq('log_id', log.id)
 
           if (updateError) {
-            console.error(`Error updating log ${log.id}:`, updateError);
-            errorCount++;
+            console.error(`Error updating log ${log.id}:`, updateError)
+            errorCount++
           } else {
-            updatedCount++;
+            updatedCount++
           }
         }
       } catch (err) {
-        console.error(`Error processing log ${log?.id || 'unknown'}:`, err);
-        errorCount++;
+        console.error(`Error processing log ${log?.id || 'unknown'}:`, err)
+        errorCount++
       }
     }
 
-    return { insertedCount, updatedCount, errorCount };
+    return { insertedCount, updatedCount, errorCount }
+  }
+  
+  /**
+   * Normalize log data to match database schema
+   */
+  static normalizeLogData(log) {
+    return {
+      log_id: log.id,
+      assistant_id: log.assistant_id || log.assistantId || CONFIG.VAPI_ASSISTANT_ID,
+      organization_id: log.organization_id || log.organizationId || 'unknown',
+      conversation_id: log.conversation_id || log.conversationId || null,
+      phone_number: log.phone_number || log.phoneNumber || null,
+      caller_phone_number: log.caller_phone_number || log.callerPhoneNumber || null,
+      start_time: log.start_time || log.startTime || log.startedAt || null,
+      end_time: log.end_time || log.endTime || log.endedAt || null,
+      duration: log.duration || null,
+      status: log.status || null,
+      direction: log.direction || null,
+      transcript: log.transcript || null,
+      recording_url: log.recording_url || log.recordingUrl || null,
+      metadata: log.metadata || {},
+      
+      // New fields we added to the database
+      assistant_name: log.assistant_name || log.assistantName || null,
+      assistant_phone_number: log.assistant_phone_number || log.assistantPhoneNumber || log.phoneNumber || null,
+      customer_number: log.customer_number || log.customerNumber || log.caller_phone_number || log.callerPhoneNumber || null,
+      call_type: log.call_type || log.callType || log.type || null,
+      cost: log.cost || null,
+      ended_reason: log.ended_reason || log.endedReason || log.ended_reason_detail || log.endedReasonDetail || null,
+      success_evaluation: log.success_evaluation || log.successEvaluation || null
+    }
   }
 }
 
-// Main handler function for the edge function
+/**
+ * Main handler for edge function
+ */
 async function handleRequest(req) {
   try {
     // Create Supabase client
-    const supabase = createSupabaseClient();
-    
-    // Get the VAPI API key
-    const apiKey = await vapiKeyManager.getApiKey(supabase);
+    const supabase = createSupabaseClient()
     
     // Get request body for additional parameters
-    let requestParams = {};
+    let requestParams = {}
     if (req.method === 'POST') {
       try {
-        requestParams = await req.json();
+        requestParams = await req.json()
       } catch (e) {
-        // If parsing fails, proceed with default parameters
-        console.error('Failed to parse request body:', e);
+        console.error('Failed to parse request body:', e)
       }
     }
     
+    // Get the VAPI API key
+    const apiKey = await ApiKeyManager.getApiKey(supabase)
+    
     // Get date range for the query
-    const { startDateISO, endDateISO } = dateHelper.getDateRange(requestParams);
+    const { startDateISO, endDateISO } = DateRangeHelper.getDateRange(requestParams)
     
     // Fetch logs from VAPI API
-    const logs = await vapiApiClient.fetchLogs(apiKey, startDateISO, endDateISO);
+    const logs = await VapiApiClient.fetchLogs(apiKey, startDateISO, endDateISO)
     
     // Process and store logs in the database
-    const { insertedCount, updatedCount, errorCount } = await dbManager.processAndStoreLogs(supabase, logs);
+    const { insertedCount, updatedCount, errorCount } = await DatabaseManager.processAndStoreLogs(supabase, logs)
 
     // Return success with counts
     return new Response(
@@ -428,9 +493,9 @@ async function handleRequest(req) {
           ...corsHeaders
         }
       }
-    );
+    )
   } catch (error) {
-    console.error('Error in fetch-vapi-logs function:', error);
+    console.error('Error in fetch-vapi-logs function:', error)
     
     return new Response(
       JSON.stringify({
@@ -445,7 +510,7 @@ async function handleRequest(req) {
           ...corsHeaders
         }
       }
-    );
+    )
   }
 }
 
@@ -453,8 +518,8 @@ async function handleRequest(req) {
 Deno.serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
+    return new Response(null, { headers: corsHeaders })
   }
   
-  return handleRequest(req);
-});
+  return handleRequest(req)
+})
