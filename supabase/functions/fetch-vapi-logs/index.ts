@@ -1,3 +1,4 @@
+
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.7'
 
 // Define CORS headers for all responses
@@ -31,7 +32,7 @@ const CONFIG = {
       description: 'Call logs endpoint',
       supportsDates: false
     }
-    // Removed the analytics endpoint as it's returning 404
+    // Removed the analytics endpoint as it was returning 404
   ],
   // Mapping configuration to match VAPI API fields to Supabase columns
   FIELD_MAPPING: {
@@ -220,6 +221,7 @@ class VapiApiClient {
       })
       
       if (!response.ok) {
+        console.error(`API discovery returned status: ${response.status}`)
         return null
       }
       
@@ -251,6 +253,8 @@ class VapiApiClient {
           
           if (callResponse.ok) {
             return await callResponse.json()
+          } else {
+            console.error(`Discovered endpoint returned status: ${callResponse.status}`)
           }
         }
       }
@@ -268,6 +272,7 @@ class VapiApiClient {
   static async fetchLogs(apiKey, startDate, endDate) {
     const endpoints = this.getEndpointConfigs()
     let lastError = null
+    let responseResults = null
     
     // Create extra params to explicitly request phone number fields
     const extraParams = {};
@@ -301,12 +306,17 @@ class VapiApiClient {
         
         const data = await response.json()
         console.log(`Success with ${endpoint.url}! Response:`, JSON.stringify(data).substring(0, 200) + '...')
-        
-        return ResponseParser.extractLogsFromResponse(data)
+        responseResults = data
+        break // Exit the loop if we get a successful response
       } catch (error) {
         console.error(`Error with ${endpoint.url}:`, error)
         lastError = error
       }
+    }
+    
+    // If we got results from one of the endpoints, return them
+    if (responseResults) {
+      return ResponseParser.extractLogsFromResponse(responseResults)
     }
     
     // Try API discovery as a last resort
