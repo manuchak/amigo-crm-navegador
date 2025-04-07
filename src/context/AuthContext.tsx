@@ -81,11 +81,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
         
         // Set manuel.chacon@detectasecurity.io as verified owner
-        // Use a setTimeout to avoid recursion issues
-        setTimeout(() => {
-          setUserAsVerifiedOwner('manuel.chacon@detectasecurity.io')
-            .catch(error => console.error("Error setting verified owner:", error));
-        }, 1000);
+        console.log("Setting up manuel.chacon@detectasecurity.io as verified owner...");
+        try {
+          await setUserAsVerifiedOwner('manuel.chacon@detectasecurity.io');
+          console.log("Verified owner setup complete");
+        } catch (error) {
+          console.error("Error setting verified owner:", error);
+        }
         
         setLoading(false);
         
