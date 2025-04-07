@@ -35,6 +35,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
 
+  // Define interfaces for the data returned from Supabase
+  interface ProfileData {
+    id: string;
+    email: string;
+    display_name: string;
+    photo_url?: string;
+    created_at: string;
+    last_login: string;
+  }
+
+  interface UserRoleData {
+    id: string;
+    user_id: string;
+    role: string;
+  }
+
   // Function to map Supabase user data to our UserData format
   const mapUserData = async (user: User): Promise<UserData | null> => {
     if (!user) return null;
@@ -132,6 +148,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           data: {
             display_name: displayName,
           },
+          emailRedirectTo: `${window.location.origin}/auth/callback`
         },
       });
 
@@ -205,22 +222,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setLoading(false);
     }
   };
-
-  // Define interfaces for the data returned from Supabase
-  interface ProfileData {
-    id: string;
-    email: string;
-    display_name: string;
-    photo_url?: string;
-    created_at: string;
-    last_login: string;
-  }
-
-  interface UserRoleData {
-    id: string;
-    user_id: string;
-    role: string;
-  }
 
   const getAllUsers = async (): Promise<UserData[]> => {
     setLoading(true);

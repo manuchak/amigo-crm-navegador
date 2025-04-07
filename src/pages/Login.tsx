@@ -1,6 +1,6 @@
 
-import React, { useState } from 'react';
-import { Navigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { Navigate, useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Separator } from '@/components/ui/separator';
@@ -14,14 +14,23 @@ const Login = () => {
   const { currentUser, userData } = useAuth();
   const [authTab, setAuthTab] = useState<string>('signin');
   const [showForgotPassword, setShowForgotPassword] = useState(false);
+  const navigate = useNavigate();
   
-  // Redirect if already logged in - no longer checking email verification
-  if (currentUser) {
-    if (userData?.role === 'pending') {
-      return <Navigate to="/pending-approval" replace />;
+  useEffect(() => {
+    // Redirect if already logged in
+    if (currentUser) {
+      if (!currentUser.emailVerified) {
+        navigate('/verify-email');
+      } else if (userData?.role === 'pending') {
+        navigate('/pending-approval');
+      } else {
+        navigate('/dashboard');
+      }
     }
-    return <Navigate to="/dashboard" replace />;
-  }
+  }, [currentUser, userData, navigate]);
+  
+  // If we already determined user is logged in above, don't render the login page
+  if (currentUser) return null;
   
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-r from-gray-50 to-gray-100 p-4">

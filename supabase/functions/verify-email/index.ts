@@ -30,7 +30,12 @@ serve(async (req) => {
       throw new Error("Missing required fields: email, name, or verificationLink");
     }
 
-    console.log(`Sending verification email to ${email} with link ${verificationLink}`);
+    // Make sure the verification link is a complete URL with https://
+    const finalVerificationLink = verificationLink.startsWith('http') 
+      ? verificationLink 
+      : `https://beefjsdgrdeiymzxwxru.supabase.co${verificationLink}`;
+
+    console.log(`Sending verification email to ${email} with link ${finalVerificationLink}`);
 
     const emailResponse = await resend.emails.send({
       from: "CustodiosCRM <onboarding@resend.dev>",
@@ -46,7 +51,7 @@ serve(async (req) => {
             <p>Hola ${name},</p>
             <p>Gracias por registrarte en CustodiosCRM. Para verificar tu correo electrónico, haz clic en el siguiente enlace:</p>
             <div style="text-align: center; margin: 30px 0;">
-              <a href="${verificationLink}" style="background-color: #333366; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px; font-weight: bold;">Verificar mi correo electrónico</a>
+              <a href="${finalVerificationLink}" style="background-color: #333366; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px; font-weight: bold;">Verificar mi correo electrónico</a>
             </div>
             <p>Si no solicitaste esta verificación, puedes ignorar este correo.</p>
             <p>Este enlace expirará en 24 horas.</p>

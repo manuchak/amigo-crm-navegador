@@ -1,15 +1,17 @@
 
-import React, { useState } from 'react';
-import { Navigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { Navigate, useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/context/AuthContext';
 import { Mail, RefreshCw, LogOut } from 'lucide-react';
 import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
 
 const VerifyEmail = () => {
   const { currentUser, signOut, refreshUserData } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
+  const navigate = useNavigate();
   
   // Redirect if not logged in
   if (!currentUser) {
@@ -25,18 +27,19 @@ const VerifyEmail = () => {
     try {
       setIsLoading(true);
       
-      // Since email verification isn't working, we'll just show a message
-      // and simulate the process for testing purposes
+      const { data, error } = await supabase.auth.resetPasswordForEmail(currentUser.email, {
+        redirectTo: `${window.location.origin}/verify-confirmation`,
+      });
       
-      toast.success('Para propósitos de test, consideramos que el email ha sido enviado');
-      console.log('Email verification simulation for:', currentUser.email);
+      if (error) {
+        throw error;
+      }
       
-      // Wait a bit to simulate the email sending process
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      toast.success('Correo de verificación enviado. Por favor revisa tu bandeja de entrada.');
       
     } catch (error) {
-      console.error('Error in simulated verification:', error);
-      toast.error('Error al simular el envío del correo de verificación');
+      console.error('Error sending verification email:', error);
+      toast.error('Error al enviar el correo de verificación');
     } finally {
       setIsLoading(false);
     }
@@ -45,33 +48,13 @@ const VerifyEmail = () => {
   const handleRefresh = async () => {
     try {
       setIsLoading(true);
-      
-      // In a real app, we would check with the server if the email has been verified
       await refreshUserData();
       
-      // For demo purposes, we'll simulate email verification
-      const updatedUser = JSON.parse(localStorage.getItem('current_user') || '{}');
-      const verificationSimulation = Math.random() > 0.5; // 50% chance of "verification"
-      
-      if (verificationSimulation) {
-        // Update local storage to mark email as verified
-        updatedUser.emailVerified = true;
-        localStorage.setItem('current_user', JSON.stringify(updatedUser));
-        
-        // Also update the user in the users list
-        const users = JSON.parse(localStorage.getItem('local_users') || '[]');
-        const updatedUsers = users.map(user => {
-          if (user.uid === updatedUser.uid) {
-            return { ...user, emailVerified: true };
-          }
-          return user;
-        });
-        localStorage.setItem('local_users', JSON.stringify(updatedUsers));
-        
-        // Refresh user data and redirect
-        await refreshUserData();
-        window.location.href = '/dashboard';
+      // Check if the email is now verified
+      const { data } = await supabase.auth.getUser();
+      if (data.user?.email_confirmed_at) {
         toast.success('¡Correo verificado con éxito!');
+        navigate('/dashboard');
       } else {
         toast.info('El correo electrónico aún no ha sido verificado');
       }
