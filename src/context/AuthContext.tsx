@@ -40,7 +40,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (!user) return null;
 
     try {
-      // Get profile data
+      // Get profile data using the proper typing
       const { data: profileData, error: profileError } = await supabase
         .from('profiles')
         .select('*')
@@ -49,7 +49,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       if (profileError) throw profileError;
 
-      // Get user role
+      // Get user role using RPC function
       const { data: roleData, error: roleError } = await supabase
         .rpc('get_user_role', { user_uid: user.id })
         .single();
@@ -209,17 +209,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const getAllUsers = async (): Promise<UserData[]> => {
     setLoading(true);
     try {
-      // Get all profiles with their roles
+      // Get all profiles
       const { data: profiles, error: profilesError } = await supabase
         .from('profiles')
         .select('*');
       
       if (profilesError) throw profilesError;
       
-      // Get all users from auth.users through profiles table
-      const { data: users, error: usersError } = await supabase.auth.admin.listUsers();
+      // Get all users from auth.users through the admin API (this uses the service role)
+      const { data: authUsers, error: authUsersError } = await supabase.auth.admin.listUsers();
       
-      if (usersError) throw usersError;
+      if (authUsersError) throw authUsersError;
       
       // Get all roles
       const { data: roles, error: rolesError } = await supabase
@@ -230,7 +230,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       // Combine the data
       const mappedUsers: UserData[] = profiles.map(profile => {
-        const authUser = users.users.find(user => user.id === profile.id);
+        const authUser = authUsers.users.find(user => user.id === profile.id);
         const userRole = roles.find(role => role.user_id === profile.id);
         
         return {
