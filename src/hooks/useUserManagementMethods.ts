@@ -1,6 +1,6 @@
 
 import { toast } from 'sonner';
-import { supabase } from '@/integrations/supabase/client';
+import { supabase, supabaseAdmin } from '@/integrations/supabase/client';
 import { UserRole, UserData } from '@/types/auth';
 import { ProfileData, UserRoleData, mapUserData } from './useSupabaseMappings';
 
@@ -40,7 +40,7 @@ export const useUserManagementMethods = (
       if (profilesError) throw profilesError;
       
       // Get all users from auth.users through the admin API (this uses the service role)
-      const { data: authUsers, error: authUsersError } = await supabase.auth.admin.listUsers();
+      const { data: authUsers, error: authUsersError } = await supabaseAdmin.auth.admin.listUsers();
       
       if (authUsersError) throw authUsersError;
       
@@ -158,7 +158,8 @@ export const useUserManagementMethods = (
       } else {
         // User not found in profiles, check if exists in auth
         try {
-          const { data: authData, error: authError } = await supabase.auth.admin.listUsers({
+          // We'll use supabaseAdmin here which has the service role permissions
+          const { data: authData, error: authError } = await supabaseAdmin.auth.admin.listUsers({
             page: 1,
             perPage: 1000 // Use a reasonable limit
           });
@@ -208,7 +209,7 @@ export const useUserManagementMethods = (
             toast.success(`Usuario ${email} configurado como propietario verificado`);
           } else {
             // User doesn't exist, create new user with email confirmed
-            const { data: newUser, error: signUpError } = await supabase.auth.admin.createUser({
+            const { data: newUser, error: signUpError } = await supabaseAdmin.auth.admin.createUser({
               email: email,
               password: 'Custodios2024',
               email_confirm: true, // This ensures the email is confirmed immediately

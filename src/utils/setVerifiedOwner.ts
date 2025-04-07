@@ -28,5 +28,4 @@ export const setSpecificUserAsVerifiedOwner = (email: string) => {
   }
 };
 
-// Set Manuel Chacon as a verified owner
-setSpecificUserAsVerifiedOwner('manuel.chacon@detectasecurity.io');
+// Removed automatic setting of manuel.chacon as verified owner

@@ -17,38 +17,20 @@ const formSchema = z.object({
 
 type FormData = z.infer<typeof formSchema>;
 
-const OWNER_EMAIL = 'manuel.chacon@detectasecurity.io';
-const DEFAULT_PASSWORD = 'Custodios2024';
-
 const EmailSignInForm: React.FC<{ onSuccess?: () => void; onForgotPassword?: () => void }> = ({ 
   onSuccess,
   onForgotPassword 
 }) => {
-  const { signIn, loading: authLoading, setUserAsVerifiedOwner } = useAuth();
+  const { signIn, loading: authLoading } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
   
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      email: OWNER_EMAIL,
-      password: DEFAULT_PASSWORD,
+      email: '',
+      password: '',
     },
   });
-
-  // Ensure the owner user exists and is verified, but don't auto-login
-  React.useEffect(() => {
-    const setupOwnerUser = async () => {
-      try {
-        // First ensure the owner user exists and has proper permissions
-        await setUserAsVerifiedOwner(OWNER_EMAIL);
-        console.log("Owner user setup completed");
-      } catch (error) {
-        console.error("Error setting up owner user:", error);
-      }
-    };
-    
-    setupOwnerUser();
-  }, [setUserAsVerifiedOwner]);
 
   const onSubmit = async (data: FormData) => {
     if (isSubmitting) return; // Prevent multiple submissions
@@ -58,43 +40,12 @@ const EmailSignInForm: React.FC<{ onSuccess?: () => void; onForgotPassword?: () 
       const userData = await signIn(data.email, data.password);
       
       if (userData) {
-        if (data.email === OWNER_EMAIL) {
-          toast.success('¡Bienvenido administrador!');
-        } else {
-          toast.success('¡Inicio de sesión exitoso!');
-        }
-        
+        toast.success('¡Inicio de sesión exitoso!');
         if (onSuccess) onSuccess();
       }
     } catch (error: any) {
       console.error("Login error:", error);
-      
-      // If login fails for the owner, try to ensure the owner account exists and is verified
-      if (data.email === OWNER_EMAIL) {
-        try {
-          await setUserAsVerifiedOwner(OWNER_EMAIL);
-          toast.info("Cuenta de propietario creada/verificada. Intentando iniciar sesión de nuevo...");
-          
-          // Try logging in again after a short delay
-          setTimeout(async () => {
-            try {
-              const userData = await signIn(OWNER_EMAIL, DEFAULT_PASSWORD);
-              if (userData && onSuccess) {
-                toast.success('¡Bienvenido administrador!');
-                onSuccess();
-              }
-            } catch (retryError) {
-              console.error("Retry login error:", retryError);
-              toast.error("Error al iniciar sesión después de verificar la cuenta");
-            }
-          }, 1500);
-        } catch (ownerSetupError) {
-          console.error("Owner setup error:", ownerSetupError);
-          toast.error("Error al configurar la cuenta de propietario");
-        }
-      } else {
-        toast.error(error?.message || "Error al iniciar sesión");
-      }
+      toast.error(error?.message || "Error al iniciar sesión");
     } finally {
       setIsSubmitting(false);
     }
