@@ -54,8 +54,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // Set up auth state listener
   useEffect(() => {
+    let authUnsubscribe: (() => void) | null = null;
+    
     const setupAuth = async () => {
       try {
+        setLoading(true);
+        console.log("Setting up auth state...");
+        
         // First set up the auth state change listener
         const { data: authListener } = supabase.auth.onAuthStateChange(
           async (event, currentSession) => {
@@ -64,19 +69,29 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             setSession(currentSession);
             
             if (currentSession?.user) {
+              console.log("User authenticated:", currentSession.user.email);
               const mappedUserData = await mapUserData(currentSession.user);
               setUserData(mappedUserData);
             } else {
+              console.log("No active session");
               setUserData(null);
             }
           }
         );
         
+        // Store unsubscribe function
+        authUnsubscribe = () => {
+          console.log("Unsubscribing from auth state changes");
+          authListener.subscription.unsubscribe();
+        };
+        
         // Then get the initial session
+        console.log("Fetching initial session");
         const { data: { session: currentSession } } = await supabase.auth.getSession();
         setSession(currentSession);
         
         if (currentSession?.user) {
+          console.log("Initial session found for user:", currentSession.user.email);
           const mappedUserData = await mapUserData(currentSession.user);
           setUserData(mappedUserData);
         }
@@ -89,20 +104,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           console.log("Owner privileges setup complete");
         } catch (error) {
           console.error("Error setting verified owner:", error);
+          // Continue even if this fails - don't block app initialization
         }
-        
-        setLoading(false);
-        
-        return () => {
-          authListener.subscription.unsubscribe();
-        };
       } catch (error) {
         console.error("Error setting up authentication:", error);
+      } finally {
         setLoading(false);
       }
     };
     
     setupAuth();
+    
+    // Cleanup subscription on unmount
+    return () => {
+      if (authUnsubscribe) {
+        authUnsubscribe();
+      }
+    };
   }, []);
 
   const value = {
