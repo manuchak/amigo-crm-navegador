@@ -127,7 +127,8 @@ export const useUserManagementMethods = (
       } else {
         // User not found in profiles, check if exists in auth
         const { data: authData, error: authError } = await supabase.auth.admin.listUsers({
-          filter: `email=eq.${email}`
+          page: 1,
+          perPage: 1000 // Use a reasonable limit
         });
         
         if (authError) {

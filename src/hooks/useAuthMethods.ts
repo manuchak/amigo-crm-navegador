@@ -1,4 +1,3 @@
-
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { UserRole, UserData } from '@/types/auth';
@@ -34,25 +33,53 @@ export const useAuthMethods = (
   const signIn = async (email: string, password: string) => {
     setLoading(true);
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({
+      // Set a timeout to prevent hanging
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('La conexión tardó demasiado tiempo, por favor inténtelo de nuevo')), 15000)
+      );
+      
+      const authPromise = supabase.auth.signInWithPassword({
         email,
         password,
       });
+      
+      // Race between the auth request and the timeout
+      const { data, error } = await Promise.race([
+        authPromise,
+        timeoutPromise.then(() => {
+          throw new Error('Tiempo de espera agotado');
+        })
+      ]) as Awaited<ReturnType<typeof supabase.auth.signInWithPassword>>;
 
       if (error) {
         let errorMessage = 'Correo o contraseña incorrectos';
+        if (error.message.includes('Invalid login')) {
+          errorMessage = 'Correo o contraseña incorrectos';
+        } else if (error.message.includes('email')) {
+          errorMessage = 'El correo electrónico no es válido';
+        } else if (error.message.includes('password')) {
+          errorMessage = 'La contraseña es incorrecta';
+        }
         throw new Error(errorMessage);
       }
 
+      if (!data.user) {
+        throw new Error('No se pudo iniciar sesión, por favor inténtelo de nuevo');
+      }
+
       const mappedUserData = await mapUserData(data.user);
-      setUserData(mappedUserData);
       
+      if (!mappedUserData) {
+        throw new Error('Error al obtener datos del usuario');
+      }
+      
+      setUserData(mappedUserData);
       toast.success('Sesión iniciada con éxito');
       return mappedUserData;
     } catch (error: any) {
       console.error('Error signing in:', error);
-      toast.error(error.message || 'Error al iniciar sesión');
-      throw error;
+      setLoading(false);
+      throw error; // Rethrow to be handled by the form
     } finally {
       setLoading(false);
     }

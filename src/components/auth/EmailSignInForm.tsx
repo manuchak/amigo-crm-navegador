@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { useAuth } from '@/context/AuthContext';
+import { toast } from 'sonner';
 
 const formSchema = z.object({
   email: z.string().email('Correo electrónico inválido'),
@@ -21,6 +22,7 @@ const EmailSignInForm: React.FC<{ onSuccess?: () => void; onForgotPassword?: () 
   onForgotPassword 
 }) => {
   const { signIn, loading } = useAuth();
+  const [isSubmitting, setIsSubmitting] = useState(false);
   
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
@@ -31,13 +33,22 @@ const EmailSignInForm: React.FC<{ onSuccess?: () => void; onForgotPassword?: () 
   });
 
   const onSubmit = async (data: FormData) => {
+    if (isSubmitting) return; // Prevent multiple submissions
+    
+    setIsSubmitting(true);
     try {
       await signIn(data.email, data.password);
       if (onSuccess) onSuccess();
-    } catch (error) {
-      // Error is handled by the hook
+    } catch (error: any) {
+      console.error("Login error:", error);
+      toast.error(error?.message || "Error al iniciar sesión");
+    } finally {
+      setIsSubmitting(false);
     }
   };
+
+  // Combine the component loading state with the auth loading state
+  const isLoading = loading || isSubmitting;
 
   return (
     <Form {...form}>
@@ -55,7 +66,7 @@ const EmailSignInForm: React.FC<{ onSuccess?: () => void; onForgotPassword?: () 
                     {...field}
                     placeholder="tucorreo@ejemplo.com"
                     className="pl-10"
-                    disabled={loading}
+                    disabled={isLoading}
                   />
                 </div>
               </FormControl>
@@ -78,7 +89,7 @@ const EmailSignInForm: React.FC<{ onSuccess?: () => void; onForgotPassword?: () 
                     type="password"
                     placeholder="••••••••"
                     className="pl-10"
-                    disabled={loading}
+                    disabled={isLoading}
                   />
                 </div>
               </FormControl>
@@ -94,15 +105,15 @@ const EmailSignInForm: React.FC<{ onSuccess?: () => void; onForgotPassword?: () 
               variant="link" 
               onClick={onForgotPassword}
               className="p-0 h-auto"
-              disabled={loading}
+              disabled={isLoading}
             >
               ¿Olvidaste tu contraseña?
             </Button>
           </div>
         )}
         
-        <Button type="submit" className="w-full" disabled={loading}>
-          {loading ? (
+        <Button type="submit" className="w-full" disabled={isLoading}>
+          {isLoading ? (
             <>
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
               Iniciando sesión...
