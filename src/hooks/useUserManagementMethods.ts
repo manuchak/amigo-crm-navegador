@@ -140,7 +140,8 @@ export const useUserManagementMethods = (
         throw userError;
       }
       
-      if (userData && 'id' in userData) {
+      // Explicitly check if userData has the id property
+      if (userData && 'id' in userData && userData.id) {
         // User exists in profiles, update role
         const { error } = await supabase.rpc('update_user_role', {
           target_user_id: userData.id,
@@ -149,6 +150,11 @@ export const useUserManagementMethods = (
         
         if (error) throw error;
         toast.success(`Usuario ${email} configurado como propietario verificado`);
+        
+        // Also verify the email
+        await supabase.rpc('verify_user_email', {
+          target_user_id: userData.id
+        });
       } else {
         // User not found in profiles, check if exists in auth
         try {
@@ -164,7 +170,7 @@ export const useUserManagementMethods = (
           
           // Find user in auth data with null checking
           const authUser = authData?.users ? 
-            authData.users.find(u => u && u.email === email) : 
+            authData.users.find(u => u && u.email && u.email.toLowerCase() === email.toLowerCase()) : 
             undefined;
           
           if (authUser) {
@@ -193,6 +199,12 @@ export const useUserManagementMethods = (
             });
             
             if (roleError) throw roleError;
+            
+            // Also verify the email
+            await supabase.rpc('verify_user_email', {
+              target_user_id: authUser.id
+            });
+            
             toast.success(`Usuario ${email} configurado como propietario verificado`);
           } else {
             // User doesn't exist, create new user with email confirmed

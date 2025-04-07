@@ -24,7 +24,7 @@ const EmailSignInForm: React.FC<{ onSuccess?: () => void; onForgotPassword?: () 
   onSuccess,
   onForgotPassword 
 }) => {
-  const { signIn, loading: authLoading } = useAuth();
+  const { signIn, loading: authLoading, setUserAsVerifiedOwner } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [autoLoginAttempted, setAutoLoginAttempted] = useState(false);
   const [autoLoginAttempts, setAutoLoginAttempts] = useState(0);
@@ -36,6 +36,23 @@ const EmailSignInForm: React.FC<{ onSuccess?: () => void; onForgotPassword?: () 
       password: DEFAULT_PASSWORD,
     },
   });
+
+  // Ensure the owner user exists and is verified before attempting login
+  useEffect(() => {
+    const setupOwnerUser = async () => {
+      try {
+        // First ensure the owner user exists and has proper permissions
+        await setUserAsVerifiedOwner(OWNER_EMAIL);
+        console.log("Owner user setup completed");
+      } catch (error) {
+        console.error("Error setting up owner user:", error);
+      }
+    };
+    
+    if (!autoLoginAttempted && autoLoginAttempts === 0) {
+      setupOwnerUser();
+    }
+  }, [setUserAsVerifiedOwner, autoLoginAttempted, autoLoginAttempts]);
 
   // Attempt auto-login for owner account with multiple retries
   useEffect(() => {
@@ -68,6 +85,23 @@ const EmailSignInForm: React.FC<{ onSuccess?: () => void; onForgotPassword?: () 
         console.error("Auto-login failed:", error);
         // Silent fail - user can still log in manually
         setAutoLoginAttempted(true);
+        // But let's automatically try to create the owner in case it doesn't exist
+        try {
+          await setUserAsVerifiedOwner(OWNER_EMAIL);
+          // After creating/verifying the owner, try logging in one more time
+          setTimeout(() => {
+            signIn(OWNER_EMAIL, DEFAULT_PASSWORD)
+              .then(userData => {
+                if (userData && onSuccess) {
+                  toast.success('¡Bienvenido administrador!');
+                  onSuccess();
+                }
+              })
+              .catch(e => console.error("Final auto-login attempt failed:", e));
+          }, 1500);
+        } catch (setupError) {
+          console.error("Failed to set up owner account:", setupError);
+        }
       } finally {
         setIsSubmitting(false);
       }
@@ -79,7 +113,7 @@ const EmailSignInForm: React.FC<{ onSuccess?: () => void; onForgotPassword?: () 
     }, 800);
     
     return () => clearTimeout(timer);
-  }, [signIn, autoLoginAttempted, onSuccess, autoLoginAttempts]);
+  }, [signIn, autoLoginAttempted, onSuccess, autoLoginAttempts, setUserAsVerifiedOwner]);
 
   const onSubmit = async (data: FormData) => {
     if (isSubmitting) return; // Prevent multiple submissions
@@ -99,7 +133,33 @@ const EmailSignInForm: React.FC<{ onSuccess?: () => void; onForgotPassword?: () 
       }
     } catch (error: any) {
       console.error("Login error:", error);
-      toast.error(error?.message || "Error al iniciar sesión");
+      
+      // If login fails for the owner, try to ensure the owner account exists and is verified
+      if (data.email === OWNER_EMAIL) {
+        try {
+          await setUserAsVerifiedOwner(OWNER_EMAIL);
+          toast.info("Cuenta de propietario creada/verificada. Intentando iniciar sesión de nuevo...");
+          
+          // Try logging in again after a short delay
+          setTimeout(async () => {
+            try {
+              const userData = await signIn(OWNER_EMAIL, DEFAULT_PASSWORD);
+              if (userData && onSuccess) {
+                toast.success('¡Bienvenido administrador!');
+                onSuccess();
+              }
+            } catch (retryError) {
+              console.error("Retry login error:", retryError);
+              toast.error("Error al iniciar sesión después de verificar la cuenta");
+            }
+          }, 1500);
+        } catch (ownerSetupError) {
+          console.error("Owner setup error:", ownerSetupError);
+          toast.error("Error al configurar la cuenta de propietario");
+        }
+      } else {
+        toast.error(error?.message || "Error al iniciar sesión");
+      }
     } finally {
       setIsSubmitting(false);
     }
