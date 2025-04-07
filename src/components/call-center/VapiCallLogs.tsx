@@ -83,6 +83,7 @@ const VapiCallLogs: React.FC<VapiCallLogsProps> = ({ limit = 10, onRefresh }) =>
       }
 
       if (data) {
+        console.log('Fetched logs:', data.slice(0, 2));
         const logs = data as unknown as VapiCallLog[];
         setCallLogs(logs);
         applyFilters(logs, filters);
@@ -211,9 +212,9 @@ const VapiCallLogs: React.FC<VapiCallLogsProps> = ({ limit = 10, onRefresh }) =>
   };
 
   const formatDuration = (seconds: number | null) => {
-    if (!seconds) return '00:00';
+    if (seconds === null || seconds === undefined) return '00:00';
     const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
+    const secs = Math.floor(seconds % 60);
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
 
@@ -426,7 +427,7 @@ const VapiCallLogs: React.FC<VapiCallLogsProps> = ({ limit = 10, onRefresh }) =>
                             {log.call_type || 'N/A'}
                           </TableCell>
                           <TableCell>
-                            {log.duration ? formatDuration(log.duration) : 'N/A'}
+                            {log.duration !== null ? formatDuration(log.duration) : 'N/A'}
                           </TableCell>
                           <TableCell>
                             {getStatusBadge(log.status)}
@@ -469,7 +470,7 @@ const VapiCallLogs: React.FC<VapiCallLogsProps> = ({ limit = 10, onRefresh }) =>
                             {getDirectionBadge(log.direction)}
                           </TableCell>
                           <TableCell>
-                            {log.duration ? formatDuration(log.duration) : 'N/A'}
+                            {log.duration !== null ? formatDuration(log.duration) : 'N/A'}
                           </TableCell>
                           <TableCell>
                             {getStatusBadge(log.status)}

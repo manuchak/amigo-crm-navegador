@@ -299,6 +299,21 @@ class ResponseParser {
     console.log("Response has calls property:", "calls" in data)
     console.log("Response is array:", Array.isArray(data))
     
+    // Additional logging for deeper nested properties
+    if (typeof data === 'object' && data !== null) {
+      if (data.data) console.log("data.data type:", typeof data.data, "is array:", Array.isArray(data.data))
+      if (data.calls) console.log("data.calls type:", typeof data.calls, "is array:", Array.isArray(data.calls))
+      if (data.results) console.log("data.results type:", typeof data.results, "is array:", Array.isArray(data.results))
+      
+      // Check for phone number and duration fields specifically
+      const sampleObject = this.getSampleObject(data);
+      if (sampleObject) {
+        console.log("Sample object properties:", Object.keys(sampleObject))
+        console.log("Phone number fields:", this.findPhoneNumberFields(sampleObject))
+        console.log("Duration field:", sampleObject.duration, "type:", typeof sampleObject.duration)
+      }
+    }
+    
     let logs = []
     
     // Try different response formats
@@ -332,7 +347,51 @@ class ResponseParser {
       console.log('No logs found in VAPI API response or unexpected format')
     }
 
+    // Log details of first item if available
+    if (logs && logs.length > 0) {
+      console.log('Sample log item:', JSON.stringify(logs[0]).substring(0, 300))
+    }
+
     return logs || []
+  }
+
+  /**
+   * Extract a sample object from any of the possible data structures
+   */
+  static getSampleObject(data) {
+    if (Array.isArray(data) && data.length > 0) {
+      return data[0];
+    }
+    if (data && Array.isArray(data.data) && data.data.length > 0) {
+      return data.data[0];
+    }
+    if (data && Array.isArray(data.calls) && data.calls.length > 0) {
+      return data.calls[0];
+    }
+    if (data && Array.isArray(data.results) && data.results.length > 0) {
+      return data.results[0];
+    }
+    return null;
+  }
+
+  /**
+   * Find all potential phone number fields in an object
+   */
+  static findPhoneNumberFields(obj) {
+    if (!obj || typeof obj !== 'object') return [];
+    
+    const phoneFields = [];
+    for (const [key, value] of Object.entries(obj)) {
+      if (
+        typeof value === 'string' && 
+        (key.toLowerCase().includes('phone') || 
+         key.toLowerCase().includes('caller') ||
+         key.toLowerCase().includes('number'))
+      ) {
+        phoneFields.push({ key, value });
+      }
+    }
+    return phoneFields;
   }
 }
 
@@ -378,6 +437,10 @@ class DatabaseManager {
 
         // Prepare the log data with fallbacks for missing fields
         const logData = this.normalizeLogData(log)
+        
+        // Extra debug info for phone number and duration
+        console.log(`Log ${log.id} - Phone data: customer=${logData.customer_number}, caller=${logData.caller_phone_number}`)
+        console.log(`Log ${log.id} - Duration: ${logData.duration}, original type: ${typeof log.duration}`)
 
         // Insert or update the log
         if (!existingLog) {
@@ -419,28 +482,52 @@ class DatabaseManager {
    * Normalize log data to match database schema
    */
   static normalizeLogData(log) {
+    // Handle duration specially to ensure it's parsed as a number
+    let duration = null;
+    if (log.duration !== undefined && log.duration !== null) {
+      // Try to convert to number if it's a string
+      if (typeof log.duration === 'string') {
+        duration = parseInt(log.duration, 10);
+        // Check if valid number after parsing
+        if (isNaN(duration)) duration = null;
+      } else if (typeof log.duration === 'number') {
+        duration = log.duration;
+      }
+    }
+    
+    // Enhanced phone number extraction
+    const callerNumber = log.caller_phone_number || 
+                         log.callerPhoneNumber || 
+                         log.customer_phone || 
+                         log.customerPhoneNumber || 
+                         log.from || null;
+                         
+    const customerNumber = log.customer_number || 
+                           log.customerNumber || 
+                           callerNumber || null;
+
     return {
       log_id: log.id,
       assistant_id: log.assistant_id || log.assistantId || CONFIG.VAPI_ASSISTANT_ID,
       organization_id: log.organization_id || log.organizationId || 'unknown',
       conversation_id: log.conversation_id || log.conversationId || null,
       phone_number: log.phone_number || log.phoneNumber || null,
-      caller_phone_number: log.caller_phone_number || log.callerPhoneNumber || null,
+      caller_phone_number: callerNumber,
       start_time: log.start_time || log.startTime || log.startedAt || null,
       end_time: log.end_time || log.endTime || log.endedAt || null,
-      duration: log.duration || null,
+      duration: duration,
       status: log.status || null,
       direction: log.direction || null,
       transcript: log.transcript || null,
       recording_url: log.recording_url || log.recordingUrl || null,
       metadata: log.metadata || {},
       
-      // New fields we added to the database
+      // New fields
       assistant_name: log.assistant_name || log.assistantName || null,
       assistant_phone_number: log.assistant_phone_number || log.assistantPhoneNumber || log.phoneNumber || null,
-      customer_number: log.customer_number || log.customerNumber || log.caller_phone_number || log.callerPhoneNumber || null,
+      customer_number: customerNumber,
       call_type: log.call_type || log.callType || log.type || null,
-      cost: log.cost || null,
+      cost: typeof log.cost === 'number' ? log.cost : null,
       ended_reason: log.ended_reason || log.endedReason || log.ended_reason_detail || log.endedReasonDetail || null,
       success_evaluation: log.success_evaluation || log.successEvaluation || null
     }
