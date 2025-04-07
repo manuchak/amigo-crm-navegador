@@ -61,6 +61,7 @@ export const useAuthMethods = (
   const signUp = async (email: string, password: string, displayName: string) => {
     setLoading(true);
     try {
+      // Create user with email confirmation (auto-confirmed for now)
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
@@ -68,7 +69,8 @@ export const useAuthMethods = (
           data: {
             display_name: displayName,
           },
-          emailRedirectTo: `${window.location.origin}/auth/callback`
+          // Use our current domain for the redirect
+          emailRedirectTo: `${window.location.origin}/verify-confirmation`
         },
       });
 
@@ -80,6 +82,24 @@ export const useAuthMethods = (
         throw new Error(errorMessage);
       }
 
+      // Manually create profile record since we're not using triggers
+      if (data.user) {
+        // Create profile
+        await supabase.from('profiles').insert({
+          id: data.user.id,
+          email: email,
+          display_name: displayName,
+          created_at: new Date().toISOString(),
+          last_login: new Date().toISOString()
+        });
+        
+        // Set initial role
+        await supabase.from('user_roles').insert({
+          user_id: data.user.id,
+          role: 'unverified'
+        });
+      }
+      
       const mappedUserData = await mapUserData(data.user);
       setUserData(mappedUserData);
       

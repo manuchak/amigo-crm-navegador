@@ -30,10 +30,14 @@ serve(async (req) => {
       throw new Error("Missing required fields: email, name, or verificationLink");
     }
 
+    // Extract host from request URL to build correct verification link
+    const requestUrl = new URL(req.url);
+    const host = `${requestUrl.protocol}//${requestUrl.host}`;
+    
     // Make sure the verification link is a complete URL with https://
     const finalVerificationLink = verificationLink.startsWith('http') 
       ? verificationLink 
-      : `https://beefjsdgrdeiymzxwxru.supabase.co${verificationLink}`;
+      : `${host}${verificationLink}`;
 
     console.log(`Sending verification email to ${email} with link ${finalVerificationLink}`);
 

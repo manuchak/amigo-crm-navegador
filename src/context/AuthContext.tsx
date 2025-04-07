@@ -3,7 +3,6 @@ import React, { createContext, useContext, useEffect } from 'react';
 import { UserData, AuthContextProps } from '@/types/auth';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { setSpecificUserAsVerifiedOwner } from '@/utils/setVerifiedOwner';
 import { useAuthState } from '@/hooks/useAuthState';
 import { useAuthMethods } from '@/hooks/useAuthMethods';
 import { useUserManagementMethods } from '@/hooks/useUserManagementMethods';
@@ -60,6 +59,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const { data: authListener } = supabase.auth.onAuthStateChange(
           async (event, currentSession) => {
             // Handle auth state changes
+            console.log("Auth state change event:", event);
             setSession(currentSession);
             
             if (currentSession?.user) {
@@ -81,7 +81,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
         
         // Set manuel.chacon@detectasecurity.io as verified owner
-        setSpecificUserAsVerifiedOwner('manuel.chacon@detectasecurity.io');
+        // Use a setTimeout to avoid recursion issues
+        setTimeout(() => {
+          setUserAsVerifiedOwner('manuel.chacon@detectasecurity.io')
+            .catch(error => console.error("Error setting verified owner:", error));
+        }, 1000);
         
         setLoading(false);
         
