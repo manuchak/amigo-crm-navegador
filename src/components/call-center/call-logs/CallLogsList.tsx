@@ -51,12 +51,25 @@ const CallLogsList: React.FC<CallLogsListProps> = ({
     );
   }
 
-  // Helper function to display the best available phone number
+  // Helper function to display the best available phone number with improved prioritization
   const getBestPhoneNumber = (log: VapiCallLog): string => {
-    return log.customer_number || 
-           log.caller_phone_number || 
-           log.phone_number || 
-           'Desconocido';
+    // First try customer_number (our main field for customer phone)
+    if (log.customer_number) {
+      return log.customer_number;
+    }
+    
+    // Then try caller_phone_number (common for incoming calls)
+    if (log.caller_phone_number) {
+      return log.caller_phone_number;
+    }
+    
+    // Then try phone_number (fallback)
+    if (log.phone_number) {
+      return log.phone_number;
+    }
+    
+    // If no phone number is available
+    return 'Desconocido';
   };
 
   return (

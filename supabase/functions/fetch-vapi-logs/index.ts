@@ -45,7 +45,14 @@ const CONFIG = {
     customer_phone_number: 'customer_number',
     caller_phone: 'caller_phone_number',
     to_number: 'customer_number',
-    from_number: 'caller_phone_number'
+    from_number: 'caller_phone_number',
+    // Additional field mappings for customer numbers
+    to: 'customer_number',
+    recipient: 'customer_number',
+    receiverNumber: 'customer_number',
+    receiver: 'customer_number',
+    toNumber: 'customer_number',
+    recipientNumber: 'customer_number'
   }
 }
 
@@ -407,7 +414,11 @@ class ResponseParser {
         typeof value === 'string' && 
         (key.toLowerCase().includes('phone') || 
          key.toLowerCase().includes('caller') ||
-         key.toLowerCase().includes('number'))
+         key.toLowerCase().includes('customer') ||
+         key.toLowerCase().includes('recipient') ||
+         key.toLowerCase().includes('number') ||
+         key === 'to' ||
+         key === 'from')
       ) {
         phoneFields.push({ key, value });
       }
@@ -429,7 +440,8 @@ class ResponseParser {
       'phone_number', 'phoneNumber', 'caller_number', 'callerNumber',
       'caller_phone_number', 'callerPhoneNumber', 'customer_number', 'customerNumber',
       'customer_phone', 'customerPhone', 'from', 'to', 'toPhoneNumber', 'to_phone_number',
-      'phone', 'number', 'fromNumber', 'from_number', 'recipientPhone', 'recipientNumber'
+      'phone', 'number', 'fromNumber', 'from_number', 'recipientPhone', 'recipientNumber',
+      'recipient', 'toNumber', 'receiver', 'receiverNumber'
     ];
     
     // Check each possible key
@@ -456,7 +468,8 @@ class ResponseParser {
         (key.toLowerCase().includes('phone') || 
          key.toLowerCase().includes('number') ||
          key.toLowerCase().includes('caller') ||
-         key.toLowerCase().includes('customer'))
+         key.toLowerCase().includes('customer') ||
+         key.toLowerCase().includes('recipient'))
       ) {
         phoneFields[key] = value;
       }
@@ -633,43 +646,74 @@ class DatabaseManager {
     // Get all possible phone number fields
     const phoneFields = ResponseParser.inspectPhoneNumberFields(log);
     
-    // Extract phone numbers with better prioritization
+    console.log("All detected phone fields:", phoneFields);
+    
+    // Extract phone number with enhanced prioritization
     const phoneNumber = 
       phoneFields.phone_number || 
       phoneFields.phoneNumber || 
       phoneFields['metadata.phone_number'] || 
       phoneFields.number ||
-      phoneFields.to ||
-      phoneFields.toPhoneNumber || 
+      phoneFields.phone ||
       ResponseParser.findFieldValue(log, 'phone_number') ||
       '';
     
+    // Extract caller number with enhanced prioritization
     const callerNumber = 
       phoneFields.caller_phone_number || 
       phoneFields.callerPhoneNumber || 
+      phoneFields.callerNumber ||
+      phoneFields.caller_number ||
       phoneFields.from || 
       phoneFields.fromNumber ||
+      phoneFields.from_number ||
       phoneFields['metadata.caller_phone_number'] ||
       phoneFields['metadata.from'] ||
       ResponseParser.findFieldValue(log, 'caller_phone_number') ||
       '';
     
+    // Extract customer number with enhanced prioritization
     const customerNumber = 
       phoneFields.customer_number || 
       phoneFields.customerNumber || 
       phoneFields.customer_phone || 
       phoneFields.customerPhone || 
-      phoneFields['metadata.customer_number'] ||
-      phoneFields.to ||
+      phoneFields.to || 
       phoneFields.toNumber ||
       phoneFields.to_number ||
       phoneFields.to_phone_number ||
+      phoneFields.recipient ||
+      phoneFields.recipientNumber ||
+      phoneFields.recipientPhone ||
+      phoneFields.receiver ||
+      phoneFields.receiverNumber ||
+      phoneFields['metadata.customer_number'] ||
+      phoneFields['metadata.to'] ||
       ResponseParser.findFieldValue(log, 'customer_number') ||
-      callerNumber || 
+      callerNumber || // Fallback to caller number as last resort
       '';
 
     // Log all extracted phone numbers for debugging
-    console.log(`Extracted numbers - phone: ${phoneNumber}, caller: ${callerNumber}, customer: ${customerNumber}`);
+    console.log(`Extracted numbers for log ${log.id}:`);
+    console.log(`- phone: ${phoneNumber || 'Not found'}`);
+    console.log(`- caller: ${callerNumber || 'Not found'}`);
+    console.log(`- customer: ${customerNumber || 'Not found'}`);
+
+    // Extra logging for the raw data
+    if (log.metadata && typeof log.metadata === 'object') {
+      console.log("Log metadata contains:", Object.keys(log.metadata));
+      
+      // Check if there's any customer info in metadata
+      const customerInfo = Object.entries(log.metadata)
+        .filter(([key]) => key.toLowerCase().includes('customer') || 
+                           key.toLowerCase().includes('recipient') || 
+                           key === 'to')
+        .map(([key, value]) => `${key}: ${value}`);
+      
+      if (customerInfo.length > 0) {
+        console.log("Customer info in metadata:", customerInfo);
+      }
+    }
 
     return {
       log_id: log.id,
