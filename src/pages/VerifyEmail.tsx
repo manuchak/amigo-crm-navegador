@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { Navigate, useNavigate } from 'react-router-dom';
+import { Navigate, useNavigate, useLocation } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/context/AuthContext';
@@ -12,6 +12,44 @@ const VerifyEmail = () => {
   const { currentUser, signOut, refreshUserData } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
+  
+  // Check for custom verification link from query parameters
+  useEffect(() => {
+    const queryParams = new URLSearchParams(location.search);
+    const token = queryParams.get('token');
+    const type = queryParams.get('type');
+    
+    if (token && type === 'email_confirmation') {
+      handleCustomVerification(token);
+    }
+  }, [location]);
+  
+  const handleCustomVerification = async (token: string) => {
+    try {
+      setIsLoading(true);
+      
+      // Apply the token to complete verification
+      const { data, error } = await supabase.auth.verifyOtp({
+        token_hash: token,
+        type: 'email_change'
+      });
+      
+      if (error) {
+        console.error('Error verifying email:', error);
+        toast.error('Error al verificar el correo electrónico: ' + error.message);
+      } else {
+        toast.success('¡Correo verificado con éxito!');
+        await refreshUserData();
+        navigate('/dashboard');
+      }
+    } catch (error) {
+      console.error('Error in custom verification:', error);
+      toast.error('Error al procesar la verificación');
+    } finally {
+      setIsLoading(false);
+    }
+  };
   
   // Redirect if not logged in
   if (!currentUser) {
@@ -27,6 +65,8 @@ const VerifyEmail = () => {
     try {
       setIsLoading(true);
       
+      // Use resetPasswordForEmail which also can be used for verification emails
+      // We'll redirect to verify-confirmation which can handle the token
       const { data, error } = await supabase.auth.resetPasswordForEmail(currentUser.email, {
         redirectTo: `${window.location.origin}/verify-confirmation`,
       });

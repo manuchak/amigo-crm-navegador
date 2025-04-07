@@ -65,7 +65,7 @@ export const useUserManagementMethods = (
           email: profile.email,
           displayName: profile.display_name,
           photoURL: profile.photo_url,
-          role: userRole?.role as any || 'unverified',
+          role: userRole?.role as UserRole || 'unverified',
           emailVerified: authUser?.email_confirmed_at ? true : false,
           createdAt: new Date(profile.created_at),
           lastLogin: new Date(profile.last_login)
