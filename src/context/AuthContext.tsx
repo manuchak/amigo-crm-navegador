@@ -53,8 +53,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // Set up auth state listener
   useEffect(() => {
-    let hasSetupOwner = false;
-    
     const setupAuth = async () => {
       try {
         // First set up the auth state change listener
@@ -82,18 +80,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           setUserData(mappedUserData);
         }
         
-        // Ensure Manuel Chacon's account is set as verified owner - only once
-        if (!hasSetupOwner) {
-          hasSetupOwner = true;
+        // Ensure Manuel Chacon's account is set as verified owner
+        try {
           const ownerEmail = 'manuel.chacon@detectasecurity.io';
           console.log(`Ensuring ${ownerEmail} has owner privileges...`);
-          
-          try {
-            await setUserAsVerifiedOwner(ownerEmail);
-            console.log("Owner privileges setup complete");
-          } catch (error) {
-            console.error("Error setting verified owner:", error);
-          }
+          await setUserAsVerifiedOwner(ownerEmail);
+          console.log("Owner privileges setup complete");
+        } catch (error) {
+          console.error("Error setting verified owner:", error);
         }
         
         setLoading(false);
