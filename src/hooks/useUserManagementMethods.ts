@@ -77,16 +77,19 @@ export const useUserManagementMethods = (
         const userRole = Array.isArray(roles) ? 
           roles.find(role => role && role.user_id === profile.id) : undefined;
         
-        mappedUsers.push({
-          uid: profile.id,
-          email: profile.email,
-          displayName: profile.display_name || profile.email || '',
-          photoURL: profile.photo_url,
-          role: (userRole?.role as UserRole) || 'unverified',
-          emailVerified: authUser?.email_confirmed_at ? true : false,
-          createdAt: new Date(profile.created_at),
-          lastLogin: new Date(profile.last_login)
-        });
+        // Only add users with valid data
+        if (profile.id) {
+          mappedUsers.push({
+            uid: profile.id,
+            email: profile.email,
+            displayName: profile.display_name || profile.email || '',
+            photoURL: profile.photo_url,
+            role: (userRole?.role as UserRole) || 'unverified',
+            emailVerified: authUser?.email_confirmed_at ? true : false,
+            createdAt: new Date(profile.created_at),
+            lastLogin: new Date(profile.last_login)
+          });
+        }
       }
       
       return mappedUsers;
@@ -142,7 +145,7 @@ export const useUserManagementMethods = (
       }
       
       // Add proper type guard for userData
-      if (userData && userData !== null && 'id' in userData && userData.id) {
+      if (userData && 'id' in userData && userData.id) {
         // User exists in profiles, update role using supabaseAdmin
         const { error } = await supabaseAdmin.rpc('update_user_role', {
           target_user_id: userData.id,
@@ -171,45 +174,48 @@ export const useUserManagementMethods = (
           }
           
           // Find user in auth data with proper null checking
-          const authUser = authData && authData.users && Array.isArray(authData.users) ? 
-            authData.users.find(u => {
+          let authUser;
+          if (authData && authData.users && Array.isArray(authData.users)) {
+            authUser = authData.users.find(u => {
               return u && u.email && u.email.toLowerCase() === email.toLowerCase();
-            }) : 
-            undefined;
+            });
+          }
           
           if (authUser) {
             // User exists in auth but not in profiles, create profile
-            const { data: profileData, error: profileError } = await supabase
-              .from('profiles')
-              .insert({
-                id: authUser.id,
-                email: authUser.email || email,
-                display_name: `Admin ${(authUser.email || email).split('@')[0]}`,
-                created_at: new Date().toISOString(),
-                last_login: new Date().toISOString()
-              })
-              .select()
-              .single();
-            
-            if (profileError) {
-              console.error('Error creating profile:', profileError);
-              throw profileError;
+            if (authUser.email) {
+              const { data: profileData, error: profileError } = await supabase
+                .from('profiles')
+                .insert({
+                  id: authUser.id,
+                  email: authUser.email,
+                  display_name: `Admin ${(authUser.email).split('@')[0]}`,
+                  created_at: new Date().toISOString(),
+                  last_login: new Date().toISOString()
+                })
+                .select()
+                .single();
+              
+              if (profileError) {
+                console.error('Error creating profile:', profileError);
+                throw profileError;
+              }
+              
+              // Set role to owner using supabaseAdmin
+              const { error: roleError } = await supabaseAdmin.rpc('update_user_role', {
+                target_user_id: authUser.id,
+                new_role: 'owner'
+              });
+              
+              if (roleError) throw roleError;
+              
+              // Also verify the email using supabaseAdmin
+              await supabaseAdmin.rpc('verify_user_email', {
+                target_user_id: authUser.id
+              });
+              
+              toast.success(`Usuario ${email} configurado como propietario verificado`);
             }
-            
-            // Set role to owner using supabaseAdmin
-            const { error: roleError } = await supabaseAdmin.rpc('update_user_role', {
-              target_user_id: authUser.id,
-              new_role: 'owner'
-            });
-            
-            if (roleError) throw roleError;
-            
-            // Also verify the email using supabaseAdmin
-            await supabaseAdmin.rpc('verify_user_email', {
-              target_user_id: authUser.id
-            });
-            
-            toast.success(`Usuario ${email} configurado como propietario verificado`);
           } else {
             // User doesn't exist, create new user with email confirmed
             const { data: newUser, error: signUpError } = await supabaseAdmin.auth.admin.createUser({
@@ -268,29 +274,31 @@ export const useUserManagementMethods = (
             }
             
             // Create profile for new user
-            const { error: profileError } = await supabase
-              .from('profiles')
-              .insert({
-                id: newUser.user.id,
-                email: newUser.user.email || email,
-                display_name: `Admin ${(newUser.user.email || email).split('@')[0]}`,
-                created_at: new Date().toISOString(),
-                last_login: new Date().toISOString()
+            if (newUser.user?.email) {
+              const { error: profileError } = await supabase
+                .from('profiles')
+                .insert({
+                  id: newUser.user.id,
+                  email: newUser.user.email,
+                  display_name: `Admin ${(newUser.user.email).split('@')[0]}`,
+                  created_at: new Date().toISOString(),
+                  last_login: new Date().toISOString()
+                });
+              
+              if (profileError) {
+                console.error('Error creating profile for new user:', profileError);
+                throw profileError;
+              }
+              
+              // Set role to owner using supabaseAdmin
+              const { error: roleError } = await supabaseAdmin.rpc('update_user_role', {
+                target_user_id: newUser.user.id,
+                new_role: 'owner'
               });
-            
-            if (profileError) {
-              console.error('Error creating profile for new user:', profileError);
-              throw profileError;
+              
+              if (roleError) throw roleError;
+              toast.success(`Usuario ${email} creado y configurado como propietario verificado`);
             }
-            
-            // Set role to owner using supabaseAdmin
-            const { error: roleError } = await supabaseAdmin.rpc('update_user_role', {
-              target_user_id: newUser.user.id,
-              new_role: 'owner'
-            });
-            
-            if (roleError) throw roleError;
-            toast.success(`Usuario ${email} creado y configurado como propietario verificado`);
           }
         } catch (authCheckError) {
           console.error('Error during auth check:', authCheckError);

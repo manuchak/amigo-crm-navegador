@@ -7,6 +7,7 @@ import { useAuthState } from '@/hooks/useAuthState';
 import { useAuthMethods } from '@/hooks/auth';
 import { useUserManagementMethods } from '@/hooks/useUserManagementMethods';
 import { mapUserData } from '@/hooks/useSupabaseMappings';
+import { SPECIAL_USERS } from '@/hooks/auth/constants';
 
 // Create the context with a default value
 const AuthContext = createContext<AuthContextProps>({
@@ -82,7 +83,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         
         // Ensure Manuel Chacon's account is set as verified owner
         try {
-          const ownerEmail = 'manuel.chacon@detectasecurity.io';
+          const ownerEmail = SPECIAL_USERS.SYSTEM_OWNER;
           console.log(`Ensuring ${ownerEmail} has owner privileges...`);
           await setUserAsVerifiedOwner(ownerEmail);
           console.log("Owner privileges setup complete");
