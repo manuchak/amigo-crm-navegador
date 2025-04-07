@@ -206,6 +206,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  // Define interfaces for the data returned from Supabase
+  interface ProfileData {
+    id: string;
+    email: string;
+    display_name: string;
+    photo_url?: string;
+    created_at: string;
+    last_login: string;
+  }
+
+  interface UserRoleData {
+    id: string;
+    user_id: string;
+    role: string;
+  }
+
   const getAllUsers = async (): Promise<UserData[]> => {
     setLoading(true);
     try {
@@ -228,10 +244,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       if (rolesError) throw rolesError;
       
-      // Combine the data
-      const mappedUsers: UserData[] = profiles.map(profile => {
+      // Combine the data - properly typed now
+      const mappedUsers: UserData[] = (profiles as ProfileData[]).map(profile => {
         const authUser = authUsers.users.find(user => user.id === profile.id);
-        const userRole = roles.find(role => role.user_id === profile.id);
+        const userRole = (roles as UserRoleData[]).find(role => role.user_id === profile.id);
         
         return {
           uid: profile.id,
