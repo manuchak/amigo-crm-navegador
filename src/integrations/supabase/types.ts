@@ -162,12 +162,18 @@ export type Database = {
       vapi_call_logs: {
         Row: {
           assistant_id: string
+          assistant_name: string | null
+          assistant_phone_number: string | null
+          call_type: string | null
           caller_phone_number: string | null
           conversation_id: string | null
+          cost: number | null
           created_at: string | null
+          customer_number: string | null
           direction: string | null
           duration: number | null
           end_time: string | null
+          ended_reason: string | null
           id: string
           log_id: string
           metadata: Json | null
@@ -176,17 +182,24 @@ export type Database = {
           recording_url: string | null
           start_time: string | null
           status: string | null
+          success_evaluation: string | null
           transcript: Json | null
           updated_at: string | null
         }
         Insert: {
           assistant_id: string
+          assistant_name?: string | null
+          assistant_phone_number?: string | null
+          call_type?: string | null
           caller_phone_number?: string | null
           conversation_id?: string | null
+          cost?: number | null
           created_at?: string | null
+          customer_number?: string | null
           direction?: string | null
           duration?: number | null
           end_time?: string | null
+          ended_reason?: string | null
           id?: string
           log_id: string
           metadata?: Json | null
@@ -195,17 +208,24 @@ export type Database = {
           recording_url?: string | null
           start_time?: string | null
           status?: string | null
+          success_evaluation?: string | null
           transcript?: Json | null
           updated_at?: string | null
         }
         Update: {
           assistant_id?: string
+          assistant_name?: string | null
+          assistant_phone_number?: string | null
+          call_type?: string | null
           caller_phone_number?: string | null
           conversation_id?: string | null
+          cost?: number | null
           created_at?: string | null
+          customer_number?: string | null
           direction?: string | null
           duration?: number | null
           end_time?: string | null
+          ended_reason?: string | null
           id?: string
           log_id?: string
           metadata?: Json | null
@@ -214,6 +234,7 @@ export type Database = {
           recording_url?: string | null
           start_time?: string | null
           status?: string | null
+          success_evaluation?: string | null
           transcript?: Json | null
           updated_at?: string | null
         }

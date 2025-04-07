@@ -334,7 +334,16 @@ const dbManager = {
           direction: log.direction || null,
           transcript: log.transcript || null,
           recording_url: log.recording_url || log.recordingUrl || null,
-          metadata: log.metadata || {}
+          metadata: log.metadata || {},
+          
+          // New fields we added to the database
+          assistant_name: log.assistant_name || log.assistantName || null,
+          assistant_phone_number: log.assistant_phone_number || log.assistantPhoneNumber || log.phoneNumber || null,
+          customer_number: log.customer_number || log.customerNumber || log.caller_phone_number || log.callerPhoneNumber || null,
+          call_type: log.call_type || log.callType || null,
+          cost: log.cost || null,
+          ended_reason: log.ended_reason || log.endedReason || log.ended_reason_detail || log.endedReasonDetail || null,
+          success_evaluation: log.success_evaluation || log.successEvaluation || null
         };
 
         // Insert or update the log
