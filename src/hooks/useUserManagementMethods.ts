@@ -55,14 +55,14 @@ export const useUserManagementMethods = (
       if (!profilesData || !Array.isArray(profilesData) || profilesData.length === 0) return [];
       
       // Type assertions for the data with proper checks
-      const profiles = profilesData as unknown as ProfileData[];
-      const roles = rolesData ? (rolesData as unknown as UserRoleData[]) : [];
+      const profiles = profilesData as ProfileData[];
+      const roles = rolesData ? (rolesData as UserRoleData[]) : [];
       
       // Combine the data with proper type checking
       const mappedUsers: UserData[] = [];
       
       for (const profile of profiles) {
-        // Skip invalid profiles
+        // Skip invalid profiles or profiles without an id
         if (!profile || typeof profile.id === 'undefined') {
           console.error('Invalid profile data found:', profile);
           continue;
@@ -140,7 +140,7 @@ export const useUserManagementMethods = (
         throw userError;
       }
       
-      if (userData && userData.id) {
+      if (userData && 'id' in userData) {
         // User exists in profiles, update role
         const { error } = await supabase.rpc('update_user_role', {
           target_user_id: userData.id,
