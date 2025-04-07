@@ -325,8 +325,8 @@ export const useUserManagementMethods = (
           
           // Set initial role to owner using supabaseAdmin
           await supabaseAdmin.rpc('update_user_role', {
-            user_id: newUser.user.id,
-            role: 'owner'
+            target_user_id: newUser.user.id,
+            new_role: 'owner'
           });
           
           // Manually verify the email immediately using supabaseAdmin
