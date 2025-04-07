@@ -78,6 +78,33 @@ export type Database = {
         }
         Relationships: []
       }
+      profiles: {
+        Row: {
+          created_at: string
+          display_name: string
+          email: string
+          id: string
+          last_login: string
+          photo_url: string | null
+        }
+        Insert: {
+          created_at?: string
+          display_name: string
+          email: string
+          id: string
+          last_login?: string
+          photo_url?: string | null
+        }
+        Update: {
+          created_at?: string
+          display_name?: string
+          email?: string
+          id?: string
+          last_login?: string
+          photo_url?: string | null
+        }
+        Relationships: []
+      }
       secrets: {
         Row: {
           created_at: string
@@ -123,6 +150,30 @@ export type Database = {
           inserted_at?: string
           name?: string | null
           updated_at?: string
+        }
+        Relationships: []
+      }
+      user_roles: {
+        Row: {
+          assigned_at: string
+          assigned_by: string | null
+          id: string
+          role: string
+          user_id: string
+        }
+        Insert: {
+          assigned_at?: string
+          assigned_by?: string | null
+          id?: string
+          role: string
+          user_id: string
+        }
+        Update: {
+          assigned_at?: string
+          assigned_by?: string | null
+          id?: string
+          role?: string
+          user_id?: string
         }
         Relationships: []
       }
@@ -255,6 +306,22 @@ export type Database = {
           last_call_date: string
           transcript: Json
         }[]
+      }
+      get_user_role: {
+        Args: { user_uid: string }
+        Returns: string
+      }
+      has_role: {
+        Args: { user_uid: string; required_role: string }
+        Returns: boolean
+      }
+      update_user_role: {
+        Args: { target_user_id: string; new_role: string }
+        Returns: undefined
+      }
+      verify_user_email: {
+        Args: { target_user_id: string }
+        Returns: undefined
       }
     }
     Enums: {
