@@ -1,3 +1,4 @@
+
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.7'
 
 // Define CORS headers for all responses
@@ -53,7 +54,9 @@ const CONFIG = {
     receiver: 'customer_number',
     toNumber: 'customer_number',
     recipientNumber: 'customer_number'
-  }
+  },
+  // Include metadata request fields to include in API calls
+  METADATA_REQUEST_FIELDS: ['customerNumber', 'callerNumber', 'customerPhoneNumber', 'recipientNumber']
 }
 
 /**
@@ -161,10 +164,11 @@ class VapiApiClient {
   /**
    * Format query parameters for an endpoint
    */
-  static formatParams(endpointConfig, startDate, endDate) {
+  static formatParams(endpointConfig, startDate, endDate, extraParams = {}) {
     const params = new URLSearchParams({
       assistantId: CONFIG.VAPI_ASSISTANT_ID,
-      limit: '100'
+      limit: '100',
+      ...extraParams
     })
     
     // Add date range if supported by endpoint
@@ -172,6 +176,11 @@ class VapiApiClient {
       params.append('startTime', startDate)
       params.append('endTime', endDate)
     }
+    
+    // Add metadata parameters to request customer phone numbers explicitly
+    CONFIG.METADATA_REQUEST_FIELDS.forEach(field => {
+      params.append(`includeMetadata[${field}]`, 'true')
+    });
     
     return params.toString()
   }
@@ -219,7 +228,12 @@ class VapiApiClient {
         )
         
         if (callEndpoint) {
-          const fullUrl = `https://api.vapi.ai${callEndpoint}?assistantId=${CONFIG.VAPI_ASSISTANT_ID}&limit=100`
+          // Add explicit metadata parameters for phone numbers
+          const metadataParams = CONFIG.METADATA_REQUEST_FIELDS.map(field => 
+            `includeMetadata[${field}]=true`
+          ).join('&');
+          
+          const fullUrl = `https://api.vapi.ai${callEndpoint}?assistantId=${CONFIG.VAPI_ASSISTANT_ID}&limit=100&${metadataParams}`
           console.log(`Trying discovered endpoint: ${fullUrl}`)
           
           const callResponse = await fetch(fullUrl, {
@@ -250,12 +264,18 @@ class VapiApiClient {
     const endpoints = this.getEndpointConfigs()
     let lastError = null
     
+    // Create extra params to explicitly request phone number fields
+    const extraParams = {};
+    CONFIG.METADATA_REQUEST_FIELDS.forEach(field => {
+      extraParams[`includeMetadata[${field}]`] = 'true'
+    });
+    
     // Try each endpoint until one works
     for (const endpoint of endpoints) {
       try {
         console.log(`Trying VAPI endpoint: ${endpoint.url} with ${endpoint.method} method`)
         
-        const params = this.formatParams(endpoint, startDate, endDate)
+        const params = this.formatParams(endpoint, startDate, endDate, extraParams)
         const requestUrl = `${endpoint.url}?${params}`
         console.log(`Full GET URL: ${requestUrl}`)
         
@@ -451,13 +471,20 @@ class ResponseParser {
       }
     }
     
-    // Check nested objects
+    // Check nested objects - first in metadata
     if (log.metadata && typeof log.metadata === 'object') {
       for (const key of possibleKeys) {
         if (key in log.metadata && log.metadata[key]) {
           phoneFields[`metadata.${key}`] = log.metadata[key];
         }
       }
+      
+      // Special case for explicitly requested phone number metadata
+      CONFIG.METADATA_REQUEST_FIELDS.forEach(field => {
+        if (log.metadata[field]) {
+          phoneFields[`metadata.${field}`] = log.metadata[field];
+        }
+      });
     }
     
     // Also check for non-standard field names that might contain phone numbers
@@ -510,9 +537,19 @@ class ResponseParser {
     
     // Try metadata if available
     if (log.metadata && typeof log.metadata === 'object') {
+      // First check standard field names in metadata
       for (const fieldName of [...possibleFieldNames, ...fieldNameVariations]) {
         if (log.metadata[fieldName] !== undefined && log.metadata[fieldName] !== null) {
           return log.metadata[fieldName];
+        }
+      }
+      
+      // Then check explicit metadata request fields
+      if (fieldType === 'customer_number') {
+        for (const requestField of ['customerNumber', 'customerPhoneNumber', 'recipientNumber', 'toNumber']) {
+          if (log.metadata[requestField]) {
+            return log.metadata[requestField];
+          }
         }
       }
     }
@@ -669,13 +706,17 @@ class DatabaseManager {
       phoneFields.from_number ||
       phoneFields['metadata.caller_phone_number'] ||
       phoneFields['metadata.from'] ||
+      phoneFields['metadata.callerNumber'] ||
       ResponseParser.findFieldValue(log, 'caller_phone_number') ||
       '';
     
-    // Extract customer number with enhanced prioritization
+    // Extract customer number with enhanced prioritization and explicitly requested fields
     const customerNumber = 
       phoneFields.customer_number || 
       phoneFields.customerNumber || 
+      phoneFields['metadata.customerNumber'] ||
+      phoneFields['metadata.customerPhoneNumber'] ||
+      phoneFields['metadata.recipientNumber'] ||
       phoneFields.customer_phone || 
       phoneFields.customerPhone || 
       phoneFields.to || 
