@@ -54,20 +54,24 @@ export const useUserManagementMethods = (
       // Ensure profiles is not null and handle its type properly
       if (!profilesData || !Array.isArray(profilesData) || profilesData.length === 0) return [];
       
-      // Type assertions for the data
+      // Type assertions for the data - FIXED: Added proper type checking before casting
       const profiles = profilesData as unknown as ProfileData[];
-      const roles = rolesData as unknown as UserRoleData[];
+      const roles = rolesData ? (rolesData as unknown as UserRoleData[]) : [];
       
-      // Combine the data
+      // Combine the data - FIXED: Added null checks and fixed the property access
       const mappedUsers: UserData[] = profiles.map(profile => {
-        const authUser = authUsers?.users?.find(user => user.id === profile.id);
+        // Fixed: Added null checking before accessing user.id
+        const authUser = authUsers && authUsers.users ? 
+          authUsers.users.find(user => user && user.id === profile.id) : undefined;
+        
+        // Fixed: Added proper null checking for roles
         const userRole = roles && Array.isArray(roles) ? 
-          roles.find(role => role.user_id === profile.id) : null;
+          roles.find(role => role && role.user_id === profile.id) : undefined;
         
         return {
           uid: profile.id,
           email: profile.email,
-          displayName: profile.display_name,
+          displayName: profile.display_name || profile.email || '',
           photoURL: profile.photo_url,
           role: (userRole?.role as UserRole) || 'unverified',
           emailVerified: authUser?.email_confirmed_at ? true : false,
@@ -108,7 +112,7 @@ export const useUserManagementMethods = (
     setLoading(true);
     try {
       // Find user by email
-      const { data: user, error: userError } = await supabase
+      const { data: userData, error: userError } = await supabase
         .from('profiles')
         .select('id')
         .eq('email', email as any)
@@ -119,10 +123,11 @@ export const useUserManagementMethods = (
         throw userError;
       }
       
-      if (user?.id) {
+      // FIXED: Added null check and proper type assertion
+      if (userData && userData.id) {
         // User exists in profiles, update role
         const { error } = await supabase.rpc('update_user_role', {
-          target_user_id: user.id,
+          target_user_id: userData.id,
           new_role: 'owner'
         });
         
@@ -141,7 +146,9 @@ export const useUserManagementMethods = (
             throw authError;
           }
           
-          const authUser = authData?.users?.find(u => u.email === email);
+          // FIXED: Added null check and proper type assertion
+          const authUser = authData && authData.users ? 
+            authData.users.find(u => u && u.email === email) : undefined;
           
           if (authUser) {
             // User exists in auth but not in profiles, create profile

@@ -350,6 +350,10 @@ class ResponseParser {
     // Log details of first item if available
     if (logs && logs.length > 0) {
       console.log('Sample log item:', JSON.stringify(logs[0]).substring(0, 300))
+      
+      // ADDED: Detailed phone number field inspection of first log
+      const phoneFields = this.inspectPhoneNumberFields(logs[0]);
+      console.log('Phone number fields in first log:', phoneFields);
     }
 
     return logs || []
@@ -391,6 +395,56 @@ class ResponseParser {
         phoneFields.push({ key, value });
       }
     }
+    return phoneFields;
+  }
+  
+  /**
+   * NEW: Inspect and log all phone number related fields in a log entry
+   */
+  static inspectPhoneNumberFields(log) {
+    if (!log || typeof log !== 'object') {
+      return { error: 'Invalid log entry' };
+    }
+    
+    // Collect all fields that might contain phone numbers
+    const phoneFields = {};
+    const possibleKeys = [
+      'phone_number', 'phoneNumber', 'caller_number', 'callerNumber',
+      'caller_phone_number', 'callerPhoneNumber', 'customer_number', 'customerNumber',
+      'customer_phone', 'customerPhone', 'from', 'to', 'toPhoneNumber',
+      'phone', 'number', 'fromNumber', 'recipientPhone', 'recipientNumber'
+    ];
+    
+    // Check each possible key
+    for (const key of possibleKeys) {
+      if (key in log && log[key]) {
+        phoneFields[key] = log[key];
+      }
+    }
+    
+    // Check nested objects
+    if (log.metadata && typeof log.metadata === 'object') {
+      for (const key of possibleKeys) {
+        if (key in log.metadata && log.metadata[key]) {
+          phoneFields[`metadata.${key}`] = log.metadata[key];
+        }
+      }
+    }
+    
+    // Also check for non-standard field names that might contain phone numbers
+    for (const [key, value] of Object.entries(log)) {
+      if (
+        typeof value === 'string' && 
+        !phoneFields[key] &&
+        (key.toLowerCase().includes('phone') || 
+         key.toLowerCase().includes('number') ||
+         key.toLowerCase().includes('caller') ||
+         key.toLowerCase().includes('customer'))
+      ) {
+        phoneFields[key] = value;
+      }
+    }
+    
     return phoneFields;
   }
 }
@@ -438,8 +492,8 @@ class DatabaseManager {
         // Prepare the log data with fallbacks for missing fields
         const logData = this.normalizeLogData(log)
         
-        // Extra debug info for phone number and duration
-        console.log(`Log ${log.id} - Phone data: customer=${logData.customer_number}, caller=${logData.caller_phone_number}`)
+        // Enhanced debug info for phone number and duration
+        console.log(`Log ${log.id} - Phone data: customer=${logData.customer_number}, caller=${logData.caller_phone_number}, phone=${logData.phone_number}`)
         console.log(`Log ${log.id} - Duration: ${logData.duration}, original type: ${typeof log.duration}`)
 
         // Insert or update the log
@@ -495,23 +549,47 @@ class DatabaseManager {
       }
     }
     
-    // Enhanced phone number extraction
-    const callerNumber = log.caller_phone_number || 
-                         log.callerPhoneNumber || 
-                         log.customer_phone || 
-                         log.customerPhoneNumber || 
-                         log.from || null;
-                         
-    const customerNumber = log.customer_number || 
-                           log.customerNumber || 
-                           callerNumber || null;
+    // IMPROVED: Enhanced phone number extraction with more thorough checks
+    // Get all possible phone number fields
+    const phoneFields = ResponseParser.inspectPhoneNumberFields(log);
+    
+    // Extract phone numbers with better prioritization
+    const phoneNumber = 
+      phoneFields.phone_number || 
+      phoneFields.phoneNumber || 
+      phoneFields['metadata.phone_number'] || 
+      phoneFields.number ||
+      phoneFields.to ||
+      phoneFields.toPhoneNumber || 
+      null;
+    
+    const callerNumber = 
+      phoneFields.caller_phone_number || 
+      phoneFields.callerPhoneNumber || 
+      phoneFields.from || 
+      phoneFields.fromNumber ||
+      phoneFields['metadata.caller_phone_number'] ||
+      phoneFields['metadata.from'] ||
+      null;
+    
+    const customerNumber = 
+      phoneFields.customer_number || 
+      phoneFields.customerNumber || 
+      phoneFields.customer_phone || 
+      phoneFields.customerPhone || 
+      phoneFields['metadata.customer_number'] ||
+      callerNumber || 
+      null;
+
+    // Log all extracted phone numbers for debugging
+    console.log(`Extracted numbers - phone: ${phoneNumber}, caller: ${callerNumber}, customer: ${customerNumber}`);
 
     return {
       log_id: log.id,
       assistant_id: log.assistant_id || log.assistantId || CONFIG.VAPI_ASSISTANT_ID,
       organization_id: log.organization_id || log.organizationId || 'unknown',
       conversation_id: log.conversation_id || log.conversationId || null,
-      phone_number: log.phone_number || log.phoneNumber || null,
+      phone_number: phoneNumber,
       caller_phone_number: callerNumber,
       start_time: log.start_time || log.startTime || log.startedAt || null,
       end_time: log.end_time || log.endTime || log.endedAt || null,
@@ -522,9 +600,9 @@ class DatabaseManager {
       recording_url: log.recording_url || log.recordingUrl || null,
       metadata: log.metadata || {},
       
-      // New fields
+      // Fields with better fallbacks
       assistant_name: log.assistant_name || log.assistantName || null,
-      assistant_phone_number: log.assistant_phone_number || log.assistantPhoneNumber || log.phoneNumber || null,
+      assistant_phone_number: log.assistant_phone_number || log.assistantPhoneNumber || phoneNumber || null,
       customer_number: customerNumber,
       call_type: log.call_type || log.callType || log.type || null,
       cost: typeof log.cost === 'number' ? log.cost : null,
