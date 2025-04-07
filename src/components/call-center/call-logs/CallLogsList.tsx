@@ -104,7 +104,7 @@ const CallLogsList: React.FC<CallLogsListProps> = ({
                     {log.call_type || 'N/A'}
                   </TableCell>
                   <TableCell>
-                    {log.duration !== null ? formatDuration(log.duration) : 'N/A'}
+                    {log.duration !== null && log.duration !== undefined ? formatDuration(log.duration) : 'N/A'}
                   </TableCell>
                   <TableCell>
                     <StatusBadge status={log.status} />
@@ -146,7 +146,7 @@ const CallLogsList: React.FC<CallLogsListProps> = ({
                     <DirectionBadge direction={log.direction} />
                   </TableCell>
                   <TableCell>
-                    {log.duration !== null ? formatDuration(log.duration) : 'N/A'}
+                    {log.duration !== null && log.duration !== undefined ? formatDuration(log.duration) : 'N/A'}
                   </TableCell>
                   <TableCell>
                     <StatusBadge status={log.status} />

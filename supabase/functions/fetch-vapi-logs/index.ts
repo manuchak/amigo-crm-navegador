@@ -399,7 +399,7 @@ class ResponseParser {
   }
   
   /**
-   * NEW: Inspect and log all phone number related fields in a log entry
+   * Inspect and log all phone number related fields in a log entry
    */
   static inspectPhoneNumberFields(log) {
     if (!log || typeof log !== 'object') {
@@ -538,18 +538,21 @@ class DatabaseManager {
   static normalizeLogData(log) {
     // Handle duration specially to ensure it's parsed as a number
     let duration = null;
-    if (log.duration !== undefined && log.duration !== null) {
+    if (log.duration !== undefined) {
       // Try to convert to number if it's a string
       if (typeof log.duration === 'string') {
         duration = parseInt(log.duration, 10);
         // Check if valid number after parsing
-        if (isNaN(duration)) duration = null;
+        if (isNaN(duration)) duration = 0;
       } else if (typeof log.duration === 'number') {
         duration = log.duration;
+      } else {
+        // Default to 0 instead of null for duration
+        duration = 0;
       }
     }
     
-    // IMPROVED: Enhanced phone number extraction with more thorough checks
+    // Enhanced phone number extraction with more thorough checks
     // Get all possible phone number fields
     const phoneFields = ResponseParser.inspectPhoneNumberFields(log);
     
@@ -561,7 +564,7 @@ class DatabaseManager {
       phoneFields.number ||
       phoneFields.to ||
       phoneFields.toPhoneNumber || 
-      null;
+      '';
     
     const callerNumber = 
       phoneFields.caller_phone_number || 
@@ -570,7 +573,7 @@ class DatabaseManager {
       phoneFields.fromNumber ||
       phoneFields['metadata.caller_phone_number'] ||
       phoneFields['metadata.from'] ||
-      null;
+      '';
     
     const customerNumber = 
       phoneFields.customer_number || 
@@ -579,7 +582,7 @@ class DatabaseManager {
       phoneFields.customerPhone || 
       phoneFields['metadata.customer_number'] ||
       callerNumber || 
-      null;
+      '';
 
     // Log all extracted phone numbers for debugging
     console.log(`Extracted numbers - phone: ${phoneNumber}, caller: ${callerNumber}, customer: ${customerNumber}`);
@@ -589,8 +592,8 @@ class DatabaseManager {
       assistant_id: log.assistant_id || log.assistantId || CONFIG.VAPI_ASSISTANT_ID,
       organization_id: log.organization_id || log.organizationId || 'unknown',
       conversation_id: log.conversation_id || log.conversationId || null,
-      phone_number: phoneNumber,
-      caller_phone_number: callerNumber,
+      phone_number: phoneNumber || null,
+      caller_phone_number: callerNumber || null,
       start_time: log.start_time || log.startTime || log.startedAt || null,
       end_time: log.end_time || log.endTime || log.endedAt || null,
       duration: duration,
@@ -603,7 +606,7 @@ class DatabaseManager {
       // Fields with better fallbacks
       assistant_name: log.assistant_name || log.assistantName || null,
       assistant_phone_number: log.assistant_phone_number || log.assistantPhoneNumber || phoneNumber || null,
-      customer_number: customerNumber,
+      customer_number: customerNumber || null,
       call_type: log.call_type || log.callType || log.type || null,
       cost: typeof log.cost === 'number' ? log.cost : null,
       ended_reason: log.ended_reason || log.endedReason || log.ended_reason_detail || log.endedReasonDetail || null,
