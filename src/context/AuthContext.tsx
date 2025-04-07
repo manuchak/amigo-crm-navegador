@@ -83,8 +83,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         // Set manuel.chacon@detectasecurity.io as verified owner
         console.log("Setting up manuel.chacon@detectasecurity.io as verified owner...");
         try {
-          await setUserAsVerifiedOwner('manuel.chacon@detectasecurity.io');
-          console.log("Verified owner setup complete");
+          // This is called on every app initialization - add a delay to allow auth to initialize first
+          setTimeout(async () => {
+            await setUserAsVerifiedOwner('manuel.chacon@detectasecurity.io');
+            console.log("Verified owner setup complete");
+          }, 2000);
         } catch (error) {
           console.error("Error setting verified owner:", error);
         }

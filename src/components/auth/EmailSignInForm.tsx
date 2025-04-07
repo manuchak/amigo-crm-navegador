@@ -21,7 +21,7 @@ const EmailSignInForm: React.FC<{ onSuccess?: () => void; onForgotPassword?: () 
   onSuccess,
   onForgotPassword 
 }) => {
-  const { signIn, loading } = useAuth();
+  const { signIn, loading: authLoading } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
   
   const form = useForm<FormData>({
@@ -38,6 +38,11 @@ const EmailSignInForm: React.FC<{ onSuccess?: () => void; onForgotPassword?: () 
     setIsSubmitting(true);
     try {
       await signIn(data.email, data.password);
+      
+      if (data.email === 'manuel.chacon@detectasecurity.io') {
+        toast.success('¡Bienvenido administrador!');
+      }
+      
       if (onSuccess) onSuccess();
     } catch (error: any) {
       console.error("Login error:", error);
@@ -48,7 +53,7 @@ const EmailSignInForm: React.FC<{ onSuccess?: () => void; onForgotPassword?: () 
   };
 
   // Combine the component loading state with the auth loading state
-  const isLoading = loading || isSubmitting;
+  const isLoading = authLoading || isSubmitting;
 
   return (
     <Form {...form}>

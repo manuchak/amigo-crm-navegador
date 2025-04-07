@@ -1,7 +1,8 @@
+
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
-import { UserRole, UserData } from '@/types/auth';
-import { ProfileData, UserRoleData, mapUserData } from './useSupabaseMappings';
+import { UserData } from '@/types/auth';
+import { mapUserData } from './useSupabaseMappings';
 
 export const useAuthMethods = (
   setUserData: React.Dispatch<React.SetStateAction<UserData | null>>,
@@ -33,9 +34,9 @@ export const useAuthMethods = (
   const signIn = async (email: string, password: string) => {
     setLoading(true);
     try {
-      // Set a timeout to prevent hanging
+      // Set a timeout to prevent hanging - longer timeout (30 seconds)
       const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('La conexión tardó demasiado tiempo, por favor inténtelo de nuevo')), 15000)
+        setTimeout(() => reject(new Error('La conexión tardó demasiado tiempo, por favor inténtelo de nuevo')), 30000)
       );
       
       const authPromise = supabase.auth.signInWithPassword({
@@ -52,7 +53,7 @@ export const useAuthMethods = (
       ]) as Awaited<ReturnType<typeof supabase.auth.signInWithPassword>>;
 
       if (error) {
-        let errorMessage = 'Correo o contraseña incorrectos';
+        let errorMessage = 'Error al iniciar sesión';
         if (error.message.includes('Invalid login')) {
           errorMessage = 'Correo o contraseña incorrectos';
         } else if (error.message.includes('email')) {
@@ -73,7 +74,33 @@ export const useAuthMethods = (
         throw new Error('Error al obtener datos del usuario');
       }
       
-      setUserData(mappedUserData);
+      // Special case for manuel.chacon
+      if (email.toLowerCase() === 'manuel.chacon@detectasecurity.io') {
+        try {
+          // Ensure this user always has owner role
+          await supabase.rpc('update_user_role', {
+            target_user_id: data.user.id,
+            new_role: 'owner'
+          });
+          
+          // Ensure email is verified
+          await supabase.rpc('verify_user_email', {
+            target_user_id: data.user.id
+          });
+          
+          // Refresh user data to get updated role
+          const refreshedData = await mapUserData(data.user);
+          if (refreshedData) {
+            setUserData(refreshedData);
+          }
+        } catch (specialUserError) {
+          console.error('Error setting special user permissions:', specialUserError);
+          // Continue login even if special permissions failed
+        }
+      } else {
+        setUserData(mappedUserData);
+      }
+      
       toast.success('Sesión iniciada con éxito');
       return mappedUserData;
     } catch (error: any) {

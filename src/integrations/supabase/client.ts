@@ -14,7 +14,16 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABL
     persistSession: true,
     autoRefreshToken: true,
     storage: typeof window !== 'undefined' ? localStorage : undefined,
-    // Add timeout for network operations
-    flowType: 'pkce'
+    flowType: 'pkce',
+    // Add client timeout
+    detectSessionInUrl: true,
+    // Use longer timeouts - the default may be too short for some connections
+    timeouts: {
+      fetch: 30000, // 30 seconds
+      storage: {
+        read: 5000,  // 5 seconds
+        write: 5000  // 5 seconds
+      }
+    }
   }
 });
