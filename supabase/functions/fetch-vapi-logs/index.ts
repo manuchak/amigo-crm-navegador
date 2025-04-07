@@ -1,4 +1,3 @@
-
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.7'
 
 // Define CORS headers for all responses
@@ -34,7 +33,20 @@ const CONFIG = {
       method: 'GET',
       description: 'Analytics endpoint'
     }
-  ]
+  ],
+  // Mapping configuration to match VAPI API fields to Supabase columns
+  FIELD_MAPPING: {
+    // Standard VAPI API fields based on their documentation
+    customerNumber: 'customer_number', 
+    callerNumber: 'caller_phone_number',
+    phoneNumber: 'phone_number',
+    duration: 'duration',
+    // Other possible field variations from VAPI API
+    customer_phone_number: 'customer_number',
+    caller_phone: 'caller_phone_number',
+    to_number: 'customer_number',
+    from_number: 'caller_phone_number'
+  }
 }
 
 /**
@@ -311,6 +323,11 @@ class ResponseParser {
         console.log("Sample object properties:", Object.keys(sampleObject))
         console.log("Phone number fields:", this.findPhoneNumberFields(sampleObject))
         console.log("Duration field:", sampleObject.duration, "type:", typeof sampleObject.duration)
+        
+        // Additional detailed logging about field names to help debug
+        console.log("All fields in sample object:", Object.entries(sampleObject)
+          .map(([key, value]) => `${key}: ${typeof value} = ${JSON.stringify(value)}`)
+          .join(', '))
       }
     }
     
@@ -351,7 +368,7 @@ class ResponseParser {
     if (logs && logs.length > 0) {
       console.log('Sample log item:', JSON.stringify(logs[0]).substring(0, 300))
       
-      // ADDED: Detailed phone number field inspection of first log
+      // Detailed phone number field inspection of first log
       const phoneFields = this.inspectPhoneNumberFields(logs[0]);
       console.log('Phone number fields in first log:', phoneFields);
     }
@@ -411,8 +428,8 @@ class ResponseParser {
     const possibleKeys = [
       'phone_number', 'phoneNumber', 'caller_number', 'callerNumber',
       'caller_phone_number', 'callerPhoneNumber', 'customer_number', 'customerNumber',
-      'customer_phone', 'customerPhone', 'from', 'to', 'toPhoneNumber',
-      'phone', 'number', 'fromNumber', 'recipientPhone', 'recipientNumber'
+      'customer_phone', 'customerPhone', 'from', 'to', 'toPhoneNumber', 'to_phone_number',
+      'phone', 'number', 'fromNumber', 'from_number', 'recipientPhone', 'recipientNumber'
     ];
     
     // Check each possible key
@@ -446,6 +463,49 @@ class ResponseParser {
     }
     
     return phoneFields;
+  }
+  
+  /**
+   * Attempt to find the most appropriate value for a specific field
+   */
+  static findFieldValue(log, fieldType) {
+    // Use our field mapping to check all possible field variations
+    const possibleFieldNames = Object.keys(CONFIG.FIELD_MAPPING)
+      .filter(key => CONFIG.FIELD_MAPPING[key] === fieldType);
+    
+    // Try standard field names first
+    for (const fieldName of possibleFieldNames) {
+      if (log[fieldName] !== undefined && log[fieldName] !== null) {
+        return log[fieldName];
+      }
+    }
+    
+    // Try camelCase and snake_case variations
+    const fieldNameVariations = [];
+    for (const fieldName of possibleFieldNames) {
+      // Add camelCase variation
+      fieldNameVariations.push(fieldName.replace(/(_\w)/g, m => m[1].toUpperCase()));
+      // Add snake_case variation
+      fieldNameVariations.push(fieldName.replace(/([A-Z])/g, m => `_${m.toLowerCase()}`));
+    }
+    
+    for (const fieldName of fieldNameVariations) {
+      if (log[fieldName] !== undefined && log[fieldName] !== null) {
+        return log[fieldName];
+      }
+    }
+    
+    // Try metadata if available
+    if (log.metadata && typeof log.metadata === 'object') {
+      for (const fieldName of [...possibleFieldNames, ...fieldNameVariations]) {
+        if (log.metadata[fieldName] !== undefined && log.metadata[fieldName] !== null) {
+          return log.metadata[fieldName];
+        }
+      }
+    }
+    
+    // Return null if not found
+    return null;
   }
 }
 
@@ -493,8 +553,11 @@ class DatabaseManager {
         const logData = this.normalizeLogData(log)
         
         // Enhanced debug info for phone number and duration
-        console.log(`Log ${log.id} - Phone data: customer=${logData.customer_number}, caller=${logData.caller_phone_number}, phone=${logData.phone_number}`)
-        console.log(`Log ${log.id} - Duration: ${logData.duration}, original type: ${typeof log.duration}`)
+        console.log(`Log ${log.id} - Phone data:`)
+        console.log(`  - customer=${logData.customer_number}, type=${typeof logData.customer_number}`)
+        console.log(`  - caller=${logData.caller_phone_number}, type=${typeof logData.caller_phone_number}`)
+        console.log(`  - phone=${logData.phone_number}, type=${typeof logData.phone_number}`)
+        console.log(`Log ${log.id} - Duration: ${logData.duration}, type=${typeof logData.duration}`)
 
         // Insert or update the log
         if (!existingLog) {
@@ -550,6 +613,20 @@ class DatabaseManager {
         // Default to 0 instead of null for duration
         duration = 0;
       }
+    } else {
+      // Try to find duration in alternative fields or metadata
+      const durationValue = ResponseParser.findFieldValue(log, 'duration');
+      if (durationValue !== null) {
+        if (typeof durationValue === 'string') {
+          duration = parseInt(durationValue, 10) || 0;
+        } else if (typeof durationValue === 'number') {
+          duration = durationValue;
+        } else {
+          duration = 0;
+        }
+      } else {
+        duration = 0;
+      }
     }
     
     // Enhanced phone number extraction with more thorough checks
@@ -564,6 +641,7 @@ class DatabaseManager {
       phoneFields.number ||
       phoneFields.to ||
       phoneFields.toPhoneNumber || 
+      ResponseParser.findFieldValue(log, 'phone_number') ||
       '';
     
     const callerNumber = 
@@ -573,6 +651,7 @@ class DatabaseManager {
       phoneFields.fromNumber ||
       phoneFields['metadata.caller_phone_number'] ||
       phoneFields['metadata.from'] ||
+      ResponseParser.findFieldValue(log, 'caller_phone_number') ||
       '';
     
     const customerNumber = 
@@ -581,6 +660,11 @@ class DatabaseManager {
       phoneFields.customer_phone || 
       phoneFields.customerPhone || 
       phoneFields['metadata.customer_number'] ||
+      phoneFields.to ||
+      phoneFields.toNumber ||
+      phoneFields.to_number ||
+      phoneFields.to_phone_number ||
+      ResponseParser.findFieldValue(log, 'customer_number') ||
       callerNumber || 
       '';
 

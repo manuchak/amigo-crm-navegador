@@ -51,6 +51,14 @@ const CallLogsList: React.FC<CallLogsListProps> = ({
     );
   }
 
+  // Helper function to display the best available phone number
+  const getBestPhoneNumber = (log: VapiCallLog): string => {
+    return log.customer_number || 
+           log.caller_phone_number || 
+           log.phone_number || 
+           'Desconocido';
+  };
+
   return (
     <div className="rounded-md border overflow-hidden">
       <Table>
@@ -98,7 +106,7 @@ const CallLogsList: React.FC<CallLogsListProps> = ({
                     {log.assistant_phone_number || log.phone_number || 'N/A'}
                   </TableCell>
                   <TableCell>
-                    {log.customer_number || log.caller_phone_number || 'N/A'}
+                    {getBestPhoneNumber(log)}
                   </TableCell>
                   <TableCell>
                     {log.call_type || 'N/A'}
@@ -140,7 +148,7 @@ const CallLogsList: React.FC<CallLogsListProps> = ({
                     </div>
                   </TableCell>
                   <TableCell>
-                    {log.customer_number || log.caller_phone_number || log.phone_number || 'Desconocido'}
+                    {getBestPhoneNumber(log)}
                   </TableCell>
                   <TableCell>
                     <DirectionBadge direction={log.direction} />
