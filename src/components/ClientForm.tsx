@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -53,7 +54,7 @@ const ClientForm: React.FC<ClientFormProps> = ({ onClientAdded }) => {
           fuente: 'CRM',
           valor: valorNumeric,
           fecha_creacion: new Date().toISOString()
-        });
+        } as any);
       
       if (error) throw error;
       

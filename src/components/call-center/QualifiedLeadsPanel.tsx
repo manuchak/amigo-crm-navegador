@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -36,7 +35,8 @@ const QualifiedLeadsPanel: React.FC = () => {
         throw error;
       }
       
-      setQualifiedLeads(data || []);
+      // Cast data to the appropriate type before setting state
+      setQualifiedLeads(data as unknown as QualifiedLead[] || []);
     } catch (error: any) {
       console.error('Error fetching qualified leads:', error);
       setError(error.message || 'Error al cargar leads calificados');

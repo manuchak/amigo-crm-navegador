@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -32,7 +31,7 @@ const VapiConfigPanel: React.FC<VapiConfigPanelProps> = ({ onConfigUpdate }) => 
       const { data, error } = await supabase
         .from('secrets')
         .select('value')
-        .eq('name', 'VAPI_API_KEY')
+        .eq('name', 'VAPI_API_KEY' as any)
         .maybeSingle();
         
       if (error) {
@@ -41,7 +40,7 @@ const VapiConfigPanel: React.FC<VapiConfigPanelProps> = ({ onConfigUpdate }) => 
         return;
       }
       
-      if (!data?.value) {
+      if (!data) {
         console.log('VAPI key not found in database, will attempt to save the default key');
         setKeyStatus('not_found');
         

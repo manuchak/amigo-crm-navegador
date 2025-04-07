@@ -28,8 +28,8 @@ export const mapUserData = async (user: User): Promise<UserData | null> => {
     const { data: profileData, error: profileError } = await supabase
       .from('profiles')
       .select('*')
-      .eq('id', user.id)
-      .single();
+      .eq('id', user.id as string)
+      .maybeSingle();
 
     if (profileError) throw profileError;
 

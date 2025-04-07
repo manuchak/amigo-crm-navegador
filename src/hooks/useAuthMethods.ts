@@ -20,8 +20,10 @@ export const useAuthMethods = (
           // Update last login timestamp
           await supabase
             .from('profiles')
-            .update({ last_login: new Date().toISOString() })
-            .eq('id', session.user.id);
+            .update({ 
+              last_login: new Date().toISOString() 
+            } as any)
+            .eq('id', session.user.id as any);
         }
       }
     } catch (error) {
@@ -145,13 +147,13 @@ export const useAuthMethods = (
           display_name: displayName,
           created_at: new Date().toISOString(),
           last_login: new Date().toISOString()
-        });
+        } as any);
         
         // Set initial role
         await supabase.from('user_roles').insert({
           user_id: data.user.id,
           role: 'unverified'
-        });
+        } as any);
       }
       
       const mappedUserData = await mapUserData(data.user);

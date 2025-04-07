@@ -1,3 +1,4 @@
+
 import { supabase } from '@/integrations/supabase/client';
 import { Database } from '@/integrations/supabase/types';
 
@@ -70,7 +71,7 @@ export const getLeads = async (): Promise<Lead[]> => {
       throw error;
     }
     
-    return normalizeLeads(data || []);
+    return normalizeLeads(data as SupabaseLead[] || []);
   } catch (error) {
     console.error('Error in getLeads:', error);
     throw error;
@@ -85,7 +86,7 @@ export const createLead = async (leadData: LeadData): Promise<Lead> => {
       .insert([{
         nombre: leadData.nombre,
         email: leadData.email,
-        telefono: leadData.telefono, // Now correctly as string
+        telefono: leadData.telefono,
         empresa: leadData.empresa,
         estado: leadData.estado,
         fuente: leadData.fuente,
@@ -99,7 +100,7 @@ export const createLead = async (leadData: LeadData): Promise<Lead> => {
         modelovehiculo: leadData.modelovehiculo || null,
         valor: leadData.valor || null,
         call_count: 0 // Initialize call count to zero
-      }])
+      } as any])
       .select()
       .single();
     
@@ -107,22 +108,24 @@ export const createLead = async (leadData: LeadData): Promise<Lead> => {
       console.error('Error creating lead:', error);
       throw error;
     }
-    
-    // Convert to normalized Lead format
-    return {
-      id: data.id,
-      nombre: data.nombre || 'Sin nombre',
-      empresa: data.empresa || 'Desconocida',
-      contacto: data.email && data.telefono 
+
+    // Convert response to Lead format
+    const normalizedLead: Lead = {
+      id: data?.id || 0,
+      nombre: data?.nombre || 'Sin nombre',
+      empresa: data?.empresa || 'Desconocida',
+      contacto: data?.email && data?.telefono 
         ? `${data.email} | ${data.telefono}` 
-        : data.email || data.telefono || 'Sin contacto',
-      estado: data.estado || 'Nuevo',
-      fechaCreacion: data.fecha_creacion 
+        : data?.email || data?.telefono || 'Sin contacto',
+      estado: data?.estado || 'Nuevo',
+      fechaCreacion: data?.fecha_creacion 
         ? new Date(data.fecha_creacion).toLocaleDateString('es-MX') 
         : 'Fecha desconocida',
-      valor: data.valor || undefined,
-      callCount: data.call_count
+      valor: data?.valor || undefined,
+      callCount: data?.call_count
     };
+    
+    return normalizedLead;
   } catch (error) {
     console.error('Error in createLead:', error);
     throw error;
@@ -134,8 +137,8 @@ export const updateLeadStatus = async (id: number, estado: string): Promise<void
   try {
     const { error } = await supabase
       .from('leads')
-      .update({ estado })
-      .eq('id', id);
+      .update({ estado } as any)
+      .eq('id', id as any);
     
     if (error) {
       console.error('Error updating lead status:', error);
@@ -153,7 +156,7 @@ export const deleteLead = async (id: number): Promise<void> => {
     const { error } = await supabase
       .from('leads')
       .delete()
-      .eq('id', id);
+      .eq('id', id as any);
     
     if (error) {
       console.error('Error deleting lead:', error);
@@ -172,7 +175,7 @@ export const incrementCallCount = async (leadId: number): Promise<void> => {
     const { data: leadData, error: fetchError } = await supabase
       .from('leads')
       .select('call_count')
-      .eq('id', leadId)
+      .eq('id', leadId as any)
       .single();
     
     if (fetchError) {
@@ -189,8 +192,8 @@ export const incrementCallCount = async (leadId: number): Promise<void> => {
       .update({ 
         call_count: newCallCount,
         last_call_date: new Date().toISOString()
-      })
-      .eq('id', leadId);
+      } as any)
+      .eq('id', leadId as any);
     
     if (error) {
       console.error('Error incrementing call count:', error);

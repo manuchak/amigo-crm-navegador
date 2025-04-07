@@ -33,7 +33,7 @@ export const useUserManagementMethods = (
     setLoading(true);
     try {
       // Get all profiles
-      const { data: profiles, error: profilesError } = await supabase
+      const { data: profilesData, error: profilesError } = await supabase
         .from('profiles')
         .select('*');
       
@@ -45,27 +45,31 @@ export const useUserManagementMethods = (
       if (authUsersError) throw authUsersError;
       
       // Get all roles
-      const { data: roles, error: rolesError } = await supabase
+      const { data: rolesData, error: rolesError } = await supabase
         .from('user_roles')
         .select('*');
       
       if (rolesError) throw rolesError;
       
       // Ensure profiles is not null and handle its type properly
-      if (!profiles || !Array.isArray(profiles) || profiles.length === 0) return [];
+      if (!profilesData || !Array.isArray(profilesData) || profilesData.length === 0) return [];
       
-      // Combine the data - properly typed now
-      const mappedUsers: UserData[] = (profiles as ProfileData[]).map(profile => {
+      // Type assertions for the data
+      const profiles = profilesData as unknown as ProfileData[];
+      const roles = rolesData as unknown as UserRoleData[];
+      
+      // Combine the data
+      const mappedUsers: UserData[] = profiles.map(profile => {
         const authUser = authUsers?.users?.find(user => user.id === profile.id);
         const userRole = roles && Array.isArray(roles) ? 
-          (roles as UserRoleData[]).find(role => role.user_id === profile.id) : null;
+          roles.find(role => role.user_id === profile.id) : null;
         
         return {
           uid: profile.id,
           email: profile.email,
           displayName: profile.display_name,
           photoURL: profile.photo_url,
-          role: userRole?.role as UserRole || 'unverified',
+          role: (userRole?.role as UserRole) || 'unverified',
           emailVerified: authUser?.email_confirmed_at ? true : false,
           createdAt: new Date(profile.created_at),
           lastLogin: new Date(profile.last_login)
@@ -107,7 +111,7 @@ export const useUserManagementMethods = (
       const { data: user, error: userError } = await supabase
         .from('profiles')
         .select('id')
-        .eq('email', email)
+        .eq('email', email as any)
         .maybeSingle();
       
       if (userError) {
@@ -115,7 +119,7 @@ export const useUserManagementMethods = (
         throw userError;
       }
       
-      if (user && user.id) {  // Fix TS error - ensure id exists
+      if (user?.id) {
         // User exists in profiles, update role
         const { error } = await supabase.rpc('update_user_role', {
           target_user_id: user.id,
@@ -149,7 +153,7 @@ export const useUserManagementMethods = (
                 display_name: `Admin ${email.split('@')[0]}`,
                 created_at: new Date().toISOString(),
                 last_login: new Date().toISOString()
-              })
+              } as any)
               .select()
               .single();
             
@@ -188,11 +192,11 @@ export const useUserManagementMethods = (
               .from('profiles')
               .insert({
                 id: newUser.user.id,
-                email: email,  // Fix TS error - use known email
+                email: email,
                 display_name: `Admin ${email.split('@')[0]}`,
                 created_at: new Date().toISOString(),
                 last_login: new Date().toISOString()
-              });
+              } as any);
             
             if (profileError) {
               console.error('Error creating profile for new user:', profileError);
@@ -236,13 +240,13 @@ export const useUserManagementMethods = (
             display_name: `Admin ${email.split('@')[0]}`,
             created_at: new Date().toISOString(),
             last_login: new Date().toISOString()
-          });
+          } as any);
           
           // Set initial role to owner
           await supabase.from('user_roles').insert({
             user_id: newUser.user.id,
             role: 'owner'
-          });
+          } as any);
           
           toast.success(`Usuario ${email} creado como propietario (requiere verificación de correo)`);
           
