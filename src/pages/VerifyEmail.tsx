@@ -65,7 +65,7 @@ const VerifyEmail = () => {
     try {
       setIsLoading(true);
       
-      // Get the current domain for redirects
+      // Get the correct origin for redirects
       const redirectURL = `${window.location.origin}/verify-confirmation`;
       
       // Use resetPasswordForEmail which also can be used for verification emails
