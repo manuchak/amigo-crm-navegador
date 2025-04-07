@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -26,8 +26,6 @@ const EmailSignInForm: React.FC<{ onSuccess?: () => void; onForgotPassword?: () 
 }) => {
   const { signIn, loading: authLoading, setUserAsVerifiedOwner } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [autoLoginAttempted, setAutoLoginAttempted] = useState(false);
-  const [autoLoginAttempts, setAutoLoginAttempts] = useState(0);
   
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
@@ -37,8 +35,8 @@ const EmailSignInForm: React.FC<{ onSuccess?: () => void; onForgotPassword?: () 
     },
   });
 
-  // Ensure the owner user exists and is verified before attempting login
-  useEffect(() => {
+  // Ensure the owner user exists and is verified, but don't auto-login
+  React.useEffect(() => {
     const setupOwnerUser = async () => {
       try {
         // First ensure the owner user exists and has proper permissions
@@ -49,71 +47,8 @@ const EmailSignInForm: React.FC<{ onSuccess?: () => void; onForgotPassword?: () 
       }
     };
     
-    if (!autoLoginAttempted && autoLoginAttempts === 0) {
-      setupOwnerUser();
-    }
-  }, [setUserAsVerifiedOwner, autoLoginAttempted, autoLoginAttempts]);
-
-  // Attempt auto-login for owner account with multiple retries
-  useEffect(() => {
-    if (autoLoginAttempted || autoLoginAttempts >= 3) return;
-    
-    const attemptAutoLogin = async () => {
-      setIsSubmitting(true);
-      
-      try {
-        console.log(`Attempting auto-login for owner (attempt ${autoLoginAttempts + 1})...`);
-        const userData = await signIn(OWNER_EMAIL, DEFAULT_PASSWORD);
-        
-        if (userData) {
-          toast.success('¡Bienvenido administrador!');
-          if (onSuccess) onSuccess();
-          setAutoLoginAttempted(true);
-        } else {
-          // If login fails but no error is thrown, we'll retry
-          setAutoLoginAttempts(prev => prev + 1);
-          setTimeout(() => {
-            if (autoLoginAttempts < 2) {
-              // This will trigger useEffect again
-              setAutoLoginAttempts(prev => prev + 1);
-            } else {
-              setAutoLoginAttempted(true);
-            }
-          }, 1500);
-        }
-      } catch (error: any) {
-        console.error("Auto-login failed:", error);
-        // Silent fail - user can still log in manually
-        setAutoLoginAttempted(true);
-        // But let's automatically try to create the owner in case it doesn't exist
-        try {
-          await setUserAsVerifiedOwner(OWNER_EMAIL);
-          // After creating/verifying the owner, try logging in one more time
-          setTimeout(() => {
-            signIn(OWNER_EMAIL, DEFAULT_PASSWORD)
-              .then(userData => {
-                if (userData && onSuccess) {
-                  toast.success('¡Bienvenido administrador!');
-                  onSuccess();
-                }
-              })
-              .catch(e => console.error("Final auto-login attempt failed:", e));
-          }, 1500);
-        } catch (setupError) {
-          console.error("Failed to set up owner account:", setupError);
-        }
-      } finally {
-        setIsSubmitting(false);
-      }
-    };
-    
-    // Small delay before attempting auto-login
-    const timer = setTimeout(() => {
-      attemptAutoLogin();
-    }, 800);
-    
-    return () => clearTimeout(timer);
-  }, [signIn, autoLoginAttempted, onSuccess, autoLoginAttempts, setUserAsVerifiedOwner]);
+    setupOwnerUser();
+  }, [setUserAsVerifiedOwner]);
 
   const onSubmit = async (data: FormData) => {
     if (isSubmitting) return; // Prevent multiple submissions

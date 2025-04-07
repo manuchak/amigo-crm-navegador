@@ -140,8 +140,8 @@ export const useUserManagementMethods = (
         throw userError;
       }
       
-      // Explicitly check if userData has the id property
-      if (userData && 'id' in userData && userData.id) {
+      // Add proper type guard for userData
+      if (userData && userData !== null && 'id' in userData && userData.id) {
         // User exists in profiles, update role
         const { error } = await supabase.rpc('update_user_role', {
           target_user_id: userData.id,
