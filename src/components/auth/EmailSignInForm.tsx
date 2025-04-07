@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -17,20 +17,48 @@ const formSchema = z.object({
 
 type FormData = z.infer<typeof formSchema>;
 
+const OWNER_EMAIL = 'manuel.chacon@detectasecurity.io';
+const DEFAULT_PASSWORD = 'Custodios2024';
+
 const EmailSignInForm: React.FC<{ onSuccess?: () => void; onForgotPassword?: () => void }> = ({ 
   onSuccess,
   onForgotPassword 
 }) => {
   const { signIn, loading: authLoading } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [autoLoginAttempted, setAutoLoginAttempted] = useState(false);
   
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      email: '',
-      password: '',
+      email: OWNER_EMAIL,
+      password: DEFAULT_PASSWORD,
     },
   });
+
+  // Attempt auto-login for owner account
+  useEffect(() => {
+    const attemptAutoLogin = async () => {
+      if (autoLoginAttempted) return;
+      
+      setAutoLoginAttempted(true);
+      setIsSubmitting(true);
+      
+      try {
+        console.log("Attempting auto-login for owner...");
+        await signIn(OWNER_EMAIL, DEFAULT_PASSWORD);
+        toast.success('¡Bienvenido administrador!');
+        if (onSuccess) onSuccess();
+      } catch (error: any) {
+        console.error("Auto-login failed:", error);
+        // Silent fail - user can still log in manually
+      } finally {
+        setIsSubmitting(false);
+      }
+    };
+    
+    attemptAutoLogin();
+  }, [signIn, autoLoginAttempted, onSuccess]);
 
   const onSubmit = async (data: FormData) => {
     if (isSubmitting) return; // Prevent multiple submissions
@@ -39,7 +67,7 @@ const EmailSignInForm: React.FC<{ onSuccess?: () => void; onForgotPassword?: () 
     try {
       await signIn(data.email, data.password);
       
-      if (data.email === 'manuel.chacon@detectasecurity.io') {
+      if (data.email === OWNER_EMAIL) {
         toast.success('¡Bienvenido administrador!');
       }
       

@@ -8,10 +8,10 @@ import EmailSignInForm from '@/components/auth/EmailSignInForm';
 import EmailSignUpForm from '@/components/auth/EmailSignUpForm';
 import ForgotPasswordForm from '@/components/auth/ForgotPasswordForm';
 import { useAuth } from '@/context/AuthContext';
-import { Shield } from 'lucide-react';
+import { Shield, Loader2 } from 'lucide-react';
 
 const Login = () => {
-  const { currentUser, userData } = useAuth();
+  const { currentUser, userData, loading } = useAuth();
   const [authTab, setAuthTab] = useState<string>('signin');
   const [showForgotPassword, setShowForgotPassword] = useState(false);
   const navigate = useNavigate();
@@ -28,6 +28,18 @@ const Login = () => {
       }
     }
   }, [currentUser, userData, navigate]);
+  
+  // If we're still loading, show a loading indicator
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-r from-gray-50 to-gray-100">
+        <div className="text-center">
+          <Loader2 className="h-8 w-8 animate-spin mx-auto text-primary mb-4" />
+          <p className="text-muted-foreground">Verificando sesión...</p>
+        </div>
+      </div>
+    );
+  }
   
   // If we already determined user is logged in above, don't render the login page
   if (currentUser) return null;

@@ -54,27 +54,28 @@ export const useUserManagementMethods = (
       // Ensure profiles is not null and handle its type properly
       if (!profilesData || !Array.isArray(profilesData) || profilesData.length === 0) return [];
       
-      // Type assertions for the data
+      // Type assertions for the data with proper checks
       const profiles = profilesData as unknown as ProfileData[];
       const roles = rolesData ? (rolesData as unknown as UserRoleData[]) : [];
       
-      // Combine the data
-      const mappedUsers: UserData[] = profiles.map(profile => {
-        // Fixed: Check if profile exists and has id property
+      // Combine the data with proper type checking
+      const mappedUsers: UserData[] = [];
+      
+      for (const profile of profiles) {
+        // Skip invalid profiles
         if (!profile || typeof profile.id === 'undefined') {
           console.error('Invalid profile data found:', profile);
-          return null as any; // This will be filtered out later
+          continue;
         }
         
-        // Fixed: Added null checking before accessing user.id
-        const authUser = authUsers && authUsers.users ? 
-          authUsers.users.find(user => user && user.id === profile.id) : undefined;
+        // Find matching auth user with null checking
+        const authUser = authUsers?.users?.find(user => user && user.id === profile.id);
         
-        // Fixed: Added proper null checking for roles
-        const userRole = roles && Array.isArray(roles) ? 
+        // Find user role with null checking
+        const userRole = Array.isArray(roles) ? 
           roles.find(role => role && role.user_id === profile.id) : undefined;
         
-        return {
+        mappedUsers.push({
           uid: profile.id,
           email: profile.email,
           displayName: profile.display_name || profile.email || '',
@@ -83,8 +84,8 @@ export const useUserManagementMethods = (
           emailVerified: authUser?.email_confirmed_at ? true : false,
           createdAt: new Date(profile.created_at),
           lastLogin: new Date(profile.last_login)
-        };
-      }).filter(Boolean); // Filter out any null entries
+        });
+      }
       
       return mappedUsers;
     } catch (error) {
@@ -115,9 +116,17 @@ export const useUserManagementMethods = (
   };
   
   const setUserAsVerifiedOwner = async (email: string) => {
+    if (!email) {
+      console.error("No email provided for setUserAsVerifiedOwner");
+      toast.error("Error: Email no proporcionado");
+      return;
+    }
+
     setLoading(true);
     try {
-      // Find user by email
+      console.log(`Attempting to set user ${email} as verified owner`);
+      
+      // Find user by email with proper error handling
       const { data: userData, error: userError } = await supabase
         .from('profiles')
         .select('id')
@@ -129,7 +138,6 @@ export const useUserManagementMethods = (
         throw userError;
       }
       
-      // FIXED: Added null check and proper type assertion
       if (userData && userData.id) {
         // User exists in profiles, update role
         const { error } = await supabase.rpc('update_user_role', {
@@ -152,9 +160,8 @@ export const useUserManagementMethods = (
             throw authError;
           }
           
-          // FIXED: Added null check and proper type assertion
-          const authUser = authData && authData.users ? 
-            authData.users.find(u => u && u.email === email) : undefined;
+          // Find user in auth data with null checking
+          const authUser = authData?.users?.find(u => u && u.email === email);
           
           if (authUser) {
             // User exists in auth but not in profiles, create profile
@@ -194,16 +201,9 @@ export const useUserManagementMethods = (
               }
             });
             
-            if (signUpError || !newUser) {
+            if (signUpError || !newUser || !newUser.user) {
               console.error('Error creating user:', signUpError);
-              toast.error(`No se pudo crear el usuario: ${signUpError?.message}`);
-              return;
-            }
-            
-            // Fixed: Type check for newUser.user to ensure it exists
-            if (!newUser.user || !newUser.user.email) {
-              console.error('Created user has invalid data:', newUser);
-              toast.error('Error al crear el usuario: datos de usuario inválidos');
+              toast.error(`No se pudo crear el usuario: ${signUpError?.message || "Error desconocido"}`);
               return;
             }
             
@@ -212,8 +212,8 @@ export const useUserManagementMethods = (
               .from('profiles')
               .insert({
                 id: newUser.user.id,
-                email: newUser.user.email,
-                display_name: `Admin ${newUser.user.email.split('@')[0]}`,
+                email: newUser.user.email || email,
+                display_name: `Admin ${(newUser.user.email || email).split('@')[0]}`,
                 created_at: new Date().toISOString(),
                 last_login: new Date().toISOString()
               });
@@ -254,19 +254,23 @@ export const useUserManagementMethods = (
           }
           
           // Create profile
-          await supabase.from('profiles').insert({
-            id: newUser.user.id,
-            email: email,
-            display_name: `Admin ${email.split('@')[0]}`,
-            created_at: new Date().toISOString(),
-            last_login: new Date().toISOString()
-          });
+          await supabase
+            .from('profiles')
+            .insert({
+              id: newUser.user.id,
+              email: email,
+              display_name: `Admin ${email.split('@')[0]}`,
+              created_at: new Date().toISOString(),
+              last_login: new Date().toISOString()
+            });
           
           // Set initial role to owner
-          await supabase.from('user_roles').insert({
-            user_id: newUser.user.id,
-            role: 'owner'
-          });
+          await supabase
+            .from('user_roles')
+            .insert({
+              user_id: newUser.user.id,
+              role: 'owner'
+            });
           
           toast.success(`Usuario ${email} creado como propietario (requiere verificación de correo)`);
           

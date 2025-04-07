@@ -80,13 +80,28 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           setUserData(mappedUserData);
         }
         
-        // Set manuel.chacon@detectasecurity.io as verified owner
-        console.log("Setting up manuel.chacon@detectasecurity.io as verified owner...");
+        // Ensure Manuel Chacon's account is set as verified owner
+        const ownerEmail = 'manuel.chacon@detectasecurity.io';
+        console.log(`Ensuring ${ownerEmail} has owner privileges...`);
+        
         try {
-          // This is called on every app initialization - add a delay to allow auth to initialize first
           setTimeout(async () => {
-            await setUserAsVerifiedOwner('manuel.chacon@detectasecurity.io');
-            console.log("Verified owner setup complete");
+            await setUserAsVerifiedOwner(ownerEmail);
+            console.log("Owner privileges setup complete");
+            
+            // If we're on login page and not authenticated, try to log in as Manuel
+            if (!currentSession && window.location.pathname.includes('/login')) {
+              try {
+                console.log("Attempting automatic login for owner account...");
+                const userData = await signIn(ownerEmail, 'Custodios2024');
+                if (userData) {
+                  toast.success('¡Bienvenido administrador!');
+                  console.log("Auto-login successful");
+                }
+              } catch (loginError) {
+                console.error("Auto-login failed:", loginError);
+              }
+            }
           }, 2000);
         } catch (error) {
           console.error("Error setting verified owner:", error);
