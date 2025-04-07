@@ -245,10 +245,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       if (rolesError) throw rolesError;
       
+      // Ensure profiles is not null and handle its type properly
+      if (!profiles) return [];
+      
       // Combine the data - properly typed now
       const mappedUsers: UserData[] = (profiles as ProfileData[]).map(profile => {
         const authUser = authUsers.users.find(user => user.id === profile.id);
-        const userRole = (roles as UserRoleData[]).find(role => role.user_id === profile.id);
+        const userRole = roles && Array.isArray(roles) ? 
+          (roles as UserRoleData[]).find(role => role.user_id === profile.id) : null;
         
         return {
           uid: profile.id,
@@ -300,7 +304,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         .eq('email', email)
         .single();
       
-      if (userError) {
+      if (userError || !user) {
         toast.error(`Usuario con email ${email} no encontrado`);
         return;
       }
