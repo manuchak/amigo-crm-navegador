@@ -27,6 +27,7 @@ const EmailSignInForm: React.FC<{ onSuccess?: () => void; onForgotPassword?: () 
   const { signIn, loading: authLoading } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [autoLoginAttempted, setAutoLoginAttempted] = useState(false);
+  const [autoLoginAttempts, setAutoLoginAttempts] = useState(0);
   
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
@@ -36,42 +37,66 @@ const EmailSignInForm: React.FC<{ onSuccess?: () => void; onForgotPassword?: () 
     },
   });
 
-  // Attempt auto-login for owner account
+  // Attempt auto-login for owner account with multiple retries
   useEffect(() => {
+    if (autoLoginAttempted || autoLoginAttempts >= 3) return;
+    
     const attemptAutoLogin = async () => {
-      if (autoLoginAttempted) return;
-      
-      setAutoLoginAttempted(true);
       setIsSubmitting(true);
       
       try {
-        console.log("Attempting auto-login for owner...");
-        await signIn(OWNER_EMAIL, DEFAULT_PASSWORD);
-        toast.success('¡Bienvenido administrador!');
-        if (onSuccess) onSuccess();
+        console.log(`Attempting auto-login for owner (attempt ${autoLoginAttempts + 1})...`);
+        const userData = await signIn(OWNER_EMAIL, DEFAULT_PASSWORD);
+        
+        if (userData) {
+          toast.success('¡Bienvenido administrador!');
+          if (onSuccess) onSuccess();
+          setAutoLoginAttempted(true);
+        } else {
+          // If login fails but no error is thrown, we'll retry
+          setAutoLoginAttempts(prev => prev + 1);
+          setTimeout(() => {
+            if (autoLoginAttempts < 2) {
+              // This will trigger useEffect again
+              setAutoLoginAttempts(prev => prev + 1);
+            } else {
+              setAutoLoginAttempted(true);
+            }
+          }, 1500);
+        }
       } catch (error: any) {
         console.error("Auto-login failed:", error);
         // Silent fail - user can still log in manually
+        setAutoLoginAttempted(true);
       } finally {
         setIsSubmitting(false);
       }
     };
     
-    attemptAutoLogin();
-  }, [signIn, autoLoginAttempted, onSuccess]);
+    // Small delay before attempting auto-login
+    const timer = setTimeout(() => {
+      attemptAutoLogin();
+    }, 800);
+    
+    return () => clearTimeout(timer);
+  }, [signIn, autoLoginAttempted, onSuccess, autoLoginAttempts]);
 
   const onSubmit = async (data: FormData) => {
     if (isSubmitting) return; // Prevent multiple submissions
     
     setIsSubmitting(true);
     try {
-      await signIn(data.email, data.password);
+      const userData = await signIn(data.email, data.password);
       
-      if (data.email === OWNER_EMAIL) {
-        toast.success('¡Bienvenido administrador!');
+      if (userData) {
+        if (data.email === OWNER_EMAIL) {
+          toast.success('¡Bienvenido administrador!');
+        } else {
+          toast.success('¡Inicio de sesión exitoso!');
+        }
+        
+        if (onSuccess) onSuccess();
       }
-      
-      if (onSuccess) onSuccess();
     } catch (error: any) {
       console.error("Login error:", error);
       toast.error(error?.message || "Error al iniciar sesión");

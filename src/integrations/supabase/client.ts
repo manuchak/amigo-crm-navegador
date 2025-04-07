@@ -14,7 +14,6 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABL
     persistSession: true,
     autoRefreshToken: true,
     storage: typeof window !== 'undefined' ? localStorage : undefined,
-    flowType: 'pkce',
     detectSessionInUrl: true
   }
 });

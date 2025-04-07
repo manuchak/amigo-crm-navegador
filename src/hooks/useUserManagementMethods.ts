@@ -69,7 +69,9 @@ export const useUserManagementMethods = (
         }
         
         // Find matching auth user with null checking
-        const authUser = authUsers?.users?.find(user => user && user.id === profile.id);
+        const authUser = authUsers?.users ? 
+          authUsers.users.find(user => user && user.id === profile.id) : 
+          undefined;
         
         // Find user role with null checking
         const userRole = Array.isArray(roles) ? 
@@ -161,7 +163,9 @@ export const useUserManagementMethods = (
           }
           
           // Find user in auth data with null checking
-          const authUser = authData?.users?.find(u => u && u.email === email);
+          const authUser = authData?.users ? 
+            authData.users.find(u => u && u.email === email) : 
+            undefined;
           
           if (authUser) {
             // User exists in auth but not in profiles, create profile
@@ -191,11 +195,11 @@ export const useUserManagementMethods = (
             if (roleError) throw roleError;
             toast.success(`Usuario ${email} configurado como propietario verificado`);
           } else {
-            // User doesn't exist, create new user
+            // User doesn't exist, create new user with email confirmed
             const { data: newUser, error: signUpError } = await supabase.auth.admin.createUser({
               email: email,
               password: 'Custodios2024',
-              email_confirm: true,
+              email_confirm: true, // This ensures the email is confirmed immediately
               user_metadata: {
                 display_name: `Admin ${email.split('@')[0]}`
               }
@@ -203,7 +207,45 @@ export const useUserManagementMethods = (
             
             if (signUpError || !newUser || !newUser.user) {
               console.error('Error creating user:', signUpError);
-              toast.error(`No se pudo crear el usuario: ${signUpError?.message || "Error desconocido"}`);
+              
+              // Try alternative method if admin API fails
+              const { data: signUpData, error: altSignUpError } = await supabase.auth.signUp({
+                email: email,
+                password: 'Custodios2024',
+                options: {
+                  data: {
+                    display_name: `Admin ${email.split('@')[0]}`
+                  }
+                }
+              });
+              
+              if (altSignUpError || !signUpData.user) {
+                console.error('Error creating user with alternative method:', altSignUpError);
+                toast.error(`No se pudo crear el usuario: ${altSignUpError?.message || signUpError?.message || "Error desconocido"}`);
+                return;
+              }
+              
+              // Manually set user as verified
+              await verifyEmail(signUpData.user.id);
+              
+              // Create profile for the newly created user
+              await supabase
+                .from('profiles')
+                .insert({
+                  id: signUpData.user.id,
+                  email: email,
+                  display_name: `Admin ${email.split('@')[0]}`,
+                  created_at: new Date().toISOString(),
+                  last_login: new Date().toISOString()
+                });
+                
+              // Set role to owner
+              await supabase.rpc('update_user_role', {
+                target_user_id: signUpData.user.id,
+                new_role: 'owner'
+              });
+              
+              toast.success(`Usuario ${email} creado y configurado como propietario verificado`);
               return;
             }
             
@@ -242,8 +284,7 @@ export const useUserManagementMethods = (
             options: {
               data: {
                 display_name: `Admin ${email.split('@')[0]}`
-              },
-              emailRedirectTo: `${window.location.origin}/verify-confirmation`
+              }
             }
           });
           
@@ -272,17 +313,9 @@ export const useUserManagementMethods = (
               role: 'owner'
             });
           
-          toast.success(`Usuario ${email} creado como propietario (requiere verificación de correo)`);
-          
-          // Manually verify the email
-          try {
-            await supabase.rpc('verify_user_email', {
-              target_user_id: newUser.user.id
-            });
-            toast.success(`Correo de ${email} verificado automáticamente`);
-          } catch (verifyError) {
-            console.error('Could not auto-verify email:', verifyError);
-          }
+          // Manually verify the email immediately
+          await verifyEmail(newUser.user.id);
+          toast.success(`Usuario ${email} creado y verificado como propietario`);
         }
       }
       

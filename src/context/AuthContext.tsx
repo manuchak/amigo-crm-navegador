@@ -53,6 +53,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // Set up auth state listener
   useEffect(() => {
+    let hasSetupOwner = false;
+    
     const setupAuth = async () => {
       try {
         // First set up the auth state change listener
@@ -80,31 +82,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           setUserData(mappedUserData);
         }
         
-        // Ensure Manuel Chacon's account is set as verified owner
-        const ownerEmail = 'manuel.chacon@detectasecurity.io';
-        console.log(`Ensuring ${ownerEmail} has owner privileges...`);
-        
-        try {
-          setTimeout(async () => {
+        // Ensure Manuel Chacon's account is set as verified owner - only once
+        if (!hasSetupOwner) {
+          hasSetupOwner = true;
+          const ownerEmail = 'manuel.chacon@detectasecurity.io';
+          console.log(`Ensuring ${ownerEmail} has owner privileges...`);
+          
+          try {
             await setUserAsVerifiedOwner(ownerEmail);
             console.log("Owner privileges setup complete");
-            
-            // If we're on login page and not authenticated, try to log in as Manuel
-            if (!currentSession && window.location.pathname.includes('/login')) {
-              try {
-                console.log("Attempting automatic login for owner account...");
-                const userData = await signIn(ownerEmail, 'Custodios2024');
-                if (userData) {
-                  toast.success('¡Bienvenido administrador!');
-                  console.log("Auto-login successful");
-                }
-              } catch (loginError) {
-                console.error("Auto-login failed:", loginError);
-              }
-            }
-          }, 2000);
-        } catch (error) {
-          console.error("Error setting verified owner:", error);
+          } catch (error) {
+            console.error("Error setting verified owner:", error);
+          }
         }
         
         setLoading(false);
