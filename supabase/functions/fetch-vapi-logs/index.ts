@@ -1,4 +1,3 @@
-
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.7'
 
 // Define CORS headers for all responses
@@ -710,29 +709,11 @@ class DatabaseManager {
       ResponseParser.findFieldValue(log, 'caller_phone_number') ||
       '';
     
-    // Extract customer number with enhanced prioritization and explicitly requested fields
+    // Enhanced phone number conversion to string
     const customerNumber = 
-      phoneFields.customer_number || 
-      phoneFields.customerNumber || 
-      phoneFields['metadata.customerNumber'] ||
-      phoneFields['metadata.customerPhoneNumber'] ||
-      phoneFields['metadata.recipientNumber'] ||
-      phoneFields.customer_phone || 
-      phoneFields.customerPhone || 
-      phoneFields.to || 
-      phoneFields.toNumber ||
-      phoneFields.to_number ||
-      phoneFields.to_phone_number ||
-      phoneFields.recipient ||
-      phoneFields.recipientNumber ||
-      phoneFields.recipientPhone ||
-      phoneFields.receiver ||
-      phoneFields.receiverNumber ||
-      phoneFields['metadata.customer_number'] ||
-      phoneFields['metadata.to'] ||
-      ResponseParser.findFieldValue(log, 'customer_number') ||
-      callerNumber || // Fallback to caller number as last resort
-      '';
+      ResponseParser.findFieldValue(log, 'customer_number') !== null
+        ? String(ResponseParser.findFieldValue(log, 'customer_number')).trim()
+        : null;
 
     // Log all extracted phone numbers for debugging
     console.log(`Extracted numbers for log ${log.id}:`);
@@ -775,7 +756,7 @@ class DatabaseManager {
       // Fields with better fallbacks
       assistant_name: log.assistant_name || log.assistantName || null,
       assistant_phone_number: log.assistant_phone_number || log.assistantPhoneNumber || phoneNumber || null,
-      customer_number: customerNumber || null,
+      customer_number: customerNumber,
       call_type: log.call_type || log.callType || log.type || null,
       cost: typeof log.cost === 'number' ? log.cost : null,
       ended_reason: log.ended_reason || log.endedReason || log.ended_reason_detail || log.endedReasonDetail || null,
