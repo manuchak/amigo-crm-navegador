@@ -117,7 +117,10 @@ export const useAuthMethods = (
   const signUp = async (email: string, password: string, displayName: string) => {
     setLoading(true);
     try {
-      // Create user with email confirmation (auto-confirmed for now)
+      // Get the current domain for redirects
+      const redirectURL = `${window.location.origin}/verify-confirmation`;
+      
+      // Create user with email confirmation
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
@@ -125,8 +128,7 @@ export const useAuthMethods = (
           data: {
             display_name: displayName,
           },
-          // Use our current domain for the redirect
-          emailRedirectTo: `${window.location.origin}/verify-confirmation`
+          emailRedirectTo: redirectURL
         },
       });
 
@@ -184,8 +186,11 @@ export const useAuthMethods = (
   const resetPassword = async (email: string) => {
     setLoading(true);
     try {
+      // Get the current domain for redirects
+      const redirectURL = `${window.location.origin}/reset-password`;
+      
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/reset-password`,
+        redirectTo: redirectURL,
       });
       
       if (error) throw error;

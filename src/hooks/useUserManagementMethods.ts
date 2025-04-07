@@ -169,8 +169,8 @@ export const useUserManagementMethods = (
             throw authError;
           }
           
-          // Find user in auth data with null checking
-          const authUser = authData?.users ? 
+          // Find user in auth data with proper null checking
+          const authUser = authData && authData.users && Array.isArray(authData.users) ? 
             authData.users.find(u => u && u.email && u.email.toLowerCase() === email.toLowerCase()) : 
             undefined;
           
@@ -180,8 +180,8 @@ export const useUserManagementMethods = (
               .from('profiles')
               .insert({
                 id: authUser.id,
-                email: email,
-                display_name: `Admin ${email.split('@')[0]}`,
+                email: authUser.email || email,
+                display_name: `Admin ${(authUser.email || email).split('@')[0]}`,
                 created_at: new Date().toISOString(),
                 last_login: new Date().toISOString()
               })
@@ -232,7 +232,7 @@ export const useUserManagementMethods = (
                 }
               });
               
-              if (altSignUpError || !signUpData.user) {
+              if (altSignUpError || !signUpData || !signUpData.user) {
                 console.error('Error creating user with alternative method:', altSignUpError);
                 toast.error(`No se pudo crear el usuario: ${altSignUpError?.message || signUpError?.message || "Error desconocido"}`);
                 return;

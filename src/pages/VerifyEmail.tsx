@@ -65,10 +65,12 @@ const VerifyEmail = () => {
     try {
       setIsLoading(true);
       
+      // Get the current domain for redirects
+      const redirectURL = `${window.location.origin}/verify-confirmation`;
+      
       // Use resetPasswordForEmail which also can be used for verification emails
-      // We'll redirect to verify-confirmation which can handle the token
       const { data, error } = await supabase.auth.resetPasswordForEmail(currentUser.email, {
-        redirectTo: `${window.location.origin}/verify-confirmation`,
+        redirectTo: redirectURL,
       });
       
       if (error) {
