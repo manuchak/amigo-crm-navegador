@@ -54,12 +54,18 @@ export const useUserManagementMethods = (
       // Ensure profiles is not null and handle its type properly
       if (!profilesData || !Array.isArray(profilesData) || profilesData.length === 0) return [];
       
-      // Type assertions for the data - FIXED: Added proper type checking before casting
+      // Type assertions for the data
       const profiles = profilesData as unknown as ProfileData[];
       const roles = rolesData ? (rolesData as unknown as UserRoleData[]) : [];
       
-      // Combine the data - FIXED: Added null checks and fixed the property access
+      // Combine the data
       const mappedUsers: UserData[] = profiles.map(profile => {
+        // Fixed: Check if profile exists and has id property
+        if (!profile || typeof profile.id === 'undefined') {
+          console.error('Invalid profile data found:', profile);
+          return null as any; // This will be filtered out later
+        }
+        
         // Fixed: Added null checking before accessing user.id
         const authUser = authUsers && authUsers.users ? 
           authUsers.users.find(user => user && user.id === profile.id) : undefined;
@@ -78,7 +84,7 @@ export const useUserManagementMethods = (
           createdAt: new Date(profile.created_at),
           lastLogin: new Date(profile.last_login)
         };
-      });
+      }).filter(Boolean); // Filter out any null entries
       
       return mappedUsers;
     } catch (error) {
@@ -115,7 +121,7 @@ export const useUserManagementMethods = (
       const { data: userData, error: userError } = await supabase
         .from('profiles')
         .select('id')
-        .eq('email', email as any)
+        .eq('email', email)
         .maybeSingle();
       
       if (userError) {
@@ -160,7 +166,7 @@ export const useUserManagementMethods = (
                 display_name: `Admin ${email.split('@')[0]}`,
                 created_at: new Date().toISOString(),
                 last_login: new Date().toISOString()
-              } as any)
+              })
               .select()
               .single();
             
@@ -194,16 +200,23 @@ export const useUserManagementMethods = (
               return;
             }
             
+            // Fixed: Type check for newUser.user to ensure it exists
+            if (!newUser.user || !newUser.user.email) {
+              console.error('Created user has invalid data:', newUser);
+              toast.error('Error al crear el usuario: datos de usuario inválidos');
+              return;
+            }
+            
             // Create profile for new user
             const { error: profileError } = await supabase
               .from('profiles')
               .insert({
                 id: newUser.user.id,
-                email: email,
-                display_name: `Admin ${email.split('@')[0]}`,
+                email: newUser.user.email,
+                display_name: `Admin ${newUser.user.email.split('@')[0]}`,
                 created_at: new Date().toISOString(),
                 last_login: new Date().toISOString()
-              } as any);
+              });
             
             if (profileError) {
               console.error('Error creating profile for new user:', profileError);
@@ -247,13 +260,13 @@ export const useUserManagementMethods = (
             display_name: `Admin ${email.split('@')[0]}`,
             created_at: new Date().toISOString(),
             last_login: new Date().toISOString()
-          } as any);
+          });
           
           // Set initial role to owner
           await supabase.from('user_roles').insert({
             user_id: newUser.user.id,
             role: 'owner'
-          } as any);
+          });
           
           toast.success(`Usuario ${email} creado como propietario (requiere verificación de correo)`);
           

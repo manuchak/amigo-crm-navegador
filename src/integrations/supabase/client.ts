@@ -16,6 +16,5 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABL
     storage: typeof window !== 'undefined' ? localStorage : undefined,
     flowType: 'pkce',
     detectSessionInUrl: true
-    // Removed timeouts property as it's no longer supported in the current version
   }
 });
