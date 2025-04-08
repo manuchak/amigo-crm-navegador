@@ -42,8 +42,27 @@ const LeadsDashboard = () => {
   
   const handleCall = async (lead: any) => {
     try {
-      const contactInfo = lead.contacto.split(' | ');
-      const phoneNumber = contactInfo[1] || '';
+      // Extract phone number from contact info or directly from telefono property
+      let phoneNumber = '';
+      
+      // First check if there's a direct telefono property
+      if (lead.telefono) {
+        phoneNumber = lead.telefono;
+      } 
+      // Then check if phone is in contacto format "email | phone"
+      else if (lead.contacto && lead.contacto.includes('|')) {
+        const contactParts = lead.contacto.split('|');
+        phoneNumber = contactParts[1].trim();
+      }
+      
+      if (!phoneNumber) {
+        toast({
+          title: "Error",
+          description: "No se encontró un número telefónico para este custodio",
+          variant: "destructive",
+        });
+        return;
+      }
       
       await executeWebhook({
         telefono: phoneNumber,
@@ -114,6 +133,33 @@ const LeadsDashboard = () => {
       case "Rechazado": return "destructive";
       default: return "secondary";
     }
+  };
+
+  // Helper function to extract phone number and email from contact string
+  const extractContactInfo = (lead: any) => {
+    let email = '';
+    let phone = '';
+    
+    // First check if there are direct email/phone properties
+    if (lead.email) {
+      email = lead.email;
+    }
+    
+    if (lead.telefono) {
+      phone = lead.telefono;
+    }
+    // Then check if they're in contacto format "email | phone"
+    else if (lead.contacto && lead.contacto.includes('|')) {
+      const contactParts = lead.contacto.split('|');
+      email = contactParts[0].trim();
+      phone = contactParts[1].trim();
+    }
+    // Handle case where contacto doesn't have the separator
+    else if (lead.contacto) {
+      email = lead.contacto;
+    }
+    
+    return { email, phone };
   };
 
   const selectedLead = leads.find(lead => lead.id === selectedLeadId);
@@ -201,7 +247,8 @@ const LeadsDashboard = () => {
                 <TableRow className="bg-slate-50 hover:bg-slate-100">
                   <TableHead className="text-xs font-medium text-slate-500">Nombre</TableHead>
                   <TableHead className="text-xs font-medium text-slate-500">Categoría</TableHead>
-                  <TableHead className="text-xs font-medium text-slate-500">Contacto</TableHead>
+                  <TableHead className="text-xs font-medium text-slate-500">Email</TableHead>
+                  <TableHead className="text-xs font-medium text-slate-500">Teléfono</TableHead>
                   <TableHead className="text-xs font-medium text-slate-500">Estado</TableHead>
                   <TableHead className="text-xs font-medium text-slate-500">Llamadas</TableHead>
                   <TableHead className="text-xs font-medium text-slate-500">Última Llamada</TableHead>
@@ -212,72 +259,85 @@ const LeadsDashboard = () => {
               <TableBody>
                 {filteredLeads.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={8} className="text-center py-8 text-slate-400">
+                    <TableCell colSpan={9} className="text-center py-8 text-slate-400">
                       No hay custodios registrados
                     </TableCell>
                   </TableRow>
                 ) : (
-                  filteredLeads.map((lead) => (
-                    <TableRow key={lead.id} className="hover:bg-slate-50">
-                      <TableCell className="font-medium">{lead.nombre}</TableCell>
-                      <TableCell className="text-sm text-slate-600">{lead.empresa}</TableCell>
-                      <TableCell className="text-sm text-slate-600">{lead.contacto}</TableCell>
-                      <TableCell>
-                        <Badge variant={getStatusColor(lead.estado)} className="font-normal">
-                          {lead.estado}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        <HoverCard>
-                          <HoverCardTrigger asChild>
+                  filteredLeads.map((lead) => {
+                    const { email, phone } = extractContactInfo(lead);
+                    return (
+                      <TableRow key={lead.id} className="hover:bg-slate-50">
+                        <TableCell className="font-medium">{lead.nombre}</TableCell>
+                        <TableCell className="text-sm text-slate-600">{lead.empresa}</TableCell>
+                        <TableCell className="text-sm text-slate-600">{email}</TableCell>
+                        <TableCell className="text-sm text-slate-600">
+                          {phone ? (
                             <div className="flex items-center">
-                              <Badge variant="outline" className="cursor-pointer bg-slate-50 border-slate-200 text-slate-700">
-                                <Phone className="h-3 w-3 mr-1" />
-                                {lead.callCount || 0}
-                              </Badge>
+                              <Phone className="h-3 w-3 mr-1 text-slate-400" />
+                              {phone}
                             </div>
-                          </HoverCardTrigger>
-                          <HoverCardContent className="w-80">
-                            <div className="flex justify-between space-x-4">
-                              <div className="space-y-1">
-                                <h4 className="text-sm font-semibold">Historial de llamadas</h4>
-                                <p className="text-sm text-slate-500">
-                                  Se han realizado {lead.callCount || 0} intentos de llamada a este custodio.
-                                </p>
-                                <p className="text-xs text-slate-400">
-                                  Haz clic en "Detalles" para ver el registro completo.
-                                </p>
+                          ) : (
+                            <span className="text-slate-400">Sin teléfono</span>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant={getStatusColor(lead.estado)} className="font-normal">
+                            {lead.estado}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <HoverCard>
+                            <HoverCardTrigger asChild>
+                              <div className="flex items-center">
+                                <Badge variant="outline" className="cursor-pointer bg-slate-50 border-slate-200 text-slate-700">
+                                  <Phone className="h-3 w-3 mr-1" />
+                                  {lead.callCount || 0}
+                                </Badge>
                               </div>
-                            </div>
-                          </HoverCardContent>
-                        </HoverCard>
-                      </TableCell>
-                      <TableCell className="text-sm text-slate-600">{lead.lastCallDate || 'No hay llamadas'}</TableCell>
-                      <TableCell className="text-sm text-slate-600">{lead.fechaCreacion}</TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex justify-end gap-2">
-                          <Button 
-                            variant="ghost" 
-                            size="sm"
-                            onClick={() => handleCall(lead)}
-                            className="text-slate-700 hover:text-primary"
-                          >
-                            <PhoneCall className="h-4 w-4 mr-1" />
-                            Llamar
-                          </Button>
-                          <Button 
-                            variant="ghost" 
-                            size="sm"
-                            onClick={() => handleViewCallLogs(lead.id)}
-                            className="text-slate-700 hover:text-primary"
-                          >
-                            <ClipboardList className="h-4 w-4 mr-1" />
-                            Detalles
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))
+                            </HoverCardTrigger>
+                            <HoverCardContent className="w-80">
+                              <div className="flex justify-between space-x-4">
+                                <div className="space-y-1">
+                                  <h4 className="text-sm font-semibold">Historial de llamadas</h4>
+                                  <p className="text-sm text-slate-500">
+                                    Se han realizado {lead.callCount || 0} intentos de llamada a este custodio.
+                                  </p>
+                                  <p className="text-xs text-slate-400">
+                                    Haz clic en "Detalles" para ver el registro completo.
+                                  </p>
+                                </div>
+                              </div>
+                            </HoverCardContent>
+                          </HoverCard>
+                        </TableCell>
+                        <TableCell className="text-sm text-slate-600">{lead.lastCallDate || 'No hay llamadas'}</TableCell>
+                        <TableCell className="text-sm text-slate-600">{lead.fechaCreacion}</TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex justify-end gap-2">
+                            <Button 
+                              variant="ghost" 
+                              size="sm"
+                              onClick={() => handleCall(lead)}
+                              className="text-slate-700 hover:text-primary"
+                            >
+                              <PhoneCall className="h-4 w-4 mr-1" />
+                              Llamar
+                            </Button>
+                            <Button 
+                              variant="ghost" 
+                              size="sm"
+                              onClick={() => handleViewCallLogs(lead.id)}
+                              className="text-slate-700 hover:text-primary"
+                            >
+                              <ClipboardList className="h-4 w-4 mr-1" />
+                              Detalles
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })
                 )}
               </TableBody>
             </Table>
