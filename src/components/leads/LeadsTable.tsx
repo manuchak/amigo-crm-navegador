@@ -9,6 +9,7 @@ import { useLeads } from '@/context/LeadsContext';
 import { executeWebhook } from '@/components/call-center/utils/webhook';
 import { toast } from 'sonner';
 import { Phone } from 'lucide-react';
+import { incrementCallCount } from '@/services/leadService';
 
 interface LeadsTableProps {
   isLoading: boolean;
@@ -16,7 +17,7 @@ interface LeadsTableProps {
 }
 
 const LeadsTable: React.FC<LeadsTableProps> = ({ isLoading, onCallLead }) => {
-  const { leads } = useLeads();
+  const { leads, updateLeadStatus, refetchLeads } = useLeads();
   const estadosLead = ['Todos', 'Nuevo', 'Contactado', 'En progreso', 'Calificado', 'No calificado'];
 
   const handleCallButton = async (leadId: number) => {
@@ -26,34 +27,46 @@ const LeadsTable: React.FC<LeadsTableProps> = ({ isLoading, onCallLead }) => {
       return;
     }
 
-    // Parse contact information from the lead to get only the phone number
-    const contactInfo = lead.contacto.split(' | ');
-    const phoneNumber = contactInfo[1] || '';
-
-    // Send all lead data to the webhook
+    // Update lead status to "Contacto Llamado"
     try {
+      await updateLeadStatus(leadId, "Contacto Llamado");
+      
+      // Increment call count
+      await incrementCallCount(leadId);
+      
+      // Parse contact information from the lead to get only the phone number
+      let phoneNumber = lead.telefono || '';
+      if (!phoneNumber && lead.contacto && lead.contacto.includes('|')) {
+        const contactParts = lead.contacto.split('|');
+        phoneNumber = contactParts[1].trim();
+      }
+
+      // Send all lead data to the webhook
       await executeWebhook({
-        telefono: phoneNumber, // Will be extracted as a separate phone object
+        telefono: phoneNumber,
         id: lead.id,
         nombre: lead.nombre,
         empresa: lead.empresa,
         contacto: lead.contacto,
-        estado: lead.estado,
+        estado: "Contacto Llamado", // Use the new status
         fechaCreacion: lead.fechaCreacion,
         email: lead.email,
         tieneVehiculo: lead.tieneVehiculo,
         experienciaSeguridad: lead.experienciaSeguridad,
         esMilitar: lead.esMilitar,
-        callCount: lead.callCount || 0,
-        lastCallDate: lead.lastCallDate,
+        callCount: (lead.callCount || 0) + 1, // Increment call count
+        lastCallDate: new Date().toISOString(),
         valor: lead.valor,
         timestamp: new Date().toISOString(),
         action: "outbound_call_requested_from_list"
       });
       
       toast.success(`Llamada solicitada para ${lead.nombre}`);
+      
+      // Refresh leads to update UI with new status and call count
+      await refetchLeads();
     } catch (error) {
-      console.error("Error executing webhook:", error);
+      console.error("Error updating lead or executing webhook:", error);
       toast.error("Error al solicitar la llamada");
     }
 

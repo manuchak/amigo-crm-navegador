@@ -19,7 +19,7 @@ const CallButtons: React.FC<CallButtonsProps> = ({
   handleStartCall,
   handleEndCall
 }) => {
-  const { leads } = useLeads();
+  const { leads, updateLeadStatus } = useLeads();
   
   const handleCall = async () => {
     if (!selectedLead) {
@@ -51,6 +51,9 @@ const CallButtons: React.FC<CallButtonsProps> = ({
     }
     
     try {
+      // Update lead status to "Contacto Llamado"
+      await updateLeadStatus(selectedLead, "Contacto Llamado");
+      
       // Send all lead data to the webhook
       await executeWebhook({
         telefono: phoneNumber, // This is now properly extracted
@@ -58,7 +61,7 @@ const CallButtons: React.FC<CallButtonsProps> = ({
         nombre: lead.nombre,
         empresa: lead.empresa,
         contacto: lead.contacto,
-        estado: lead.estado,
+        estado: "Contacto Llamado", // Update to new status
         fechaCreacion: lead.fechaCreacion,
         email: lead.email,
         tieneVehiculo: lead.tieneVehiculo,

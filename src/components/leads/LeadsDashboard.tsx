@@ -11,6 +11,7 @@ import {
   LeadFilters,
   LeadTable
 } from './dashboard';
+import { incrementCallCount } from '@/services/leadService';
 
 const LeadsDashboard = () => {
   const { leads, updateLeadStatus, refetchLeads } = useLeads();
@@ -27,14 +28,14 @@ const LeadsDashboard = () => {
         if (filter === "armados") return lead.empresa.includes("armado");
         if (filter === "vehiculo") return lead.empresa.includes("vehículo");
         if (filter === "nuevos") return lead.estado === "Nuevo";
-        if (filter === "contactados") return lead.estado === "Contactado";
+        if (filter === "contactados") return lead.estado === "Contactado" || lead.estado === "Contacto Llamado";
         return true;
       });
   
   const stats = {
     total: leads.length,
     nuevos: leads.filter(lead => lead.estado === "Nuevo").length,
-    contactados: leads.filter(lead => lead.estado === "Contactado").length,
+    contactados: leads.filter(lead => lead.estado === "Contactado" || lead.estado === "Contacto Llamado").length,
     calificados: leads.filter(lead => lead.estado === "Calificado").length,
     rechazados: leads.filter(lead => lead.estado === "Rechazado").length,
   };
@@ -53,31 +54,43 @@ const LeadsDashboard = () => {
         return;
       }
       
+      // Change the status to "Contacto Llamado"
+      await updateLeadStatus(lead.id, "Contacto Llamado");
+      
+      // Increment call count in the database
+      try {
+        await incrementCallCount(lead.id);
+      } catch (error) {
+        console.error("Error incrementing call count:", error);
+      }
+      
+      // Send webhook event
       await executeWebhook({
         telefono: phoneNumber,
         id: lead.id,
         nombre: lead.nombre,
         empresa: lead.empresa,
         contacto: lead.contacto,
-        estado: lead.estado,
+        estado: "Contacto Llamado", // Use the new status
         fechaCreacion: lead.fechaCreacion,
         email: lead.email,
         tieneVehiculo: lead.tieneVehiculo,
         experienciaSeguridad: lead.experienciaSeguridad,
         esMilitar: lead.esMilitar,
-        callCount: lead.callCount || 0,
-        lastCallDate: lead.lastCallDate,
+        callCount: (lead.callCount || 0) + 1, // Increment the call count
+        lastCallDate: new Date().toISOString(),
         valor: lead.valor,
         timestamp: new Date().toISOString(),
         action: "outbound_call_requested"
       });
       
-      updateLeadStatus(lead.id, "1er Contacto");
-      
       toast({
         title: "Llamada iniciada",
         description: `Conectando con ${lead.nombre}...`,
       });
+      
+      // Refresh leads to get updated status and call count
+      await refetchLeads();
     } catch (error) {
       console.error("Error al iniciar llamada:", error);
       toast({
