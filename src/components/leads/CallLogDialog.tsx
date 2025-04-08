@@ -11,86 +11,174 @@ import {
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Phone, Clock } from 'lucide-react';
-import { CallRecord } from '../call-center/types';
+import { Phone, Clock, Play, Volume2, FileText } from 'lucide-react';
 import { Badge } from '../ui/badge';
+import { VapiCallLog } from './types';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Skeleton } from '@/components/ui/skeleton';
 
 interface CallLogDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   leadName: string;
-  callLogs: CallRecord[];
+  leadPhone: string | null;
+  callLogs: VapiCallLog[];
+  loading: boolean;
 }
 
 const CallLogDialog: React.FC<CallLogDialogProps> = ({
   open,
   onOpenChange,
   leadName,
-  callLogs
+  leadPhone,
+  callLogs,
+  loading
 }) => {
-  const getResultBadge = (result: string) => {
-    switch (result.toLowerCase()) {
-      case 'contactado':
-        return <Badge className="bg-green-500 font-normal">Contactado</Badge>;
-      case 'no contestó':
-        return <Badge variant="outline" className="border-amber-500 text-amber-700 font-normal">No contestó</Badge>;
-      case 'número equivocado':
-        return <Badge variant="destructive" className="font-normal">Número equivocado</Badge>;
-      case 'buzón':
-        return <Badge variant="outline" className="border-blue-500 text-blue-700 font-normal">Buzón</Badge>;
+  const formatDateTime = (dateTimeString: string | null) => {
+    if (!dateTimeString) return 'N/A';
+    const date = new Date(dateTimeString);
+    return date.toLocaleString('es-MX', { 
+      year: 'numeric', 
+      month: '2-digit', 
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit'
+    });
+  };
+  
+  const formatDuration = (seconds: number | null) => {
+    if (!seconds) return 'N/A';
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = Math.floor(seconds % 60);
+    return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
+  };
+  
+  const getStatusBadge = (status: string | null) => {
+    if (!status) return <Badge variant="outline">Desconocido</Badge>;
+    
+    switch (status.toLowerCase()) {
+      case 'completed':
+        return <Badge className="bg-green-500 font-normal">Completada</Badge>;
+      case 'failed':
+        return <Badge variant="destructive" className="font-normal">Fallida</Badge>;
+      case 'busy':
+        return <Badge variant="outline" className="border-amber-500 text-amber-700 font-normal">Ocupado</Badge>;
+      case 'no-answer':
+        return <Badge variant="outline" className="border-blue-500 text-blue-700 font-normal">Sin respuesta</Badge>;
       default:
-        return <Badge variant="secondary" className="font-normal">{result}</Badge>;
+        return <Badge variant="secondary" className="font-normal">{status}</Badge>;
     }
   };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[600px] p-0 overflow-hidden border-0 shadow-lg rounded-xl">
+      <DialogContent className="sm:max-w-[800px] p-0 overflow-hidden border-0 shadow-lg rounded-xl">
         <DialogHeader className="px-6 pt-6 pb-2">
           <DialogTitle className="flex items-center gap-2 text-lg font-medium">
             <Phone className="h-4 w-4 text-primary" />
-            Historial: {leadName}
+            Historial de llamadas: {leadName}
           </DialogTitle>
           <DialogDescription className="text-sm text-slate-500">
-            Registro de comunicaciones con este custodio
+            {leadPhone ? `Teléfono: ${leadPhone}` : 'Sin número de teléfono registrado'}
           </DialogDescription>
         </DialogHeader>
         
-        <ScrollArea className="h-[300px] px-6">
-          {callLogs.length === 0 ? (
-            <div className="text-center py-8 text-slate-400 flex flex-col items-center">
-              <Phone className="h-8 w-8 mb-2 opacity-30" />
-              <p>No hay registros de llamadas para este custodio</p>
+        <Tabs defaultValue="calls" className="px-6">
+          <TabsList className="mb-4">
+            <TabsTrigger value="calls">Llamadas</TabsTrigger>
+            <TabsTrigger value="stats">Estadísticas</TabsTrigger>
+          </TabsList>
+          
+          <TabsContent value="calls">
+            <ScrollArea className="h-[400px]">
+              {loading ? (
+                <div className="space-y-2 p-4">
+                  {Array(3).fill(null).map((_, i) => (
+                    <Skeleton key={i} className="h-20 w-full" />
+                  ))}
+                </div>
+              ) : callLogs.length === 0 ? (
+                <div className="text-center py-8 text-slate-400 flex flex-col items-center">
+                  <Phone className="h-8 w-8 mb-2 opacity-30" />
+                  <p>No hay registros de llamadas para este custodio</p>
+                </div>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="text-xs">Fecha/Hora</TableHead>
+                      <TableHead className="text-xs">Estado</TableHead>
+                      <TableHead className="text-xs">Dirección</TableHead>
+                      <TableHead className="text-xs">Duración</TableHead>
+                      <TableHead className="text-xs">Audio</TableHead>
+                      <TableHead className="text-xs">Transcripción</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {callLogs.map((log) => (
+                      <TableRow key={log.id} className="text-sm">
+                        <TableCell className="py-3">
+                          {formatDateTime(log.start_time)}
+                        </TableCell>
+                        <TableCell className="py-3">
+                          {getStatusBadge(log.status)}
+                        </TableCell>
+                        <TableCell className="py-3">
+                          {log.direction === 'inbound' ? 'Entrante' : 
+                           log.direction === 'outbound' ? 'Saliente' : 'N/A'}
+                        </TableCell>
+                        <TableCell className="py-3 flex items-center gap-1">
+                          <Clock className="h-3 w-3 text-slate-400" /> {formatDuration(log.duration)}
+                        </TableCell>
+                        <TableCell className="py-3">
+                          {log.recording_url ? (
+                            <Button variant="outline" size="sm" className="h-8 w-8 p-0" 
+                              onClick={() => window.open(log.recording_url as string, '_blank')}>
+                              <Play className="h-3 w-3" />
+                            </Button>
+                          ) : (
+                            <span className="text-slate-400 text-xs">No disponible</span>
+                          )}
+                        </TableCell>
+                        <TableCell className="py-3">
+                          {log.transcript ? (
+                            <Button variant="outline" size="sm" className="h-8 w-8 p-0">
+                              <FileText className="h-3 w-3" />
+                            </Button>
+                          ) : (
+                            <span className="text-slate-400 text-xs">No disponible</span>
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
+            </ScrollArea>
+          </TabsContent>
+          
+          <TabsContent value="stats">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 py-4">
+              <div className="border rounded-lg p-4 text-center">
+                <h3 className="text-sm text-slate-500 mb-2">Total de llamadas</h3>
+                <p className="text-2xl font-semibold">{callLogs.length}</p>
+              </div>
+              <div className="border rounded-lg p-4 text-center">
+                <h3 className="text-sm text-slate-500 mb-2">Llamadas completadas</h3>
+                <p className="text-2xl font-semibold">{callLogs.filter(log => log.status?.toLowerCase() === 'completed').length}</p>
+              </div>
+              <div className="border rounded-lg p-4 text-center">
+                <h3 className="text-sm text-slate-500 mb-2">Tiempo total</h3>
+                <p className="text-2xl font-semibold">
+                  {formatDuration(
+                    callLogs.reduce((total, log) => total + (log.duration || 0), 0)
+                  )}
+                </p>
+              </div>
             </div>
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="text-xs">Fecha</TableHead>
-                  <TableHead className="text-xs">Hora</TableHead>
-                  <TableHead className="text-xs">Duración</TableHead>
-                  <TableHead className="text-xs">Resultado</TableHead>
-                  <TableHead className="text-xs">Notas</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {callLogs.map((log) => (
-                  <TableRow key={log.id} className="text-sm">
-                    <TableCell className="py-2">{log.fechaLlamada}</TableCell>
-                    <TableCell className="py-2">{log.horaLlamada}</TableCell>
-                    <TableCell className="py-2 flex items-center gap-1">
-                      <Clock className="h-3 w-3 text-slate-400" /> {log.duracion}
-                    </TableCell>
-                    <TableCell className="py-2">{getResultBadge(log.resultado)}</TableCell>
-                    <TableCell className="py-2 max-w-[150px] truncate">
-                      {log.notas ? log.notas : <span className="text-slate-400 text-xs">Sin notas</span>}
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          )}
-        </ScrollArea>
+          </TabsContent>
+        </Tabs>
         
         <DialogFooter className="p-4 bg-slate-50 border-t">
           <Button variant="outline" onClick={() => onOpenChange(false)} className="rounded-full px-4 py-1 h-8 text-sm">

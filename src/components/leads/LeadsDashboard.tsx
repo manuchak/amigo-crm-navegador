@@ -12,6 +12,7 @@ import {
   LeadTable
 } from './dashboard';
 import { incrementCallCount } from '@/services/leadService';
+import { useLeadCallLogs } from '@/hooks/useLeadCallLogs';
 
 const LeadsDashboard = () => {
   const { leads, updateLeadStatus, refetchLeads } = useLeads();
@@ -21,6 +22,18 @@ const LeadsDashboard = () => {
   const [selectedLeadId, setSelectedLeadId] = useState<number | null>(null);
   const [isCallLogOpen, setIsCallLogOpen] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  
+  // Get selected lead data
+  const selectedLead = leads.find(lead => lead.id === selectedLeadId);
+  
+  // Fetch VAPI call logs for the selected lead
+  const { callLogs, loading: loadingCallLogs } = useLeadCallLogs(
+    selectedLeadId, 
+    selectedLead?.telefono || null
+  );
+  
+  // Legacy call logs from local storage
+  const legacyCallLogs = selectedLeadId ? getCallsForLead(selectedLeadId) : [];
   
   const filteredLeads = filter === "todos" 
     ? leads 
@@ -126,9 +139,6 @@ const LeadsDashboard = () => {
     }
   };
 
-  const selectedLead = leads.find(lead => lead.id === selectedLeadId);
-  const callLogs = selectedLeadId ? getCallsForLead(selectedLeadId) : [];
-
   return (
     <div className="space-y-6">
       <LeadStats stats={stats} />
@@ -165,7 +175,9 @@ const LeadsDashboard = () => {
           open={isCallLogOpen}
           onOpenChange={setIsCallLogOpen}
           leadName={selectedLead.nombre}
+          leadPhone={selectedLead.telefono}
           callLogs={callLogs}
+          loading={loadingCallLogs}
         />
       )}
     </div>
