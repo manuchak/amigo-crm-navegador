@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import * as leadService from '@/services/leadService';
 import { toast } from 'sonner';
@@ -63,6 +64,7 @@ export const LeadsProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       
       // Transform the data to match our Lead interface
       const transformedLeads = fetchedLeads.map((item: any) => {
+        // Create contacto for backward compatibility
         const contactInfo = item.email || item.telefono ? 
           `${item.email || ''} | ${item.telefono || ''}`.trim() : 
           'Sin contacto';
@@ -71,11 +73,11 @@ export const LeadsProvider: React.FC<{ children: React.ReactNode }> = ({ childre
           id: item.id,
           nombre: item.nombre || 'Sin nombre',
           empresa: item.empresa || 'Custodio',
-          contacto: contactInfo,
+          contacto: contactInfo, // maintain for backwards compatibility
           estado: item.estado || 'Nuevo',
           fechaCreacion: item.fechaCreacion || new Date().toISOString().split('T')[0],
-          email: item.email,
-          telefono: item.telefono,
+          email: item.email, // directly map from database
+          telefono: item.telefono, // directly map from database
           tieneVehiculo: item.tieneVehiculo,
           experienciaSeguridad: item.experienciaSeguridad,
           esMilitar: item.esMilitar,

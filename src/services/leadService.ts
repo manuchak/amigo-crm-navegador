@@ -31,6 +31,8 @@ export interface Lead {
   contacto: string;
   estado: string;
   fechaCreacion: string;
+  email?: string;
+  telefono?: string;
   valor?: number;
   callCount?: number;
   lastCallDate?: string;
@@ -52,6 +54,8 @@ export const normalizeLeads = (leads: SupabaseLead[]): Lead[] => {
     fechaCreacion: lead.fecha_creacion 
       ? new Date(lead.fecha_creacion).toLocaleDateString('es-MX') 
       : 'Fecha desconocida',
+    email: lead.email || undefined,
+    telefono: lead.telefono || undefined,
     valor: lead.valor || undefined,
     callCount: lead.call_count,
     lastCallDate: lead.last_call_date ? new Date(lead.last_call_date).toLocaleDateString('es-MX') : undefined
