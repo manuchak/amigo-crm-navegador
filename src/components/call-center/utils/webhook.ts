@@ -1,4 +1,3 @@
-
 import { LeadData, createLeadDirectAPI } from '@/services/leadService';
 
 interface WebhookData {
@@ -8,16 +7,28 @@ interface WebhookData {
 export const executeWebhook = async (data: WebhookData) => {
   const webhookUrl = "https://hook.us2.make.com/nlckmsej5cwmfe93gv4g6xvmavhilujl";
   
-  // Extract phone number if present and create a separate phone object
-  let phoneObject = {};
+  // Extract phone number if present and ensure it's properly formatted
+  let phoneData = {};
   if (data.telefono) {
-    phoneObject = { phone: data.telefono };
-    // Remove phone from original data to avoid duplication
-    delete data.telefono;
+    // Ensure telefono is not empty and is properly formatted
+    const phoneNumber = data.telefono.trim();
+    if (phoneNumber) {
+      phoneData = { phone: phoneNumber };
+    }
+    // Keep telefono in the data object as well for backward compatibility
   }
   
+  // Clean up undefined values that could cause issues
+  const cleanedData = Object.fromEntries(
+    Object.entries(data).filter(([_, v]) => 
+      v !== undefined && 
+      v !== null && 
+      !(typeof v === 'object' && v._type === 'undefined')
+    )
+  );
+  
   // Log the data being sent to webhook
-  console.log("Sending to webhook:", { phoneObject, data });
+  console.log("Sending to webhook:", { phoneData, cleanedData });
   
   return fetch(webhookUrl, {
     method: "POST",
@@ -27,8 +38,8 @@ export const executeWebhook = async (data: WebhookData) => {
     mode: "no-cors",
     // Send all lead data along with phone in a structured format
     body: JSON.stringify({
-      ...phoneObject,
-      lead_data: data
+      ...phoneData,
+      lead_data: cleanedData
     }),
   });
 };

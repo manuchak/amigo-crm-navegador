@@ -33,14 +33,27 @@ const CallButtons: React.FC<CallButtonsProps> = ({
       return;
     }
 
-    // Extract only the phone number information
-    const contactInfo = lead.contacto.split(' | ');
-    const phoneNumber = contactInfo[1] || '';
+    // Extract phone number information - improved to handle multiple formats
+    let phoneNumber = '';
+    
+    // First check if there's a direct telefono property
+    if (lead.telefono) {
+      phoneNumber = lead.telefono;
+    } 
+    // Then check if phone is in contacto format "email | phone"
+    else if (lead.contacto && lead.contacto.includes('|')) {
+      const contactParts = lead.contacto.split('|');
+      phoneNumber = contactParts[1].trim();
+    }
+    
+    if (!phoneNumber) {
+      toast.warning("No se encontró un número telefónico para este custodio");
+    }
     
     try {
       // Send all lead data to the webhook
       await executeWebhook({
-        telefono: phoneNumber, // This will be extracted as a separate object in the webhook function
+        telefono: phoneNumber, // This is now properly extracted
         id: lead.id,
         nombre: lead.nombre,
         empresa: lead.empresa,
@@ -48,7 +61,6 @@ const CallButtons: React.FC<CallButtonsProps> = ({
         estado: lead.estado,
         fechaCreacion: lead.fechaCreacion,
         email: lead.email,
-        // Removed duplicate telefono property
         tieneVehiculo: lead.tieneVehiculo,
         experienciaSeguridad: lead.experienciaSeguridad,
         esMilitar: lead.esMilitar,
@@ -59,7 +71,7 @@ const CallButtons: React.FC<CallButtonsProps> = ({
         action: "outbound_call_requested"
       });
       
-      console.log("Webhook ejecutado para llamada saliente con todos los datos del lead");
+      console.log("Webhook ejecutado para llamada saliente con teléfono:", phoneNumber);
       toast.success(`Llamada saliente iniciada para ${lead.nombre}`);
       
       // Continue with the call process
