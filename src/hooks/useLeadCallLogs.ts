@@ -67,11 +67,12 @@ export function useLeadCallLogs(leadId: number | null, phoneNumber: string | nul
           console.log('No call logs found, trying a broader search...');
           
           // Additional search in metadata fields to find phone numbers
-          // (VAPI sometimes stores phone data only in metadata)
+          // Instead of using RPC function, use a direct query with a proper type check
           const { data: metadataLogs, error: metadataError } = await supabase
-            .rpc('search_call_logs_with_metadata', { 
-              search_number: lastTenDigits
-            });
+            .from('vapi_call_logs')
+            .select('*')
+            .or(`metadata->>'number'.ilike.%${lastTenDigits}%,metadata->>'phoneNumber'.ilike.%${lastTenDigits}%,metadata->>'customerNumber'.ilike.%${lastTenDigits}%`)
+            .order('start_time', { ascending: false });
             
           if (metadataError) {
             console.error('Error in metadata search:', metadataError);
