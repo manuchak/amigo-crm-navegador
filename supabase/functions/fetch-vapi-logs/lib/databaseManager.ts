@@ -1,4 +1,3 @@
-
 import { CONFIG } from './config.ts';
 import { ResponseParser } from './responseParser.ts';
 

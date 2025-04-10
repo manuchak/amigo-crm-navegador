@@ -1,3 +1,4 @@
+
 import { CONFIG } from './config.ts';
 import { ResponseParser } from './responseParser.ts';
 
@@ -140,6 +141,7 @@ export class VapiApiClient {
   
   /**
    * Fetch detailed call information including customer data
+   * Using the GET /call/{id} endpoint as per VAPI documentation
    */
   static async fetchCallDetails(apiKey, callId) {
     try {
@@ -273,6 +275,7 @@ export class VapiApiClient {
   
   /**
    * Enhance call logs with customer data from the GET /call endpoint
+   * As recommended in VAPI documentation
    */
   static async enhanceCallsWithCustomerData(calls, apiKey) {
     if (!calls || !Array.isArray(calls) || calls.length === 0) {
@@ -292,6 +295,10 @@ export class VapiApiClient {
         if (call.customer && call.customer.number && call.customer.number.length > 6) {
           console.log(`Call ${call.id} already has customer number: ${call.customer.number}`);
           enhancedCall.customer_number = call.customer.number;
+          
+          // Add E164 format information if available
+          if (!enhancedCall.metadata) enhancedCall.metadata = {};
+          enhancedCall.metadata.numberE164Format = call.customer.numberE164CheckEnabled !== false;
           continue;
         }
         
