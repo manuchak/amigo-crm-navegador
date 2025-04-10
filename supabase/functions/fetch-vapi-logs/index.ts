@@ -1,4 +1,3 @@
-
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.7'
 
 // Define CORS headers for all responses
@@ -14,6 +13,12 @@ const CONFIG = {
   DEFAULT_API_KEY: '4e1d9a9c-de28-4e68-926c-3b5ca5a3ecb9',
   VAPI_ASSISTANT_ID: '0b7c2a96-0360-4fef-9956-e847fd696ea2',
   API_ENDPOINTS: [
+    {
+      url: 'https://api.vapi.ai/call/logs',
+      method: 'GET',
+      description: 'New VAPI call logs endpoint',
+      supportsDates: false
+    },
     {
       url: 'https://api.vapi.ai/call',
       method: 'GET',
@@ -32,7 +37,6 @@ const CONFIG = {
       description: 'Call logs endpoint',
       supportsDates: false
     }
-    // Removed the analytics endpoint as it was returning 404
   ],
   // Mapping configuration to match VAPI API fields to Supabase columns
   FIELD_MAPPING: {
@@ -53,10 +57,8 @@ const CONFIG = {
     receiver: 'customer_number',
     toNumber: 'customer_number',
     recipientNumber: 'customer_number'
-  },
-  // Include metadata request fields to include in API calls
-  METADATA_REQUEST_FIELDS: ['customerNumber', 'callerNumber', 'customerPhoneNumber', 'recipientNumber']
-}
+  }
+};
 
 /**
  * Creates a Supabase client
@@ -163,32 +165,21 @@ class VapiApiClient {
   /**
    * Format query parameters for an endpoint
    */
-  static formatParams(endpointConfig, startDate, endDate, extraParams = {}) {
+  static formatParams(endpointConfig, startDate, endDate) {
+    // Basic parameters without the problematic includeMetadata
     const params = new URLSearchParams({
       assistantId: CONFIG.VAPI_ASSISTANT_ID,
-      limit: '100',
-      ...extraParams
-    })
-    
-    // Add date range if supported by endpoint
-    if (endpointConfig.supportsDates) {
-      params.append('startTime', startDate)
-      params.append('endTime', endDate)
-    }
-    
-    // Add metadata parameters to request customer phone numbers explicitly
-    // Make sure we don't add duplicate parameters
-    const addedParams = new Set()
-    
-    CONFIG.METADATA_REQUEST_FIELDS.forEach(field => {
-      const paramName = `includeMetadata[${field}]`
-      if (!addedParams.has(paramName)) {
-        params.append(paramName, 'true')
-        addedParams.add(paramName)
-      }
+      limit: '100'
     });
     
-    return params.toString()
+    // Only add date range if supported by endpoint
+    if (endpointConfig.supportsDates) {
+      params.append('startTime', startDate);
+      params.append('endTime', endDate);
+    }
+    
+    console.log(`Formatted parameters for ${endpointConfig.url}: ${params.toString()}`);
+    return params.toString();
   }
   
   /**
@@ -210,59 +201,69 @@ class VapiApiClient {
    */
   static async tryApiDiscovery(apiKey) {
     try {
-      console.log("Trying API discovery endpoint")
-      const apiUrl = 'https://api.vapi.ai/api'
+      console.log("Trying API discovery endpoint");
+      // First try simple authentication check that doesn't require parameters
+      const authCheckUrl = 'https://api.vapi.ai/assistant';
+      const authCheckResponse = await fetch(authCheckUrl, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${apiKey}`,
+          'Content-Type': 'application/json',
+        }
+      });
+      
+      if (!authCheckResponse.ok) {
+        console.error(`Authentication check failed with status: ${authCheckResponse.status}`);
+        console.log(`Response body: ${await authCheckResponse.text()}`);
+        return null;
+      }
+      
+      console.log("Authentication successful, trying to discover endpoints");
+      
+      // Now try to discover available endpoints
+      const apiUrl = 'https://api.vapi.ai/api';
       const response = await fetch(apiUrl, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${apiKey}`,
           'Content-Type': 'application/json',
         }
-      })
+      });
       
       if (!response.ok) {
-        console.error(`API discovery returned status: ${response.status}`)
-        return null
+        console.error(`API discovery returned status: ${response.status}`);
+        return null;
       }
       
-      const apiDoc = await response.json()
-      console.log("API discovery data:", JSON.stringify(apiDoc).substring(0, 200) + '...')
-      
-      // If we find a specific endpoint in the API documentation, try it
-      if (apiDoc && apiDoc.paths) {
-        const callEndpoint = Object.keys(apiDoc.paths).find(path => 
-          path.includes("/call") || path.includes("/calls")
-        )
+      try {
+        const apiDoc = await response.json();
+        console.log("API discovery data:", JSON.stringify(apiDoc).substring(0, 200) + '...');
         
-        if (callEndpoint) {
-          // Add explicit metadata parameters for phone numbers
-          const metadataParams = CONFIG.METADATA_REQUEST_FIELDS.map(field => 
-            `includeMetadata[${field}]=true`
-          ).join('&');
-          
-          const fullUrl = `https://api.vapi.ai${callEndpoint}?assistantId=${CONFIG.VAPI_ASSISTANT_ID}&limit=100&${metadataParams}`
-          console.log(`Trying discovered endpoint: ${fullUrl}`)
-          
-          const callResponse = await fetch(fullUrl, {
-            method: 'GET',
-            headers: {
-              'Authorization': `Bearer ${apiKey}`,
-              'Content-Type': 'application/json',
-            }
-          })
-          
-          if (callResponse.ok) {
-            return await callResponse.json()
-          } else {
-            console.error(`Discovered endpoint returned status: ${callResponse.status}`)
+        // Try to find relevant endpoints
+        return null; // We'll analyze the response manually and update the endpoint list
+      } catch (parseError) {
+        console.error("Error parsing API discovery response:", parseError);
+        // Try a direct call to the most likely endpoint
+        const directCallUrl = `https://api.vapi.ai/assistant/${CONFIG.VAPI_ASSISTANT_ID}/calls`;
+        console.log(`Trying direct endpoint: ${directCallUrl}`);
+        
+        const directCallResponse = await fetch(directCallUrl, {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${apiKey}`,
+            'Content-Type': 'application/json',
           }
+        });
+        
+        if (directCallResponse.ok) {
+          return await directCallResponse.json();
         }
+        
+        return null;
       }
-      
-      return null
     } catch (error) {
-      console.error("Error with API discovery:", error)
-      return null
+      console.error("Error with API discovery:", error);
+      return null;
     }
   }
   
@@ -270,24 +271,49 @@ class VapiApiClient {
    * Fetch logs from VAPI API trying multiple endpoints
    */
   static async fetchLogs(apiKey, startDate, endDate) {
-    const endpoints = this.getEndpointConfigs()
-    let lastError = null
-    let responseResults = null
+    const endpoints = this.getEndpointConfigs();
+    let lastError = null;
+    let responseResults = null;
     
-    // Create extra params to explicitly request phone number fields
-    const extraParams = {};
-    CONFIG.METADATA_REQUEST_FIELDS.forEach(field => {
-      extraParams[`includeMetadata[${field}]`] = 'true'
-    });
+    // Try VAPI v2 API first
+    try {
+      console.log("Attempting to use VAPI v2 API");
+      const v2Url = `https://api.vapi.ai/assistant/${CONFIG.VAPI_ASSISTANT_ID}/calls?page=1&limit=50`;
+      console.log(`Trying VAPI v2 URL: ${v2Url}`);
+      
+      const v2Response = await fetch(v2Url, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${apiKey}`,
+          'Content-Type': 'application/json',
+        }
+      });
+      
+      if (v2Response.ok) {
+        const data = await v2Response.json();
+        console.log("VAPI v2 API successful!");
+        console.log("Response preview:", JSON.stringify(data).substring(0, 200) + '...');
+        
+        if (data && data.calls && Array.isArray(data.calls)) {
+          console.log(`Retrieved ${data.calls.length} calls from VAPI v2 API`);
+          return data.calls;
+        }
+      } else {
+        console.log(`VAPI v2 API failed with status: ${v2Response.status}`);
+        console.log(`Response body: ${await v2Response.text()}`);
+      }
+    } catch (v2Error) {
+      console.error("Error with VAPI v2 API:", v2Error);
+    }
     
-    // Try each endpoint until one works
+    // Try each endpoint from our config
     for (const endpoint of endpoints) {
       try {
-        console.log(`Trying VAPI endpoint: ${endpoint.url} with ${endpoint.method} method`)
+        console.log(`Trying VAPI endpoint: ${endpoint.url} with ${endpoint.method} method`);
         
-        const params = this.formatParams(endpoint, startDate, endDate, extraParams)
-        const requestUrl = `${endpoint.url}?${params}`
-        console.log(`Full GET URL: ${requestUrl}`)
+        const params = this.formatParams(endpoint, startDate, endDate);
+        const requestUrl = `${endpoint.url}?${params}`;
+        console.log(`Full GET URL: ${requestUrl}`);
         
         const response = await fetch(requestUrl, {
           method: endpoint.method,
@@ -295,42 +321,42 @@ class VapiApiClient {
             'Authorization': `Bearer ${apiKey}`,
             'Content-Type': 'application/json',
           }
-        })
+        });
         
         if (!response.ok) {
-          const errorText = await response.text()
-          console.error(`VAPI API error response (${endpoint.url}): ${response.status}`, errorText)
-          lastError = new Error(`VAPI API returned ${response.status}: ${errorText}`)
-          continue
+          const errorText = await response.text();
+          console.error(`VAPI API error response (${endpoint.url}): ${response.status}`, errorText);
+          lastError = new Error(`VAPI API returned ${response.status}: ${errorText}`);
+          continue;
         }
         
-        const data = await response.json()
-        console.log(`Success with ${endpoint.url}! Response:`, JSON.stringify(data).substring(0, 200) + '...')
-        responseResults = data
-        break // Exit the loop if we get a successful response
+        const data = await response.json();
+        console.log(`Success with ${endpoint.url}! Response:`, JSON.stringify(data).substring(0, 200) + '...');
+        responseResults = data;
+        break; // Exit the loop if we get a successful response
       } catch (error) {
-        console.error(`Error with ${endpoint.url}:`, error)
-        lastError = error
+        console.error(`Error with ${endpoint.url}:`, error);
+        lastError = error;
       }
     }
     
     // If we got results from one of the endpoints, return them
     if (responseResults) {
-      return ResponseParser.extractLogsFromResponse(responseResults)
+      return ResponseParser.extractLogsFromResponse(responseResults);
     }
     
     // Try API discovery as a last resort
-    const discoveryData = await this.tryApiDiscovery(apiKey)
+    const discoveryData = await this.tryApiDiscovery(apiKey);
     if (discoveryData) {
-      return ResponseParser.extractLogsFromResponse(discoveryData)
+      return ResponseParser.extractLogsFromResponse(discoveryData);
     }
     
     // If all attempts failed, throw the last error
     if (lastError) {
-      throw lastError
+      throw lastError;
     }
     
-    throw new Error("All VAPI API endpoints failed")
+    throw new Error("All VAPI API endpoints failed");
   }
 }
 
@@ -679,54 +705,98 @@ class DatabaseManager {
         duration = 0;
       }
     } else {
-      // Try to find duration in alternative fields or metadata
-      const durationValue = ResponseParser.findFieldValue(log, 'duration');
-      if (durationValue !== null) {
-        if (typeof durationValue === 'string') {
-          duration = parseInt(durationValue, 10) || 0;
-        } else if (typeof durationValue === 'number') {
-          duration = durationValue;
-        } else {
-          duration = 0;
+      // Try to find duration in alternative fields
+      const durationFields = ['length', 'call_duration', 'callDuration', 'time_length', 'timeLength'];
+      for (const field of durationFields) {
+        if (log[field] !== undefined && log[field] !== null) {
+          const parsedDuration = typeof log[field] === 'string' ? 
+            parseInt(log[field], 10) : log[field];
+          if (!isNaN(parsedDuration)) {
+            duration = parsedDuration;
+            break;
+          }
         }
-      } else {
-        duration = 0;
+      }
+      
+      // Default to 0 if no valid duration found
+      if (duration === null) duration = 0;
+    }
+    
+    // Enhanced phone number extraction
+    // Look for customer number in various possible fields
+    let customerNumber = null;
+    const customerFields = [
+      'customer_number', 'customerNumber', 'to', 'toNumber', 
+      'recipient', 'recipientNumber', 'destination'
+    ];
+    
+    for (const field of customerFields) {
+      if (log[field] !== undefined && log[field] !== null) {
+        customerNumber = String(log[field]).trim();
+        break;
       }
     }
     
-    // Extract phone number with enhanced prioritization
-    const phoneNumber = ResponseParser.findFieldValue(log, 'phone_number') || '';
+    // Check metadata if no number found in direct fields
+    if (!customerNumber && log.metadata && typeof log.metadata === 'object') {
+      for (const field of customerFields) {
+        if (log.metadata[field] !== undefined && log.metadata[field] !== null) {
+          customerNumber = String(log.metadata[field]).trim();
+          break;
+        }
+      }
+    }
     
-    // Extract caller number with enhanced prioritization
-    const callerNumber = ResponseParser.findFieldValue(log, 'caller_phone_number') || '';
+    // Similarly extract caller and phone number
+    let callerNumber = null;
+    const callerFields = [
+      'caller_phone_number', 'callerPhoneNumber', 'callerNumber',
+      'from', 'fromNumber', 'caller', 'source'
+    ];
     
-    // Enhanced phone number conversion to string
-    const customerNumber = 
-      ResponseParser.findFieldValue(log, 'customer_number') !== null
-        ? String(ResponseParser.findFieldValue(log, 'customer_number')).trim()
-        : null;
+    for (const field of callerFields) {
+      if (log[field] !== undefined && log[field] !== null) {
+        callerNumber = String(log[field]).trim();
+        break;
+      }
+    }
+    
+    // Check metadata for caller number
+    if (!callerNumber && log.metadata && typeof log.metadata === 'object') {
+      for (const field of callerFields) {
+        if (log.metadata[field] !== undefined && log.metadata[field] !== null) {
+          callerNumber = String(log.metadata[field]).trim();
+          break;
+        }
+      }
+    }
+    
+    // Get primary phone number
+    let phoneNumber = null;
+    const phoneFields = ['phone_number', 'phoneNumber', 'phone', 'number'];
+    
+    for (const field of phoneFields) {
+      if (log[field] !== undefined && log[field] !== null) {
+        phoneNumber = String(log[field]).trim();
+        break;
+      }
+    }
+    
+    // Check metadata for phone number
+    if (!phoneNumber && log.metadata && typeof log.metadata === 'object') {
+      for (const field of phoneFields) {
+        if (log.metadata[field] !== undefined && log.metadata[field] !== null) {
+          phoneNumber = String(log.metadata[field]).trim();
+          break;
+        }
+      }
+    }
 
     // Log all extracted phone numbers for debugging
     console.log(`Extracted numbers for log ${log.id}:`);
     console.log(`- phone: ${phoneNumber || 'Not found'}`);
     console.log(`- caller: ${callerNumber || 'Not found'}`);
     console.log(`- customer: ${customerNumber || 'Not found'}`);
-
-    // Extra logging for the raw data
-    if (log.metadata && typeof log.metadata === 'object') {
-      console.log("Log metadata contains:", Object.keys(log.metadata));
-      
-      // Check if there's any customer info in metadata
-      const customerInfo = Object.entries(log.metadata)
-        .filter(([key]) => key.toLowerCase().includes('customer') || 
-                           key.toLowerCase().includes('recipient') || 
-                           key === 'to')
-        .map(([key, value]) => `${key}: ${value}`);
-      
-      if (customerInfo.length > 0) {
-        console.log("Customer info in metadata:", customerInfo);
-      }
-    }
 
     return {
       log_id: log.id,
@@ -735,13 +805,13 @@ class DatabaseManager {
       conversation_id: log.conversation_id || log.conversationId || null,
       phone_number: phoneNumber || null,
       caller_phone_number: callerNumber || null,
-      start_time: log.start_time || log.startTime || log.startedAt || null,
-      end_time: log.end_time || log.endTime || log.endedAt || null,
+      start_time: log.start_time || log.startTime || log.startedAt || log.time_start || log.created_at || null,
+      end_time: log.end_time || log.endTime || log.endedAt || log.time_end || null,
       duration: duration,
       status: log.status || null,
-      direction: log.direction || null,
+      direction: log.direction || log.type || null,
       transcript: log.transcript || null,
-      recording_url: log.recording_url || log.recordingUrl || null,
+      recording_url: log.recording_url || log.recordingUrl || log.recording || null,
       metadata: log.metadata || {},
       
       // Fields with better fallbacks

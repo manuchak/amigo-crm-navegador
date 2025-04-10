@@ -45,31 +45,67 @@ const CallLogsList: React.FC<CallLogsListProps> = ({
           onClick={onSyncCallLogs}
           disabled={syncing}
         >
-          Sincronizar desde VAPI
+          {syncing ? (
+            <>
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              Sincronizando...
+            </>
+          ) : (
+            <>Sincronizar desde VAPI</>
+          )}
         </Button>
       </div>
     );
   }
 
-  // Helper function to display the best available phone number with improved prioritization
+  // Enhanced helper function to display the best available phone number
   const getBestPhoneNumber = (log: VapiCallLog): string => {
     // First try customer_number (our main field for customer phone)
     if (log.customer_number) {
-      return log.customer_number;
+      return formatPhoneNumber(log.customer_number);
     }
     
     // Then try caller_phone_number (common for incoming calls)
     if (log.caller_phone_number) {
-      return log.caller_phone_number;
+      return formatPhoneNumber(log.caller_phone_number);
     }
     
     // Then try phone_number (fallback)
     if (log.phone_number) {
-      return log.phone_number;
+      return formatPhoneNumber(log.phone_number);
     }
     
     // If no phone number is available
     return 'Desconocido';
+  };
+  
+  // Format phone number for display
+  const formatPhoneNumber = (phone: string): string => {
+    if (!phone) return 'Desconocido';
+    
+    // Remove non-digit characters
+    const digits = phone.replace(/\D/g, '');
+    
+    // Format for display if it's a valid number
+    if (digits.length >= 10) {
+      // Format as international number if it has country code
+      if (digits.length > 10) {
+        const countryCode = digits.slice(0, digits.length - 10);
+        const areaCode = digits.slice(digits.length - 10, digits.length - 7);
+        const firstPart = digits.slice(digits.length - 7, digits.length - 4);
+        const secondPart = digits.slice(digits.length - 4);
+        return `+${countryCode} (${areaCode}) ${firstPart}-${secondPart}`;
+      } else {
+        // Format as local number
+        const areaCode = digits.slice(0, 3);
+        const firstPart = digits.slice(3, 6);
+        const secondPart = digits.slice(6);
+        return `(${areaCode}) ${firstPart}-${secondPart}`;
+      }
+    }
+    
+    // Return the original if we can't format it
+    return phone;
   };
 
   return (
@@ -116,7 +152,7 @@ const CallLogsList: React.FC<CallLogsListProps> = ({
                     {log.assistant_name || 'VAPI Asistente'}
                   </TableCell>
                   <TableCell>
-                    {log.assistant_phone_number || log.phone_number || 'N/A'}
+                    {log.assistant_phone_number ? formatPhoneNumber(log.assistant_phone_number) : 'N/A'}
                   </TableCell>
                   <TableCell>
                     {getBestPhoneNumber(log)}

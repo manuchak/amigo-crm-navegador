@@ -18,15 +18,24 @@ export function useLeadCallLogs(leadId: number | null, phoneNumber: string | nul
     async function fetchCallLogs() {
       setLoading(true);
       try {
-        // Query the vapi_call_logs table for records matching this phone number
+        // Format phone number to ensure proper matching
+        const formattedPhoneNumber = phoneNumber.trim().replace(/\D/g, '');
+        
+        // Use ILIKE to make the search case-insensitive and add wildcards
+        // for partial matches with different phone number formats
         const { data, error } = await supabase
           .from('vapi_call_logs')
           .select('*')
-          .or(`caller_phone_number.eq.${phoneNumber},phone_number.eq.${phoneNumber},customer_number.eq.${phoneNumber}`)
+          .or(`customer_number.ilike.%${formattedPhoneNumber}%,caller_phone_number.ilike.%${formattedPhoneNumber}%,phone_number.ilike.%${formattedPhoneNumber}%`)
           .order('start_time', { ascending: false });
 
         if (error) {
           throw error;
+        }
+
+        console.log('Call logs fetched for phone:', formattedPhoneNumber, 'Count:', data?.length || 0);
+        if (data && data.length > 0) {
+          console.log('Sample call log:', data[0]);
         }
 
         setCallLogs(data || []);

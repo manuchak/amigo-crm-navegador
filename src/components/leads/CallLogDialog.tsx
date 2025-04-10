@@ -11,7 +11,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Phone, Clock, Play, Volume2, FileText } from 'lucide-react';
+import { Phone, Clock, Play, Volume2, FileText, RefreshCw } from 'lucide-react';
 import { Badge } from '../ui/badge';
 import { VapiCallLog } from './types';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -54,6 +54,34 @@ const CallLogDialog: React.FC<CallLogDialogProps> = ({
     return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
   };
   
+  const formatPhoneNumber = (phone: string | null) => {
+    if (!phone) return 'Sin número';
+    
+    // Remove non-digit characters
+    const digits = phone.replace(/\D/g, '');
+    
+    // Format for display if it's a valid number
+    if (digits.length >= 10) {
+      // Format as international number if it has country code
+      if (digits.length > 10) {
+        const countryCode = digits.slice(0, digits.length - 10);
+        const areaCode = digits.slice(digits.length - 10, digits.length - 7);
+        const firstPart = digits.slice(digits.length - 7, digits.length - 4);
+        const secondPart = digits.slice(digits.length - 4);
+        return `+${countryCode} (${areaCode}) ${firstPart}-${secondPart}`;
+      } else {
+        // Format as local number
+        const areaCode = digits.slice(0, 3);
+        const firstPart = digits.slice(3, 6);
+        const secondPart = digits.slice(6);
+        return `(${areaCode}) ${firstPart}-${secondPart}`;
+      }
+    }
+    
+    // Return the original if we can't format it
+    return phone;
+  };
+  
   const getStatusBadge = (status: string | null) => {
     if (!status) return <Badge variant="outline">Desconocido</Badge>;
     
@@ -80,7 +108,7 @@ const CallLogDialog: React.FC<CallLogDialogProps> = ({
             Historial de llamadas: {leadName}
           </DialogTitle>
           <DialogDescription className="text-sm text-slate-500">
-            {leadPhone ? `Teléfono: ${leadPhone}` : 'Sin número de teléfono registrado'}
+            {leadPhone ? `Teléfono: ${formatPhoneNumber(leadPhone)}` : 'Sin número de teléfono registrado'}
           </DialogDescription>
         </DialogHeader>
         
@@ -102,6 +130,10 @@ const CallLogDialog: React.FC<CallLogDialogProps> = ({
                 <div className="text-center py-8 text-slate-400 flex flex-col items-center">
                   <Phone className="h-8 w-8 mb-2 opacity-30" />
                   <p>No hay registros de llamadas para este custodio</p>
+                  <p className="text-xs mt-2 max-w-md text-center">
+                    Si ya se han realizado llamadas, es posible que los números no coincidan 
+                    exactamente en los registros. Intente sincronizar los registros de VAPI.
+                  </p>
                 </div>
               ) : (
                 <Table>
