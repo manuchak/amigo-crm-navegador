@@ -75,7 +75,14 @@ export const getBestPhoneNumber = (log: VapiCallLog): string => {
     // First check for specific number fields that VAPI mentioned
     const metadataObj = log.metadata as Record<string, any>;
     
-    // Look for the VAPI format described in the schema
+    // Explicitly look for customer number in the fallbackDestination structure
+    if (metadataObj.fallbackDestination && typeof metadataObj.fallbackDestination === 'object') {
+      if (metadataObj.fallbackDestination.number) {
+        return formatPhoneNumber(metadataObj.fallbackDestination.number);
+      }
+    }
+    
+    // Look for the customer number in VAPI format
     if (metadataObj.number && typeof metadataObj.number === 'string') {
       return formatPhoneNumber(metadataObj.number);
     }
@@ -84,28 +91,33 @@ export const getBestPhoneNumber = (log: VapiCallLog): string => {
       return formatPhoneNumber(metadataObj.phoneNumber);
     }
     
-    // Look inside fallbackDestination if it exists
-    if (metadataObj.fallbackDestination && typeof metadataObj.fallbackDestination === 'object') {
-      if (metadataObj.fallbackDestination.number) {
-        return formatPhoneNumber(metadataObj.fallbackDestination.number);
-      }
-    }
-    
-    // Check other common field names for phone numbers
-    const phoneFields = [
+    // Check other common field names for customer numbers specifically
+    const customerPhoneFields = [
       'customerNumber', 'customerPhoneNumber', 'callerNumber',
       'toNumber', 'fromNumber', 'recipientNumber', 'customer_phone'
     ];
     
-    for (const field of phoneFields) {
+    for (const field of customerPhoneFields) {
       if (metadataObj[field] && typeof metadataObj[field] === 'string') {
         return formatPhoneNumber(metadataObj[field]);
       }
     }
   }
   
-  // Check primary fields in the call log object
+  // First try customer_number which is most likely the customer's number
   if (log.customer_number) return formatPhoneNumber(log.customer_number);
+  
+  // For incoming calls, the caller_phone_number should be the customer
+  if (log.direction === 'inbound' && log.caller_phone_number) {
+    return formatPhoneNumber(log.caller_phone_number);
+  }
+  
+  // For outgoing calls, the phone_number is often the customer
+  if (log.direction === 'outbound' && log.phone_number) {
+    return formatPhoneNumber(log.phone_number);
+  }
+  
+  // Fallback to any available number in a priority order
   if (log.caller_phone_number) return formatPhoneNumber(log.caller_phone_number);
   if (log.phone_number) return formatPhoneNumber(log.phone_number);
   

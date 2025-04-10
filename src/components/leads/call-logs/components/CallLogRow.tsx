@@ -35,7 +35,7 @@ export const CallLogRow: React.FC<CallLogRowProps> = ({
     }
   };
 
-  // Display phone number information
+  // Get the best customer phone number
   const phoneNumber = getBestPhoneNumber(log);
 
   return (
