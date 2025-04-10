@@ -1,4 +1,3 @@
-
 import { CONFIG } from './config.ts';
 import { ResponseParser } from './responseParser.ts';
 
@@ -140,6 +139,43 @@ export class VapiApiClient {
   }
   
   /**
+   * Fetch detailed call information including customer data
+   */
+  static async fetchCallDetails(apiKey, callId) {
+    try {
+      console.log(`Fetching detailed call information for call ID: ${callId}`);
+      const response = await fetch(`https://api.vapi.ai/call/${callId}`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${apiKey}`,
+          'Content-Type': 'application/json',
+        }
+      });
+      
+      if (!response.ok) {
+        console.error(`Call details API error: ${response.status}`);
+        return null;
+      }
+      
+      const data = await response.json();
+      console.log('Call details response structure:', Object.keys(data));
+      
+      // Extract customer information as per VAPI docs
+      if (data && data.customer && data.customer.number) {
+        console.log(`Found customer phone number: ${data.customer.number} (E164 format: ${data.customer.numberE164CheckEnabled !== false})`);
+        return data;
+      } else {
+        console.log('No customer information found in call details', data);
+      }
+      
+      return data;
+    } catch (error) {
+      console.error('Error fetching call details:', error);
+      return null;
+    }
+  }
+  
+  /**
    * Fetch logs from VAPI API trying multiple endpoints
    */
   static async fetchLogs(apiKey, startDate, endDate) {
@@ -169,8 +205,8 @@ export class VapiApiClient {
         if (data && data.calls && Array.isArray(data.calls)) {
           console.log(`Retrieved ${data.calls.length} calls from VAPI v2 API`);
           
-          // Enhance with phone number details for each call
-          const enhancedCalls = await this.enhanceCallsWithPhoneDetails(data.calls, apiKey);
+          // Enhance with detailed call information including customer data
+          const enhancedCalls = await this.enhanceCallsWithCustomerData(data.calls, apiKey);
           return enhancedCalls;
         }
       } else {
@@ -218,7 +254,7 @@ export class VapiApiClient {
     // If we got results from one of the endpoints, return them
     if (responseResults) {
       const logs = ResponseParser.extractLogsFromResponse(responseResults);
-      return await this.enhanceCallsWithPhoneDetails(logs, apiKey);
+      return await this.enhanceCallsWithCustomerData(logs, apiKey);
     }
     
     // Try API discovery as a last resort
@@ -236,72 +272,56 @@ export class VapiApiClient {
   }
   
   /**
-   * Enhance call logs with phone number details
+   * Enhance call logs with customer data from the GET /call endpoint
    */
-  static async enhanceCallsWithPhoneDetails(calls, apiKey) {
+  static async enhanceCallsWithCustomerData(calls, apiKey) {
     if (!calls || !Array.isArray(calls) || calls.length === 0) {
       return calls;
     }
     
     try {
-      console.log(`Enhancing ${calls.length} call logs with phone details`);
+      console.log(`Enhancing ${calls.length} call logs with customer data`);
       const enhancedCalls = [];
       
       for (const call of calls) {
-        // Add the call to the result list (we'll process it even if we can't get phone details)
-        enhancedCalls.push(call);
+        // Add the call to the result list (we'll process it even if we can't get details)
+        const enhancedCall = { ...call };
+        enhancedCalls.push(enhancedCall);
         
-        // Skip if already has phone numbers
-        if (
-          (call.customer_number && call.customer_number.length > 6) || 
-          (call.caller_phone_number && call.caller_phone_number.length > 6)
-        ) {
-          continue;
-        }
-        
-        // Check if call has phone ID we can use
-        const phoneNumberId = this.getPhoneNumberIdFromCall(call);
-        if (!phoneNumberId) {
-          console.log(`No phone number ID found for call ${call.id || 'unknown'}`);
+        // Skip if already has detailed customer number
+        if (call.customer && call.customer.number && call.customer.number.length > 6) {
+          console.log(`Call ${call.id} already has customer number: ${call.customer.number}`);
+          enhancedCall.customer_number = call.customer.number;
           continue;
         }
         
         try {
-          // Fetch detailed phone information
-          const phoneDetails = await this.fetchPhoneNumberDetails(apiKey, phoneNumberId);
-          if (phoneDetails) {
-            // Extract phone number from the details
-            const phone = phoneDetails.number || 
-                         (phoneDetails.fallbackDestination && phoneDetails.fallbackDestination.number);
+          // Fetch detailed call information via GET /call endpoint
+          if (call.id) {
+            const callDetails = await this.fetchCallDetails(apiKey, call.id);
             
-            if (phone) {
-              console.log(`Found phone number ${phone} for call ${call.id || 'unknown'}`);
+            if (callDetails && callDetails.customer && callDetails.customer.number) {
+              const customerPhone = callDetails.customer.number;
+              console.log(`Found customer number ${customerPhone} for call ${call.id}`);
               
-              // Update call with phone info
-              // Determine if this is likely customer or caller number based on call direction
-              if (call.direction === 'inbound') {
-                call.caller_phone_number = call.caller_phone_number || phone;
-              } else {
-                call.customer_number = call.customer_number || phone;
-              }
-              
-              // Always set phone_number as fallback
-              call.phone_number = call.phone_number || phone;
+              // Update call with proper customer phone info
+              enhancedCall.customer_number = customerPhone;
               
               // Add to metadata for extra assurance
-              if (!call.metadata) call.metadata = {};
-              call.metadata.enhanced_phone = phone;
+              if (!enhancedCall.metadata) enhancedCall.metadata = {};
+              enhancedCall.metadata.vapi_customer_number = customerPhone;
+              enhancedCall.metadata.numberE164Format = callDetails.customer.numberE164CheckEnabled !== false;
             }
           }
-        } catch (phoneError) {
-          console.error(`Error enhancing call ${call.id} with phone details:`, phoneError);
+        } catch (detailsError) {
+          console.error(`Error enhancing call ${call.id} with customer details:`, detailsError);
           // Continue processing other calls even if one fails
         }
       }
       
       return enhancedCalls;
     } catch (error) {
-      console.error('Error in enhanceCallsWithPhoneDetails:', error);
+      console.error('Error in enhanceCallsWithCustomerData:', error);
       // Return original calls if enhancement fails
       return calls;
     }

@@ -1,4 +1,5 @@
 
+import { CONFIG } from './config.ts';
 import { ResponseParser } from './responseParser.ts';
 
 /**
@@ -123,98 +124,32 @@ export class DatabaseManager {
       if (duration === null) duration = 0;
     }
     
-    // Enhanced phone number extraction
-    // Get phone number from the structured VAPI format
-    let phoneNumber = null;
+    // Extract customer number according to VAPI docs format
     let customerNumber = null;
-    let callerNumber = null;
     
-    // First try to extract from the fallbackDestination structure
-    if (log.metadata && log.metadata.fallbackDestination && log.metadata.fallbackDestination.number) {
-      phoneNumber = String(log.metadata.fallbackDestination.number).trim();
+    // First check for the customer object structure as documented by VAPI
+    if (log.customer && log.customer.number) {
+      customerNumber = log.customer.number;
+      console.log(`Found customer.number in log: ${customerNumber}`);
     }
     
-    // Check for the number field from the phone number object
-    if (!phoneNumber && log.number && typeof log.number === 'string') {
-      phoneNumber = String(log.number).trim();
+    // Check metadata for VAPI-specific customer number (that we might have added)
+    if (!customerNumber && log.metadata && log.metadata.vapi_customer_number) {
+      customerNumber = log.metadata.vapi_customer_number;
+      console.log(`Found vapi_customer_number in metadata: ${customerNumber}`);
     }
     
-    if (!phoneNumber && log.metadata && log.metadata.number && typeof log.metadata.number === 'string') {
-      phoneNumber = String(log.metadata.number).trim();
-    }
-    
-    // Look for customer number in various possible fields
-    const customerFields = [
-      'customer_number', 'customerNumber', 'to', 'toNumber', 
-      'recipient', 'recipientNumber', 'destination'
-    ];
-    
-    for (const field of customerFields) {
-      if (log[field] !== undefined && log[field] !== null) {
-        customerNumber = String(log[field]).trim();
-        break;
+    // If still no customer number, use the fallback extraction logic
+    if (!customerNumber) {
+      customerNumber = ResponseParser.findFieldValue(log, 'customer_number');
+      if (customerNumber) {
+        console.log(`Found customer number via ResponseParser: ${customerNumber}`);
       }
     }
     
-    // Check metadata if no number found in direct fields
-    if (!customerNumber && log.metadata && typeof log.metadata === 'object') {
-      for (const field of customerFields) {
-        if (log.metadata[field] !== undefined && log.metadata[field] !== null) {
-          customerNumber = String(log.metadata[field]).trim();
-          break;
-        }
-      }
-    }
-    
-    // Similarly extract caller number
-    const callerFields = [
-      'caller_phone_number', 'callerPhoneNumber', 'callerNumber',
-      'from', 'fromNumber', 'caller', 'source'
-    ];
-    
-    for (const field of callerFields) {
-      if (log[field] !== undefined && log[field] !== null) {
-        callerNumber = String(log[field]).trim();
-        break;
-      }
-    }
-    
-    // Check metadata for caller number
-    if (!callerNumber && log.metadata && typeof log.metadata === 'object') {
-      for (const field of callerFields) {
-        if (log.metadata[field] !== undefined && log.metadata[field] !== null) {
-          callerNumber = String(log.metadata[field]).trim();
-          break;
-        }
-      }
-    }
-    
-    // If no specific numbers are found, use the general phone number as fallback
-    if (!phoneNumber) {
-      const phoneFields = ['phone_number', 'phoneNumber', 'phone', 'number'];
-      
-      for (const field of phoneFields) {
-        if (log[field] !== undefined && log[field] !== null) {
-          phoneNumber = String(log[field]).trim();
-          break;
-        }
-      }
-      
-      // Check metadata for phone number
-      if (!phoneNumber && log.metadata && typeof log.metadata === 'object') {
-        for (const field of phoneFields) {
-          if (log.metadata[field] !== undefined && log.metadata[field] !== null) {
-            phoneNumber = String(log.metadata[field]).trim();
-            break;
-          }
-        }
-        
-        // Special check for enhanced phone from our processing
-        if (!phoneNumber && log.metadata.enhanced_phone) {
-          phoneNumber = String(log.metadata.enhanced_phone).trim();
-        }
-      }
-    }
+    // Get other phone numbers for fallback
+    const phoneNumber = ResponseParser.findFieldValue(log, 'phone_number');
+    const callerNumber = ResponseParser.findFieldValue(log, 'caller_phone_number');
     
     // Ensure we have some phone number data by using cross-fallbacks
     if (!customerNumber && !callerNumber && phoneNumber) {

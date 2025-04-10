@@ -1,30 +1,11 @@
 
-import React from 'react';
-import { Badge } from '@/components/ui/badge';
-import { VapiCallLog } from '../../types';
+import { VapiCallLog } from '../types';
 
-export const formatDateTime = (dateTimeString: string | null) => {
-  if (!dateTimeString) return 'N/A';
-  const date = new Date(dateTimeString);
-  return date.toLocaleString('es-MX', { 
-    year: 'numeric', 
-    month: '2-digit', 
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit'
-  });
-};
-
-export const formatDuration = (seconds: number | null) => {
-  if (!seconds) return 'N/A';
-  const minutes = Math.floor(seconds / 60);
-  const remainingSeconds = Math.floor(seconds % 60);
-  return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;
-};
-
-export const formatPhoneNumber = (phone: string | null) => {
-  if (!phone) return 'Sin número';
+/**
+ * Formats a phone number string for display
+ */
+export const formatPhoneNumber = (phone: string | null): string => {
+  if (!phone) return 'N/A';
   
   // Remove non-digit characters
   const digits = phone.replace(/\D/g, '');
@@ -51,25 +32,10 @@ export const formatPhoneNumber = (phone: string | null) => {
   return phone;
 };
 
-export const getStatusBadge = (status: string | null) => {
-  if (!status) return <Badge variant="outline">Desconocido</Badge>;
-  
-  switch (status.toLowerCase()) {
-    case 'completed':
-      return <Badge className="bg-green-500 font-normal">Completada</Badge>;
-    case 'failed':
-      return <Badge variant="destructive" className="font-normal">Fallida</Badge>;
-    case 'busy':
-      return <Badge variant="outline" className="border-amber-500 text-amber-700 font-normal">Ocupado</Badge>;
-    case 'no-answer':
-      return <Badge variant="outline" className="border-blue-500 text-blue-700 font-normal">Sin respuesta</Badge>;
-    default:
-      return <Badge variant="secondary" className="font-normal">{status}</Badge>;
-  }
-};
-
-// Enhanced function to get the best available phone number from a call log
-// Updated to prioritize the customer.number structure from VAPI API
+/**
+ * Gets the best available phone number from a call log
+ * Updated to prioritize the VAPI API customer.number format
+ */
 export const getBestPhoneNumber = (log: VapiCallLog): string => {
   // First check for the specific VAPI customer number format
   if (log.metadata && typeof log.metadata === 'object') {
@@ -86,7 +52,9 @@ export const getBestPhoneNumber = (log: VapiCallLog): string => {
   }
   
   // Direct customer_number is our next priority
-  if (log.customer_number) return formatPhoneNumber(log.customer_number);
+  if (log.customer_number) {
+    return formatPhoneNumber(log.customer_number);
+  }
   
   // For incoming calls, the caller_phone_number should be the customer
   if (log.direction === 'inbound' && log.caller_phone_number) {
@@ -94,7 +62,7 @@ export const getBestPhoneNumber = (log: VapiCallLog): string => {
   }
   
   // For outgoing calls, the phone_number is often the customer
-  if (log.direction === 'outbound' && log.phone_number) {
+  if ((log.direction === 'outbound' || log.direction === 'outboundPhoneCall') && log.phone_number) {
     return formatPhoneNumber(log.phone_number);
   }
   
@@ -134,6 +102,7 @@ export const getBestPhoneNumber = (log: VapiCallLog): string => {
   // Fallback to any available number in a priority order
   if (log.caller_phone_number) return formatPhoneNumber(log.caller_phone_number);
   if (log.phone_number) return formatPhoneNumber(log.phone_number);
+  if (log.assistant_phone_number) return formatPhoneNumber(log.assistant_phone_number);
   
   // Default fallback
   return 'Sin número';

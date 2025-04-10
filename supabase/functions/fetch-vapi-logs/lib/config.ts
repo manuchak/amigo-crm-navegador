@@ -1,74 +1,57 @@
+
 /**
- * Configuration for VAPI integration
+ * Configuration for VAPI API
  */
 export const CONFIG = {
-  DEFAULT_API_KEY: '4e1d9a9c-de28-4e68-926c-3b5ca5a3ecb9',
   VAPI_ASSISTANT_ID: '0b7c2a96-0360-4fef-9956-e847fd696ea2',
+  
+  // API Endpoints to try for fetching logs
   API_ENDPOINTS: [
     {
-      url: 'https://api.vapi.ai/call/logs',
+      url: 'https://api.vapi.ai/assistant/logs',
       method: 'GET',
-      description: 'New VAPI call logs endpoint',
-      supportsDates: false
+      description: 'Assistant logs endpoint',
+      supportsDates: true
     },
     {
       url: 'https://api.vapi.ai/call',
       method: 'GET',
-      description: 'Primary calls endpoint',
+      description: 'Call detail endpoint',
       supportsDates: false
     },
     {
-      url: 'https://api.vapi.ai/calls',
-      method: 'GET',
-      description: 'Alternative calls endpoint',
-      supportsDates: false
-    },
-    {
-      url: 'https://api.vapi.ai/call-logs',
+      url: 'https://api.vapi.ai/assistant/call-logs',
       method: 'GET',
       description: 'Call logs endpoint',
-      supportsDates: false
-    },
-    {
-      url: 'https://api.vapi.ai/phone-number',
-      method: 'GET',
-      description: 'Phone numbers endpoint',
-      supportsDates: false
+      supportsDates: true
     }
   ],
-  // Mapping configuration to match VAPI API fields to Supabase columns
+  
+  // Field mapping for different API response formats
   FIELD_MAPPING: {
-    // Standard VAPI API fields based on their documentation
-    customerNumber: 'customer_number', 
-    callerNumber: 'caller_phone_number',
-    phoneNumber: 'phone_number',
-    number: 'phone_number',
-    duration: 'duration',
-    // Other possible field variations from VAPI API
-    customer_phone_number: 'customer_number',
-    caller_phone: 'caller_phone_number',
-    to_number: 'customer_number',
-    from_number: 'caller_phone_number',
-    // Additional field mappings for customer numbers
-    to: 'customer_number',
-    recipient: 'customer_number',
-    receiverNumber: 'customer_number',
-    receiver: 'customer_number',
-    toNumber: 'customer_number',
-    recipientNumber: 'customer_number',
-    // Phone number field from the documentation
-    fallbackDestination: {
-      number: 'customer_number'
-    }
+    'id': 'log_id',
+    'assistant_id': 'assistant_id',
+    'organization_id': 'organization_id',
+    'conversation_id': 'conversation_id',
+    'customer_number': 'customer_number',
+    'caller_phone_number': 'caller_phone_number',
+    'phone_number': 'phone_number',
+    'start_time': 'start_time',
+    'end_time': 'end_time',
+    'duration': 'duration',
+    'status': 'status',
+    'direction': 'direction',
+    'transcript': 'transcript',
+    'recording_url': 'recording_url',
+    'customer': 'customer'
   },
-  // Metadata fields to request explicitly when calling VAPI API
+  
+  // Metadata fields we want to explicitly request
   METADATA_REQUEST_FIELDS: [
-    'phoneNumber',
+    'customer',
+    'customer.number',
     'customerNumber',
-    'callerNumber',
-    'customerPhoneNumber',
-    'recipientNumber',
-    'toNumber',
+    'phoneNumber',
     'number'
   ]
 };
