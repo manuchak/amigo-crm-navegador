@@ -60,27 +60,37 @@ const CallLogsList: React.FC<CallLogsListProps> = ({
 
   // Enhanced helper function to display the best available phone number
   const getBestPhoneNumber = (log: VapiCallLog): string => {
-    // First try customer_number (our main field for customer phone)
-    if (log.customer_number) {
-      return formatPhoneNumber(log.customer_number);
+    // First try the primary phone number fields
+    for (const field of ['customer_number', 'caller_phone_number', 'phone_number']) {
+      if (log[field] && typeof log[field] === 'string' && log[field].length > 5) {
+        return formatPhoneNumber(log[field]);
+      }
     }
     
-    // Then try caller_phone_number (common for incoming calls)
-    if (log.caller_phone_number) {
-      return formatPhoneNumber(log.caller_phone_number);
+    // If no phone numbers in primary fields, check metadata for any phone-like fields
+    if (log.metadata && typeof log.metadata === 'object') {
+      for (const key of Object.keys(log.metadata)) {
+        const value = log.metadata[key];
+        // Look for fields that might contain phone numbers
+        if (
+          typeof value === 'string' && 
+          value.length >= 7 && 
+          (key.toLowerCase().includes('phone') || 
+           key.toLowerCase().includes('number') ||
+           key.toLowerCase().includes('tel') ||
+           /^\+?[\d\s\(\)\-]+$/.test(value)) // Basic regex to match phone-like strings
+        ) {
+          return formatPhoneNumber(value);
+        }
+      }
     }
     
-    // Then try phone_number (fallback)
-    if (log.phone_number) {
-      return formatPhoneNumber(log.phone_number);
-    }
-    
-    // If no phone number is available
+    // If still no phone number found, default to "Desconocido"
     return 'Desconocido';
   };
   
   // Format phone number for display
-  const formatPhoneNumber = (phone: string): string => {
+  const formatPhoneNumber = (phone: string | null): string => {
     if (!phone) return 'Desconocido';
     
     // Remove non-digit characters
@@ -102,6 +112,11 @@ const CallLogsList: React.FC<CallLogsListProps> = ({
         const secondPart = digits.slice(6);
         return `(${areaCode}) ${firstPart}-${secondPart}`;
       }
+    } else if (digits.length >= 7) {
+      // Handle shorter numbers (without area code)
+      const firstPart = digits.slice(0, 3);
+      const secondPart = digits.slice(3);
+      return `${firstPart}-${secondPart}`;
     }
     
     // Return the original if we can't format it

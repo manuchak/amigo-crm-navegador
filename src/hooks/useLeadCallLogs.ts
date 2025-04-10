@@ -18,27 +18,83 @@ export function useLeadCallLogs(leadId: number | null, phoneNumber: string | nul
     async function fetchCallLogs() {
       setLoading(true);
       try {
-        // Format phone number to ensure proper matching
+        // Format phone number to ensure proper matching - extract only digits
         const formattedPhoneNumber = phoneNumber.trim().replace(/\D/g, '');
         
-        // Use ILIKE to make the search case-insensitive and add wildcards
-        // for partial matches with different phone number formats
+        // If the phone number is very short (less than 7 digits), it's likely invalid
+        if (formattedPhoneNumber.length < 7) {
+          console.warn('Phone number too short, might be invalid:', phoneNumber);
+          setCallLogs([]);
+          setLoading(false);
+          return;
+        }
+        
+        // Use the last 10 digits for matching (ignoring country code differences)
+        const lastTenDigits = formattedPhoneNumber.slice(-10);
+        console.log('Searching for calls with phone digits:', lastTenDigits);
+        
+        // Query using more flexible pattern matching on all phone number fields
+        // and search for both the full number and the last 10 digits
         const { data, error } = await supabase
           .from('vapi_call_logs')
           .select('*')
-          .or(`customer_number.ilike.%${formattedPhoneNumber}%,caller_phone_number.ilike.%${formattedPhoneNumber}%,phone_number.ilike.%${formattedPhoneNumber}%`)
+          .or(`customer_number.ilike.%${formattedPhoneNumber}%,customer_number.ilike.%${lastTenDigits}%,caller_phone_number.ilike.%${formattedPhoneNumber}%,caller_phone_number.ilike.%${lastTenDigits}%,phone_number.ilike.%${formattedPhoneNumber}%,phone_number.ilike.%${lastTenDigits}%`)
           .order('start_time', { ascending: false });
 
         if (error) {
           throw error;
         }
 
-        console.log('Call logs fetched for phone:', formattedPhoneNumber, 'Count:', data?.length || 0);
+        console.log('Call logs fetched for phone:', formattedPhoneNumber, 'Last 10 digits:', lastTenDigits, 'Count:', data?.length || 0);
         if (data && data.length > 0) {
           console.log('Sample call log:', data[0]);
+          
+          // If we have call logs, try to update any null phone numbers with the lead's phone number
+          // This helps with display in the UI even if the database has nulls
+          const enhancedLogs = data.map(log => {
+            // Only add the phone number if all phone fields are null
+            if (!log.customer_number && !log.caller_phone_number && !log.phone_number) {
+              return {
+                ...log,
+                // Add the phone number to one of the fields for display purposes
+                customer_number: phoneNumber
+              };
+            }
+            return log;
+          });
+          
+          setCallLogs(enhancedLogs);
+        } else {
+          console.log('No call logs found, trying a broader search...');
+          
+          // If no results with the stricter search, try a more lenient search with just the last 7 digits
+          if (lastTenDigits.length >= 7) {
+            const lastSevenDigits = lastTenDigits.slice(-7);
+            
+            const { data: lenientData, error: lenientError } = await supabase
+              .from('vapi_call_logs')
+              .select('*')
+              .or(`customer_number.ilike.%${lastSevenDigits}%,caller_phone_number.ilike.%${lastSevenDigits}%,phone_number.ilike.%${lastSevenDigits}%`)
+              .order('start_time', { ascending: false });
+              
+            if (lenientError) {
+              console.error('Error in lenient search:', lenientError);
+            } else if (lenientData && lenientData.length > 0) {
+              console.log('Found logs with lenient search:', lenientData.length);
+              
+              // Add the lead's phone number to the logs for display
+              const enhancedLogs = lenientData.map(log => ({
+                ...log,
+                customer_number: log.customer_number || phoneNumber
+              }));
+              
+              setCallLogs(enhancedLogs);
+              return;
+            }
+          }
+          
+          setCallLogs([]);
         }
-
-        setCallLogs(data || []);
       } catch (error) {
         console.error('Error fetching call logs:', error);
         toast({
