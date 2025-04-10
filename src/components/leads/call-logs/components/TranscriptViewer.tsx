@@ -18,6 +18,12 @@ interface TranscriptViewerProps {
   log: VapiCallLog | null;
 }
 
+// Define interfaces for the transcript data structure
+interface TranscriptEntry {
+  role: string;
+  content: string;
+}
+
 export const TranscriptViewer: React.FC<TranscriptViewerProps> = ({
   open,
   onOpenChange,
@@ -25,11 +31,20 @@ export const TranscriptViewer: React.FC<TranscriptViewerProps> = ({
 }) => {
   if (!log) return null;
 
+  // Type guard function to check if the data is a transcript entry array
+  const isTranscriptEntryArray = (data: any): data is TranscriptEntry[] => {
+    return Array.isArray(data) && 
+           data.length > 0 && 
+           typeof data[0] === 'object' && 
+           'role' in data[0] && 
+           'content' in data[0];
+  };
+
   const formatTranscript = () => {
     if (!log.transcript) return null;
     
     // Handle transcript based on its type
-    if (Array.isArray(log.transcript)) {
+    if (isTranscriptEntryArray(log.transcript)) {
       return log.transcript.map((entry, idx) => (
         <div 
           key={idx} 
