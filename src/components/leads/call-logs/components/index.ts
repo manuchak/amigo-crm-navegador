@@ -6,3 +6,4 @@ export * from './CallStatsCards';
 export * from './CallLogEmptyState';
 export * from './CallLogsLoadingState';
 export * from './CallLogUtils';
+export * from './TranscriptViewer';

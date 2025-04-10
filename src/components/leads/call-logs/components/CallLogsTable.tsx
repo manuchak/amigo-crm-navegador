@@ -6,9 +6,13 @@ import { CallLogRow } from './CallLogRow';
 
 interface CallLogsTableProps {
   callLogs: VapiCallLog[];
+  onViewTranscript?: (log: VapiCallLog) => void;
 }
 
-export const CallLogsTable: React.FC<CallLogsTableProps> = ({ callLogs }) => {
+export const CallLogsTable: React.FC<CallLogsTableProps> = ({ 
+  callLogs,
+  onViewTranscript
+}) => {
   return (
     <Table>
       <TableHeader>
@@ -23,7 +27,11 @@ export const CallLogsTable: React.FC<CallLogsTableProps> = ({ callLogs }) => {
       </TableHeader>
       <TableBody>
         {callLogs.map((log) => (
-          <CallLogRow key={log.id} log={log} />
+          <CallLogRow 
+            key={log.id} 
+            log={log} 
+            onViewTranscript={onViewTranscript} 
+          />
         ))}
       </TableBody>
     </Table>

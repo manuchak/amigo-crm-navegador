@@ -8,9 +8,10 @@ import { formatDateTime, formatDuration, getStatusBadge } from './CallLogUtils';
 
 interface CallLogRowProps {
   log: VapiCallLog;
+  onViewTranscript?: (log: VapiCallLog) => void;
 }
 
-export const CallLogRow: React.FC<CallLogRowProps> = ({ log }) => {
+export const CallLogRow: React.FC<CallLogRowProps> = ({ log, onViewTranscript }) => {
   return (
     <TableRow key={log.id} className="text-sm">
       <TableCell className="py-3">
@@ -38,7 +39,12 @@ export const CallLogRow: React.FC<CallLogRowProps> = ({ log }) => {
       </TableCell>
       <TableCell className="py-3">
         {log.transcript ? (
-          <Button variant="outline" size="sm" className="h-8 w-8 p-0">
+          <Button 
+            variant="outline" 
+            size="sm" 
+            className="h-8 w-8 p-0"
+            onClick={() => onViewTranscript && onViewTranscript(log)}
+          >
             <FileText className="h-3 w-3" />
           </Button>
         ) : (
