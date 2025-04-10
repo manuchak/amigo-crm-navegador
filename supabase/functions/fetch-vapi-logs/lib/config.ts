@@ -53,5 +53,8 @@ export const CONFIG = {
     'customerNumber',
     'phoneNumber',
     'number'
-  ]
+  ],
+  
+  // Default API key for fallback
+  DEFAULT_API_KEY: '4e1d9a9c-de28-4e68-926c-3b5ca5a3ecb9'
 };

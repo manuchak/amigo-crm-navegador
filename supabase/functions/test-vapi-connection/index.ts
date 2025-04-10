@@ -38,8 +38,8 @@ Deno.serve(async (req) => {
       throw new Error('VAPI API key not found in database. Please configure it first.')
     }
 
-    // VAPI API settings
-    const VAPI_API_URL = 'https://api.vapi.ai/assistants'
+    // VAPI API settings - Updated to use the correct endpoint
+    const VAPI_API_URL = 'https://api.vapi.ai/assistant'
 
     console.log('Testing VAPI connection with API key from database')
 
@@ -52,13 +52,16 @@ Deno.serve(async (req) => {
       }
     })
 
+    console.log(`VAPI API response status: ${response.status}`)
+
     if (!response.ok) {
       const errorText = await response.text()
+      console.error(`VAPI API returned ${response.status}:`, errorText)
       throw new Error(`VAPI API returned ${response.status}: ${errorText}`)
     }
 
     const data = await response.json()
-    console.log('VAPI connection successful:', data)
+    console.log('VAPI connection successful, response:', JSON.stringify(data).substring(0, 200))
 
     return new Response(
       JSON.stringify({
