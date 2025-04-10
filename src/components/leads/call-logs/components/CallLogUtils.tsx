@@ -1,6 +1,7 @@
 
 import React from 'react';
 import { Badge } from '@/components/ui/badge';
+import { VapiCallLog } from '../../types';
 
 export const formatDateTime = (dateTimeString: string | null) => {
   if (!dateTimeString) return 'N/A';
@@ -65,4 +66,47 @@ export const getStatusBadge = (status: string | null) => {
     default:
       return <Badge variant="secondary" className="font-normal">{status}</Badge>;
   }
+};
+
+// Enhanced function to get the best available phone number from a call log
+export const getBestPhoneNumber = (log: VapiCallLog): string => {
+  // First check primary fields that typically contain phone numbers
+  if (log.customer_number) return formatPhoneNumber(log.customer_number);
+  if (log.caller_phone_number) return formatPhoneNumber(log.caller_phone_number);
+  if (log.phone_number) return formatPhoneNumber(log.phone_number);
+  
+  // If metadata exists and is an object, check for phone numbers there
+  if (log.metadata && typeof log.metadata === 'object') {
+    // Check common metadata fields for phone numbers
+    const metadataObj = log.metadata as Record<string, any>;
+    
+    // Check common field names that might contain phone numbers
+    const phoneFields = [
+      'phoneNumber', 'customerNumber', 'customerPhoneNumber', 
+      'callerNumber', 'recipientNumber', 'toNumber', 'fromNumber',
+      'to', 'from', 'recipient', 'caller', 'customer_phone'
+    ];
+    
+    for (const field of phoneFields) {
+      if (metadataObj[field] && typeof metadataObj[field] === 'string') {
+        return formatPhoneNumber(metadataObj[field]);
+      }
+    }
+    
+    // Look for any field that might contain a phone number pattern
+    for (const [key, value] of Object.entries(metadataObj)) {
+      if (
+        typeof value === 'string' && 
+        (value.match(/^\+?[0-9\s\(\)\-]{7,}$/) || // Basic phone number pattern
+         key.toLowerCase().includes('phone') || 
+         key.toLowerCase().includes('number') ||
+         key.toLowerCase().includes('tel'))
+      ) {
+        return formatPhoneNumber(value);
+      }
+    }
+  }
+  
+  // Default fallback
+  return 'Sin número';
 };

@@ -57,7 +57,16 @@ const CONFIG = {
     receiver: 'customer_number',
     toNumber: 'customer_number',
     recipientNumber: 'customer_number'
-  }
+  },
+  // Metadata fields to request explicitly when calling VAPI API
+  METADATA_REQUEST_FIELDS: [
+    'phoneNumber',
+    'customerNumber',
+    'callerNumber',
+    'customerPhoneNumber',
+    'recipientNumber',
+    'toNumber'
+  ]
 };
 
 /**
@@ -885,20 +894,3 @@ async function handleRequest(req) {
       {
         status: 500,
         headers: {
-          'Content-Type': 'application/json',
-          ...corsHeaders
-        }
-      }
-    )
-  }
-}
-
-// Main handler for the Deno server
-Deno.serve(async (req) => {
-  // Handle CORS preflight requests
-  if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders })
-  }
-  
-  return handleRequest(req)
-})
