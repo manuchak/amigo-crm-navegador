@@ -1,3 +1,4 @@
+
 import { CONFIG } from './config.ts';
 import { ResponseParser } from './responseParser.ts';
 
@@ -151,32 +152,36 @@ export class DatabaseManager {
     const callerNumber = ResponseParser.findFieldValue(log, 'caller_phone_number');
     
     // Ensure we have some phone number data by using cross-fallbacks
-    if (!customerNumber && !callerNumber && phoneNumber) {
+    let finalPhoneNumber = phoneNumber;
+    let finalCallerNumber = callerNumber;
+    let finalCustomerNumber = customerNumber;
+    
+    if (!finalCustomerNumber && !finalCallerNumber && finalPhoneNumber) {
       // If we only have phone_number but no specific roles, assign based on call direction
       if (log.direction === 'inbound') {
-        callerNumber = phoneNumber;
+        finalCallerNumber = phoneNumber;
       } else {
-        customerNumber = phoneNumber;
+        finalCustomerNumber = phoneNumber;
       }
-    } else if (!phoneNumber) {
+    } else if (!finalPhoneNumber) {
       // If we have caller or customer but no general phone, use one of those
-      phoneNumber = customerNumber || callerNumber;
+      finalPhoneNumber = finalCustomerNumber || finalCallerNumber;
     }
 
     // Log all extracted phone numbers for debugging
     console.log(`Extracted numbers for log ${log.id}:`);
-    console.log(`- phone: ${phoneNumber || 'Not found'}`);
-    console.log(`- caller: ${callerNumber || 'Not found'}`);
-    console.log(`- customer: ${customerNumber || 'Not found'}`);
+    console.log(`- phone: ${finalPhoneNumber || 'Not found'}`);
+    console.log(`- caller: ${finalCallerNumber || 'Not found'}`);
+    console.log(`- customer: ${finalCustomerNumber || 'Not found'}`);
 
     return {
       log_id: log.id,
       assistant_id: log.assistant_id || log.assistantId || CONFIG.VAPI_ASSISTANT_ID,
       organization_id: log.organization_id || log.organizationId || 'unknown',
       conversation_id: log.conversation_id || log.conversationId || null,
-      phone_number: phoneNumber || null,
-      caller_phone_number: callerNumber || null,
-      customer_number: customerNumber || null,
+      phone_number: finalPhoneNumber || null,
+      caller_phone_number: finalCallerNumber || null,
+      customer_number: finalCustomerNumber || null,
       start_time: log.start_time || log.startTime || log.startedAt || log.time_start || log.created_at || null,
       end_time: log.end_time || log.endTime || log.endedAt || log.time_end || null,
       duration: duration,
@@ -188,7 +193,7 @@ export class DatabaseManager {
       
       // Fields with better fallbacks
       assistant_name: log.assistant_name || log.assistantName || null,
-      assistant_phone_number: log.assistant_phone_number || log.assistantPhoneNumber || phoneNumber || null,
+      assistant_phone_number: log.assistant_phone_number || log.assistantPhoneNumber || finalPhoneNumber || null,
       call_type: log.call_type || log.callType || log.type || null,
       cost: typeof log.cost === 'number' ? log.cost : null,
       ended_reason: log.ended_reason || log.endedReason || log.ended_reason_detail || log.endedReasonDetail || null,

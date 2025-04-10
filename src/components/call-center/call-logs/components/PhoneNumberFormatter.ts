@@ -38,6 +38,11 @@ export const formatPhoneNumber = (phone: string | null): string => {
  */
 export const getBestPhoneNumber = (log: VapiCallLog): string => {
   // First check for the specific VAPI customer number format
+  if (log.customer_number) {
+    return formatPhoneNumber(log.customer_number);
+  }
+  
+  // Check for customer number in metadata if available
   if (log.metadata && typeof log.metadata === 'object') {
     // Check for vapi_customer_number that we've added during the API fetch
     const metadataObj = log.metadata as Record<string, any>;
@@ -49,11 +54,6 @@ export const getBestPhoneNumber = (log: VapiCallLog): string => {
     if (metadataObj.customer && typeof metadataObj.customer === 'object' && metadataObj.customer.number) {
       return formatPhoneNumber(metadataObj.customer.number);
     }
-  }
-  
-  // Direct customer_number is our next priority
-  if (log.customer_number) {
-    return formatPhoneNumber(log.customer_number);
   }
   
   // For incoming calls, the caller_phone_number should be the customer

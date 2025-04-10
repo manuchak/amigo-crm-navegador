@@ -33,7 +33,7 @@ export function useLeadCallLogs(leadId: number | null, phoneNumber: string | nul
         const lastTenDigits = formattedPhoneNumber.slice(-10);
         console.log('Searching for calls with phone digits:', lastTenDigits);
         
-        // Enhanced query to search in more places for phone numbers, including metadata
+        // Enhanced query to search in more places for phone numbers, prioritizing customer_number
         const { data, error } = await supabase
           .from('vapi_call_logs')
           .select('*')
@@ -51,11 +51,11 @@ export function useLeadCallLogs(leadId: number | null, phoneNumber: string | nul
           // If we have call logs, try to update any null phone numbers with the lead's phone number
           // This helps with display in the UI even if the database has nulls
           const enhancedLogs = data.map(log => {
-            // Only add the phone number if all phone fields are null
-            if (!log.customer_number && !log.caller_phone_number && !log.phone_number) {
+            // Check if customer_number is null or empty
+            if (!log.customer_number) {
               return {
                 ...log,
-                // Add the phone number to one of the fields for display purposes
+                // Add the phone number to the customer_number field for display purposes
                 customer_number: phoneNumber
               };
             }
@@ -71,7 +71,7 @@ export function useLeadCallLogs(leadId: number | null, phoneNumber: string | nul
           const { data: metadataLogs, error: metadataError } = await supabase
             .from('vapi_call_logs')
             .select('*')
-            .or(`metadata->>'number'.ilike.%${lastTenDigits}%,metadata->>'phoneNumber'.ilike.%${lastTenDigits}%,metadata->>'customerNumber'.ilike.%${lastTenDigits}%`)
+            .or(`metadata->>'vapi_customer_number'.ilike.%${lastTenDigits}%,metadata->>'number'.ilike.%${lastTenDigits}%,metadata->>'phoneNumber'.ilike.%${lastTenDigits}%,metadata->>'customerNumber'.ilike.%${lastTenDigits}%`)
             .order('start_time', { ascending: false });
             
           if (metadataError) {
