@@ -35,6 +35,9 @@ export const CallLogRow: React.FC<CallLogRowProps> = ({
     }
   };
 
+  // Display phone number information
+  const phoneNumber = getBestPhoneNumber(log);
+
   return (
     <TableRow>
       <TableCell className="font-mono text-xs whitespace-nowrap">

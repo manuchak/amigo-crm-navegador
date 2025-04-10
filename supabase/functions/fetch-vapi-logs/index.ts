@@ -1,4 +1,3 @@
-
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.7'
 
 // Define CORS headers for all responses
@@ -37,6 +36,12 @@ const CONFIG = {
       method: 'GET',
       description: 'Call logs endpoint',
       supportsDates: false
+    },
+    {
+      url: 'https://api.vapi.ai/phone-number',
+      method: 'GET',
+      description: 'Phone numbers endpoint',
+      supportsDates: false
     }
   ],
   // Mapping configuration to match VAPI API fields to Supabase columns
@@ -45,6 +50,7 @@ const CONFIG = {
     customerNumber: 'customer_number', 
     callerNumber: 'caller_phone_number',
     phoneNumber: 'phone_number',
+    number: 'phone_number',
     duration: 'duration',
     // Other possible field variations from VAPI API
     customer_phone_number: 'customer_number',
@@ -57,7 +63,11 @@ const CONFIG = {
     receiverNumber: 'customer_number',
     receiver: 'customer_number',
     toNumber: 'customer_number',
-    recipientNumber: 'customer_number'
+    recipientNumber: 'customer_number',
+    // Phone number field from the documentation
+    fallbackDestination: {
+      number: 'customer_number'
+    }
   },
   // Metadata fields to request explicitly when calling VAPI API
   METADATA_REQUEST_FIELDS: [
@@ -66,7 +76,8 @@ const CONFIG = {
     'callerNumber',
     'customerPhoneNumber',
     'recipientNumber',
-    'toNumber'
+    'toNumber',
+    'number'
   ]
 };
 
@@ -278,6 +289,34 @@ class VapiApiClient {
   }
   
   /**
+   * Fetch phone number details from VAPI
+   */
+  static async fetchPhoneNumberDetails(apiKey, phoneNumberId) {
+    try {
+      console.log(`Fetching phone number details for ID: ${phoneNumberId}`);
+      const response = await fetch(`https://api.vapi.ai/phone-number/${phoneNumberId}`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${apiKey}`,
+          'Content-Type': 'application/json',
+        }
+      });
+      
+      if (!response.ok) {
+        console.error(`Phone number API error: ${response.status}`);
+        return null;
+      }
+      
+      const data = await response.json();
+      console.log('Phone number details:', JSON.stringify(data).substring(0, 200) + '...');
+      return data;
+    } catch (error) {
+      console.error('Error fetching phone number details:', error);
+      return null;
+    }
+  }
+  
+  /**
    * Fetch logs from VAPI API trying multiple endpoints
    */
   static async fetchLogs(apiKey, startDate, endDate) {
@@ -306,7 +345,10 @@ class VapiApiClient {
         
         if (data && data.calls && Array.isArray(data.calls)) {
           console.log(`Retrieved ${data.calls.length} calls from VAPI v2 API`);
-          return data.calls;
+          
+          // Enhance with phone number details for each call
+          const enhancedCalls = await this.enhanceCallsWithPhoneDetails(data.calls, apiKey);
+          return enhancedCalls;
         }
       } else {
         console.log(`VAPI v2 API failed with status: ${v2Response.status}`);
@@ -352,7 +394,8 @@ class VapiApiClient {
     
     // If we got results from one of the endpoints, return them
     if (responseResults) {
-      return ResponseParser.extractLogsFromResponse(responseResults);
+      const logs = ResponseParser.extractLogsFromResponse(responseResults);
+      return await this.enhanceCallsWithPhoneDetails(logs, apiKey);
     }
     
     // Try API discovery as a last resort
@@ -367,6 +410,97 @@ class VapiApiClient {
     }
     
     throw new Error("All VAPI API endpoints failed");
+  }
+  
+  /**
+   * Enhance call logs with phone number details
+   */
+  static async enhanceCallsWithPhoneDetails(calls, apiKey) {
+    if (!calls || !Array.isArray(calls) || calls.length === 0) {
+      return calls;
+    }
+    
+    try {
+      console.log(`Enhancing ${calls.length} call logs with phone details`);
+      const enhancedCalls = [];
+      
+      for (const call of calls) {
+        // Add the call to the result list (we'll process it even if we can't get phone details)
+        enhancedCalls.push(call);
+        
+        // Skip if already has phone numbers
+        if (
+          (call.customer_number && call.customer_number.length > 6) || 
+          (call.caller_phone_number && call.caller_phone_number.length > 6)
+        ) {
+          continue;
+        }
+        
+        // Check if call has phone ID we can use
+        const phoneNumberId = this.getPhoneNumberIdFromCall(call);
+        if (!phoneNumberId) {
+          console.log(`No phone number ID found for call ${call.id || 'unknown'}`);
+          continue;
+        }
+        
+        try {
+          // Fetch detailed phone information
+          const phoneDetails = await this.fetchPhoneNumberDetails(apiKey, phoneNumberId);
+          if (phoneDetails) {
+            // Extract phone number from the details
+            const phone = phoneDetails.number || 
+                         (phoneDetails.fallbackDestination && phoneDetails.fallbackDestination.number);
+            
+            if (phone) {
+              console.log(`Found phone number ${phone} for call ${call.id || 'unknown'}`);
+              
+              // Update call with phone info
+              // Determine if this is likely customer or caller number based on call direction
+              if (call.direction === 'inbound') {
+                call.caller_phone_number = call.caller_phone_number || phone;
+              } else {
+                call.customer_number = call.customer_number || phone;
+              }
+              
+              // Always set phone_number as fallback
+              call.phone_number = call.phone_number || phone;
+              
+              // Add to metadata for extra assurance
+              if (!call.metadata) call.metadata = {};
+              call.metadata.enhanced_phone = phone;
+            }
+          }
+        } catch (phoneError) {
+          console.error(`Error enhancing call ${call.id} with phone details:`, phoneError);
+          // Continue processing other calls even if one fails
+        }
+      }
+      
+      return enhancedCalls;
+    } catch (error) {
+      console.error('Error in enhanceCallsWithPhoneDetails:', error);
+      // Return original calls if enhancement fails
+      return calls;
+    }
+  }
+  
+  /**
+   * Extract phone number ID from call data
+   */
+  static getPhoneNumberIdFromCall(call) {
+    if (!call) return null;
+    
+    // Check direct fields
+    if (call.phone_number_id) return call.phone_number_id;
+    if (call.phoneNumberId) return call.phoneNumberId;
+    
+    // Check metadata
+    if (call.metadata && typeof call.metadata === 'object') {
+      if (call.metadata.phone_number_id) return call.metadata.phone_number_id;
+      if (call.metadata.phoneNumberId) return call.metadata.phoneNumberId;
+    }
+    
+    return null;
   }
 }
 
@@ -733,8 +867,26 @@ class DatabaseManager {
     }
     
     // Enhanced phone number extraction
-    // Look for customer number in various possible fields
+    // Get phone number from the structured VAPI format
+    let phoneNumber = null;
     let customerNumber = null;
+    let callerNumber = null;
+    
+    // First try to extract from the fallbackDestination structure
+    if (log.metadata && log.metadata.fallbackDestination && log.metadata.fallbackDestination.number) {
+      phoneNumber = String(log.metadata.fallbackDestination.number).trim();
+    }
+    
+    // Check for the number field from the phone number object
+    if (!phoneNumber && log.number && typeof log.number === 'string') {
+      phoneNumber = String(log.number).trim();
+    }
+    
+    if (!phoneNumber && log.metadata && log.metadata.number && typeof log.metadata.number === 'string') {
+      phoneNumber = String(log.metadata.number).trim();
+    }
+    
+    // Look for customer number in various possible fields
     const customerFields = [
       'customer_number', 'customerNumber', 'to', 'toNumber', 
       'recipient', 'recipientNumber', 'destination'
@@ -757,8 +909,7 @@ class DatabaseManager {
       }
     }
     
-    // Similarly extract caller and phone number
-    let callerNumber = null;
+    // Similarly extract caller number
     const callerFields = [
       'caller_phone_number', 'callerPhoneNumber', 'callerNumber',
       'from', 'fromNumber', 'caller', 'source'
@@ -781,25 +932,44 @@ class DatabaseManager {
       }
     }
     
-    // Get primary phone number
-    let phoneNumber = null;
-    const phoneFields = ['phone_number', 'phoneNumber', 'phone', 'number'];
-    
-    for (const field of phoneFields) {
-      if (log[field] !== undefined && log[field] !== null) {
-        phoneNumber = String(log[field]).trim();
-        break;
-      }
-    }
-    
-    // Check metadata for phone number
-    if (!phoneNumber && log.metadata && typeof log.metadata === 'object') {
+    // If no specific numbers are found, use the general phone number as fallback
+    if (!phoneNumber) {
+      const phoneFields = ['phone_number', 'phoneNumber', 'phone', 'number'];
+      
       for (const field of phoneFields) {
-        if (log.metadata[field] !== undefined && log.metadata[field] !== null) {
-          phoneNumber = String(log.metadata[field]).trim();
+        if (log[field] !== undefined && log[field] !== null) {
+          phoneNumber = String(log[field]).trim();
           break;
         }
       }
+      
+      // Check metadata for phone number
+      if (!phoneNumber && log.metadata && typeof log.metadata === 'object') {
+        for (const field of phoneFields) {
+          if (log.metadata[field] !== undefined && log.metadata[field] !== null) {
+            phoneNumber = String(log.metadata[field]).trim();
+            break;
+          }
+        }
+        
+        // Special check for enhanced phone from our processing
+        if (!phoneNumber && log.metadata.enhanced_phone) {
+          phoneNumber = String(log.metadata.enhanced_phone).trim();
+        }
+      }
+    }
+    
+    // Ensure we have some phone number data by using cross-fallbacks
+    if (!customerNumber && !callerNumber && phoneNumber) {
+      // If we only have phone_number but no specific roles, assign based on call direction
+      if (log.direction === 'inbound') {
+        callerNumber = phoneNumber;
+      } else {
+        customerNumber = phoneNumber;
+      }
+    } else if (!phoneNumber) {
+      // If we have caller or customer but no general phone, use one of those
+      phoneNumber = customerNumber || callerNumber;
     }
 
     // Log all extracted phone numbers for debugging
@@ -815,6 +985,7 @@ class DatabaseManager {
       conversation_id: log.conversation_id || log.conversationId || null,
       phone_number: phoneNumber || null,
       caller_phone_number: callerNumber || null,
+      customer_number: customerNumber || null,
       start_time: log.start_time || log.startTime || log.startedAt || log.time_start || log.created_at || null,
       end_time: log.end_time || log.endTime || log.endedAt || log.time_end || null,
       duration: duration,
@@ -827,7 +998,6 @@ class DatabaseManager {
       // Fields with better fallbacks
       assistant_name: log.assistant_name || log.assistantName || null,
       assistant_phone_number: log.assistant_phone_number || log.assistantPhoneNumber || phoneNumber || null,
-      customer_number: customerNumber,
       call_type: log.call_type || log.callType || log.type || null,
       cost: typeof log.cost === 'number' ? log.cost : null,
       ended_reason: log.ended_reason || log.endedReason || log.ended_reason_detail || log.endedReasonDetail || null,

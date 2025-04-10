@@ -70,21 +70,31 @@ export const getStatusBadge = (status: string | null) => {
 
 // Enhanced function to get the best available phone number from a call log
 export const getBestPhoneNumber = (log: VapiCallLog): string => {
-  // First check primary fields that typically contain phone numbers
-  if (log.customer_number) return formatPhoneNumber(log.customer_number);
-  if (log.caller_phone_number) return formatPhoneNumber(log.caller_phone_number);
-  if (log.phone_number) return formatPhoneNumber(log.phone_number);
-  
-  // If metadata exists and is an object, check for phone numbers there
+  // Try to extract data from metadata for most reliable phone info
   if (log.metadata && typeof log.metadata === 'object') {
-    // Check common metadata fields for phone numbers
+    // First check for specific number fields that VAPI mentioned
     const metadataObj = log.metadata as Record<string, any>;
     
-    // Check common field names that might contain phone numbers
+    // Look for the VAPI format described in the schema
+    if (metadataObj.number && typeof metadataObj.number === 'string') {
+      return formatPhoneNumber(metadataObj.number);
+    }
+    
+    if (metadataObj.phoneNumber && typeof metadataObj.phoneNumber === 'string') {
+      return formatPhoneNumber(metadataObj.phoneNumber);
+    }
+    
+    // Look inside fallbackDestination if it exists
+    if (metadataObj.fallbackDestination && typeof metadataObj.fallbackDestination === 'object') {
+      if (metadataObj.fallbackDestination.number) {
+        return formatPhoneNumber(metadataObj.fallbackDestination.number);
+      }
+    }
+    
+    // Check other common field names for phone numbers
     const phoneFields = [
-      'phoneNumber', 'customerNumber', 'customerPhoneNumber', 
-      'callerNumber', 'recipientNumber', 'toNumber', 'fromNumber',
-      'to', 'from', 'recipient', 'caller', 'customer_phone'
+      'customerNumber', 'customerPhoneNumber', 'callerNumber',
+      'toNumber', 'fromNumber', 'recipientNumber', 'customer_phone'
     ];
     
     for (const field of phoneFields) {
@@ -92,20 +102,12 @@ export const getBestPhoneNumber = (log: VapiCallLog): string => {
         return formatPhoneNumber(metadataObj[field]);
       }
     }
-    
-    // Look for any field that might contain a phone number pattern
-    for (const [key, value] of Object.entries(metadataObj)) {
-      if (
-        typeof value === 'string' && 
-        (value.match(/^\+?[0-9\s\(\)\-]{7,}$/) || // Basic phone number pattern
-         key.toLowerCase().includes('phone') || 
-         key.toLowerCase().includes('number') ||
-         key.toLowerCase().includes('tel'))
-      ) {
-        return formatPhoneNumber(value);
-      }
-    }
   }
+  
+  // Check primary fields in the call log object
+  if (log.customer_number) return formatPhoneNumber(log.customer_number);
+  if (log.caller_phone_number) return formatPhoneNumber(log.caller_phone_number);
+  if (log.phone_number) return formatPhoneNumber(log.phone_number);
   
   // Default fallback
   return 'Sin número';

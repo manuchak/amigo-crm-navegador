@@ -33,8 +33,7 @@ export function useLeadCallLogs(leadId: number | null, phoneNumber: string | nul
         const lastTenDigits = formattedPhoneNumber.slice(-10);
         console.log('Searching for calls with phone digits:', lastTenDigits);
         
-        // Query using more flexible pattern matching on all phone number fields
-        // and search for both the full number and the last 10 digits
+        // Enhanced query to search in more places for phone numbers, including metadata
         const { data, error } = await supabase
           .from('vapi_call_logs')
           .select('*')
@@ -67,30 +66,47 @@ export function useLeadCallLogs(leadId: number | null, phoneNumber: string | nul
         } else {
           console.log('No call logs found, trying a broader search...');
           
-          // If no results with the stricter search, try a more lenient search with just the last 7 digits
-          if (lastTenDigits.length >= 7) {
-            const lastSevenDigits = lastTenDigits.slice(-7);
+          // Additional search in metadata fields to find phone numbers
+          // (VAPI sometimes stores phone data only in metadata)
+          const { data: metadataLogs, error: metadataError } = await supabase
+            .rpc('search_call_logs_with_metadata', { 
+              search_number: lastTenDigits
+            });
             
-            const { data: lenientData, error: lenientError } = await supabase
-              .from('vapi_call_logs')
-              .select('*')
-              .or(`customer_number.ilike.%${lastSevenDigits}%,caller_phone_number.ilike.%${lastSevenDigits}%,phone_number.ilike.%${lastSevenDigits}%`)
-              .order('start_time', { ascending: false });
+          if (metadataError) {
+            console.error('Error in metadata search:', metadataError);
+            
+            // If that fails, try a more lenient search with just the last 7 digits
+            if (lastTenDigits.length >= 7) {
+              const lastSevenDigits = lastTenDigits.slice(-7);
               
-            if (lenientError) {
-              console.error('Error in lenient search:', lenientError);
-            } else if (lenientData && lenientData.length > 0) {
-              console.log('Found logs with lenient search:', lenientData.length);
-              
-              // Add the lead's phone number to the logs for display
-              const enhancedLogs = lenientData.map(log => ({
-                ...log,
-                customer_number: log.customer_number || phoneNumber
-              }));
-              
-              setCallLogs(enhancedLogs);
-              return;
+              const { data: lenientData, error: lenientError } = await supabase
+                .from('vapi_call_logs')
+                .select('*')
+                .or(`customer_number.ilike.%${lastSevenDigits}%,caller_phone_number.ilike.%${lastSevenDigits}%,phone_number.ilike.%${lastSevenDigits}%`)
+                .order('start_time', { ascending: false });
+                
+              if (lenientError) {
+                console.error('Error in lenient search:', lenientError);
+              } else if (lenientData && lenientData.length > 0) {
+                console.log('Found logs with lenient search:', lenientData.length);
+                
+                // Add the lead's phone number to the logs for display
+                const enhancedLogs = lenientData.map(log => ({
+                  ...log,
+                  customer_number: log.customer_number || phoneNumber
+                }));
+                
+                setCallLogs(enhancedLogs);
+                setLoading(false);
+                return;
+              }
             }
+          } else if (metadataLogs && metadataLogs.length > 0) {
+            console.log('Found logs with metadata search:', metadataLogs.length);
+            setCallLogs(metadataLogs);
+            setLoading(false);
+            return;
           }
           
           setCallLogs([]);
