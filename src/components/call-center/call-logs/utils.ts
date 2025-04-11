@@ -7,6 +7,11 @@ import { CallFilters } from '../VapiCallFilters';
 export const formatDuration = (seconds: number | null) => {
   if (seconds === null || seconds === undefined) return '00:00';
   
+  // If duration is 0, check if it might be a processing issue
+  if (seconds === 0) {
+    console.log('Zero duration detected, this might indicate a calculation issue');
+  }
+  
   // If the duration is very large (typically means it's in milliseconds), convert to seconds
   if (seconds > 100000) {
     seconds = Math.floor(seconds / 1000);

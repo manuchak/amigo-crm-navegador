@@ -19,6 +19,11 @@ export const formatDateTime = (dateTimeString: string | null) => {
 export const formatDuration = (seconds: number | null) => {
   if (seconds === null || seconds === undefined) return 'N/A';
   
+  // If duration is 0, check if we can calculate it from timestamps
+  if (seconds === 0) {
+    console.log('Zero duration detected, might indicate a calculation issue');
+  }
+  
   // If the duration is very large (typically means it's in milliseconds), convert to seconds
   if (seconds > 100000) {
     seconds = Math.floor(seconds / 1000);
@@ -75,7 +80,6 @@ export const getStatusBadge = (status: string | null) => {
 };
 
 // Enhanced function to get the best available phone number from a call log
-// Updated to prioritize the customer.number structure from VAPI API
 export const getBestPhoneNumber = (log: VapiCallLog): string => {
   // First check for the specific VAPI customer number format
   if (log.metadata && typeof log.metadata === 'object') {

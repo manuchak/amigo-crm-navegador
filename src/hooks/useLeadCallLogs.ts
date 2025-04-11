@@ -50,8 +50,8 @@ export function useLeadCallLogs(leadId: number | null, phoneNumber: string | nul
           
           // Process call logs to ensure durations are handled correctly
           const processedLogs = data.map(log => {
-            // If duration is missing but we have start and end times, calculate it
-            if ((log.duration === null || log.duration === undefined) && log.start_time && log.end_time) {
+            // If duration is missing or zero but we have start and end times, calculate it
+            if ((log.duration === null || log.duration === undefined || log.duration === 0) && log.start_time && log.end_time) {
               try {
                 const startDate = new Date(log.start_time);
                 const endDate = new Date(log.end_time);
