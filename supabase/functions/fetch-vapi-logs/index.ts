@@ -4,7 +4,7 @@ import { corsHeaders } from './lib/cors.ts';
 import { ApiKeyManager } from './lib/apiKeyManager.ts';
 import { DateRangeHelper } from './lib/dateHelper.ts';
 import { VapiApiClient } from './lib/vapiApiClient.ts';
-import { DatabaseManager } from './lib/databaseManager.ts';
+import { DatabaseManager } from './lib/database/index.ts';
 import { CONFIG } from './lib/config.ts';
 
 /**
