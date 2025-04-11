@@ -6,6 +6,12 @@ import { CallFilters } from '../VapiCallFilters';
 
 export const formatDuration = (seconds: number | null) => {
   if (seconds === null || seconds === undefined) return '00:00';
+  
+  // If the duration is very large (typically means it's in milliseconds), convert to seconds
+  if (seconds > 100000) {
+    seconds = Math.floor(seconds / 1000);
+  }
+  
   const mins = Math.floor(seconds / 60);
   const secs = Math.floor(seconds % 60);
   return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;

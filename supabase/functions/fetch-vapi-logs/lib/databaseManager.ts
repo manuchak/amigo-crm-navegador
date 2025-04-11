@@ -92,7 +92,7 @@ export class DatabaseManager {
    * Normalize log data to match database schema
    */
   static normalizeLogData(log) {
-    // Handle duration specially to ensure it's parsed as a number
+    // Calculate duration from startedAt and endedAt if available
     let duration = null;
     if (log.duration !== undefined) {
       // Try to convert to number if it's a string
@@ -102,21 +102,77 @@ export class DatabaseManager {
         if (isNaN(duration)) duration = 0;
       } else if (typeof log.duration === 'number') {
         duration = log.duration;
-      } else {
-        // Default to 0 instead of null for duration
-        duration = 0;
       }
-    } else {
-      // Try to find duration in alternative fields
-      const durationFields = ['length', 'call_duration', 'callDuration', 'time_length', 'timeLength'];
-      for (const field of durationFields) {
-        if (log[field] !== undefined && log[field] !== null) {
-          const parsedDuration = typeof log[field] === 'string' ? 
-            parseInt(log[field], 10) : log[field];
-          if (!isNaN(parsedDuration)) {
-            duration = parsedDuration;
-            break;
+    } 
+    
+    // If duration is still null, try to calculate from timestamps
+    if (duration === null) {
+      const startTime = log.start_time || log.startTime || log.startedAt || log.time_start;
+      const endTime = log.end_time || log.endTime || log.endedAt || log.time_end;
+      
+      if (startTime && endTime) {
+        try {
+          const startDate = new Date(startTime);
+          const endDate = new Date(endTime);
+          
+          if (startDate && endDate && !isNaN(startDate.getTime()) && !isNaN(endDate.getTime())) {
+            // Calculate duration in seconds
+            duration = Math.floor((endDate.getTime() - startDate.getTime()) / 1000);
+            console.log(`Calculated duration from timestamps: ${duration}s (${startTime} to ${endTime})`);
           }
+        } catch (err) {
+          console.error(`Error calculating duration from timestamps:`, err);
+        }
+      }
+      
+      // Try to find duration in alternative fields
+      if (duration === null) {
+        const durationFields = ['length', 'call_duration', 'callDuration', 'time_length', 'timeLength'];
+        for (const field of durationFields) {
+          if (log[field] !== undefined && log[field] !== null) {
+            const parsedDuration = typeof log[field] === 'string' ? 
+              parseInt(log[field], 10) : log[field];
+            if (!isNaN(parsedDuration)) {
+              // Check if the value seems like milliseconds (very large number)
+              // and convert to seconds if needed
+              if (parsedDuration > 100000) {
+                duration = Math.floor(parsedDuration / 1000);
+                console.log(`Converted ${field} from milliseconds to seconds: ${duration}s`);
+              } else {
+                duration = parsedDuration;
+                console.log(`Using ${field} for duration: ${duration}s`);
+              }
+              break;
+            }
+          }
+        }
+      }
+      
+      // Check if duration might be in the metadata
+      if (duration === null && log.metadata) {
+        try {
+          const metadataObj = typeof log.metadata === 'string' ? 
+            JSON.parse(log.metadata) : log.metadata;
+          
+          // Look for duration in metadata
+          if (metadataObj.duration) {
+            duration = parseInt(metadataObj.duration, 10);
+            
+            // Check if it's in milliseconds
+            if (duration > 100000) {
+              duration = Math.floor(duration / 1000);
+            }
+          } else if (metadataObj.message?.duration) {
+            // Some implementations might have message duration
+            duration = parseInt(metadataObj.message.duration, 10);
+            
+            // Check if it's in milliseconds
+            if (duration > 100000) {
+              duration = Math.floor(duration / 1000);
+            }
+          }
+        } catch (err) {
+          console.error('Error parsing metadata for duration:', err);
         }
       }
       

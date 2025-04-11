@@ -17,7 +17,13 @@ export const formatDateTime = (dateTimeString: string | null) => {
 };
 
 export const formatDuration = (seconds: number | null) => {
-  if (!seconds) return 'N/A';
+  if (seconds === null || seconds === undefined) return 'N/A';
+  
+  // If the duration is very large (typically means it's in milliseconds), convert to seconds
+  if (seconds > 100000) {
+    seconds = Math.floor(seconds / 1000);
+  }
+  
   const minutes = Math.floor(seconds / 60);
   const remainingSeconds = Math.floor(seconds % 60);
   return `${minutes}:${remainingSeconds.toString().padStart(2, '0')}`;

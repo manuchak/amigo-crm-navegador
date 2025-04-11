@@ -48,9 +48,24 @@ export function useLeadCallLogs(leadId: number | null, phoneNumber: string | nul
         if (data && data.length > 0) {
           console.log('Sample call log:', data[0]);
           
-          // If we have call logs, try to update any null phone numbers with the lead's phone number
-          // This helps with display in the UI even if the database has nulls
-          const enhancedLogs = data.map(log => {
+          // Process call logs to ensure durations are handled correctly
+          const processedLogs = data.map(log => {
+            // If duration is missing but we have start and end times, calculate it
+            if ((log.duration === null || log.duration === undefined) && log.start_time && log.end_time) {
+              try {
+                const startDate = new Date(log.start_time);
+                const endDate = new Date(log.end_time);
+                
+                if (!isNaN(startDate.getTime()) && !isNaN(endDate.getTime())) {
+                  // Calculate duration in seconds
+                  log.duration = Math.floor((endDate.getTime() - startDate.getTime()) / 1000);
+                  console.log(`Calculated duration from timestamps: ${log.duration}s`);
+                }
+              } catch (e) {
+                console.error("Error calculating duration:", e);
+              }
+            }
+            
             // Check if customer_number is null or empty
             if (!log.customer_number) {
               return {
@@ -62,7 +77,7 @@ export function useLeadCallLogs(leadId: number | null, phoneNumber: string | nul
             return log;
           });
           
-          setCallLogs(enhancedLogs);
+          setCallLogs(processedLogs);
         } else {
           console.log('No call logs found, trying a broader search...');
           
@@ -92,20 +107,56 @@ export function useLeadCallLogs(leadId: number | null, phoneNumber: string | nul
               } else if (lenientData && lenientData.length > 0) {
                 console.log('Found logs with lenient search:', lenientData.length);
                 
-                // Add the lead's phone number to the logs for display
-                const enhancedLogs = lenientData.map(log => ({
-                  ...log,
-                  customer_number: log.customer_number || phoneNumber
-                }));
+                // Process found logs to handle durations
+                const processedLogs = lenientData.map(log => {
+                  // Calculate duration if possible
+                  if ((log.duration === null || log.duration === undefined) && log.start_time && log.end_time) {
+                    try {
+                      const startDate = new Date(log.start_time);
+                      const endDate = new Date(log.end_time);
+                      
+                      if (!isNaN(startDate.getTime()) && !isNaN(endDate.getTime())) {
+                        log.duration = Math.floor((endDate.getTime() - startDate.getTime()) / 1000);
+                      }
+                    } catch (e) {
+                      console.error("Error calculating duration:", e);
+                    }
+                  }
+                  
+                  return {
+                    ...log,
+                    customer_number: log.customer_number || phoneNumber
+                  };
+                });
                 
-                setCallLogs(enhancedLogs);
+                setCallLogs(processedLogs);
                 setLoading(false);
                 return;
               }
             }
           } else if (metadataLogs && metadataLogs.length > 0) {
             console.log('Found logs with metadata search:', metadataLogs.length);
-            setCallLogs(metadataLogs);
+            
+            // Process found logs to handle durations
+            const processedLogs = metadataLogs.map(log => {
+              // Calculate duration if possible
+              if ((log.duration === null || log.duration === undefined) && log.start_time && log.end_time) {
+                try {
+                  const startDate = new Date(log.start_time);
+                  const endDate = new Date(log.end_time);
+                  
+                  if (!isNaN(startDate.getTime()) && !isNaN(endDate.getTime())) {
+                    log.duration = Math.floor((endDate.getTime() - startDate.getTime()) / 1000);
+                  }
+                } catch (e) {
+                  console.error("Error calculating duration:", e);
+                }
+              }
+              
+              return log;
+            });
+            
+            setCallLogs(processedLogs);
             setLoading(false);
             return;
           }
