@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useLeads } from '@/context/LeadsContext';
@@ -12,7 +11,7 @@ import {
   LeadTable
 } from './dashboard';
 import { incrementCallCount } from '@/services/leadService';
-import { useLeadCallLogs } from '@/hooks/useLeadCallLogs';
+import { useLeadCallLogs } from '@/hooks/lead-call-logs';
 
 const LeadsDashboard = () => {
   const { leads, updateLeadStatus, refetchLeads } = useLeads();
@@ -23,16 +22,13 @@ const LeadsDashboard = () => {
   const [isCallLogOpen, setIsCallLogOpen] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
   
-  // Get selected lead data
   const selectedLead = leads.find(lead => lead.id === selectedLeadId);
   
-  // Fetch VAPI call logs for the selected lead
   const { callLogs, loading: loadingCallLogs } = useLeadCallLogs(
     selectedLeadId, 
     selectedLead?.telefono || null
   );
   
-  // Legacy call logs from local storage
   const legacyCallLogs = selectedLeadId ? getCallsForLead(selectedLeadId) : [];
   
   const filteredLeads = filter === "todos" 
@@ -55,7 +51,6 @@ const LeadsDashboard = () => {
   
   const handleCall = async (lead: any) => {
     try {
-      // Use telefono property directly from the lead
       let phoneNumber = lead.telefono || '';
       
       if (!phoneNumber) {
@@ -67,30 +62,27 @@ const LeadsDashboard = () => {
         return;
       }
       
-      // Change the status to "Contacto Llamado"
       await updateLeadStatus(lead.id, "Contacto Llamado");
       
-      // Increment call count in the database
       try {
         await incrementCallCount(lead.id);
       } catch (error) {
         console.error("Error incrementing call count:", error);
       }
       
-      // Send webhook event
       await executeWebhook({
         telefono: phoneNumber,
         id: lead.id,
         nombre: lead.nombre,
         empresa: lead.empresa,
         contacto: lead.contacto,
-        estado: "Contacto Llamado", // Use the new status
+        estado: "Contacto Llamado",
         fechaCreacion: lead.fechaCreacion,
         email: lead.email,
         tieneVehiculo: lead.tieneVehiculo,
         experienciaSeguridad: lead.experienciaSeguridad,
         esMilitar: lead.esMilitar,
-        callCount: (lead.callCount || 0) + 1, // Increment the call count
+        callCount: (lead.callCount || 0) + 1,
         lastCallDate: new Date().toISOString(),
         valor: lead.valor,
         timestamp: new Date().toISOString(),
@@ -102,7 +94,6 @@ const LeadsDashboard = () => {
         description: `Conectando con ${lead.nombre}...`,
       });
       
-      // Refresh leads to get updated status and call count
       await refetchLeads();
     } catch (error) {
       console.error("Error al iniciar llamada:", error);
