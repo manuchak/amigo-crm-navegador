@@ -1,10 +1,9 @@
-
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.7'
 import { corsHeaders } from './lib/cors.ts';
 import { ApiKeyManager } from './lib/apiKeyManager.ts';
 import { DateRangeHelper } from './lib/dateHelper.ts';
 import { VapiApiClient } from './lib/vapiApiClient.ts';
-import { DatabaseManager } from './lib/database/index.ts';
+import { DatabaseManager } from './lib/databaseManager.ts';
 import { CONFIG } from './lib/config.ts';
 
 /**
