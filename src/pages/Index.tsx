@@ -31,7 +31,7 @@ const Index = () => {
       icon: <Shield className="w-5 h-5" />
     },
     {
-      title: 'Soporte',
+      title: 'Atención al Afiliado', // Updated name here
       description: 'Centro de atención y consultas',
       path: '/support',
       color: 'bg-gradient-to-br from-blue-500 to-purple-400',

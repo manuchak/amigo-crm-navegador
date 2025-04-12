@@ -18,7 +18,8 @@ import Unauthorized from "./pages/Unauthorized";
 import UserManagement from "./pages/UserManagement";
 import AuthGuard from "./components/auth/AuthGuard";
 import Landing from "./pages/Landing";
-import Support from "./pages/Support";
+// Import the page with the updated name
+import AtencionAlAfiliado from "./pages/Support";
 
 const queryClient = new QueryClient();
 
@@ -74,9 +75,10 @@ const AppWithNavbar = () => {
           </AuthGuard>
         } />
 
+        {/* Update the route name */}
         <Route path="/support" element={
           <AuthGuard>
-            <Support />
+            <AtencionAlAfiliado />
           </AuthGuard>
         } />
         

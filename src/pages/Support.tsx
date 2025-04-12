@@ -10,7 +10,7 @@ import NewTicketForm from '@/components/support/NewTicketForm';
 import { SupportProvider } from '@/context/SupportContext';
 import { LifeBuoy, MessageSquare, PieChart, Users } from 'lucide-react';
 
-const Support = () => {
+const AtencionAlAfiliado = () => {
   const { currentUser, userData } = useAuth();
   const [activeTab, setActiveTab] = useState("tickets");
   
@@ -23,7 +23,7 @@ const Support = () => {
           <div className="bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full p-2.5 flex items-center justify-center">
             <LifeBuoy size={28} className="text-white" />
           </div>
-          <h1 className="text-3xl font-bold">Soporte al Cliente</h1>
+          <h1 className="text-3xl font-bold">Atención al Afiliado</h1>
         </div>
         
         <p className="text-muted-foreground mb-8">
@@ -92,4 +92,4 @@ const Support = () => {
   );
 };
 
-export default Support;
+export default AtencionAlAfiliado;

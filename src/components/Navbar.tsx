@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
@@ -60,8 +59,7 @@ const Navbar = () => {
         items.push({ name: 'Requerimientos', path: '/requerimientos' });
       }
       
-      // Add Support link for all authenticated users
-      items.push({ name: 'Soporte', path: '/support' });
+      items.push({ name: 'Atención al Afiliado', path: '/support' });
       
       if (['admin', 'owner'].includes(userData.role)) {
         items.push({ name: 'Administración', path: '/admin-config' });
