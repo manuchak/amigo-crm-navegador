@@ -121,8 +121,16 @@ export const SupportProvider: React.FC<{ children: React.ReactNode }> = ({ child
     }
     
     try {
+      // Generate a ticket number based on current year and a random 6-digit number
+      // In production, this would be handled by a database trigger or sequence
+      const year = new Date().getFullYear();
+      const randomNum = Math.floor(100000 + Math.random() * 900000); // 6-digit number
+      const ticketNumber = `${year}-${randomNum}`;
+      
       const newTicket = {
         ...ticket,
+        ticket_number: ticketNumber, // Add the required ticket_number field
+        status: 'open' as const,     // Ensure status is set
         customer_id: currentUser.uid || null,
         customer_email: ticket.customer_email || currentUser.email || '',
         customer_name: ticket.customer_name || currentUser.displayName || '',
