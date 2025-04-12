@@ -18,6 +18,7 @@ import Unauthorized from "./pages/Unauthorized";
 import UserManagement from "./pages/UserManagement";
 import AuthGuard from "./components/auth/AuthGuard";
 import Landing from "./pages/Landing";
+import Support from "./pages/Support";
 
 const queryClient = new QueryClient();
 
@@ -70,6 +71,12 @@ const AppWithNavbar = () => {
         <Route path="/requerimientos" element={
           <AuthGuard allowedRoles={['supply', 'supply_admin', 'admin', 'owner']}>
             <Requerimientos />
+          </AuthGuard>
+        } />
+
+        <Route path="/support" element={
+          <AuthGuard>
+            <Support />
           </AuthGuard>
         } />
         

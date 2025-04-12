@@ -2,7 +2,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { Card, CardContent } from '@/components/ui/card';
-import { ArrowRight, Shield, Users, LineChart, Settings } from 'lucide-react';
+import { ArrowRight, Shield, Users, LineChart, Settings, LifeBuoy } from 'lucide-react';
 
 const Index = () => {
   const menuItems = [
@@ -29,6 +29,14 @@ const Index = () => {
       color: 'bg-gradient-to-br from-emerald-500 to-teal-400',
       textColor: 'text-white',
       icon: <Shield className="w-5 h-5" />
+    },
+    {
+      title: 'Soporte',
+      description: 'Centro de atención y consultas',
+      path: '/support',
+      color: 'bg-gradient-to-br from-blue-500 to-purple-400',
+      textColor: 'text-white',
+      icon: <LifeBuoy className="w-5 h-5" />
     },
     {
       title: 'Administración',

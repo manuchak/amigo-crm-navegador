@@ -2,7 +2,7 @@
 import React from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
-import { Shield, LogIn, Users } from 'lucide-react';
+import { Shield, LogIn, Users, LifeBuoy } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import {
   DropdownMenu,
@@ -59,6 +59,9 @@ const Navbar = () => {
       if (['supply', 'supply_admin', 'admin', 'owner'].includes(userData.role)) {
         items.push({ name: 'Requerimientos', path: '/requerimientos' });
       }
+      
+      // Add Support link for all authenticated users
+      items.push({ name: 'Soporte', path: '/support' });
       
       if (['admin', 'owner'].includes(userData.role)) {
         items.push({ name: 'Administración', path: '/admin-config' });
@@ -152,6 +155,14 @@ const Navbar = () => {
                       <DropdownMenuSeparator />
                     </>
                   )}
+                  <DropdownMenuItem 
+                    className="cursor-pointer"
+                    onClick={() => navigate('/support')}
+                  >
+                    <LifeBuoy className="mr-2 h-4 w-4" />
+                    <span>Centro de Soporte</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
                   <DropdownMenuItem 
                     className="cursor-pointer text-red-500 focus:text-red-500"
                     onClick={signOut}
