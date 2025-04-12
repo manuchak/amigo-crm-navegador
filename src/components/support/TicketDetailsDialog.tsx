@@ -47,8 +47,9 @@ const TicketDetailsDialog: React.FC<TicketDetailsDialogProps> = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [loading, setLoading] = useState(true);
   
-  const [status, setStatus] = useState(ticket.status);
-  const [priority, setPriority] = useState(ticket.priority);
+  // Define status and priority with proper typing
+  const [status, setStatus] = useState<Ticket['status']>(ticket.status);
+  const [priority, setPriority] = useState<Ticket['priority']>(ticket.priority);
   
   useEffect(() => {
     if (open && ticket) {
@@ -89,11 +90,11 @@ const TicketDetailsDialog: React.FC<TicketDetailsDialogProps> = ({
     const updates: Partial<Ticket> = {};
     
     if (status !== ticket.status) {
-      updates.status = status as Ticket['status'];
+      updates.status = status;
     }
     
     if (priority !== ticket.priority) {
-      updates.priority = priority as Ticket['priority'];
+      updates.priority = priority;
     }
     
     const success = await updateTicket(ticket.id, updates);
@@ -311,7 +312,10 @@ const TicketDetailsDialog: React.FC<TicketDetailsDialogProps> = ({
                       <div className="grid grid-cols-2 gap-4">
                         <div>
                           <p className="text-sm font-medium text-muted-foreground mb-1">Estado</p>
-                          <Select value={status} onValueChange={setStatus}>
+                          <Select 
+                            value={status} 
+                            onValueChange={(value: Ticket['status']) => setStatus(value)}
+                          >
                             <SelectTrigger>
                               <SelectValue />
                             </SelectTrigger>
@@ -327,7 +331,10 @@ const TicketDetailsDialog: React.FC<TicketDetailsDialogProps> = ({
                         
                         <div>
                           <p className="text-sm font-medium text-muted-foreground mb-1">Prioridad</p>
-                          <Select value={priority} onValueChange={setPriority}>
+                          <Select 
+                            value={priority} 
+                            onValueChange={(value: Ticket['priority']) => setPriority(value)}
+                          >
                             <SelectTrigger>
                               <SelectValue />
                             </SelectTrigger>

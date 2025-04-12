@@ -1,50 +1,36 @@
 
 import React from 'react';
-import { z } from 'zod';
 import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { useSupport } from '@/context/SupportContext';
-import { useAuth } from '@/context/AuthContext';
-import {
+import { 
   Form,
   FormControl,
+  FormDescription,
   FormField,
   FormItem,
   FormLabel,
-  FormMessage,
-} from '@/components/ui/form';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
-import { Button } from '@/components/ui/button';
+  FormMessage
+} from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Button } from "@/components/ui/button";
+import { z } from 'zod';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { useSupport } from '@/context/SupportContext';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
-import { AlertCircle, Loader2 } from 'lucide-react';
+} from "@/components/ui/select";
+import { useAuth } from '@/context/AuthContext';
 import { toast } from 'sonner';
 
 const ticketSchema = z.object({
-  subject: z.string().min(5, {
-    message: 'El asunto debe tener al menos 5 caracteres',
-  }),
-  description: z.string().min(20, {
-    message: 'La descripción debe tener al menos 20 caracteres',
-  }),
-  priority: z.enum(['low', 'medium', 'high', 'urgent'], {
-    required_error: 'Por favor seleccione una prioridad',
-  }),
-  customer_name: z.string().min(2, {
-    message: 'El nombre debe tener al menos 2 caracteres',
-  }),
-  customer_email: z.string().email({
-    message: 'Por favor ingrese un email válido',
-  }),
-  channel: z.enum(['web', 'email', 'phone', 'chat', 'social'], {
-    required_error: 'Por favor seleccione un canal',
-  }),
+  subject: z.string().min(3, { message: "El asunto debe tener al menos 3 caracteres" }),
+  description: z.string().min(10, { message: "La descripción debe tener al menos 10 caracteres" }),
+  priority: z.enum(['low', 'medium', 'high', 'urgent']).default('medium'),
+  channel: z.enum(['web', 'email', 'phone', 'whatsapp']).default('web'),
 });
 
 type TicketFormValues = z.infer<typeof ticketSchema>;
@@ -56,136 +42,65 @@ interface NewTicketFormProps {
 const NewTicketForm: React.FC<NewTicketFormProps> = ({ onSuccess }) => {
   const { createTicket } = useSupport();
   const { currentUser } = useAuth();
-  const [isSubmitting, setIsSubmitting] = React.useState(false);
-  
-  const defaultValues: Partial<TicketFormValues> = {
-    priority: 'medium',
-    channel: 'web',
-    customer_name: currentUser?.displayName || '',
-    customer_email: currentUser?.email || '',
-  };
   
   const form = useForm<TicketFormValues>({
     resolver: zodResolver(ticketSchema),
-    defaultValues,
+    defaultValues: {
+      subject: '',
+      description: '',
+      priority: 'medium',
+      channel: 'web',
+    },
   });
   
   const onSubmit = async (data: TicketFormValues) => {
-    setIsSubmitting(true);
-    try {
-      const result = await createTicket(data);
-      if (result) {
-        toast.success('Ticket creado exitosamente');
-        form.reset(defaultValues);
-        onSuccess?.();
-      }
-    } finally {
-      setIsSubmitting(false);
+    if (!currentUser) {
+      toast.error("Debe iniciar sesión para crear un ticket");
+      return;
+    }
+    
+    const ticket = {
+      subject: data.subject,
+      description: data.description,
+      priority: data.priority,
+      channel: data.channel,
+      customer_email: currentUser.email || '',
+      customer_name: currentUser.displayName || 'Usuario',
+    };
+    
+    const createdTicket = await createTicket(ticket);
+    
+    if (createdTicket && onSuccess) {
+      form.reset();
+      onSuccess();
     }
   };
   
   return (
-    <div>
-      <h2 className="text-2xl font-bold mb-6">Crear Nuevo Ticket</h2>
+    <div className="space-y-6">
+      <div>
+        <h2 className="text-2xl font-bold mb-2">Nuevo Ticket de Soporte</h2>
+        <p className="text-muted-foreground">
+          Complete el formulario a continuación para crear una nueva solicitud de soporte.
+          Nuestro equipo responderá lo más pronto posible.
+        </p>
+      </div>
       
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-          <div className="grid gap-6 md:grid-cols-2">
-            <div className="space-y-4">
-              <FormField
-                control={form.control}
-                name="subject"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Asunto</FormLabel>
-                    <FormControl>
-                      <Input placeholder="¿Sobre qué es tu consulta?" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              <FormField
-                control={form.control}
-                name="priority"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Prioridad</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Seleccione una prioridad" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="low">Baja</SelectItem>
-                        <SelectItem value="medium">Media</SelectItem>
-                        <SelectItem value="high">Alta</SelectItem>
-                        <SelectItem value="urgent">Urgente</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              <FormField
-                control={form.control}
-                name="channel"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Canal</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Seleccione un canal" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="web">Web</SelectItem>
-                        <SelectItem value="email">Email</SelectItem>
-                        <SelectItem value="phone">Teléfono</SelectItem>
-                        <SelectItem value="chat">Chat</SelectItem>
-                        <SelectItem value="social">Redes Sociales</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-            
-            <div className="space-y-4">
-              <FormField
-                control={form.control}
-                name="customer_name"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Nombre</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Tu nombre completo" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              <FormField
-                control={form.control}
-                name="customer_email"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Email</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Tu correo electrónico" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-          </div>
+          <FormField
+            control={form.control}
+            name="subject"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Asunto</FormLabel>
+                <FormControl>
+                  <Input placeholder="Ej: Problema con mi cuenta" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
           
           <FormField
             control={form.control}
@@ -194,31 +109,84 @@ const NewTicketForm: React.FC<NewTicketFormProps> = ({ onSuccess }) => {
               <FormItem>
                 <FormLabel>Descripción</FormLabel>
                 <FormControl>
-                  <Textarea
-                    placeholder="Describe tu consulta o problema en detalle..."
-                    className="min-h-[120px]"
-                    {...field}
+                  <Textarea 
+                    placeholder="Describa su problema o consulta en detalle..."
+                    className="min-h-32"
+                    {...field} 
                   />
                 </FormControl>
+                <FormDescription>
+                  Por favor incluya toda la información relevante para ayudarnos a resolver su problema.
+                </FormDescription>
                 <FormMessage />
               </FormItem>
             )}
           />
           
-          <div className="flex items-center gap-2">
-            <AlertCircle className="h-4 w-4 text-amber-500" />
-            <p className="text-sm text-muted-foreground">
-              Te responderemos a la brevedad posible. La mayoría de las consultas se resuelven en menos de 24 horas.
-            </p>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <FormField
+              control={form.control}
+              name="priority"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Prioridad</FormLabel>
+                  <Select 
+                    onValueChange={field.onChange} 
+                    defaultValue={field.value}
+                  >
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Seleccione una prioridad" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value="low">Baja</SelectItem>
+                      <SelectItem value="medium">Media</SelectItem>
+                      <SelectItem value="high">Alta</SelectItem>
+                      <SelectItem value="urgent">Urgente</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <FormDescription>
+                    Seleccione la prioridad según la urgencia de su solicitud.
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            
+            <FormField
+              control={form.control}
+              name="channel"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Canal</FormLabel>
+                  <Select 
+                    onValueChange={field.onChange} 
+                    defaultValue={field.value}
+                  >
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Seleccione un canal" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      <SelectItem value="web">Web</SelectItem>
+                      <SelectItem value="email">Email</SelectItem>
+                      <SelectItem value="phone">Teléfono</SelectItem>
+                      <SelectItem value="whatsapp">WhatsApp</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <FormDescription>
+                    Canal por el que prefiere recibir actualizaciones.
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
           </div>
           
-          <Button type="submit" className="w-full" disabled={isSubmitting}>
-            {isSubmitting ? (
-              <>
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                Enviando...
-              </>
-            ) : 'Enviar Ticket'}
+          <Button type="submit" className="w-full">
+            Enviar Ticket
           </Button>
         </form>
       </Form>

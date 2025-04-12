@@ -48,7 +48,7 @@ interface SupportContextProps {
   ticketMetrics: TicketMetrics;
   isLoadingTickets: boolean;
   refreshTickets: () => void;
-  createTicket: (ticket: Partial<Ticket>) => Promise<Ticket | null>;
+  createTicket: (ticket: Partial<Ticket> & { description: string; subject: string }) => Promise<Ticket | null>;
   updateTicket: (id: string, updates: Partial<Ticket>) => Promise<boolean>;
   getTicketComments: (ticketId: string) => Promise<TicketComment[]>;
   addComment: (ticketId: string, content: string, isInternal: boolean) => Promise<TicketComment | null>;
@@ -114,7 +114,7 @@ export const SupportProvider: React.FC<{ children: React.ReactNode }> = ({ child
     }
   }, [tickets]);
   
-  const createTicket = async (ticket: Partial<Ticket>): Promise<Ticket | null> => {
+  const createTicket = async (ticket: Partial<Ticket> & { description: string; subject: string }): Promise<Ticket | null> => {
     if (!currentUser) {
       toast.error('Debe iniciar sesión para crear un ticket');
       return null;
