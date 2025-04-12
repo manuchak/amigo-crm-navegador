@@ -22,7 +22,7 @@ export async function registerVapiWebhook(webhookUrl: string): Promise<boolean> 
     console.log(`To register webhook with VAPI, use this URL: ${webhookUrl}`);
     console.log("This URL should be configured in your VAPI dashboard or via their API");
     
-    // You might store the webhook configuration in Supabase for reference
+    // Store the webhook configuration in Supabase for reference
     const { error } = await supabase
       .from("secrets")
       .upsert({
@@ -52,8 +52,11 @@ export async function triggerManualWebhookProcessing(callId: string): Promise<{s
     // Construct a payload with the call ID
     const payload = {
       call_id: callId,
-      manual_trigger: true
+      manual_trigger: true,
+      timestamp: new Date().toISOString()
     };
+    
+    console.log("Triggering manual webhook processing for call ID:", callId);
     
     // First try to invoke the function via Supabase client
     try {
@@ -61,13 +64,20 @@ export async function triggerManualWebhookProcessing(callId: string): Promise<{s
         body: payload
       });
       
-      if (error) throw error;
+      if (error) {
+        console.error("Error invoking webhook via supabase client:", error);
+        throw error;
+      }
+      
+      console.log("Webhook invocation result:", data);
       return { success: true, data };
     } catch (invokeError) {
       console.log("Could not invoke function directly, trying with fetch:", invokeError);
       
       // Fallback to direct fetch if invoke doesn't work (e.g., in dev environment)
       const webhookUrl = getVapiWebhookUrl();
+      console.log("Calling webhook URL:", webhookUrl);
+      
       const response = await fetch(webhookUrl, {
         method: "POST",
         headers: {
@@ -78,18 +88,22 @@ export async function triggerManualWebhookProcessing(callId: string): Promise<{s
       });
       
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        const errorText = await response.text();
+        console.error(`HTTP error! Status: ${response.status}`, errorText);
+        throw new Error(`HTTP error! status: ${response.status}, details: ${errorText}`);
       }
       
       // Parse the response as text first to handle potential JSON parse errors
       const responseText = await response.text();
       let responseData;
       try {
-        responseData = JSON.parse(responseText);
+        responseData = responseText ? JSON.parse(responseText) : { message: "Empty response" };
       } catch (e) {
+        console.warn("Failed to parse JSON response:", e);
         responseData = { message: responseText };
       }
       
+      console.log("Webhook response data:", responseData);
       return {
         success: true,
         data: responseData
@@ -109,13 +123,18 @@ export async function triggerManualWebhookProcessing(callId: string): Promise<{s
  */
 export async function testWebhookConnection(): Promise<{success: boolean, message: string}> {
   try {
+    console.log("Testing webhook connection...");
     const result = await triggerManualWebhookProcessing("test-connection");
+    
     if (result.success) {
+      console.log("Webhook connection test result:", result);
       return { success: true, message: "Webhook connection successful" };
     } else {
+      console.error("Webhook connection test failed:", result.error);
       return { success: false, message: result.error || "Unknown error" };
     }
   } catch (error: any) {
+    console.error("Error testing webhook connection:", error);
     return { success: false, message: error.message || "Connection test failed" };
   }
 }
