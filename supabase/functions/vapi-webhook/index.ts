@@ -44,7 +44,7 @@ serve(async (req) => {
     }
 
     // Look up the call log in the vapi_call_logs table
-    const { data: callLogData, error: callLogError } = await supabase
+    let { data: callLogData, error: callLogError } = await supabase
       .from("vapi_call_logs")
       .select("*")
       .eq("id", callId)
@@ -161,30 +161,29 @@ serve(async (req) => {
 
     // Use lead data if available, fallback to extracted info
     const validatedLeadData = {
+      lead_id: leadData?.id,
       car_brand: extractedInfo.car_brand,
       car_model: extractedInfo.car_model,
       car_year: extractedInfo.car_year,
       custodio_name: leadData?.nombre || extractedInfo.custodio_name,
       security_exp: leadData?.experienciaseguridad || extractedInfo.security_exp,
-      sedena_id: extractedInfo.sedena_id
+      sedena_id: extractedInfo.sedena_id,
+      call_id: callId,
+      vapi_call_data: callLogData
     };
 
     // Save to validated_leads table
     const { data: insertData, error: insertError } = await supabase
       .from("validated_leads")
       .upsert(
-        { 
-          ...validatedLeadData,
-          // Add a reference to the lead ID if found
-          lead_id: leadData?.id
-        }, 
-        { onConflict: 'id' }
+        validatedLeadData, 
+        { onConflict: 'id', ignoreDuplicates: false }
       )
       .select();
 
     if (insertError) {
       console.error("Error inserting validated lead:", insertError);
-      return new Response(JSON.stringify({ error: "Error saving validated lead" }), {
+      return new Response(JSON.stringify({ error: "Error saving validated lead", details: insertError }), {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
