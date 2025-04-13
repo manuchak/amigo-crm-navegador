@@ -5,7 +5,7 @@ import { PhoneCall, MessageSquare, Filter, Users, Settings, RefreshCw } from 'lu
 import CallCenter from './CallCenter';
 import VapiCallLogs from './VapiCallLogs';
 import QualifiedLeadsPanel from './QualifiedLeadsPanel';
-import VapiConfigPanel from './VapiConfigPanel';
+import { VapiConfigPanel } from './vapi-config';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertCircle } from 'lucide-react';
 
