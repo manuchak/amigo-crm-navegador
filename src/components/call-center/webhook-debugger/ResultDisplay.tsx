@@ -1,10 +1,10 @@
 
 import React from 'react';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { AlertTriangle, CheckCircle } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
-import { CheckCircle, AlertTriangle } from 'lucide-react';
 
 interface ResultDisplayProps {
   testResult: any;

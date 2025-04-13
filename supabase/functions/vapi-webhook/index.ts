@@ -1,4 +1,3 @@
-
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.38.4";
 
@@ -14,8 +13,16 @@ const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
 const supabase = createClient(supabaseUrl, supabaseKey);
 
 serve(async (req) => {
+  // Add detailed initial logging for troubleshooting
+  console.log("Webhook request received:", {
+    method: req.method,
+    url: req.url,
+    headers: Object.fromEntries(req.headers.entries())
+  });
+
   // Handle CORS preflight requests
   if (req.method === "OPTIONS") {
+    console.log("Handling CORS preflight request");
     return new Response(null, {
       headers: corsHeaders,
     });
@@ -23,6 +30,7 @@ serve(async (req) => {
 
   // Only accept POST requests for data submission
   if (req.method !== "POST") {
+    console.log(`Method not allowed: ${req.method}`);
     return new Response(JSON.stringify({ error: "Method not allowed" }), {
       status: 405,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -32,11 +40,12 @@ serve(async (req) => {
   try {
     // Parse the webhook data from VAPI
     const webhookData = await req.json();
-    console.log("Received VAPI webhook data:", JSON.stringify(webhookData));
+    console.log("Received VAPI webhook data:", JSON.stringify(webhookData, null, 2));
 
     // Extract relevant information from the webhook data
     const callId = webhookData.call_id || webhookData.id;
     if (!callId) {
+      console.error("Missing call ID in webhook data");
       return new Response(JSON.stringify({ error: "Missing call ID", data: webhookData }), {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -47,6 +56,7 @@ serve(async (req) => {
     console.log(`Processing call with ID: ${callId}`);
 
     // Look up the call log in the vapi_call_logs table
+    console.log("Querying vapi_call_logs table for call ID:", callId);
     let { data: callLogData, error: callLogError } = await supabase
       .from("vapi_call_logs")
       .select("*")
@@ -83,6 +93,7 @@ serve(async (req) => {
         
         // Check if this is a manual test
         if (callId === "test-connection") {
+          console.log("Test connection request detected");
           return new Response(JSON.stringify({ 
             success: true, 
             message: "Test connection successful. No call logs were processed." 
@@ -104,7 +115,7 @@ serve(async (req) => {
     }
 
     // Log full call data for debugging
-    console.log("Call log data:", JSON.stringify(callLogData));
+    console.log("Call log data:", JSON.stringify(callLogData, null, 2));
 
     // Extract phone number to link with leads table - try multiple potential fields
     const phoneNumber = callLogData.customer_number || 
@@ -129,6 +140,7 @@ serve(async (req) => {
     console.log(`Searching for lead with phone number: ${lastTenDigits} (from ${phoneNumber})`);
     
     // Look up lead by phone number - improved search with leading wildcard
+    console.log("Querying leads table for phone number:", lastTenDigits);
     const { data: leadData, error: leadError } = await supabase
       .from("leads")
       .select("*")
@@ -140,7 +152,7 @@ serve(async (req) => {
     }
 
     if (leadData) {
-      console.log("Found matching lead:", JSON.stringify(leadData));
+      console.log("Found matching lead:", JSON.stringify(leadData, null, 2));
     } else {
       console.warn("No matching lead found for phone number:", phoneNumber);
     }
@@ -277,9 +289,10 @@ serve(async (req) => {
       vapi_call_data: callLogData || null
     };
 
-    console.log("Saving validated lead data:", JSON.stringify(validatedLeadData));
+    console.log("Attempting to save validated lead data:", JSON.stringify(validatedLeadData, null, 2));
+    console.log("DB operation: Upserting into validated_leads table");
 
-    // Save to validated_leads table
+    // Save to validated_leads table with improved error handling
     const { data: insertData, error: insertError } = await supabase
       .from("validated_leads")
       .upsert(
@@ -290,11 +303,14 @@ serve(async (req) => {
 
     if (insertError) {
       console.error("Error inserting validated lead:", insertError);
+      console.error("Error details:", JSON.stringify(insertError, null, 2));
       return new Response(JSON.stringify({ error: "Error saving validated lead", details: insertError }), {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+
+    console.log("Successfully inserted data, response:", JSON.stringify(insertData, null, 2));
 
     // Update the lead in the leads table if we have valid data
     if (leadData?.id && (extractedInfo.car_brand || extractedInfo.car_model || extractedInfo.car_year || extractedInfo.sedena_id)) {
@@ -334,6 +350,7 @@ serve(async (req) => {
     );
   } catch (error) {
     console.error("Error processing webhook:", error);
+    console.error("Error stack:", error.stack);
     return new Response(
       JSON.stringify({
         error: "Internal server error",

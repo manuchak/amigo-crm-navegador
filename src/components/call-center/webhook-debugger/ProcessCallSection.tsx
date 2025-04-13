@@ -1,23 +1,23 @@
 
 import React from 'react';
-import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Button } from '@/components/ui/button';
 import { Loader2 } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 
 interface ProcessCallSectionProps {
-  loading: boolean;
   callId: string;
   onCallIdChange: (value: string) => void;
   onProcess: () => void;
+  loading: boolean;
 }
 
 const ProcessCallSection: React.FC<ProcessCallSectionProps> = ({ 
-  loading, 
   callId, 
-  onCallIdChange,
-  onProcess 
+  onCallIdChange, 
+  onProcess, 
+  loading 
 }) => {
   return (
     <>

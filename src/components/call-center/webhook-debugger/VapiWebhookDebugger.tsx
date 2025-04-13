@@ -9,16 +9,16 @@ import ProcessCallSection from './ProcessCallSection';
 import ResultDisplay from './ResultDisplay';
 
 const VapiWebhookDebugger: React.FC = () => {
-  const {
-    loading,
-    callId,
+  const { 
+    loading, 
+    callId, 
     setCallId,
-    testResult,
-    success,
-    webhookUrl,
-    handleTestConnection,
-    handleProcessCall,
-    copyWebhookUrl
+    testResult, 
+    success, 
+    webhookUrl, 
+    handleTestConnection, 
+    handleProcessCall, 
+    copyWebhookUrl 
   } = useWebhookDebugger();
 
   return (
@@ -39,24 +39,22 @@ const VapiWebhookDebugger: React.FC = () => {
           onCopy={copyWebhookUrl} 
         />
         
-        <TestConnectionSection 
-          loading={loading} 
-          onTest={handleTestConnection} 
+        <TestConnectionSection
+          loading={loading}
+          onTest={handleTestConnection}
         />
         
-        <ProcessCallSection 
-          loading={loading}
+        <ProcessCallSection
           callId={callId}
           onCallIdChange={setCallId}
           onProcess={handleProcessCall}
+          loading={loading}
         />
         
-        {testResult && (
-          <ResultDisplay 
-            testResult={testResult}
-            success={success}
-          />
-        )}
+        <ResultDisplay
+          testResult={testResult}
+          success={success}
+        />
       </CardContent>
       
       <CardFooter className="flex justify-between">
