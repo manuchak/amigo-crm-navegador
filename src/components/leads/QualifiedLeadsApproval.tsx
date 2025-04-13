@@ -75,17 +75,12 @@ const QualifiedLeadsApproval = () => {
     setIsRefreshing(true);
     try {
       await refetchLeads();
-      toast({
-        title: "Datos actualizados",
-        description: "Se han cargado los datos más recientes",
-      });
+      // Fix: Remove the object literal and use just the string for toast
+      toast.success("Datos actualizados");
     } catch (error) {
       console.error("Error refreshing data:", error);
-      toast({
-        title: "Error",
-        description: "No se pudieron actualizar los datos",
-        variant: "destructive",
-      });
+      // Fix: Remove the object literal and use just the string for toast
+      toast.error("No se pudieron actualizar los datos");
     } finally {
       setIsRefreshing(false);
     }

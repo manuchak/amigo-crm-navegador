@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { supabase } from '@/integrations/supabase/client';
 import { Loader2, PhoneCall, Mic, User, Bot } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
+import { Json } from '@/integrations/supabase/types';
 
 interface CallTranscriptProps {
   leadId: number;
@@ -50,7 +51,15 @@ export const CallTranscript: React.FC<CallTranscriptProps> = ({ leadId, phoneNum
         if (error) throw error;
         
         if (data && data.length > 0) {
-          setCallLog(data[0] as CallLog);
+          // Fix: Explicitly cast the data to CallLog type after ensuring it matches the structure
+          const fetchedData = data[0];
+          if (fetchedData && typeof fetchedData.transcript === 'object' && fetchedData.transcript !== null) {
+            setCallLog({
+              id: fetchedData.id,
+              start_time: fetchedData.start_time,
+              transcript: fetchedData.transcript as unknown as { transcript: Transcript[] }
+            });
+          }
         }
       } catch (error) {
         console.error('Error fetching call transcript:', error);
