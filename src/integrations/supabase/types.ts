@@ -9,6 +9,83 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      custodio_validations: {
+        Row: {
+          additional_notes: string | null
+          age_requirement_met: boolean | null
+          background_check_passed: boolean | null
+          call_quality_score: number | null
+          communication_score: number | null
+          created_at: string
+          has_firearm_license: boolean | null
+          has_military_background: boolean | null
+          has_security_experience: boolean | null
+          has_vehicle: boolean | null
+          id: string
+          interview_passed: boolean | null
+          lead_id: number
+          rejection_reason: string | null
+          reliability_score: number | null
+          status: string
+          updated_at: string
+          validated_by: string | null
+          validation_date: string
+          validation_duration_seconds: number | null
+        }
+        Insert: {
+          additional_notes?: string | null
+          age_requirement_met?: boolean | null
+          background_check_passed?: boolean | null
+          call_quality_score?: number | null
+          communication_score?: number | null
+          created_at?: string
+          has_firearm_license?: boolean | null
+          has_military_background?: boolean | null
+          has_security_experience?: boolean | null
+          has_vehicle?: boolean | null
+          id?: string
+          interview_passed?: boolean | null
+          lead_id: number
+          rejection_reason?: string | null
+          reliability_score?: number | null
+          status?: string
+          updated_at?: string
+          validated_by?: string | null
+          validation_date?: string
+          validation_duration_seconds?: number | null
+        }
+        Update: {
+          additional_notes?: string | null
+          age_requirement_met?: boolean | null
+          background_check_passed?: boolean | null
+          call_quality_score?: number | null
+          communication_score?: number | null
+          created_at?: string
+          has_firearm_license?: boolean | null
+          has_military_background?: boolean | null
+          has_security_experience?: boolean | null
+          has_vehicle?: boolean | null
+          id?: string
+          interview_passed?: boolean | null
+          lead_id?: number
+          rejection_reason?: string | null
+          reliability_score?: number | null
+          status?: string
+          updated_at?: string
+          validated_by?: string | null
+          validation_date?: string
+          validation_duration_seconds?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "custodio_validations_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       leads: {
         Row: {
           anovehiculo: string | null
@@ -490,7 +567,18 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      custodio_validation_stats: {
+        Row: {
+          avg_call_quality: number | null
+          avg_communication: number | null
+          avg_duration: number | null
+          avg_reliability: number | null
+          status: string | null
+          validation_count: number | null
+          validation_day: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       get_qualified_leads_from_calls: {
