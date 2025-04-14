@@ -6,7 +6,7 @@ import { Separator } from '@/components/ui/separator';
 import { useAuth } from '@/context/AuthContext';
 import { UserManagementPanel } from '@/components/admin/user-management';
 import { VapiConfigPanel } from '@/components/call-center/vapi-config';
-import VapiWebhookDebugger from '@/components/call-center/VapiWebhookDebugger';
+import { VapiWebhookDebugger } from '@/components/call-center/webhook-debugger';
 import { Settings, Users, Phone, Webhook } from 'lucide-react';
 
 const AdminConfig = () => {
