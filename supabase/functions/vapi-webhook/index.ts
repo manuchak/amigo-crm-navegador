@@ -13,6 +13,9 @@ const supabaseUrl = Deno.env.get("SUPABASE_URL") || "";
 const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
 const supabase = createClient(supabaseUrl, supabaseKey);
 
+// Default assistant ID to use when none is provided in the request
+const DEFAULT_ASSISTANT_ID = "0b7c2a96-0360-4fef-9956-e847fd696ea2";
+
 serve(async (req) => {
   // Add detailed initial logging for troubleshooting
   console.log("Webhook request received:", {
@@ -111,11 +114,19 @@ serve(async (req) => {
         const phoneNumber = extractPhoneNumber(webhookData);
         console.log("Extracted phone number:", phoneNumber);
         
+        // Extract assistant ID with a fallback to the default
+        const assistantId = extractAssistantId(webhookData) || DEFAULT_ASSISTANT_ID;
+        console.log("Using assistant ID:", assistantId);
+        
+        // Extract organization ID or use a default
+        const organizationId = extractOrganizationId(webhookData) || "manual-org";
+        console.log("Using organization ID:", organizationId);
+        
         // Prepare data for storage
         const callLogInsertData = {
           log_id: finalCallId,
-          assistant_id: webhookData.assistant_id || webhookData.assistant?.id || null,
-          organization_id: webhookData.organization_id || null,
+          assistant_id: assistantId,
+          organization_id: organizationId,
           conversation_id: webhookData.conversation_id || null,
           caller_phone_number: phoneNumber,
           customer_number: phoneNumber,
@@ -360,5 +371,51 @@ function extractPhoneNumber(data: any): string | null {
   if (data.event && data.event.phone_number) return data.event.phone_number;
   
   // No suitable phone number found
+  return null;
+}
+
+// New helper function to extract assistant ID from various payload structures
+function extractAssistantId(data: any): string | null {
+  // Check direct assistant fields
+  if (data.assistant_id) return data.assistant_id;
+  if (data.assistantId) return data.assistantId;
+  
+  // Check nested structures
+  if (data.assistant && data.assistant.id) return data.assistant.id;
+  if (data.call && data.call.assistant_id) return data.call.assistant_id;
+  if (data.call && data.call.assistantId) return data.call.assistantId;
+  
+  // Check metadata for assistant ID
+  if (data.metadata && data.metadata.assistant_id) return data.metadata.assistant_id;
+  if (data.metadata && data.metadata.assistantId) return data.metadata.assistantId;
+  
+  // Check inside the event object
+  if (data.event && data.event.assistant_id) return data.event.assistant_id;
+  if (data.event && data.event.assistantId) return data.event.assistantId;
+  
+  // No suitable assistant ID found
+  return null;
+}
+
+// New helper function to extract organization ID from various payload structures
+function extractOrganizationId(data: any): string | null {
+  // Check direct organization fields
+  if (data.organization_id) return data.organization_id;
+  if (data.organizationId) return data.organizationId;
+  
+  // Check nested structures
+  if (data.organization && data.organization.id) return data.organization.id;
+  if (data.call && data.call.organization_id) return data.call.organization_id;
+  if (data.call && data.call.organizationId) return data.call.organizationId;
+  
+  // Check metadata for organization ID
+  if (data.metadata && data.metadata.organization_id) return data.metadata.organization_id;
+  if (data.metadata && data.metadata.organizationId) return data.metadata.organizationId;
+  
+  // Check inside the event object
+  if (data.event && data.event.organization_id) return data.event.organization_id;
+  if (data.event && data.event.organizationId) return data.event.organizationId;
+  
+  // No suitable organization ID found
   return null;
 }
