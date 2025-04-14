@@ -23,12 +23,14 @@ export const useWebhookDebugger = () => {
     setSuccess(null);
     
     try {
-      const result = await vapiWebhookUtils.testWebhookConnection();
+      console.log("Testing webhook connection with API key:", showApiKey);
+      const result = await vapiWebhookUtils.testWebhookConnection(showApiKey);
       setSuccess(result.success);
       setTestResult({
         message: result.message,
         timestamp: new Date().toISOString(),
-        type: 'connection_test'
+        type: 'connection_test',
+        apiKeyIncluded: showApiKey
       });
       
       if (result.success) {
@@ -41,7 +43,8 @@ export const useWebhookDebugger = () => {
       setTestResult({
         error: error.message,
         timestamp: new Date().toISOString(),
-        type: 'error'
+        type: 'error',
+        apiKeyIncluded: showApiKey
       });
       toast.error(`Error testing webhook: ${error.message}`);
     } finally {
@@ -60,7 +63,8 @@ export const useWebhookDebugger = () => {
     setSuccess(null);
     
     try {
-      const result = await vapiWebhookUtils.triggerManualWebhookProcessing(callId);
+      console.log("Processing call with ID:", callId, "using API key:", showApiKey);
+      const result = await vapiWebhookUtils.triggerManualWebhookProcessing(callId, showApiKey);
       setSuccess(result.success);
       
       if (result.success) {
@@ -70,7 +74,8 @@ export const useWebhookDebugger = () => {
         setTestResult({
           error: result.error,
           timestamp: new Date().toISOString(),
-          type: 'error'
+          type: 'error',
+          apiKeyIncluded: showApiKey
         });
         toast.error(`Failed to process call: ${result.error}`);
       }
@@ -79,7 +84,8 @@ export const useWebhookDebugger = () => {
       setTestResult({
         error: error.message,
         timestamp: new Date().toISOString(),
-        type: 'error'
+        type: 'error',
+        apiKeyIncluded: showApiKey
       });
       toast.error(`Error processing call: ${error.message}`);
     } finally {

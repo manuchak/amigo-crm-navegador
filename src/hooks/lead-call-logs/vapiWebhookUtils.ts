@@ -55,8 +55,9 @@ export async function registerVapiWebhook(webhookUrl: string): Promise<boolean> 
 /**
  * Trigger a manual webhook call to process a specific VAPI call
  * @param callId The VAPI call ID to process
+ * @param useApiKey Whether to include the API key in the request
  */
-export async function triggerManualWebhookProcessing(callId: string): Promise<{success: boolean, data?: any, error?: string}> {
+export async function triggerManualWebhookProcessing(callId: string, useApiKey: boolean = true): Promise<{success: boolean, data?: any, error?: string}> {
   try {
     // Construct a payload with the call ID
     const payload = {
@@ -67,24 +68,49 @@ export async function triggerManualWebhookProcessing(callId: string): Promise<{s
     
     console.log("Triggering manual webhook processing for call ID:", callId);
     
-    // Call the edge function directly via supabase.functions.invoke
-    const { data, error } = await supabase.functions.invoke("vapi-webhook", {
-      body: payload
-    });
-    
-    if (error) {
-      console.error("Error invoking webhook function:", error);
+    if (useApiKey) {
+      // Call the edge function directly via supabase.functions.invoke
+      const { data, error } = await supabase.functions.invoke("vapi-webhook", {
+        body: payload
+      });
+      
+      if (error) {
+        console.error("Error invoking webhook function:", error);
+        return {
+          success: false,
+          error: error.message || "Failed to process call"
+        };
+      }
+      
+      console.log("Webhook response:", data);
       return {
-        success: false,
-        error: error.message || "Failed to process call"
+        success: true,
+        data: data
+      };
+    } else {
+      // Call without API key directly via fetch
+      const projectId = "beefjsdgrdeiymzxwxru";
+      const webhookUrl = `https://${projectId}.supabase.co/functions/v1/vapi-webhook`;
+      
+      const response = await fetch(webhookUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(payload)
+      });
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Webhook server responded with ${response.status}: ${errorText}`);
+      }
+      
+      const data = await response.json();
+      return {
+        success: true,
+        data: data
       };
     }
-    
-    console.log("Webhook response:", data);
-    return {
-      success: true,
-      data: data
-    };
   } catch (error: any) {
     console.error("Error triggering manual webhook:", error);
     return {
@@ -96,29 +122,58 @@ export async function triggerManualWebhookProcessing(callId: string): Promise<{s
 
 /**
  * Test the webhook connection by sending a simple ping
+ * @param useApiKey Whether to include the API key in the request
  */
-export async function testWebhookConnection(): Promise<{success: boolean, message: string}> {
+export async function testWebhookConnection(useApiKey: boolean = true): Promise<{success: boolean, message: string}> {
   try {
-    console.log("Testing webhook connection...");
+    console.log("Testing webhook connection with apiKey:", useApiKey);
     
-    // Send a test connection request to the webhook
-    const { data, error } = await supabase.functions.invoke("vapi-webhook", {
-      body: { call_id: "test-connection" }
-    });
-    
-    if (error) {
-      console.error("Webhook connection test failed:", error);
+    if (useApiKey) {
+      // Using supabase client (includes API key in headers)
+      const { data, error } = await supabase.functions.invoke("vapi-webhook", {
+        body: { call_id: "test-connection" }
+      });
+      
+      if (error) {
+        console.error("Webhook connection test failed:", error);
+        return { 
+          success: false, 
+          message: error.message || "Connection test failed" 
+        };
+      }
+      
+      console.log("Webhook connection test result:", data);
       return { 
-        success: false, 
-        message: error.message || "Connection test failed" 
+        success: true, 
+        message: "Webhook connection successful" 
+      };
+    } else {
+      // Using direct fetch without API key
+      const projectId = "beefjsdgrdeiymzxwxru";
+      const webhookUrl = `https://${projectId}.supabase.co/functions/v1/vapi-webhook`;
+      
+      const response = await fetch(webhookUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ call_id: "test-connection" })
+      });
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        return { 
+          success: false, 
+          message: `Server responded with ${response.status}: ${errorText}` 
+        };
+      }
+      
+      const data = await response.json();
+      return { 
+        success: true, 
+        message: "Webhook connection successful without API key" 
       };
     }
-    
-    console.log("Webhook connection test result:", data);
-    return { 
-      success: true, 
-      message: "Webhook connection successful" 
-    };
   } catch (error: any) {
     console.error("Error testing webhook connection:", error);
     return { 

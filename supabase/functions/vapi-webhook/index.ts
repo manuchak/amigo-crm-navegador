@@ -56,6 +56,18 @@ serve(async (req) => {
     // Log the call ID for debugging
     console.log(`Processing call with ID: ${callId}`);
 
+    // Check if this is a test connection
+    if (callId === "test-connection") {
+      console.log("Test connection request detected");
+      return new Response(JSON.stringify({ 
+        success: true, 
+        message: "Test connection successful. The webhook is properly configured." 
+      }), {
+        status: 200,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     // Look up the call log in the vapi_call_logs table
     console.log("Querying vapi_call_logs table for call ID:", callId);
     let { data: callLogData, error: callLogError } = await supabase
@@ -92,74 +104,81 @@ serve(async (req) => {
       if (!altCallLogData) {
         console.error(`Call log not found with either ID or log_id: ${callId}`);
         
-        // Check if this is a manual test
-        if (callId === "test-connection") {
-          console.log("Test connection request detected");
-          return new Response(JSON.stringify({ 
-            success: true, 
-            message: "Test connection successful. No call logs were processed." 
-          }), {
-            status: 200,
+        // If this is a direct webhook from VAPI with no matching record
+        // Try to store the data directly
+        try {
+          console.log("Attempting to store the webhook data directly from VAPI");
+          const { data: insertedCallLog, error: insertError } = await supabase
+            .from("vapi_call_logs")
+            .insert({
+              log_id: callId,
+              assistant_id: webhookData.assistant_id || webhookData.assistant?.id || null,
+              organization_id: webhookData.organization_id || null,
+              conversation_id: webhookData.conversation_id || null,
+              caller_phone_number: webhookData.phone_number || webhookData.customer_number || null,
+              status: webhookData.status || "completed",
+              transcript: webhookData.transcript || null,
+              metadata: webhookData
+            })
+            .select()
+            .single();
+            
+          if (insertError) {
+            console.error("Error storing direct webhook data:", insertError);
+            return new Response(JSON.stringify({ error: "Failed to store webhook data", details: insertError }), {
+              status: 500,
+              headers: { ...corsHeaders, "Content-Type": "application/json" },
+            });
+          }
+          
+          console.log("Successfully stored direct webhook data:", insertedCallLog);
+          callLogData = insertedCallLog;
+        } catch (directStoreError) {
+          console.error("Error in direct webhook data storage:", directStoreError);
+          return new Response(JSON.stringify({ error: "Failed to process direct webhook", details: String(directStoreError) }), {
+            status: 500,
             headers: { ...corsHeaders, "Content-Type": "application/json" },
           });
         }
-        
-        return new Response(JSON.stringify({ error: "Call log not found", callId }), {
-          status: 404,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
+      } else {
+        // If found by log_id, use this data instead
+        callLogData = altCallLogData;
+        console.log("Found call log by log_id");
       }
-      
-      // If found by log_id, use this data instead
-      callLogData = altCallLogData;
-      console.log("Found call log by log_id");
     }
 
-    // Log full call data for debugging
-    console.log("Call log data:", JSON.stringify(callLogData, null, 2));
-
-    // Extract phone number to link with leads table - try multiple potential fields
-    const phoneNumber = callLogData.customer_number || 
-                        callLogData.caller_phone_number || 
-                        callLogData.phone_number ||
+    // Extract phone number to link with leads table
+    const phoneNumber = callLogData?.customer_number || 
+                        callLogData?.caller_phone_number || 
+                        callLogData?.phone_number ||
                         webhookData.phone_number;
 
-    if (!phoneNumber) {
-      console.warn("No phone number found in call log or webhook data");
-      return new Response(JSON.stringify({ 
-        warning: "No phone number found to link with leads",
-        call_data: callLogData
-      }), {
-        status: 200,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
     // Format phone number for search (removing non-digits)
-    const formattedPhone = phoneNumber.replace(/\D/g, '');
-    const lastTenDigits = formattedPhone.slice(-10);
-    console.log(`Searching for lead with phone number: ${lastTenDigits} (from ${phoneNumber})`);
-    
-    // Look up lead by phone number - improved search with leading wildcard
-    console.log("Querying leads table for phone number:", lastTenDigits);
-    const { data: leadData, error: leadError } = await supabase
-      .from("leads")
-      .select("*")
-      .or(`telefono.ilike.%${lastTenDigits}`)
-      .maybeSingle();
+    let leadData = null;
+    if (phoneNumber) {
+      const formattedPhone = phoneNumber.replace(/\D/g, '');
+      const lastTenDigits = formattedPhone.slice(-10);
+      console.log(`Searching for lead with phone number: ${lastTenDigits}`);
+      
+      // Look up lead by phone number
+      const { data: foundLead, error: leadError } = await supabase
+        .from("leads")
+        .select("*")
+        .or(`telefono.ilike.%${lastTenDigits}`)
+        .maybeSingle();
 
-    if (leadError) {
-      console.error("Error fetching lead:", leadError);
-    }
-
-    if (leadData) {
-      console.log("Found matching lead:", JSON.stringify(leadData, null, 2));
-    } else {
-      console.warn("No matching lead found for phone number:", phoneNumber);
+      if (leadError) {
+        console.error("Error fetching lead:", leadError);
+      } else if (foundLead) {
+        leadData = foundLead;
+        console.log("Found matching lead:", JSON.stringify(leadData, null, 2));
+      } else {
+        console.warn("No matching lead found for phone number:", phoneNumber);
+      }
     }
 
     // Extract information from transcript if available
-    const transcript = callLogData.transcript;
+    const transcript = callLogData?.transcript || webhookData.transcript;
     let extractedInfo = {
       car_brand: null,
       car_model: null,
@@ -169,115 +188,68 @@ serve(async (req) => {
       sedena_id: null
     };
 
-    // Extract lead information from transcript or metadata if available
+    // Process transcript if available
     if (transcript) {
       console.log("Processing transcript to extract lead information");
-      
-      // Check if transcript is an object, array, or string
-      const transcriptData = typeof transcript === 'string' 
-        ? JSON.parse(transcript) 
-        : transcript;
-      
-      if (transcriptData) {
-        // Convert to string for pattern matching - handles both array and object formats
-        const transcriptText = JSON.stringify(transcriptData).toLowerCase();
+      try {
+        // Handle various transcript formats
+        const transcriptData = typeof transcript === 'string' 
+          ? JSON.parse(transcript) 
+          : transcript;
         
-        // Extract car information with improved patterns
-        if (transcriptText.includes("modelo") || transcriptText.includes("vehiculo") || 
-            transcriptText.includes("coche") || transcriptText.includes("carro")) {
+        if (transcriptData) {
+          // Convert to string for pattern matching - handles both array and object formats
+          const transcriptText = JSON.stringify(transcriptData).toLowerCase();
           
-          // Extract car brand
-          const carBrandPatterns = [
-            /marca.*?(\w+)/i,
-            /tengo un (\w+)/i,
-            /mi (\w+)/i
-          ];
-          
-          for (const pattern of carBrandPatterns) {
-            const matches = transcriptText.match(pattern);
-            if (matches && matches[1]) {
-              extractedInfo.car_brand = matches[1].charAt(0).toUpperCase() + matches[1].slice(1);
-              break;
+          // Extract car information
+          if (transcriptText.includes("marca") || transcriptText.includes("modelo") || 
+              transcriptText.includes("vehículo") || transcriptText.includes("coche") || 
+              transcriptText.includes("carro")) {
+            
+            // Extract car brand
+            const brandMatch = transcriptText.match(/marca.*?(\w+)/i) || 
+                            transcriptText.match(/tengo un (\w+)/i) ||
+                            transcriptText.match(/mi (\w+)/i);
+            if (brandMatch && brandMatch[1]) {
+              extractedInfo.car_brand = brandMatch[1].charAt(0).toUpperCase() + brandMatch[1].slice(1);
+            }
+            
+            // Extract car model
+            const modelMatch = transcriptText.match(/modelo.*?(\w+)/i) ||
+                            transcriptText.match(/un (\w+) del/i);
+            if (modelMatch && modelMatch[1]) {
+              extractedInfo.car_model = modelMatch[1].charAt(0).toUpperCase() + modelMatch[1].slice(1);
+            }
+            
+            // Extract car year
+            const yearMatch = transcriptText.match(/año.*?(\d{4})/i) ||
+                           transcriptText.match(/del (\d{4})/i);
+            if (yearMatch && yearMatch[1]) {
+              extractedInfo.car_year = parseInt(yearMatch[1]);
             }
           }
           
-          // Extract car model
-          const carModelPatterns = [
-            /modelo.*?(\w+)/i,
-            /un (\w+) del/i,
-            /(\w+) del año/i
-          ];
-          
-          for (const pattern of carModelPatterns) {
-            const matches = transcriptText.match(pattern);
-            if (matches && matches[1]) {
-              extractedInfo.car_model = matches[1].charAt(0).toUpperCase() + matches[1].slice(1);
-              break;
-            }
+          // Extract security experience
+          if (transcriptText.includes("experiencia") || transcriptText.includes("seguridad")) {
+            extractedInfo.security_exp = 
+              transcriptText.includes("tengo experiencia") ? "SI" : "NO";
           }
           
-          // Extract car year
-          const carYearPatterns = [
-            /año.*?(\d{4})/i,
-            /del (\d{4})/i,
-            /modelo (\d{4})/i
-          ];
-          
-          for (const pattern of carYearPatterns) {
-            const matches = transcriptText.match(pattern);
-            if (matches && matches[1]) {
-              extractedInfo.car_year = parseInt(matches[1]);
-              break;
-            }
+          // Extract name
+          const nameMatch = transcriptText.match(/me llamo (\w+ \w+)/i) ||
+                         transcriptText.match(/nombre es (\w+ \w+)/i);
+          if (nameMatch && nameMatch[1]) {
+            extractedInfo.custodio_name = nameMatch[1];
           }
         }
-        
-        // Extract security experience info
-        if (transcriptText.includes("experiencia") || transcriptText.includes("seguridad") || 
-            transcriptText.includes("militar") || transcriptText.includes("trabajado")) {
-          
-          extractedInfo.security_exp = 
-            transcriptText.includes("si tengo experiencia") || 
-            transcriptText.includes("tengo experiencia") || 
-            transcriptText.includes("he trabajado") ? 
-            "SI" : "NO";
-        }
-        
-        // Extract name if available
-        const namePatterns = [
-          /me llamo (\w+ \w+)/i,
-          /nombre es (\w+ \w+)/i,
-          /soy (\w+ \w+)/i
-        ];
-        
-        for (const pattern of namePatterns) {
-          const matches = transcriptText.match(pattern);
-          if (matches && matches[1]) {
-            extractedInfo.custodio_name = matches[1];
-            break;
-          }
-        }
-        
-        // Extract Sedena ID if mentioned
-        const sedenaPatterns = [
-          /sedena.*?([a-z0-9]+)/i,
-          /credencial.*?([a-z0-9]+)/i,
-          /militares.*?([a-z0-9]+)/i
-        ];
-        
-        for (const pattern of sedenaPatterns) {
-          const matches = transcriptText.match(pattern);
-          if (matches && matches[1]) {
-            extractedInfo.sedena_id = matches[1];
-            break;
-          }
-        }
+      } catch (transcriptError) {
+        console.error("Error processing transcript:", transcriptError);
       }
     }
 
     console.log("Extracted info from transcript:", JSON.stringify(extractedInfo));
 
-    // Use lead data if available, fallback to extracted info
+    // Prepare data for validated_leads table
     const validatedLeadData = {
       lead_id: leadData?.id || null,
       car_brand: extractedInfo.car_brand || null,
@@ -287,13 +259,12 @@ serve(async (req) => {
       security_exp: leadData?.experienciaseguridad || extractedInfo.security_exp || null,
       sedena_id: extractedInfo.sedena_id || null,
       call_id: callId,
-      vapi_call_data: callLogData || null
+      vapi_call_data: callLogData || webhookData
     };
 
-    console.log("Attempting to save validated lead data:", JSON.stringify(validatedLeadData, null, 2));
-    console.log("DB operation: Upserting into validated_leads table");
+    console.log("Saving validated lead data:", JSON.stringify(validatedLeadData, null, 2));
 
-    // Save to validated_leads table with improved error handling
+    // Save to validated_leads table
     const { data: insertData, error: insertError } = await supabase
       .from("validated_leads")
       .upsert(
@@ -304,7 +275,6 @@ serve(async (req) => {
 
     if (insertError) {
       console.error("Error inserting validated lead:", insertError);
-      console.error("Error details:", JSON.stringify(insertError, null, 2));
       return new Response(JSON.stringify({ error: "Error saving validated lead", details: insertError }), {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -312,29 +282,6 @@ serve(async (req) => {
     }
 
     console.log("Successfully inserted data, response:", JSON.stringify(insertData, null, 2));
-
-    // Update the lead in the leads table if we have valid data
-    if (leadData?.id && (extractedInfo.car_brand || extractedInfo.car_model || extractedInfo.car_year || extractedInfo.sedena_id)) {
-      const leadUpdateData: Record<string, any> = {};
-      
-      if (extractedInfo.car_brand) leadUpdateData.marca_vehiculo = extractedInfo.car_brand;
-      if (extractedInfo.car_model) leadUpdateData.modelovehiculo = extractedInfo.car_model;
-      if (extractedInfo.car_year) leadUpdateData.anovehiculo = extractedInfo.car_year;
-      if (extractedInfo.security_exp) leadUpdateData.experienciaseguridad = extractedInfo.security_exp;
-      
-      if (Object.keys(leadUpdateData).length > 0) {
-        console.log(`Updating lead ${leadData.id} with data:`, leadUpdateData);
-        
-        const { error: updateError } = await supabase
-          .from("leads")
-          .update(leadUpdateData)
-          .eq("id", leadData.id);
-          
-        if (updateError) {
-          console.error("Error updating lead with extracted data:", updateError);
-        }
-      }
-    }
 
     return new Response(
       JSON.stringify({
@@ -351,7 +298,6 @@ serve(async (req) => {
     );
   } catch (error) {
     console.error("Error processing webhook:", error);
-    console.error("Error stack:", error.stack);
     return new Response(
       JSON.stringify({
         error: "Internal server error",
