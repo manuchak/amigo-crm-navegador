@@ -15,10 +15,12 @@ const VapiWebhookDebugger: React.FC = () => {
     setCallId,
     testResult, 
     success, 
-    webhookUrl, 
+    webhookUrl,
+    showApiKey,
     handleTestConnection, 
     handleProcessCall, 
-    copyWebhookUrl 
+    copyWebhookUrl,
+    toggleApiKey
   } = useWebhookDebugger();
 
   return (
@@ -36,7 +38,9 @@ const VapiWebhookDebugger: React.FC = () => {
       <CardContent className="space-y-4">
         <WebhookUrlSection 
           webhookUrl={webhookUrl} 
-          onCopy={copyWebhookUrl} 
+          onCopy={copyWebhookUrl}
+          showApiKey={showApiKey}
+          onToggleApiKey={toggleApiKey}
         />
         
         <TestConnectionSection

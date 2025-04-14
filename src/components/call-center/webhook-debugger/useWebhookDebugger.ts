@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { vapiWebhookUtils } from '@/hooks/lead-call-logs/vapiWebhookUtils';
 import { toast } from 'sonner';
 
@@ -9,12 +9,13 @@ export const useWebhookDebugger = () => {
   const [testResult, setTestResult] = useState<any>(null);
   const [success, setSuccess] = useState<boolean | null>(null);
   const [webhookUrl, setWebhookUrl] = useState<string>('');
+  const [showApiKey, setShowApiKey] = useState<boolean>(true);
 
-  // Get webhook URL on mount
-  useState(() => {
-    const url = vapiWebhookUtils.getVapiWebhookUrl();
+  // Update webhook URL when showApiKey changes
+  useEffect(() => {
+    const url = vapiWebhookUtils.getVapiWebhookUrl(showApiKey);
     setWebhookUrl(url);
-  });
+  }, [showApiKey]);
 
   const handleTestConnection = async () => {
     setLoading(true);
@@ -91,6 +92,10 @@ export const useWebhookDebugger = () => {
       .then(() => toast.success('Webhook URL copied to clipboard'))
       .catch(() => toast.error('Failed to copy webhook URL'));
   };
+  
+  const toggleApiKey = (show: boolean) => {
+    setShowApiKey(show);
+  };
 
   return {
     loading,
@@ -99,8 +104,10 @@ export const useWebhookDebugger = () => {
     testResult,
     success,
     webhookUrl,
+    showApiKey,
     handleTestConnection,
     handleProcessCall,
-    copyWebhookUrl
+    copyWebhookUrl,
+    toggleApiKey
   };
 };
