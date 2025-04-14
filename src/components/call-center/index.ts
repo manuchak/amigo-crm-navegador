@@ -1,7 +1,2 @@
-
-import CallCenter from './CallCenter';
-
-export { CallCenter };
-export { VapiConfigPanel } from './vapi-config';
+// Re-export components from webhook-debugger
 export { VapiWebhookDebugger } from './webhook-debugger';
-export default CallCenter;
