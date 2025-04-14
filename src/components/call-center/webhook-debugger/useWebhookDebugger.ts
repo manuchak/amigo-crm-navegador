@@ -53,9 +53,10 @@ export const useWebhookDebugger = () => {
   };
 
   const handleProcessCall = async () => {
+    // Allow empty call ID for testing the new flexible webhook functionality
     if (!callId.trim()) {
-      toast.error('Please enter a call ID');
-      return;
+      const confirmed = window.confirm('You are about to test the webhook with no call ID. This is useful for testing if VAPI sends data without a call ID. Continue?');
+      if (!confirmed) return;
     }
     
     setLoading(true);
@@ -63,13 +64,13 @@ export const useWebhookDebugger = () => {
     setSuccess(null);
     
     try {
-      console.log("Processing call with ID:", callId, "using API key:", showApiKey);
+      console.log("Processing call with ID:", callId || "NO_ID", "using API key:", showApiKey);
       const result = await vapiWebhookUtils.triggerManualWebhookProcessing(callId, showApiKey);
       setSuccess(result.success);
       
       if (result.success) {
         setTestResult(result.data);
-        toast.success('Call processed successfully');
+        toast.success(callId.trim() ? 'Call processed successfully' : 'Webhook test without call ID successful');
       } else {
         setTestResult({
           error: result.error,
@@ -77,7 +78,7 @@ export const useWebhookDebugger = () => {
           type: 'error',
           apiKeyIncluded: showApiKey
         });
-        toast.error(`Failed to process call: ${result.error}`);
+        toast.error(`Failed to process: ${result.error}`);
       }
     } catch (error: any) {
       setSuccess(false);
@@ -87,7 +88,7 @@ export const useWebhookDebugger = () => {
         type: 'error',
         apiKeyIncluded: showApiKey
       });
-      toast.error(`Error processing call: ${error.message}`);
+      toast.error(`Error processing: ${error.message}`);
     } finally {
       setLoading(false);
     }

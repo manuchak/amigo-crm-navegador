@@ -43,18 +43,16 @@ serve(async (req) => {
     const webhookData = await req.json();
     console.log("Received VAPI webhook data:", JSON.stringify(webhookData, null, 2));
 
-    // Extract relevant information from the webhook data
-    const callId = webhookData.call_id || webhookData.id;
+    // More flexible extraction of call ID from various possible payload structures
+    const callId = extractCallId(webhookData);
+    
     if (!callId) {
-      console.error("Missing call ID in webhook data");
-      return new Response(JSON.stringify({ error: "Missing call ID", data: webhookData }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      console.error("Missing call ID in webhook data, but proceeding with processing anyway");
+      console.log("Attempting to store data with generated ID");
+      // Continue processing even without a call ID, we'll generate one later
+    } else {
+      console.log(`Processing call with ID: ${callId}`);
     }
-
-    // Log the call ID for debugging
-    console.log(`Processing call with ID: ${callId}`);
 
     // Check if this is a test connection
     if (callId === "test-connection") {
@@ -68,90 +66,96 @@ serve(async (req) => {
       });
     }
 
-    // Look up the call log in the vapi_call_logs table
-    console.log("Querying vapi_call_logs table for call ID:", callId);
-    let { data: callLogData, error: callLogError } = await supabase
-      .from("vapi_call_logs")
-      .select("*")
-      .eq("id", callId)
-      .maybeSingle();
-
-    if (callLogError) {
-      console.error("Error fetching call log by ID:", callLogError);
-      return new Response(JSON.stringify({ error: "Error fetching call log", details: callLogError }), {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    // If not found by ID, try by log_id
-    if (!callLogData) {
-      console.warn(`No call log found for ID: ${callId}, trying by log_id instead`);
-      const { data: altCallLogData, error: altCallLogError } = await supabase
+    // Look up the call log in the vapi_call_logs table if we have a call ID
+    let callLogData = null;
+    if (callId) {
+      console.log("Querying vapi_call_logs table for call ID:", callId);
+      let { data: existingCallLog, error: callLogError } = await supabase
         .from("vapi_call_logs")
         .select("*")
-        .eq("log_id", callId)
+        .eq("id", callId)
         .maybeSingle();
 
-      if (altCallLogError) {
-        console.error("Error fetching call log by log_id:", altCallLogError);
-        return new Response(JSON.stringify({ error: "Error fetching call log", details: altCallLogError }), {
-          status: 500,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
+      if (callLogError) {
+        console.error("Error fetching call log by ID:", callLogError);
+      } else if (existingCallLog) {
+        callLogData = existingCallLog;
+        console.log("Found existing call log with ID:", callId);
+      } else {
+        // If not found by ID, try by log_id
+        console.warn(`No call log found for ID: ${callId}, trying by log_id instead`);
+        const { data: altCallLogData, error: altCallLogError } = await supabase
+          .from("vapi_call_logs")
+          .select("*")
+          .eq("log_id", callId)
+          .maybeSingle();
 
-      if (!altCallLogData) {
-        console.error(`Call log not found with either ID or log_id: ${callId}`);
+        if (altCallLogError) {
+          console.error("Error fetching call log by log_id:", altCallLogError);
+        } else if (altCallLogData) {
+          callLogData = altCallLogData;
+          console.log("Found call log by log_id");
+        }
+      }
+    }
+
+    // If no existing call log was found, store the webhook data directly
+    if (!callLogData) {
+      console.log("No existing call log found, storing webhook data directly");
+      try {
+        // Generate a call ID if none was provided
+        const finalCallId = callId || `manual-${new Date().getTime()}`;
+        console.log("Using call ID for storage:", finalCallId);
         
-        // If this is a direct webhook from VAPI with no matching record
-        // Try to store the data directly
-        try {
-          console.log("Attempting to store the webhook data directly from VAPI");
-          const { data: insertedCallLog, error: insertError } = await supabase
-            .from("vapi_call_logs")
-            .insert({
-              log_id: callId,
-              assistant_id: webhookData.assistant_id || webhookData.assistant?.id || null,
-              organization_id: webhookData.organization_id || null,
-              conversation_id: webhookData.conversation_id || null,
-              caller_phone_number: webhookData.phone_number || webhookData.customer_number || null,
-              status: webhookData.status || "completed",
-              transcript: webhookData.transcript || null,
-              metadata: webhookData
-            })
-            .select()
-            .single();
-            
-          if (insertError) {
-            console.error("Error storing direct webhook data:", insertError);
-            return new Response(JSON.stringify({ error: "Failed to store webhook data", details: insertError }), {
-              status: 500,
-              headers: { ...corsHeaders, "Content-Type": "application/json" },
-            });
-          }
+        // Extract phone number from the webhook data
+        const phoneNumber = extractPhoneNumber(webhookData);
+        console.log("Extracted phone number:", phoneNumber);
+        
+        // Prepare data for storage
+        const callLogInsertData = {
+          log_id: finalCallId,
+          assistant_id: webhookData.assistant_id || webhookData.assistant?.id || null,
+          organization_id: webhookData.organization_id || null,
+          conversation_id: webhookData.conversation_id || null,
+          caller_phone_number: phoneNumber,
+          customer_number: phoneNumber,
+          status: webhookData.status || "completed",
+          transcript: webhookData.transcript || null,
+          metadata: webhookData
+        };
+        
+        console.log("Inserting new call log with data:", JSON.stringify(callLogInsertData, null, 2));
+        
+        const { data: insertedCallLog, error: insertError } = await supabase
+          .from("vapi_call_logs")
+          .insert(callLogInsertData)
+          .select()
+          .single();
           
-          console.log("Successfully stored direct webhook data:", insertedCallLog);
-          callLogData = insertedCallLog;
-        } catch (directStoreError) {
-          console.error("Error in direct webhook data storage:", directStoreError);
-          return new Response(JSON.stringify({ error: "Failed to process direct webhook", details: String(directStoreError) }), {
+        if (insertError) {
+          console.error("Error storing direct webhook data:", insertError);
+          return new Response(JSON.stringify({ error: "Failed to store webhook data", details: insertError }), {
             status: 500,
             headers: { ...corsHeaders, "Content-Type": "application/json" },
           });
         }
-      } else {
-        // If found by log_id, use this data instead
-        callLogData = altCallLogData;
-        console.log("Found call log by log_id");
+        
+        console.log("Successfully stored direct webhook data:", insertedCallLog);
+        callLogData = insertedCallLog;
+      } catch (directStoreError) {
+        console.error("Error in direct webhook data storage:", directStoreError);
+        return new Response(JSON.stringify({ error: "Failed to process direct webhook", details: String(directStoreError) }), {
+          status: 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
       }
     }
 
     // Extract phone number to link with leads table
-    const phoneNumber = callLogData?.customer_number || 
-                        callLogData?.caller_phone_number || 
-                        callLogData?.phone_number ||
-                        webhookData.phone_number;
+    const phoneNumber = extractPhoneNumber(webhookData) || 
+                      callLogData?.customer_number || 
+                      callLogData?.caller_phone_number || 
+                      callLogData?.phone_number;
 
     // Format phone number for search (removing non-digits)
     let leadData = null;
@@ -249,6 +253,9 @@ serve(async (req) => {
 
     console.log("Extracted info from transcript:", JSON.stringify(extractedInfo));
 
+    // Create a generated ID for the validated_leads entry
+    const generatedCallId = callLogData?.id || callLogData?.log_id || `webhook-${new Date().getTime()}`;
+
     // Prepare data for validated_leads table
     const validatedLeadData = {
       lead_id: leadData?.id || null,
@@ -258,7 +265,7 @@ serve(async (req) => {
       custodio_name: leadData?.nombre || extractedInfo.custodio_name || null,
       security_exp: leadData?.experienciaseguridad || extractedInfo.security_exp || null,
       sedena_id: extractedInfo.sedena_id || null,
-      call_id: callId,
+      call_id: generatedCallId,
       vapi_call_data: callLogData || webhookData
     };
 
@@ -311,3 +318,47 @@ serve(async (req) => {
     );
   }
 });
+
+// Helper function to extract call ID from various payload structures
+function extractCallId(data: any): string | null {
+  // Check direct id fields
+  if (data.call_id) return data.call_id;
+  if (data.id) return data.id;
+  
+  // Check nested structures
+  if (data.call && data.call.id) return data.call.id;
+  if (data.call_data && data.call_data.id) return data.call_data.id;
+  if (data.event && data.event.call_id) return data.event.call_id;
+  if (data.event && data.event.id) return data.event.id;
+  
+  // Check for conversation_id as fallback
+  if (data.conversation_id) return data.conversation_id;
+  
+  // No suitable ID found
+  return null;
+}
+
+// Helper function to extract phone number from various payload structures
+function extractPhoneNumber(data: any): string | null {
+  // Check direct phone fields
+  if (data.phone_number) return data.phone_number;
+  if (data.caller_phone_number) return data.caller_phone_number;
+  if (data.customer_number) return data.customer_number;
+  
+  // Check nested structures
+  if (data.call && data.call.phone_number) return data.call.phone_number;
+  if (data.call && data.call.customer_number) return data.call.customer_number;
+  if (data.caller && data.caller.phone_number) return data.caller.phone_number;
+  if (data.customer && data.customer.phone_number) return data.customer.phone_number;
+  
+  // Check metadata for phone numbers
+  if (data.metadata && data.metadata.phone_number) return data.metadata.phone_number;
+  if (data.metadata && data.metadata.caller_phone_number) return data.metadata.caller_phone_number;
+  if (data.metadata && data.metadata.customer_number) return data.metadata.customer_number;
+  
+  // Check inside the event object
+  if (data.event && data.event.phone_number) return data.event.phone_number;
+  
+  // No suitable phone number found
+  return null;
+}

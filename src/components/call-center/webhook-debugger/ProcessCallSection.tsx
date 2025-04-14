@@ -27,7 +27,7 @@ const ProcessCallSection: React.FC<ProcessCallSectionProps> = ({
         <div className="flex items-center space-x-2">
           <Input
             id="callId"
-            placeholder="Enter VAPI call ID"
+            placeholder="Enter VAPI call ID (or leave empty to test)"
             value={callId}
             onChange={(e) => onCallIdChange(e.target.value)}
             disabled={loading}
@@ -35,7 +35,7 @@ const ProcessCallSection: React.FC<ProcessCallSectionProps> = ({
           />
           <Button 
             onClick={onProcess}
-            disabled={loading || !callId.trim()}
+            disabled={loading}
             className="whitespace-nowrap"
           >
             {loading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
@@ -43,7 +43,7 @@ const ProcessCallSection: React.FC<ProcessCallSectionProps> = ({
           </Button>
         </div>
         <p className="text-xs text-muted-foreground">
-          Enter a VAPI call ID to manually process its data
+          Enter a VAPI call ID to manually process data, or leave empty to test the webhook without an ID
         </p>
       </div>
     </>

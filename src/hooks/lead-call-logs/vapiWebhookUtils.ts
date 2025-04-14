@@ -54,19 +54,23 @@ export async function registerVapiWebhook(webhookUrl: string): Promise<boolean> 
 
 /**
  * Trigger a manual webhook call to process a specific VAPI call
- * @param callId The VAPI call ID to process
+ * @param callId The VAPI call ID to process (can be empty for testing)
  * @param useApiKey Whether to include the API key in the request
  */
 export async function triggerManualWebhookProcessing(callId: string, useApiKey: boolean = true): Promise<{success: boolean, data?: any, error?: string}> {
   try {
-    // Construct a payload with the call ID
+    // Construct a payload with the call ID (if provided)
     const payload = {
-      call_id: callId,
       manual_trigger: true,
       timestamp: new Date().toISOString()
     };
     
-    console.log("Triggering manual webhook processing for call ID:", callId);
+    // Only add call_id if it's not empty
+    if (callId.trim()) {
+      Object.assign(payload, { call_id: callId });
+    }
+    
+    console.log(`Triggering manual webhook processing${callId ? ` for call ID: ${callId}` : ' without call ID'}`);
     
     if (useApiKey) {
       // Call the edge function directly via supabase.functions.invoke
