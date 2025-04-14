@@ -58,57 +58,24 @@ export async function triggerManualWebhookProcessing(callId: string): Promise<{s
     
     console.log("Triggering manual webhook processing for call ID:", callId);
     
-    // First try to invoke the function via Supabase client
-    try {
-      const { data, error } = await supabase.functions.invoke("vapi-webhook", {
-        body: payload
-      });
-      
-      if (error) {
-        console.error("Error invoking webhook via supabase client:", error);
-        throw error;
-      }
-      
-      console.log("Webhook invocation result:", data);
-      return { success: true, data };
-    } catch (invokeError) {
-      console.log("Could not invoke function directly, trying with fetch:", invokeError);
-      
-      // Fallback to direct fetch if invoke doesn't work (e.g., in dev environment)
-      const webhookUrl = getVapiWebhookUrl();
-      console.log("Calling webhook URL:", webhookUrl);
-      
-      const response = await fetch(webhookUrl, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`
-        },
-        body: JSON.stringify(payload),
-      });
-      
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error(`HTTP error! Status: ${response.status}`, errorText);
-        throw new Error(`HTTP error! status: ${response.status}, details: ${errorText}`);
-      }
-      
-      // Parse the response as text first to handle potential JSON parse errors
-      const responseText = await response.text();
-      let responseData;
-      try {
-        responseData = responseText ? JSON.parse(responseText) : { message: "Empty response" };
-      } catch (e) {
-        console.warn("Failed to parse JSON response:", e);
-        responseData = { message: responseText };
-      }
-      
-      console.log("Webhook response data:", responseData);
+    // Call the edge function directly via supabase.functions.invoke
+    const { data, error } = await supabase.functions.invoke("vapi-webhook", {
+      body: payload
+    });
+    
+    if (error) {
+      console.error("Error invoking webhook function:", error);
       return {
-        success: true,
-        data: responseData
+        success: false,
+        error: error.message || "Failed to process call"
       };
     }
+    
+    console.log("Webhook response:", data);
+    return {
+      success: true,
+      data: data
+    };
   } catch (error: any) {
     console.error("Error triggering manual webhook:", error);
     return {
@@ -124,18 +91,31 @@ export async function triggerManualWebhookProcessing(callId: string): Promise<{s
 export async function testWebhookConnection(): Promise<{success: boolean, message: string}> {
   try {
     console.log("Testing webhook connection...");
-    const result = await triggerManualWebhookProcessing("test-connection");
     
-    if (result.success) {
-      console.log("Webhook connection test result:", result);
-      return { success: true, message: "Webhook connection successful" };
-    } else {
-      console.error("Webhook connection test failed:", result.error);
-      return { success: false, message: result.error || "Unknown error" };
+    // Send a test connection request to the webhook
+    const { data, error } = await supabase.functions.invoke("vapi-webhook", {
+      body: { call_id: "test-connection" }
+    });
+    
+    if (error) {
+      console.error("Webhook connection test failed:", error);
+      return { 
+        success: false, 
+        message: error.message || "Connection test failed" 
+      };
     }
+    
+    console.log("Webhook connection test result:", data);
+    return { 
+      success: true, 
+      message: "Webhook connection successful" 
+    };
   } catch (error: any) {
     console.error("Error testing webhook connection:", error);
-    return { success: false, message: error.message || "Connection test failed" };
+    return { 
+      success: false, 
+      message: error.message || "Connection test failed" 
+    };
   }
 }
 
