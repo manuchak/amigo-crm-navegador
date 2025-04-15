@@ -1,20 +1,5 @@
 
 project_id = "beefjsdgrdeiymzxwxru"
 
-[functions.leads-webhook]
-verify_jwt = false
-
-[functions.fetch-vapi-logs]
-verify_jwt = false
-
-[functions.store-vapi-key]
-verify_jwt = true
-
-[functions.test-vapi-connection]
-verify_jwt = false
-
-[functions.initiate-vapi-call]
-verify_jwt = true
-
 [functions.vapi-webhook]
 verify_jwt = false
