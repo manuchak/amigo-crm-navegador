@@ -103,15 +103,19 @@ export async function storeValidatedLead(
   callData: any,
   supabase: SupabaseClient
 ) {
-  // Prepare data for validated_leads table
+  // Prepare data for validated_leads table - Fix: Use 'id' instead of 'lead_id'
   const validatedLeadData = {
-    lead_id: leadData?.id || null,
+    // Use 'id' column for the lead's ID since that's what's in the database schema
+    id: leadData?.id || null,
     car_brand: extractedInfo.car_brand || null,
     car_model: extractedInfo.car_model || null,
     car_year: extractedInfo.car_year || null,
     custodio_name: leadData?.nombre || extractedInfo.custodio_name || null,
     security_exp: leadData?.experienciaseguridad || extractedInfo.security_exp || null,
     sedena_id: extractedInfo.sedena_id || null,
+    // Add call_id if the column exists from previous migration
+    call_id: callData?.log_id || callData?.id || null,
+    // Add vapi_call_data if the column exists from previous migration
     vapi_call_data: callData
   };
 
