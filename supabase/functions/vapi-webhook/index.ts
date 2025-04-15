@@ -268,6 +268,7 @@ serve(async (req) => {
     const generatedCallId = callLogData?.id || callLogData?.log_id || `webhook-${new Date().getTime()}`;
 
     // Prepare data for validated_leads table
+    // Removing call_id to fix the schema mismatch error
     const validatedLeadData = {
       lead_id: leadData?.id || null,
       car_brand: extractedInfo.car_brand || null,
@@ -276,19 +277,15 @@ serve(async (req) => {
       custodio_name: leadData?.nombre || extractedInfo.custodio_name || null,
       security_exp: leadData?.experienciaseguridad || extractedInfo.security_exp || null,
       sedena_id: extractedInfo.sedena_id || null,
-      call_id: generatedCallId,
       vapi_call_data: callLogData || webhookData
     };
 
     console.log("Saving validated lead data:", JSON.stringify(validatedLeadData, null, 2));
 
-    // Save to validated_leads table
+    // Save to validated_leads table - not using call_id in the insertion
     const { data: insertData, error: insertError } = await supabase
       .from("validated_leads")
-      .upsert(
-        validatedLeadData, 
-        { onConflict: 'call_id', ignoreDuplicates: false }
-      )
+      .insert(validatedLeadData)
       .select();
 
     if (insertError) {
@@ -374,7 +371,7 @@ function extractPhoneNumber(data: any): string | null {
   return null;
 }
 
-// New helper function to extract assistant ID from various payload structures
+// Helper function to extract assistant ID from various payload structures
 function extractAssistantId(data: any): string | null {
   // Check direct assistant fields
   if (data.assistant_id) return data.assistant_id;
@@ -397,7 +394,7 @@ function extractAssistantId(data: any): string | null {
   return null;
 }
 
-// New helper function to extract organization ID from various payload structures
+// Helper function to extract organization ID from various payload structures
 function extractOrganizationId(data: any): string | null {
   // Check direct organization fields
   if (data.organization_id) return data.organization_id;
