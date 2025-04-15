@@ -64,9 +64,21 @@ export async function processWebhookData(
     // Find matching lead by phone number
     const leadData = await findLeadByPhoneNumber(phoneNumber, supabase);
 
-    // Extract information from transcript if available
-    const transcript = finalCallLogData?.transcript || webhookData.transcript;
-    const extractedInfo = extractInfoFromTranscript(transcript);
+    // Process the webhook data or transcript to extract information
+    let extractedInfo;
+    
+    // First try to extract from the direct webhook data
+    if (webhookData && typeof webhookData === 'object' && (webhookData.car_brand || webhookData.car_model || webhookData.lead_name)) {
+      console.log("Extracting info from direct webhook data");
+      extractedInfo = extractInfoFromTranscript(webhookData);
+    } else {
+      // Fall back to transcript if available
+      const transcript = finalCallLogData?.transcript || webhookData.transcript;
+      console.log("Extracting info from transcript");
+      extractedInfo = extractInfoFromTranscript(transcript);
+    }
+    
+    console.log("Extracted information:", JSON.stringify(extractedInfo, null, 2));
 
     // Create a generated ID for the validated_leads entry
     const generatedCallId = finalCallLogData?.id || finalCallLogData?.log_id || `webhook-${new Date().getTime()}`;
@@ -80,6 +92,7 @@ export async function processWebhookData(
     );
 
     if (validationResult.error) {
+      console.error("Error saving validated lead:", validationResult.error);
       return new Response(JSON.stringify({ 
         error: "Error saving validated lead", 
         details: validationResult.error 
@@ -268,8 +281,16 @@ async function storeValidatedLead(
   console.log("Saving validated lead data:", JSON.stringify(validatedLeadData, null, 2));
 
   // Save to validated_leads table
-  return await supabase
+  const result = await supabase
     .from("validated_leads")
     .insert(validatedLeadData)
     .select();
+    
+  if (result.error) {
+    console.error("Error inserting validated lead:", result.error);
+  } else {
+    console.log("Successfully inserted validated lead:", result.data);
+  }
+  
+  return result;
 }
