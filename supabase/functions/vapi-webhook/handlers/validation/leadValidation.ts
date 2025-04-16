@@ -20,6 +20,20 @@ export async function processLeadValidation(
     // Find matching lead by phone number
     const leadData = await findLeadByPhoneNumber(phoneNumber, supabase);
 
+    // Check if we have a valid lead ID, either from the found lead or in the webhook data
+    if (!leadData?.id && !webhookData?.leadId && !webhookData?.lead_id) {
+      console.error("No lead ID found in leadData or webhookData", { 
+        leadData, 
+        webhookData_leadId: webhookData?.leadId,
+        webhookData_lead_id: webhookData?.lead_id 
+      });
+      return {
+        success: false,
+        error: { message: "No lead ID could be found in the data" },
+        message: "Failed to process lead validation: missing lead ID"
+      };
+    }
+
     // Process the webhook data or transcript to extract information
     let extractedInfo;
     
@@ -36,10 +50,14 @@ export async function processLeadValidation(
     
     console.log("Extracted information:", JSON.stringify(extractedInfo, null, 2));
 
+    // Get lead ID from either the found lead or the webhook data
+    const effectiveLeadId = leadData?.id || webhookData?.leadId || webhookData?.lead_id;
+    console.log("Using lead ID:", effectiveLeadId);
+
     // Store lead validation data
     const validationResult = await storeValidatedLead(
-      leadData, 
-      extractedInfo, 
+      { id: effectiveLeadId, ...leadData }, // Ensure ID is always present
+      extractedInfo || {}, 
       callLogData || webhookData,
       supabase
     );
@@ -49,7 +67,7 @@ export async function processLeadValidation(
       data: validationResult.data,
       error: validationResult.error,
       validated_lead_id: validationResult.data?.[0]?.id,
-      linked_lead_id: leadData?.id,
+      linked_lead_id: leadData?.id || webhookData?.leadId || webhookData?.lead_id,
       extracted_info: extractedInfo
     };
   } catch (error) {
@@ -108,15 +126,33 @@ export async function storeValidatedLead(
   console.log("Extracted info:", JSON.stringify(extractedInfo, null, 2));
   console.log("Call data:", JSON.stringify(callData, null, 2));
   
-  // Ensure we have a valid id - this is critical since id field is NOT NULL
+  // Double-check for valid lead ID - this is critical since id field is NOT NULL
   if (!leadData?.id) {
-    console.warn("Warning: No lead ID found, cannot store validation data");
-    return { error: { message: "Missing required lead ID" }, data: null };
+    console.error("CRITICAL ERROR: No lead ID provided to storeValidatedLead function");
+    return { 
+      error: { message: "Missing required lead ID" }, 
+      data: null 
+    };
+  }
+  
+  // Ensure ID is numeric - database expects bigint for lead ID
+  let leadId: number;
+  try {
+    leadId = typeof leadData.id === 'string' ? parseInt(leadData.id, 10) : leadData.id;
+    if (isNaN(leadId)) {
+      throw new Error(`Invalid lead ID: ${leadData.id} (cannot convert to number)`);
+    }
+  } catch (error) {
+    console.error("Error converting lead ID to number:", error);
+    return { 
+      error: { message: `Invalid lead ID format: ${leadData.id}` }, 
+      data: null 
+    };
   }
   
   // Prepare data for validated_leads table - only include fields that exist in the table
   const validatedLeadData = {
-    id: leadData.id,
+    id: leadId, // Use the converted numeric ID
     car_brand: extractedInfo?.car_brand || null,
     car_model: extractedInfo?.car_model || null,
     car_year: extractedInfo?.car_year || null,
@@ -129,8 +165,9 @@ export async function storeValidatedLead(
 
   console.log("Saving validated lead data:", JSON.stringify(validatedLeadData, null, 2));
 
-  // Ensure we're not sending null for the primary key field
-  if (validatedLeadData.id === null) {
+  // Final validation check before insertion
+  if (validatedLeadData.id === null || validatedLeadData.id === undefined) {
+    console.error("VALIDATION FAILED: Still have null/undefined ID after all processing");
     return { 
       error: { message: "Cannot insert null value for primary key 'id'" }, 
       data: null 

@@ -16,6 +16,11 @@ export async function processWebhookData(
   try {
     console.log("Processing webhook data:", JSON.stringify(webhookData, null, 2));
 
+    // Extract lead ID from webhook data if present
+    if (webhookData.leadId || webhookData.lead_id) {
+      console.log("Lead ID found in webhook data:", webhookData.leadId || webhookData.lead_id);
+    }
+
     // Get or create the call log data
     const finalCallLogData = await getOrCreateCallLogData(webhookData, supabase);
     
