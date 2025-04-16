@@ -1,4 +1,3 @@
-
 import { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.38.4";
 import { extractInfoFromTranscript } from "../../utils/transcriptProcessor.ts";
 
@@ -103,7 +102,7 @@ export async function storeValidatedLead(
   callData: any,
   supabase: SupabaseClient
 ) {
-  // Prepare data for validated_leads table - Fix: Use 'id' instead of 'lead_id'
+  // Prepare data for validated_leads table
   const validatedLeadData = {
     // Use 'id' column for the lead's ID since that's what's in the database schema
     id: leadData?.id || null,
@@ -113,10 +112,9 @@ export async function storeValidatedLead(
     custodio_name: leadData?.nombre || extractedInfo.custodio_name || null,
     security_exp: leadData?.experienciaseguridad || extractedInfo.security_exp || null,
     sedena_id: extractedInfo.sedena_id || null,
-    // Add call_id if the column exists from previous migration
+    // Explicitly handle call_id and vapi_call_data
     call_id: callData?.log_id || callData?.id || null,
-    // Add vapi_call_data if the column exists from previous migration
-    vapi_call_data: callData
+    vapi_call_data: callData || null
   };
 
   console.log("Saving validated lead data:", JSON.stringify(validatedLeadData, null, 2));

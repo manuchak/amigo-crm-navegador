@@ -453,6 +453,7 @@ export type Database = {
       }
       validated_leads: {
         Row: {
+          call_id: string | null
           car_brand: string | null
           car_model: string | null
           car_year: number | null
@@ -461,8 +462,10 @@ export type Database = {
           id: number
           security_exp: string | null
           sedena_id: string | null
+          vapi_call_data: Json | null
         }
         Insert: {
+          call_id?: string | null
           car_brand?: string | null
           car_model?: string | null
           car_year?: number | null
@@ -471,8 +474,10 @@ export type Database = {
           id?: number
           security_exp?: string | null
           sedena_id?: string | null
+          vapi_call_data?: Json | null
         }
         Update: {
+          call_id?: string | null
           car_brand?: string | null
           car_model?: string | null
           car_year?: number | null
@@ -481,6 +486,7 @@ export type Database = {
           id?: number
           security_exp?: string | null
           sedena_id?: string | null
+          vapi_call_data?: Json | null
         }
         Relationships: []
       }
