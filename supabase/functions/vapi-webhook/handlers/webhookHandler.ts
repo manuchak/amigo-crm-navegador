@@ -19,6 +19,8 @@ export async function processWebhookData(
     // Extract lead ID from webhook data if present
     if (webhookData.leadId || webhookData.lead_id) {
       console.log("Lead ID found in webhook data:", webhookData.leadId || webhookData.lead_id);
+    } else {
+      console.warn("No lead ID found in webhook data - will attempt to match by phone number");
     }
 
     // Get or create the call log data
@@ -33,6 +35,23 @@ export async function processWebhookData(
 
     // Process lead validation
     const validationResult = await processLeadValidation(webhookData, finalCallLogData, supabase);
+
+    // Handle case where no lead ID was found but we still extracted information
+    if (validationResult.requires_lead_assignment) {
+      console.log("Webhook data processed but requires lead assignment");
+      return new Response(
+        JSON.stringify({
+          success: true,
+          message: "VAPI call data processed but requires lead assignment",
+          extracted_info: validationResult.extracted_info,
+          requires_lead_assignment: true
+        }),
+        {
+          status: 200,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
+    }
 
     if (validationResult.error) {
       console.error("Error in lead validation:", validationResult.error);

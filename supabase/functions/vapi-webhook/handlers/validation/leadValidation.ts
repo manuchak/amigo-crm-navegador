@@ -17,23 +17,21 @@ export async function processLeadValidation(
                        callLogData?.caller_phone_number || 
                        callLogData?.phone_number;
 
+    console.log("Attempting to find lead with phone number:", phoneNumber);
+    
     // Find matching lead by phone number
     const leadData = await findLeadByPhoneNumber(phoneNumber, supabase);
-
-    // Check if we have a valid lead ID, either from the found lead or in the webhook data
-    if (!leadData?.id && !webhookData?.leadId && !webhookData?.lead_id) {
-      console.error("No lead ID found in leadData or webhookData", { 
-        leadData, 
-        webhookData_leadId: webhookData?.leadId,
-        webhookData_lead_id: webhookData?.lead_id 
-      });
-      return {
-        success: false,
-        error: { message: "No lead ID could be found in the data" },
-        message: "Failed to process lead validation: missing lead ID"
-      };
+    
+    // Log the found lead data
+    if (leadData) {
+      console.log("Found lead by phone number:", JSON.stringify(leadData, null, 2));
+    } else {
+      console.log("No lead found by phone number:", phoneNumber);
     }
-
+    
+    // Check if we have any ID, either from the found lead or in the webhook data
+    const hasLeadId = leadData?.id || webhookData?.leadId || webhookData?.lead_id;
+    
     // Process the webhook data or transcript to extract information
     let extractedInfo;
     
@@ -49,6 +47,22 @@ export async function processLeadValidation(
     }
     
     console.log("Extracted information:", JSON.stringify(extractedInfo, null, 2));
+
+    // If no lead ID was found, we need to handle this special case
+    if (!hasLeadId) {
+      console.warn("No lead ID found in any data source - creating a temporary validation record");
+      
+      // We could create a new lead here, but for now let's just return the extracted info
+      return {
+        success: true,
+        error: null,
+        message: "No lead ID found, but information was extracted successfully",
+        validated_lead_id: null,
+        linked_lead_id: null,
+        extracted_info: extractedInfo,
+        requires_lead_assignment: true
+      };
+    }
 
     // Get lead ID from either the found lead or the webhook data
     const effectiveLeadId = leadData?.id || webhookData?.leadId || webhookData?.lead_id;
@@ -84,7 +98,10 @@ export async function processLeadValidation(
  * Find a lead by phone number
  */
 export async function findLeadByPhoneNumber(phoneNumber: string | null | undefined, supabase: SupabaseClient) {
-  if (!phoneNumber) return null;
+  if (!phoneNumber) {
+    console.log("No phone number provided to findLeadByPhoneNumber");
+    return null;
+  }
   
   // Format phone number for search (removing non-digits)
   const formattedPhone = phoneNumber.replace(/\D/g, '');
