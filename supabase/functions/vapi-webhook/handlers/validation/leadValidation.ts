@@ -127,6 +127,8 @@ export async function storeValidatedLead(
     
   if (result.error) {
     console.error("Error inserting validated lead:", result.error);
+    // Log the full error details for debugging
+    console.error("Validation Lead Data:", JSON.stringify(validatedLeadData, null, 2));
   } else {
     console.log("Successfully inserted validated lead:", result.data);
   }
