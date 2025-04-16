@@ -1,3 +1,4 @@
+
 import { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.38.4";
 import { extractInfoFromTranscript } from "../../utils/transcriptProcessor.ts";
 
@@ -102,22 +103,39 @@ export async function storeValidatedLead(
   callData: any,
   supabase: SupabaseClient
 ) {
-  // Prepare data for validated_leads table
+  // Detailed logging of all input data for debugging
+  console.log("Lead data:", JSON.stringify(leadData, null, 2));
+  console.log("Extracted info:", JSON.stringify(extractedInfo, null, 2));
+  console.log("Call data:", JSON.stringify(callData, null, 2));
+  
+  // Ensure we have a valid id - this is critical since id field is NOT NULL
+  if (!leadData?.id) {
+    console.warn("Warning: No lead ID found, cannot store validation data");
+    return { error: { message: "Missing required lead ID" }, data: null };
+  }
+  
+  // Prepare data for validated_leads table - only include fields that exist in the table
   const validatedLeadData = {
-    // Use 'id' column for the lead's ID since that's what's in the database schema
-    id: leadData?.id || null,
-    car_brand: extractedInfo.car_brand || null,
-    car_model: extractedInfo.car_model || null,
-    car_year: extractedInfo.car_year || null,
-    custodio_name: leadData?.nombre || extractedInfo.custodio_name || null,
-    security_exp: leadData?.experienciaseguridad || extractedInfo.security_exp || null,
-    sedena_id: extractedInfo.sedena_id || null,
-    // Explicitly handle call_id and vapi_call_data
+    id: leadData.id,
+    car_brand: extractedInfo?.car_brand || null,
+    car_model: extractedInfo?.car_model || null,
+    car_year: extractedInfo?.car_year || null,
+    custodio_name: leadData?.nombre || extractedInfo?.custodio_name || null,
+    security_exp: extractedInfo?.security_exp || null,
+    sedena_id: extractedInfo?.sedena_id || null,
     call_id: callData?.log_id || callData?.id || null,
     vapi_call_data: callData || null
   };
 
   console.log("Saving validated lead data:", JSON.stringify(validatedLeadData, null, 2));
+
+  // Ensure we're not sending null for the primary key field
+  if (validatedLeadData.id === null) {
+    return { 
+      error: { message: "Cannot insert null value for primary key 'id'" }, 
+      data: null 
+    };
+  }
 
   // Save to validated_leads table
   const result = await supabase
