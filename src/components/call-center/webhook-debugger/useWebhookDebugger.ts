@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from 'react';
-import { vapiWebhookUtils } from '@/hooks/lead-call-logs/vapiWebhookUtils';
+import { vapiWebhookUtils } from '@/hooks/lead-call-logs/webhook';
 import { toast } from 'sonner';
 
 const useWebhookDebugger = () => {

@@ -1,3 +1,3 @@
 
 export { useLeadCallLogs } from './useLeadCallLogs';
-export { vapiWebhookUtils } from './vapiWebhookUtils';
+export { vapiWebhookUtils } from './webhook';
