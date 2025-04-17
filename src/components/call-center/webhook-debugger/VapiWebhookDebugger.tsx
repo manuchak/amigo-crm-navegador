@@ -1,8 +1,7 @@
-
 import React from 'react';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Bug } from 'lucide-react';
-import { useWebhookDebugger } from './useWebhookDebugger';
+import useWebhookDebugger from './useWebhookDebugger';
 import WebhookUrlSection from './WebhookUrlSection';
 import TestConnectionSection from './TestConnectionSection';
 import ProcessCallSection from './ProcessCallSection';

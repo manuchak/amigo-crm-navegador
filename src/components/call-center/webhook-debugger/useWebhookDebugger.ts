@@ -1,9 +1,8 @@
-
 import { useState, useEffect } from 'react';
 import { vapiWebhookUtils } from '@/hooks/lead-call-logs/vapiWebhookUtils';
 import { toast } from 'sonner';
 
-export const useWebhookDebugger = () => {
+const useWebhookDebugger = () => {
   const [loading, setLoading] = useState(false);
   const [callId, setCallId] = useState('');
   const [testResult, setTestResult] = useState<any>(null);
@@ -11,7 +10,6 @@ export const useWebhookDebugger = () => {
   const [webhookUrl, setWebhookUrl] = useState<string>('');
   const [showApiKey, setShowApiKey] = useState<boolean>(true);
 
-  // Update webhook URL when showApiKey changes
   useEffect(() => {
     const url = vapiWebhookUtils.getVapiWebhookUrl(showApiKey);
     setWebhookUrl(url);
@@ -53,7 +51,6 @@ export const useWebhookDebugger = () => {
   };
 
   const handleProcessCall = async () => {
-    // Allow empty call ID for testing the new flexible webhook functionality
     if (!callId.trim()) {
       const confirmed = window.confirm('You are about to test the webhook with no call ID. This is useful for testing if VAPI sends data without a call ID. Continue?');
       if (!confirmed) return;
@@ -155,3 +152,5 @@ export const useWebhookDebugger = () => {
     toggleApiKey
   };
 };
+
+export default useWebhookDebugger;
