@@ -7,6 +7,7 @@ import WebhookUrlSection from './WebhookUrlSection';
 import TestConnectionSection from './TestConnectionSection';
 import ProcessCallSection from './ProcessCallSection';
 import ResultDisplay from './ResultDisplay';
+import TestDataSection from './TestDataSection';
 
 const VapiWebhookDebugger: React.FC = () => {
   const { 
@@ -19,6 +20,7 @@ const VapiWebhookDebugger: React.FC = () => {
     showApiKey,
     handleTestConnection, 
     handleProcessCall, 
+    handleSendTestData,
     copyWebhookUrl,
     toggleApiKey
   } = useWebhookDebugger();
@@ -52,6 +54,11 @@ const VapiWebhookDebugger: React.FC = () => {
           callId={callId}
           onCallIdChange={setCallId}
           onProcess={handleProcessCall}
+          loading={loading}
+        />
+        
+        <TestDataSection
+          onSendTestData={handleSendTestData}
           loading={loading}
         />
         

@@ -94,6 +94,42 @@ export const useWebhookDebugger = () => {
     }
   };
 
+  const handleSendTestData = async () => {
+    setLoading(true);
+    setTestResult(null);
+    setSuccess(null);
+    
+    try {
+      console.log("Sending test lead data to webhook");
+      const result = await vapiWebhookUtils.sendTestLeadData(showApiKey);
+      setSuccess(result.success);
+      
+      if (result.success) {
+        setTestResult(result.data);
+        toast.success('Test lead data processed successfully');
+      } else {
+        setTestResult({
+          error: result.error,
+          timestamp: new Date().toISOString(),
+          type: 'error',
+          apiKeyIncluded: showApiKey
+        });
+        toast.error(`Failed to process test data: ${result.error}`);
+      }
+    } catch (error: any) {
+      setSuccess(false);
+      setTestResult({
+        error: error.message,
+        timestamp: new Date().toISOString(),
+        type: 'error',
+        apiKeyIncluded: showApiKey
+      });
+      toast.error(`Error sending test data: ${error.message}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const copyWebhookUrl = () => {
     navigator.clipboard.writeText(webhookUrl)
       .then(() => toast.success('Webhook URL copied to clipboard'))
@@ -114,6 +150,7 @@ export const useWebhookDebugger = () => {
     showApiKey,
     handleTestConnection,
     handleProcessCall,
+    handleSendTestData,
     copyWebhookUrl,
     toggleApiKey
   };
