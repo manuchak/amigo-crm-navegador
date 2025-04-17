@@ -196,12 +196,18 @@ export async function sendTestLeadData(useApiKey: boolean = true): Promise<{succ
   try {
     console.log("Sending test lead data to webhook");
     
-    // Create a sample lead record with complete data
+    // Create a sample lead record with complete data that matches what VAPI would send
+    // This test data is designed to be recognized and processed by the webhook handler
     const sampleData = {
       lead_id: 999, // Use a test lead ID that won't conflict with real data
       leadId: 999,  // Include both formats to test both cases
       phone_number: "+5215512345678",
       customer_number: "+5215512345678",
+      car_brand: "Toyota", // Add direct vehicle information for testing
+      car_model: "Corolla",
+      car_year: 2018,
+      security_exp: true, // Add direct qualification information
+      sedena_id: true,
       transcript: [
         { role: "assistant", content: "Hello, is this Juan Pérez? I'm calling from Custodios about your job application." },
         { role: "user", content: "Yes, this is Juan. I'm interested in the security position." },
@@ -214,7 +220,8 @@ export async function sendTestLeadData(useApiKey: boolean = true): Promise<{succ
       ],
       call_id: `test-${Date.now()}`,
       test_data: true,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
+      custodio_name: "Juan Pérez Test" // Add a test name
     };
     
     if (useApiKey) {
@@ -232,6 +239,26 @@ export async function sendTestLeadData(useApiKey: boolean = true): Promise<{succ
       }
       
       console.log("Webhook response to test data:", data);
+      
+      // After successful request, check if data was saved in validated_leads
+      try {
+        const { data: validatedLead, error: fetchError } = await supabase
+          .from("validated_leads")
+          .select("*")
+          .eq("id", 999)
+          .maybeSingle();
+          
+        if (fetchError) {
+          console.error("Error fetching validated lead:", fetchError);
+        } else {
+          console.log("Validated lead record:", validatedLead);
+          // Include this data in the response
+          data.saved_record = validatedLead;
+        }
+      } catch (checkError) {
+        console.error("Error checking if data was saved:", checkError);
+      }
+      
       return {
         success: true,
         data: data

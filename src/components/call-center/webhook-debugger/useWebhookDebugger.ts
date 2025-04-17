@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { vapiWebhookUtils } from '@/hooks/lead-call-logs/vapiWebhookUtils';
 import { toast } from 'sonner';
@@ -103,7 +104,12 @@ const useWebhookDebugger = () => {
       
       if (result.success) {
         setTestResult(result.data);
-        toast.success('Test lead data processed successfully');
+        
+        if (result.data?.saved_record || (result.data?.data && result.data.data.saved_record)) {
+          toast.success('Test data successfully saved to validated_leads table');
+        } else {
+          toast.success('Test data processed, but validation record check was inconclusive');
+        }
       } else {
         setTestResult({
           error: result.error,

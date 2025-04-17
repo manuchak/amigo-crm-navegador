@@ -2,7 +2,7 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Database } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 
 interface TestDataSectionProps {
@@ -26,12 +26,12 @@ const TestDataSection: React.FC<TestDataSectionProps> = ({
             className="w-full"
             variant="outline"
           >
-            {loading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
-            Send Sample Lead Data
+            {loading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Database className="h-4 w-4 mr-2" />}
+            Send Test Data to Validated Leads
           </Button>
         </div>
         <p className="text-xs text-muted-foreground">
-          Send a sample lead with complete data to test the full validation workflow
+          Send a complete test lead to validate data storage in the validated_leads table
         </p>
       </div>
     </>
