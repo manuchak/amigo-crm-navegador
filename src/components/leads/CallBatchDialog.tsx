@@ -1,13 +1,11 @@
 import React, { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from "@/components/ui/select";
 import { Loader2 } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
-import LeadFilterPanel from "./LeadFilterPanel";
+import LeadFilterSection from "./LeadFilterSection";
 import LeadListPanel from "./LeadListPanel";
-import VehicleYearFilter from "./VehicleYearFilter";
 
 type Lead = {
   id: number;
@@ -15,9 +13,9 @@ type Lead = {
   telefono?: string;
   contacto?: string;
   estado: string;
-  modelovehiculo?: string | null;      // added for filtering
-  credencialsedena?: string | null;    // added for filtering
-  anovehiculo?: string | null;         // added for filtering
+  modelovehiculo?: string | null;
+  credencialsedena?: string | null;
+  anovehiculo?: string | null;
 };
 
 interface CallBatchDialogProps {
@@ -65,25 +63,25 @@ const CallBatchDialog: React.FC<CallBatchDialogProps> = ({
     if (
       Array.isArray(extraFilters.selectedYears) && extraFilters.selectedYears.length > 0
     ) {
-      if (!lVehicleYear || !extraFilters.selectedYears.includes(lVehicleYear)) return false;
+      if (l.modelovehiculo && !extraFilters.selectedYears.includes(lVehicleYear!)) return false;
     } else if (
       typeof extraFilters.fromYear === "number" &&
       typeof extraFilters.toYear === "number"
     ) {
-      if (!lVehicleYear || lVehicleYear < extraFilters.fromYear || lVehicleYear > extraFilters.toYear)
-        return false;
-    } else {
-      if (!lVehicleYear || lVehicleYear < carMinYear || lVehicleYear > carMaxYear)
+      if (l.modelovehiculo && (lVehicleYear! < extraFilters.fromYear || lVehicleYear! > extraFilters.toYear))
         return false;
     }
 
-    if (extraFilters.hasSedenaId === "yes" && l.credencialsedena !== "sí" && l.credencialsedena !== "sí ") return false;
-    if (extraFilters.hasSedenaId === "no" && (l.credencialsedena === "sí" || l.credencialsedena === "sí ")) return false;
+    if (extraFilters.hasSedenaId === "yes" && l.credencialsedena !== null && l.credencialsedena !== undefined && l.credencialsedena.trim().toLowerCase() !== "sí") return false;
+    if (extraFilters.hasSedenaId === "no" && l.credencialsedena !== null && l.credencialsedena !== undefined && l.credencialsedena.trim().toLowerCase() === "sí") return false;
 
-    if (extraFilters.carType && `${l.anovehiculo || ""}` !== extraFilters.carType) return false;
-    if (extraFilters.carType && extraFilters.carType === "Hatchback" && !(l.modelovehiculo || "").toLowerCase().includes("hatchback")) return false;
-    if (extraFilters.carType && extraFilters.carType !== "Hatchback" && (l.modelovehiculo || "").toLowerCase().includes("hatchback")) return false;
-
+    if (extraFilters.carType && l.modelovehiculo) {
+      if (extraFilters.carType === "Hatchback") {
+        if (!l.modelovehiculo.toLowerCase().includes("hatchback")) return false;
+      } else {
+        if (l.modelovehiculo.toLowerCase().includes("hatchback")) return false;
+      }
+    }
     return true;
   });
 
@@ -179,34 +177,14 @@ const CallBatchDialog: React.FC<CallBatchDialogProps> = ({
             Filtra los custodios por estado y selecciona a quiénes llamar. Elige "Progresivo" para llamar uno por uno, o "Predictivo" para llamar según la probabilidad de contacto humano.
           </DialogDescription>
         </DialogHeader>
-
-        <div className="relative z-50">
-          <LeadFilterPanel
-            carMinYear={carMinYear}
-            carMaxYear={carMaxYear}
-            extraFilters={extraFilters}
-            setExtraFilters={setExtraFilters}
-          />
-        </div>
-
-        <div className="mb-2">
-          <Select value={selectedState} onValueChange={value => {
-            setSelectedState(value);
-            setSelectedLeads([]);
-          }}>
-            <SelectTrigger aria-label="Filtrar por estado">
-              <SelectValue placeholder="Selecciona estado del custodio" />
-            </SelectTrigger>
-            <SelectContent>
-              {estadosLead.map(estado => (
-                <SelectItem key={estado} value={estado}>
-                  {estado}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-
+        <LeadFilterSection
+          carMinYear={carMinYear}
+          carMaxYear={carMaxYear}
+          selectedState={selectedState}
+          setSelectedState={setSelectedState}
+          extraFilters={extraFilters}
+          setExtraFilters={setExtraFilters}
+        />
         <LeadListPanel
           filteredLeads={filteredLeads}
           selectedLeads={selectedLeads}
@@ -217,14 +195,12 @@ const CallBatchDialog: React.FC<CallBatchDialogProps> = ({
           selectAllVisible={selectAllVisible}
           isLeadCalificado={isLeadCalificado}
         />
-
         {isLoading && (
           <div className="mb-2">
             <Progress value={progress} />
             <div className="text-xs text-slate-500 mt-1 text-right">{progress}% completado</div>
           </div>
         )}
-
         <DialogFooter>
           <Button
             onClick={() => handleBatchCall("progressive")}

@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
 import { Button } from '@/components/ui/button';
@@ -40,7 +39,7 @@ export const VehicleYearFilter: React.FC<VehicleYearFilterProps> = ({
     label = `De ${draftFrom} a ${draftTo}`;
   }
 
-  // UI fixes: wider popover, higher z-index, bg-white for dropdowns, proper gap from status select
+  // UI fixes: wider popover, higher z-index, bg-white for dropdowns, proper gap from status select.
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
@@ -49,7 +48,7 @@ export const VehicleYearFilter: React.FC<VehicleYearFilterProps> = ({
           {open ? <ChevronUp className="ml-2 w-4 h-4" /> : <ChevronDown className="ml-2 w-4 h-4" />}
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="p-4 w-80 z-[99] bg-white" side="bottom" align="center" sideOffset={10}>
+      <PopoverContent className="p-4 w-80 z-[1002] bg-white shadow-xl" side="bottom" align="center" sideOffset={10}>
         <div className="flex gap-2 mb-2">
           <button
             className={`px-3 py-1 rounded text-xs font-semibold border transition-colors
@@ -70,7 +69,6 @@ export const VehicleYearFilter: React.FC<VehicleYearFilterProps> = ({
             Rango
           </button>
         </div>
-        {/* Multi-select mode */}
         {multiSelect ? (
           <div className="flex flex-wrap gap-2 mb-3">
             {years.map(y => (
@@ -147,7 +145,6 @@ export const VehicleYearFilter: React.FC<VehicleYearFilterProps> = ({
               if (multiSelect) {
                 onChange(draftYears, undefined, undefined);
               } else {
-                // ensure from <= to for consistency
                 const f = Math.min(draftFrom ?? maxYear, draftTo ?? minYear);
                 const t = Math.max(draftFrom ?? maxYear, draftTo ?? minYear);
                 onChange(
