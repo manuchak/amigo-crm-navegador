@@ -133,7 +133,7 @@ const LeadsDashboard = () => {
     }
   };
 
-  async function handleProgressiveBatchCall(leadIds: number[]) {
+  async function handleProgressiveBatchCall(leadIds: number[], onProgress?: (current: number, total: number) => void) {
     for (let i = 0; i < leadIds.length; i++) {
       const lead = leads.find(l => l.id === leadIds[i]);
       if (!lead) continue;
@@ -166,18 +166,19 @@ const LeadsDashboard = () => {
         timestamp: new Date().toISOString(),
         action: "outbound_call_batch_progressive"
       });
+      if (onProgress) onProgress(i + 1, leadIds.length);
       await new Promise(res => setTimeout(res, 800));
     }
     await refetchLeads();
   }
 
-  async function handlePredictiveBatchCall(leadIds: number[]) {
+  async function handlePredictiveBatchCall(leadIds: number[], onProgress?: (current: number, total: number) => void) {
     const sortedIds = [...leadIds].sort((a, b) => {
       const aLead = leads.find(l => l.id === a);
       const bLead = leads.find(l => l.id === b);
       return (new Date(aLead?.lastCallDate || 0).getTime() || 0) - (new Date(bLead?.lastCallDate || 0).getTime() || 0);
     });
-    await handleProgressiveBatchCall(sortedIds);
+    await handleProgressiveBatchCall(sortedIds, onProgress);
   }
 
   return (
