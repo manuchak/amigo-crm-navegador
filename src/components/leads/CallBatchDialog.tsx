@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -7,6 +6,7 @@ import { Loader2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
+import { YearMultiSelect } from "./YearMultiSelect";
 
 type Lead = {
   id: number;
@@ -35,7 +35,8 @@ interface ExtraLeadFilters {
 
 const estadosLead = ["Nuevo", "Contactado", "En progreso", "Calificado", "No calificado"];
 const carTypes = ["Hatchback", "Sedán", "SUV", "Pickup"];
-const carYears = Array.from({length: 25}, (_, i) => `${2000+i}`);
+const currentYear = new Date().getFullYear();
+const carYears = Array.from({ length: 25 }, (_, i) => `${currentYear - i}`);
 
 const CallBatchDialog: React.FC<CallBatchDialogProps> = ({
   open,
@@ -49,12 +50,11 @@ const CallBatchDialog: React.FC<CallBatchDialogProps> = ({
   const [selectedLeads, setSelectedLeads] = useState<number[]>([]);
   const [isLoading, setIsLoading] = useState<"progressive" | "predictive" | null>(null);
   const [progress, setProgress] = useState<number>(0);
-  const [extraFilters, setExtraFilters] = useState<ExtraLeadFilters>({});
+  const [extraFilters, setExtraFilters] = useState<ExtraLeadFilters & { carYears?: string[] }>({});
 
-  // FILTERED LEADS logic (with optional field checks)
   const filteredLeads = leads.filter(l => {
     if (l.estado !== selectedState) return false;
-    if (extraFilters.carYear && `${l.modelovehiculo || ""}` !== extraFilters.carYear) return false;
+    if (extraFilters.carYears && extraFilters.carYears.length > 0 && (!l.modelovehiculo || !extraFilters.carYears.includes(`${l.modelovehiculo}`))) return false;
     if (extraFilters.hasSedenaId === "yes" && l.credencialsedena !== "sí" && l.credencialsedena !== "sí ") return false;
     if (extraFilters.hasSedenaId === "no" && (l.credencialsedena === "sí" || l.credencialsedena === "sí ")) return false;
     if (extraFilters.carType && `${l.anovehiculo || ""}` !== extraFilters.carType) return false;
@@ -63,7 +63,6 @@ const CallBatchDialog: React.FC<CallBatchDialogProps> = ({
     return true;
   });
 
-  // Fix: All select logic
   const allFilteredIds = filteredLeads.map(l => l.id);
   const allSelected = allFilteredIds.length > 0 && allFilteredIds.every(id => selectedLeads.includes(id));
   const someSelected = allFilteredIds.some(id => selectedLeads.includes(id)) && !allSelected;
@@ -159,15 +158,12 @@ const CallBatchDialog: React.FC<CallBatchDialogProps> = ({
 
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mb-2">
           <div>
-            <label className="text-xs font-medium">Año vehículo</label>
-            <select
-              className="w-full rounded border px-2 py-1 text-xs"
-              value={extraFilters.carYear || ""}
-              onChange={e => setExtraFilters(f => ({ ...f, carYear: e.target.value || undefined }))}
-            >
-              <option value="">Todos</option>
-              {carYears.map(y => <option key={y} value={y}>{y}</option>)}
-            </select>
+            <label className="text-xs font-medium mb-1 block">Año vehículo</label>
+            <YearMultiSelect
+              years={carYears}
+              selectedYears={extraFilters.carYears || []}
+              onChange={years => setExtraFilters(f => ({ ...f, carYears: years.length ? years : undefined }))}
+            />
           </div>
           <div>
             <label className="text-xs font-medium">Credencial SEDENA</label>
@@ -295,5 +291,3 @@ const CallBatchDialog: React.FC<CallBatchDialogProps> = ({
 };
 
 export default CallBatchDialog;
-
-// ... file end ...
