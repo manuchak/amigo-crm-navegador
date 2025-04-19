@@ -8,6 +8,7 @@ import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
 import { YearMultiSelect } from "./YearMultiSelect";
 import { YearRangeSelect } from "./YearRangeSelect";
+import VehicleYearFilter from "./VehicleYearFilter";
 
 type Lead = {
   id: number;
@@ -34,6 +35,7 @@ interface ExtraLeadFilters {
   carType?: string;
   fromYear?: number;
   toYear?: number;
+  selectedYears?: number[];
 }
 
 const estadosLead = ["Nuevo", "Contactado", "En progreso", "Calificado", "No calificado"];
@@ -55,13 +57,17 @@ const CallBatchDialog: React.FC<CallBatchDialogProps> = ({
   const [selectedLeads, setSelectedLeads] = useState<number[]>([]);
   const [isLoading, setIsLoading] = useState<"progressive" | "predictive" | null>(null);
   const [progress, setProgress] = useState<number>(0);
-  const [extraFilters, setExtraFilters] = useState<ExtraLeadFilters & { fromYear?: number; toYear?: number }>({});
+  const [extraFilters, setExtraFilters] = useState<ExtraLeadFilters & { selectedYears?: number[]; fromYear?: number; toYear?: number }>({});
 
   const filteredLeads = leads.filter(l => {
     if (l.estado !== selectedState) return false;
 
-    const lVehicleYear = l.modelovehiculo ? parseInt(l.modelovehiculo, 10) : undefined;
+    const lVehicleYear = typeof l.modelovehiculo === "string" ? parseInt(l.modelovehiculo, 10) : undefined;
     if (
+      Array.isArray(extraFilters.selectedYears) && extraFilters.selectedYears.length > 0
+    ) {
+      if (!lVehicleYear || !extraFilters.selectedYears.includes(lVehicleYear)) return false;
+    } else if (
       typeof extraFilters.fromYear === "number" &&
       typeof extraFilters.toYear === "number"
     ) {
@@ -175,16 +181,18 @@ const CallBatchDialog: React.FC<CallBatchDialogProps> = ({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mb-2">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-3">
           <div>
             <label className="text-xs font-medium mb-1 block">Año vehículo</label>
-            <YearRangeSelect
+            <VehicleYearFilter
               minYear={carMinYear}
               maxYear={carMaxYear}
-              from={extraFilters.fromYear}
-              to={extraFilters.toYear}
-              onChange={(from, to) => setExtraFilters(f => ({
+              fromYear={extraFilters.fromYear}
+              toYear={extraFilters.toYear}
+              selectedYears={extraFilters.selectedYears}
+              onChange={(years, from, to) => setExtraFilters(f => ({
                 ...f,
+                selectedYears: years,
                 fromYear: from,
                 toYear: to
               }))}
@@ -193,7 +201,7 @@ const CallBatchDialog: React.FC<CallBatchDialogProps> = ({
           <div>
             <label className="text-xs font-medium">Credencial SEDENA</label>
             <select
-              className="w-full rounded border px-2 py-1 text-xs"
+              className="w-full rounded border px-2 py-1 text-xs bg-white"
               value={extraFilters.hasSedenaId || ""}
               onChange={e => setExtraFilters(f => ({ ...f, hasSedenaId: e.target.value || undefined }))}
             >
@@ -205,7 +213,7 @@ const CallBatchDialog: React.FC<CallBatchDialogProps> = ({
           <div>
             <label className="text-xs font-medium">Tipo de Auto</label>
             <select
-              className="w-full rounded border px-2 py-1 text-xs"
+              className="w-full rounded border px-2 py-1 text-xs bg-white"
               value={extraFilters.carType || ""}
               onChange={e => setExtraFilters(f => ({ ...f, carType: e.target.value || undefined }))}
             >
