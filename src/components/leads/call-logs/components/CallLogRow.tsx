@@ -3,39 +3,34 @@ import React from 'react';
 import { TableRow, TableCell } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { VapiCallLog } from '../../types';
-import { 
-  formatDateTime, 
-  formatDuration, 
-  getStatusBadge,
-  getBestPhoneNumber
-} from './CallLogUtils';
-import { FileText, Play, PhoneCall, ExternalLink } from 'lucide-react';
+import { formatDateTime, formatCallDuration, getBestPhoneNumber } from '@/components/shared/call-logs/utils';
+import { CallStatusBadge } from '@/components/shared/call-logs/CallStatusBadge';
+import { FileText, Play, PhoneCall } from 'lucide-react';
 
 interface CallLogRowProps {
   log: VapiCallLog;
   onViewTranscript?: (log: VapiCallLog) => void;
 }
 
-export const CallLogRow: React.FC<CallLogRowProps> = ({ 
+export const CallLogRow: React.FC<CallLogRowProps> = ({
   log,
   onViewTranscript
 }) => {
   const hasRecording = !!log.recording_url;
   const hasTranscript = !!log.transcript;
-  
+
   const handlePlayRecording = () => {
     if (log.recording_url) {
       window.open(log.recording_url, '_blank');
     }
   };
-  
+
   const handleViewTranscript = () => {
     if (onViewTranscript) {
       onViewTranscript(log);
     }
   };
 
-  // Get the best customer phone number
   const phoneNumber = getBestPhoneNumber(log);
 
   return (
@@ -44,7 +39,7 @@ export const CallLogRow: React.FC<CallLogRowProps> = ({
         {formatDateTime(log.start_time)}
       </TableCell>
       <TableCell>
-        {getStatusBadge(log.status)}
+        <CallStatusBadge status={log.status} />
       </TableCell>
       <TableCell className="whitespace-nowrap">
         <div className="flex items-center gap-1">
@@ -55,14 +50,14 @@ export const CallLogRow: React.FC<CallLogRowProps> = ({
         </div>
       </TableCell>
       <TableCell className="whitespace-nowrap text-xs">
-        {formatDuration(log.duration)}
+        {formatCallDuration(log.duration)}
       </TableCell>
       <TableCell>
         {hasRecording ? (
-          <Button 
-            variant="ghost" 
-            size="icon" 
-            onClick={handlePlayRecording} 
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={handlePlayRecording}
             title="Reproducir grabación"
             className="h-7 w-7"
           >
@@ -74,10 +69,10 @@ export const CallLogRow: React.FC<CallLogRowProps> = ({
       </TableCell>
       <TableCell>
         {hasTranscript ? (
-          <Button 
-            variant="ghost" 
-            size="icon" 
-            onClick={handleViewTranscript} 
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={handleViewTranscript}
             title="Ver transcripción"
             className="h-7 w-7"
           >

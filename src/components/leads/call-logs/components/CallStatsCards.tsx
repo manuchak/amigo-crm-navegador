@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { VapiCallLog } from '../../types';
-import { formatDuration } from './CallLogUtils';
+import { formatCallDuration } from '@/components/shared/call-logs/utils';
 
 interface CallStatsCardsProps {
   callLogs: VapiCallLog[];
@@ -21,7 +21,7 @@ export const CallStatsCards: React.FC<CallStatsCardsProps> = ({ callLogs }) => {
       <div className="border rounded-lg p-4 text-center">
         <h3 className="text-sm text-slate-500 mb-2">Tiempo total</h3>
         <p className="text-2xl font-semibold">
-          {formatDuration(
+          {formatCallDuration(
             callLogs.reduce((total, log) => total + (log.duration || 0), 0)
           )}
         </p>
