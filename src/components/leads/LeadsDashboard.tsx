@@ -12,6 +12,7 @@ import {
 } from './dashboard';
 import { incrementCallCount } from '@/services/leadService';
 import { useLeadCallLogs } from '@/hooks/lead-call-logs';
+import CallBatchDialog from './CallBatchDialog';
 
 const LeadsDashboard = () => {
   const { leads, updateLeadStatus, refetchLeads } = useLeads();
@@ -21,6 +22,7 @@ const LeadsDashboard = () => {
   const [selectedLeadId, setSelectedLeadId] = useState<number | null>(null);
   const [isCallLogOpen, setIsCallLogOpen] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [batchDialogOpen, setBatchDialogOpen] = useState(false);
   
   const selectedLead = leads.find(lead => lead.id === selectedLeadId);
   
@@ -130,10 +132,73 @@ const LeadsDashboard = () => {
     }
   };
 
+  async function handleProgressiveBatchCall(leadIds: number[]) {
+    for (let i = 0; i < leadIds.length; i++) {
+      const lead = leads.find(l => l.id === leadIds[i]);
+      if (!lead) continue;
+      let phoneNumber = lead.telefono || '';
+      if (!phoneNumber && lead.contacto && lead.contacto.includes('|')) {
+        const parts = lead.contacto.split('|');
+        phoneNumber = parts[1]?.trim();
+      }
+      await updateLeadStatus(lead.id, "Contacto Llamado");
+      try {
+        await incrementCallCount(lead.id);
+      } catch (error) {
+        console.error("Error incrementing call count:", error);
+      }
+      await executeWebhook({
+        telefono: phoneNumber,
+        id: lead.id,
+        nombre: lead.nombre,
+        empresa: lead.empresa,
+        contacto: lead.contacto,
+        estado: "Contacto Llamado",
+        fechaCreacion: lead.fechaCreacion,
+        email: lead.email,
+        tieneVehiculo: lead.tieneVehiculo,
+        experienciaSeguridad: lead.experienciaSeguridad,
+        esMilitar: lead.esMilitar,
+        callCount: (lead.callCount || 0) + 1,
+        lastCallDate: new Date().toISOString(),
+        valor: lead.valor,
+        timestamp: new Date().toISOString(),
+        action: "outbound_call_batch_progressive"
+      });
+      await new Promise(res => setTimeout(res, 800));
+    }
+    await refetchLeads();
+  }
+
+  async function handlePredictiveBatchCall(leadIds: number[]) {
+    const sortedIds = [...leadIds].sort((a, b) => {
+      const aLead = leads.find(l => l.id === a);
+      const bLead = leads.find(l => l.id === b);
+      return (new Date(aLead?.lastCallDate || 0).getTime() || 0) - (new Date(bLead?.lastCallDate || 0).getTime() || 0);
+    });
+    await handleProgressiveBatchCall(sortedIds);
+  }
+
   return (
     <div className="space-y-6">
-      <LeadStats stats={stats} />
-      
+      <div className="flex justify-between items-center">
+        <LeadStats stats={stats} />
+        <Button
+          size="sm"
+          variant="subtle"
+          onClick={() => setBatchDialogOpen(true)}
+          className="ml-2"
+        >
+          Llamadas Múltiples
+        </Button>
+      </div>
+      <CallBatchDialog
+        open={batchDialogOpen}
+        onOpenChange={setBatchDialogOpen}
+        leads={leads}
+        onProgressiveCall={handleProgressiveBatchCall}
+        onPredictiveCall={handlePredictiveBatchCall}
+      />
       <Card className="shadow-sm border-slate-100">
         <CardHeader>
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
