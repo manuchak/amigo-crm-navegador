@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -6,7 +5,7 @@ import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from "@
 import { Loader2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
-import { toast } from "@/hooks/use-toast";
+import { useToast } from "@/hooks/use-toast";
 
 type Lead = {
   id: number;
@@ -24,7 +23,15 @@ interface CallBatchDialogProps {
   onPredictiveCall: (selectedLeadIds: number[], onProgress?: (current: number, total: number) => void) => Promise<void>;
 }
 
+interface ExtraLeadFilters {
+  carYear?: string;
+  hasSedenaId?: string;
+  carType?: string;
+}
+
 const estadosLead = ["Nuevo", "Contactado", "En progreso", "Calificado", "No calificado"];
+const carTypes = ["Hatchback", "Sedán", "SUV", "Pickup"];
+const carYears = Array.from({length: 25}, (_, i) => `${2000+i}`);
 
 const CallBatchDialog: React.FC<CallBatchDialogProps> = ({
   open,
@@ -33,18 +40,23 @@ const CallBatchDialog: React.FC<CallBatchDialogProps> = ({
   onProgressiveCall,
   onPredictiveCall
 }) => {
+  const { toast } = useToast();
   const [selectedState, setSelectedState] = useState<string>("Nuevo");
   const [selectedLeads, setSelectedLeads] = useState<number[]>([]);
   const [isLoading, setIsLoading] = useState<"progressive" | "predictive" | null>(null);
   const [progress, setProgress] = useState<number>(0);
+  const [extraFilters, setExtraFilters] = useState<ExtraLeadFilters>({});
 
-  // Get leads for selected estado
-  const filteredLeads = leads.filter(l => l.estado === selectedState);
-
-  // Select all logic
-  const selectAllVisible = filteredLeads.length > 0;
-  const allSelected = filteredLeads.length > 0 && filteredLeads.every(l => selectedLeads.includes(l.id));
-  const someSelected = filteredLeads.some(l => selectedLeads.includes(l.id));
+  const filteredLeads = leads.filter(l => {
+    if (l.estado !== selectedState) return false;
+    if (extraFilters.carYear && `${l.modelovehiculo || ""}` !== extraFilters.carYear) return false;
+    if (extraFilters.hasSedenaId === "yes" && l.credencialsedena !== "sí" && l.credencialsedena !== "sí ") return false;
+    if (extraFilters.hasSedenaId === "no" && (l.credencialsedena === "sí" || l.credencialsedena === "sí ")) return false;
+    if (extraFilters.carType && `${l.anovehiculo || ""}` !== extraFilters.carType) return false;
+    if (extraFilters.carType && extraFilters.carType === "Hatchback" && !(l.modelovehiculo || "").toLowerCase().includes("hatchback")) return false;
+    if (extraFilters.carType && extraFilters.carType !== "Hatchback" && (l.modelovehiculo || "").toLowerCase().includes("hatchback")) return false;
+    return true;
+  });
 
   const handleSelectAll = () => {
     if (allSelected) {
@@ -67,7 +79,6 @@ const CallBatchDialog: React.FC<CallBatchDialogProps> = ({
     );
   };
 
-  // Start batch - progressive or predictive
   const handleBatchCall = async (mode: "progressive" | "predictive") => {
     if (selectedLeads.length === 0) {
       toast({
@@ -79,8 +90,6 @@ const CallBatchDialog: React.FC<CallBatchDialogProps> = ({
     }
     setIsLoading(mode);
     setProgress(0);
-
-    // Progress updater: gets called after each call (by the parent if supported)
     const handleProgress = (current: number, total: number) => {
       setProgress(Math.round((current / total) * 100));
     };
@@ -98,7 +107,7 @@ const CallBatchDialog: React.FC<CallBatchDialogProps> = ({
         variant: "default"
       });
       onOpenChange(false);
-      setTimeout(() => setProgress(0), 400); // slightly delay reset for effect
+      setTimeout(() => setProgress(0), 400);
     } catch (err) {
       toast({
         title: "Error",
@@ -120,6 +129,15 @@ const CallBatchDialog: React.FC<CallBatchDialogProps> = ({
     onOpenChange(open);
   };
 
+  function isLeadCalificado(lead: any) {
+    const yearOk = lead.modelovehiculo && carYears.includes(`${lead.modelovehiculo}`);
+    const sedenaOk = lead.credencialsedena === "sí" || lead.credencialsedena === "sí ";
+    const hatchOk =
+      lead.modelovehiculo && (lead.modelovehiculo.toLowerCase().includes("hatchback") ||
+      (extraFilters.carType === "Hatchback" && lead.modelovehiculo && lead.modelovehiculo.toLowerCase().includes("hatchback")));
+    return yearOk && sedenaOk && hatchOk;
+  }
+
   return (
     <Dialog open={open} onOpenChange={handleDialogClose}>
       <DialogContent className="max-w-md w-full">
@@ -129,11 +147,50 @@ const CallBatchDialog: React.FC<CallBatchDialogProps> = ({
             Filtra los custodios por estado y selecciona a quiénes llamar. Elige "Progresivo" para llamar uno por uno, o "Predictivo" para llamar según la probabilidad de contacto humano.
           </DialogDescription>
         </DialogHeader>
-        {/* Estado Filter */}
+
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mb-2">
+          <div>
+            <label className="text-xs font-medium">Año vehículo</label>
+            <select
+              className="w-full rounded border px-2 py-1 text-xs"
+              value={extraFilters.carYear || ""}
+              onChange={e => setExtraFilters(f => ({ ...f, carYear: e.target.value || undefined }))}
+            >
+              <option value="">Todos</option>
+              {carYears.map(y => <option key={y} value={y}>{y}</option>)}
+            </select>
+          </div>
+          <div>
+            <label className="text-xs font-medium">Credencial SEDENA</label>
+            <select
+              className="w-full rounded border px-2 py-1 text-xs"
+              value={extraFilters.hasSedenaId || ""}
+              onChange={e => setExtraFilters(f => ({ ...f, hasSedenaId: e.target.value || undefined }))}
+            >
+              <option value="">Todos</option>
+              <option value="yes">Sí</option>
+              <option value="no">No</option>
+            </select>
+          </div>
+          <div>
+            <label className="text-xs font-medium">Tipo de Auto</label>
+            <select
+              className="w-full rounded border px-2 py-1 text-xs"
+              value={extraFilters.carType || ""}
+              onChange={e => setExtraFilters(f => ({ ...f, carType: e.target.value || undefined }))}
+            >
+              <option value="">Todos</option>
+              <option value="Hatchback">Hatchback</option>
+              <option value="Sedán">Sedán</option>
+              <option value="SUV">SUV</option>
+              <option value="Pickup">Pickup</option>
+            </select>
+          </div>
+        </div>
+
         <div className="mb-2">
           <Select value={selectedState} onValueChange={value => {
             setSelectedState(value);
-            // Clear selection only for other states
             setSelectedLeads([]);
           }}>
             <SelectTrigger aria-label="Filtrar por estado">
@@ -148,7 +205,7 @@ const CallBatchDialog: React.FC<CallBatchDialogProps> = ({
             </SelectContent>
           </Select>
         </div>
-        {/* Select All & Counter */}
+
         <div className="flex items-center mb-2 gap-2">
           {selectAllVisible && (
             <input
@@ -171,30 +228,37 @@ const CallBatchDialog: React.FC<CallBatchDialogProps> = ({
             {selectedLeads.length} llamada{selectedLeads.length !== 1 && "s"} seleccionada{selectedLeads.length !== 1 && "s"}
           </span>
         </div>
-        {/* Leads List */}
+
         <div className="max-h-44 overflow-y-auto border rounded mb-2 p-2 bg-slate-50">
-          {filteredLeads.length === 0 && <p className="text-xs text-slate-400">No hay custodios para este estado.</p>}
-          {filteredLeads.map(lead => (
-            <div key={lead.id} className="flex items-center gap-2 py-1">
-              <input
-                type="checkbox"
-                checked={selectedLeads.includes(lead.id)}
-                onChange={() => handleSelectLead(lead.id)}
-                className="accent-primary"
-                id={`lead-${lead.id}`}
-              />
-              <label htmlFor={`lead-${lead.id}`} className="text-sm font-medium cursor-pointer">{lead.nombre}</label>
-              <span className="ml-auto text-xs text-slate-400">{lead.telefono || lead.contacto || "-"}</span>
-            </div>
-          ))}
+          {filteredLeads.length === 0 && <p className="text-xs text-slate-400">No hay custodios para este estado y filtro.</p>}
+          {filteredLeads.map(lead => {
+            const calificado = isLeadCalificado(lead);
+            return (
+              <div key={lead.id} className={`flex items-center gap-2 py-1 ${calificado ? "bg-green-50 border-green-300 border-l-4" : ""}`}>
+                <input
+                  type="checkbox"
+                  checked={selectedLeads.includes(lead.id)}
+                  onChange={() => handleSelectLead(lead.id)}
+                  className="accent-primary"
+                  id={`lead-${lead.id}`}
+                />
+                <label htmlFor={`lead-${lead.id}`} className="text-sm font-medium cursor-pointer">
+                  {lead.nombre}{" "}
+                  {calificado && <span className="ml-1 text-green-600 text-xs font-bold">Calificado</span>}
+                </label>
+                <span className="ml-auto text-xs text-slate-400">{lead.telefono || lead.contacto || "-"}</span>
+              </div>
+            );
+          })}
         </div>
-        {/* Progress bar */}
+
         {isLoading && (
           <div className="mb-2">
             <Progress value={progress} />
             <div className="text-xs text-slate-500 mt-1 text-right">{progress}% completado</div>
           </div>
         )}
+
         <DialogFooter>
           <Button
             onClick={() => handleBatchCall("progressive")}
