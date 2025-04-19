@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import LeadCreationForm from '@/components/leads/LeadCreationForm';
@@ -9,13 +8,13 @@ import { useLeads } from '@/context/LeadsContext';
 import { UserCheck, Package, Loader2 } from 'lucide-react';
 import QualifiedLeadsApproval from '@/components/leads/QualifiedLeadsApproval';
 import LeadsIntro from '@/components/leads/LeadsIntro';
+import LeadsCrmDashboard from '@/components/leads/LeadsCrmDashboard';
 
 const Leads = () => {
-  const [activeTab, setActiveTab] = useState("crear");
+  const [activeTab, setActiveTab] = useState("dashboard");
   const [showIntro, setShowIntro] = useState(true);
   const { leads, updateLeadStatus, loading, error, refetchLeads } = useLeads();
 
-  // Check if user has visited before
   useEffect(() => {
     const hasVisitedLeads = localStorage.getItem('hasVisitedLeads');
     if (hasVisitedLeads) {
@@ -66,45 +65,43 @@ const Leads = () => {
     <div className="container mx-auto px-6 py-16 bg-white">
       <div className="mb-6">
         <h1 className="text-2xl font-medium mb-1">Gestión de Custodios</h1>
-        <p className="text-slate-500 text-sm">Reclutamiento y seguimiento de custodios para servicios de seguridad</p>
+        <p className="text-slate-500 text-sm">
+          Reclutamiento y seguimiento de custodios para servicios de seguridad
+        </p>
       </div>
-      
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="mb-6 bg-slate-100 p-1 rounded-lg">
-          <TabsTrigger value="crear" className="rounded-md">Crear Lead</TabsTrigger>
+          <TabsTrigger value="dashboard" className="rounded-md font-semibold">Resumen CRM</TabsTrigger>
           <TabsTrigger value="seguimiento" className="rounded-md">Seguimiento</TabsTrigger>
+          <TabsTrigger value="clasificados" className="rounded-md">Leads clasificados</TabsTrigger>
           <TabsTrigger value="aprobacion" className="rounded-md">
             <UserCheck className="mr-1 h-4 w-4" />
             Aprobación
           </TabsTrigger>
           <TabsTrigger value="callcenter" className="rounded-md">Call Center</TabsTrigger>
-          <TabsTrigger value="suministros" className="rounded-md">
-            <Package className="mr-1 h-4 w-4" />
-            Suministros
-          </TabsTrigger>
         </TabsList>
-        
-        <TabsContent value="crear" className="mt-4">
-          <LeadCreationForm />
+
+        <TabsContent value="dashboard" className="mt-4">
+          <LeadsCrmDashboard />
         </TabsContent>
-        
+
         <TabsContent value="seguimiento" className="mt-4">
           <LeadsDashboard />
         </TabsContent>
-        
+
+        <TabsContent value="clasificados" className="mt-4">
+          <QualifiedLeadsApproval />
+        </TabsContent>
+
         <TabsContent value="aprobacion" className="mt-4">
           <QualifiedLeadsApproval />
         </TabsContent>
-        
+
         <TabsContent value="callcenter" className="mt-4">
-          <CallCenterTabs 
+          <CallCenterTabs
             leads={leads}
-            onUpdateLeadStatus={updateLeadStatus} 
+            onUpdateLeadStatus={updateLeadStatus}
           />
-        </TabsContent>
-        
-        <TabsContent value="suministros" className="mt-4">
-          <SupplyTeamDashboard />
         </TabsContent>
       </Tabs>
     </div>

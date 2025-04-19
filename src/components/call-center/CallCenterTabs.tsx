@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { PhoneCall, MessageSquare, Filter, Users, Settings, RefreshCw } from 'lucide-react';
@@ -14,23 +13,23 @@ interface CallCenterTabsProps {
   onUpdateLeadStatus: (leadId: number, newStatus: string) => void;
 }
 
-const CallCenterTabs: React.FC<CallCenterTabsProps> = ({ leads, onUpdateLeadStatus }) => {
+const CallCenterTabs = ({ leads, onUpdateLeadStatus }) => {
   const [activeTab, setActiveTab] = useState('dialer');
   const [vapiConfigured, setVapiConfigured] = useState<boolean | null>(null);
   const [refreshCallLogs, setRefreshCallLogs] = useState<number>(0);
   
-  // Function to update VAPI configuration status
   const handleVapiConfigUpdate = (isConfigured: boolean) => {
     setVapiConfigured(isConfigured);
   };
 
-  // Function to trigger a refresh of call logs
   const handleRefreshCallLogs = () => {
     setRefreshCallLogs(prev => prev + 1);
   };
 
+  const showVapiConfigTab = false;
+
   return (
-    <div className="space-y-4">
+    <div className="w-full">
       {vapiConfigured === false && activeTab !== 'vapi-config' && (
         <Alert variant="warning" className="bg-amber-50 border-amber-200">
           <AlertCircle className="h-4 w-4 text-amber-600" />
@@ -55,10 +54,6 @@ const CallCenterTabs: React.FC<CallCenterTabsProps> = ({ leads, onUpdateLeadStat
             <Users className="mr-1 h-4 w-4" />
             Leads Calificados
           </TabsTrigger>
-          <TabsTrigger value="vapi-config">
-            <Settings className="mr-1 h-4 w-4" />
-            Configuración API
-          </TabsTrigger>
         </TabsList>
         
         <TabsContent value="dialer" className="mt-4">
@@ -78,10 +73,6 @@ const CallCenterTabs: React.FC<CallCenterTabsProps> = ({ leads, onUpdateLeadStat
 
         <TabsContent value="qualified-leads" className="mt-4">
           <QualifiedLeadsPanel />
-        </TabsContent>
-
-        <TabsContent value="vapi-config" className="mt-4">
-          <VapiConfigPanel onConfigUpdate={handleVapiConfigUpdate} />
         </TabsContent>
       </Tabs>
     </div>
