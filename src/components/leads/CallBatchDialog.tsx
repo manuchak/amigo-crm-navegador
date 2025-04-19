@@ -3,11 +3,10 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Button } from "@/components/ui/button";
 import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from "@/components/ui/select";
 import { Loader2 } from "lucide-react";
-import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
-import { YearMultiSelect } from "./YearMultiSelect";
-import { YearRangeSelect } from "./YearRangeSelect";
+import LeadFilterPanel from "./LeadFilterPanel";
+import LeadListPanel from "./LeadListPanel";
 import VehicleYearFilter from "./VehicleYearFilter";
 
 type Lead = {
@@ -181,49 +180,13 @@ const CallBatchDialog: React.FC<CallBatchDialogProps> = ({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-3">
-          <div>
-            <label className="text-xs font-medium mb-1 block">Año vehículo</label>
-            <VehicleYearFilter
-              minYear={carMinYear}
-              maxYear={carMaxYear}
-              fromYear={extraFilters.fromYear}
-              toYear={extraFilters.toYear}
-              selectedYears={extraFilters.selectedYears}
-              onChange={(years, from, to) => setExtraFilters(f => ({
-                ...f,
-                selectedYears: years,
-                fromYear: from,
-                toYear: to
-              }))}
-            />
-          </div>
-          <div>
-            <label className="text-xs font-medium">Credencial SEDENA</label>
-            <select
-              className="w-full rounded border px-2 py-1 text-xs bg-white"
-              value={extraFilters.hasSedenaId || ""}
-              onChange={e => setExtraFilters(f => ({ ...f, hasSedenaId: e.target.value || undefined }))}
-            >
-              <option value="">Todos</option>
-              <option value="yes">Sí</option>
-              <option value="no">No</option>
-            </select>
-          </div>
-          <div>
-            <label className="text-xs font-medium">Tipo de Auto</label>
-            <select
-              className="w-full rounded border px-2 py-1 text-xs bg-white"
-              value={extraFilters.carType || ""}
-              onChange={e => setExtraFilters(f => ({ ...f, carType: e.target.value || undefined }))}
-            >
-              <option value="">Todos</option>
-              <option value="Hatchback">Hatchback</option>
-              <option value="Sedán">Sedán</option>
-              <option value="SUV">SUV</option>
-              <option value="Pickup">Pickup</option>
-            </select>
-          </div>
+        <div className="relative z-50">
+          <LeadFilterPanel
+            carMinYear={carMinYear}
+            carMaxYear={carMaxYear}
+            extraFilters={extraFilters}
+            setExtraFilters={setExtraFilters}
+          />
         </div>
 
         <div className="mb-2">
@@ -244,51 +207,16 @@ const CallBatchDialog: React.FC<CallBatchDialogProps> = ({
           </Select>
         </div>
 
-        <div className="flex items-center mb-2 gap-2">
-          {selectAllVisible && (
-            <input
-              type="checkbox"
-              className="accent-primary"
-              checked={allSelected}
-              ref={el => {
-                if (el) el.indeterminate = !allSelected && someSelected;
-              }}
-              onChange={handleSelectAll}
-              id="select-all-leads"
-            />
-          )}
-          {selectAllVisible && (
-            <label htmlFor="select-all-leads" className="text-sm font-medium cursor-pointer">
-              Seleccionar todos
-            </label>
-          )}
-          <span className="ml-auto text-xs bg-primary/10 text-primary px-2 py-1 rounded-full font-semibold">
-            {selectedLeads.length} llamada{selectedLeads.length !== 1 && "s"} seleccionada{selectedLeads.length !== 1 && "s"}
-          </span>
-        </div>
-
-        <div className="max-h-44 overflow-y-auto border rounded mb-2 p-2 bg-slate-50">
-          {filteredLeads.length === 0 && <p className="text-xs text-slate-400">No hay custodios para este estado y filtro.</p>}
-          {filteredLeads.map(lead => {
-            const calificado = isLeadCalificado(lead);
-            return (
-              <div key={lead.id} className={`flex items-center gap-2 py-1 ${calificado ? "bg-green-50 border-green-300 border-l-4" : ""}`}>
-                <input
-                  type="checkbox"
-                  checked={selectedLeads.includes(lead.id)}
-                  onChange={() => handleSelectLead(lead.id)}
-                  className="accent-primary"
-                  id={`lead-${lead.id}`}
-                />
-                <label htmlFor={`lead-${lead.id}`} className="text-sm font-medium cursor-pointer">
-                  {lead.nombre}{" "}
-                  {calificado && <span className="ml-1 text-green-600 text-xs font-bold">Calificado</span>}
-                </label>
-                <span className="ml-auto text-xs text-slate-400">{lead.telefono || lead.contacto || "-"}</span>
-              </div>
-            );
-          })}
-        </div>
+        <LeadListPanel
+          filteredLeads={filteredLeads}
+          selectedLeads={selectedLeads}
+          handleSelectLead={handleSelectLead}
+          allSelected={allSelected}
+          someSelected={someSelected}
+          handleSelectAll={handleSelectAll}
+          selectAllVisible={selectAllVisible}
+          isLeadCalificado={isLeadCalificado}
+        />
 
         {isLoading && (
           <div className="mb-2">
