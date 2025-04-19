@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -13,6 +14,9 @@ type Lead = {
   telefono?: string;
   contacto?: string;
   estado: string;
+  modelovehiculo?: string | null;      // added for filtering
+  credencialsedena?: string | null;    // added for filtering
+  anovehiculo?: string | null;         // added for filtering
 };
 
 interface CallBatchDialogProps {
@@ -47,6 +51,7 @@ const CallBatchDialog: React.FC<CallBatchDialogProps> = ({
   const [progress, setProgress] = useState<number>(0);
   const [extraFilters, setExtraFilters] = useState<ExtraLeadFilters>({});
 
+  // FILTERED LEADS logic (with optional field checks)
   const filteredLeads = leads.filter(l => {
     if (l.estado !== selectedState) return false;
     if (extraFilters.carYear && `${l.modelovehiculo || ""}` !== extraFilters.carYear) return false;
@@ -58,15 +63,19 @@ const CallBatchDialog: React.FC<CallBatchDialogProps> = ({
     return true;
   });
 
+  // Fix: All select logic
+  const allFilteredIds = filteredLeads.map(l => l.id);
+  const allSelected = allFilteredIds.length > 0 && allFilteredIds.every(id => selectedLeads.includes(id));
+  const someSelected = allFilteredIds.some(id => selectedLeads.includes(id)) && !allSelected;
+  const selectAllVisible = filteredLeads.length > 0;
+
   const handleSelectAll = () => {
     if (allSelected) {
-      setSelectedLeads(prev => prev.filter(id => !filteredLeads.map(l => l.id).includes(id)));
+      setSelectedLeads(prev => prev.filter(id => !allFilteredIds.includes(id)));
     } else {
       setSelectedLeads(prev => [
         ...prev,
-        ...filteredLeads
-          .filter(l => !prev.includes(l.id))
-          .map(l => l.id)
+        ...allFilteredIds.filter(id => !prev.includes(id))
       ]);
     }
   };
@@ -129,7 +138,7 @@ const CallBatchDialog: React.FC<CallBatchDialogProps> = ({
     onOpenChange(open);
   };
 
-  function isLeadCalificado(lead: any) {
+  function isLeadCalificado(lead: Lead) {
     const yearOk = lead.modelovehiculo && carYears.includes(`${lead.modelovehiculo}`);
     const sedenaOk = lead.credencialsedena === "sí" || lead.credencialsedena === "sí ";
     const hatchOk =
@@ -286,3 +295,5 @@ const CallBatchDialog: React.FC<CallBatchDialogProps> = ({
 };
 
 export default CallBatchDialog;
+
+// ... file end ...
