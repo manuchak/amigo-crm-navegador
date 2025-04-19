@@ -50,7 +50,11 @@ const CallBatchDialog: React.FC<CallBatchDialogProps> = ({
   // Start batch - progressive or predictive
   const handleBatchCall = async (mode: "progressive" | "predictive") => {
     if (selectedLeads.length === 0) {
-      toast.error("Selecciona al menos un custodio.");
+      toast({
+        title: "Error",
+        description: "Selecciona al menos un custodio.",
+        variant: "destructive"
+      });
       return;
     }
     setIsLoading(mode);
@@ -61,10 +65,18 @@ const CallBatchDialog: React.FC<CallBatchDialogProps> = ({
       } else {
         await onPredictiveCall(selectedLeads);
       }
-      toast.success("Llamadas enviadas correctamente.");
+      toast({
+        title: "Éxito",
+        description: "Llamadas enviadas correctamente.",
+        variant: "default"
+      });
       onOpenChange(false);
     } catch (err) {
-      toast.error("Error al realizar las llamadas.");
+      toast({
+        title: "Error",
+        description: "Error al realizar las llamadas.",
+        variant: "destructive"
+      });
     } finally {
       setIsLoading(null);
     }

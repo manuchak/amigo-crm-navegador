@@ -13,6 +13,7 @@ import {
 import { incrementCallCount } from '@/services/leadService';
 import { useLeadCallLogs } from '@/hooks/lead-call-logs';
 import CallBatchDialog from './CallBatchDialog';
+import { Button } from "@/components/ui/button";
 
 const LeadsDashboard = () => {
   const { leads, updateLeadStatus, refetchLeads } = useLeads();
