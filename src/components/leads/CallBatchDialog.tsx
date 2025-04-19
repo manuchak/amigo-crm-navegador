@@ -60,20 +60,24 @@ const CallBatchDialog: React.FC<CallBatchDialogProps> = ({
     if (l.estado !== selectedState) return false;
 
     const lVehicleYear = typeof l.modelovehiculo === "string" ? parseInt(l.modelovehiculo, 10) : undefined;
-    if (
-      Array.isArray(extraFilters.selectedYears) && extraFilters.selectedYears.length > 0
-    ) {
-      if (l.modelovehiculo && !extraFilters.selectedYears.includes(lVehicleYear!)) return false;
+
+    if ((Array.isArray(extraFilters.selectedYears) && extraFilters.selectedYears.length > 0) && l.modelovehiculo) {
+      if (!extraFilters.selectedYears.includes(lVehicleYear!)) return false;
     } else if (
       typeof extraFilters.fromYear === "number" &&
-      typeof extraFilters.toYear === "number"
+      typeof extraFilters.toYear === "number" &&
+      l.modelovehiculo
     ) {
-      if (l.modelovehiculo && (lVehicleYear! < extraFilters.fromYear || lVehicleYear! > extraFilters.toYear))
+      if (lVehicleYear! < extraFilters.fromYear || lVehicleYear! > extraFilters.toYear)
         return false;
     }
 
-    if (extraFilters.hasSedenaId === "yes" && l.credencialsedena !== null && l.credencialsedena !== undefined && l.credencialsedena.trim().toLowerCase() !== "sí") return false;
-    if (extraFilters.hasSedenaId === "no" && l.credencialsedena !== null && l.credencialsedena !== undefined && l.credencialsedena.trim().toLowerCase() === "sí") return false;
+    if (extraFilters.hasSedenaId === "yes" && l.credencialsedena !== null && l.credencialsedena !== undefined) {
+      if (l.credencialsedena.trim().toLowerCase() !== "sí") return false;
+    }
+    if (extraFilters.hasSedenaId === "no" && l.credencialsedena !== null && l.credencialsedena !== undefined) {
+      if (l.credencialsedena.trim().toLowerCase() === "sí") return false;
+    }
 
     if (extraFilters.carType && l.modelovehiculo) {
       if (extraFilters.carType === "Hatchback") {
@@ -82,6 +86,7 @@ const CallBatchDialog: React.FC<CallBatchDialogProps> = ({
         if (l.modelovehiculo.toLowerCase().includes("hatchback")) return false;
       }
     }
+
     return true;
   });
 

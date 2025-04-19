@@ -18,7 +18,7 @@ interface LeadFilterPanelProps {
   setExtraFilters: React.Dispatch<React.SetStateAction<ExtraLeadFilters>>;
 }
 
-// Previously used grid; now use row layout for less interference
+// Stacked vertical layout always for dialog usage
 const LeadFilterPanel: React.FC<LeadFilterPanelProps> = ({
   carMinYear,
   carMaxYear,
@@ -26,8 +26,8 @@ const LeadFilterPanel: React.FC<LeadFilterPanelProps> = ({
   setExtraFilters,
 }) => {
   return (
-    <div className="flex flex-col gap-3 sm:flex-row sm:gap-4 mb-2 z-50 relative">
-      <div className="w-full sm:max-w-[210px]">
+    <div className="flex flex-col gap-3 sm:gap-2">
+      <div className="w-full">
         <label className="text-xs font-medium mb-1 block">Año vehículo</label>
         <VehicleYearFilter
           minYear={carMinYear}
@@ -45,7 +45,7 @@ const LeadFilterPanel: React.FC<LeadFilterPanelProps> = ({
           }
         />
       </div>
-      <div className="w-full sm:max-w-[185px]">
+      <div className="w-full">
         <label className="text-xs font-medium">Credencial SEDENA</label>
         <select
           className="w-full rounded border px-2 py-1 text-xs bg-white"
@@ -62,7 +62,7 @@ const LeadFilterPanel: React.FC<LeadFilterPanelProps> = ({
           <option value="no">No</option>
         </select>
       </div>
-      <div className="w-full sm:max-w-[160px]">
+      <div className="w-full">
         <label className="text-xs font-medium">Tipo de Auto</label>
         <select
           className="w-full rounded border px-2 py-1 text-xs bg-white"

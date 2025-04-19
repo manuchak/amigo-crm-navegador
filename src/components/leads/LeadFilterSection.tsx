@@ -29,13 +29,14 @@ const LeadFilterSection: React.FC<LeadFilterSectionProps> = ({
   extraFilters,
   setExtraFilters,
 }) => {
+  // Layout: Lead status select at the top, other filters below, all stacked, responsive
   return (
-    <div className="mb-4">
-      <div className="flex flex-col gap-2 md:flex-row md:gap-6 md:items-end">
-        <div className="min-w-[180px]">
+    <div className="mb-4 w-full">
+      <div className="flex flex-col gap-3">
+        <div>
           <LeadStatusSelect value={selectedState} onChange={setSelectedState} />
         </div>
-        <div className="flex-1">
+        <div>
           <LeadFilterPanel
             carMinYear={carMinYear}
             carMaxYear={carMaxYear}
