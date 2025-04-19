@@ -3,7 +3,7 @@ import React from 'react';
 import { TableRow, TableCell } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { VapiCallLog } from '../../types';
-import { formatDateTime, formatCallDuration, getBestPhoneNumber } from '@/components/shared/call-logs/utils';
+import { formatCallDateTime, formatCallDuration, getBestPhoneNumber } from '@/components/shared/call-logs/utils';
 import { CallStatusBadge } from '@/components/shared/call-logs/CallStatusBadge';
 import { FileText, Play, PhoneCall } from 'lucide-react';
 
@@ -36,7 +36,7 @@ export const CallLogRow: React.FC<CallLogRowProps> = ({
   return (
     <TableRow>
       <TableCell className="font-mono text-xs whitespace-nowrap">
-        {formatDateTime(log.start_time)}
+        {formatCallDateTime(log.start_time)}
       </TableCell>
       <TableCell>
         <CallStatusBadge status={log.status} />
