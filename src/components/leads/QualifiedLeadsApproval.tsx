@@ -12,21 +12,36 @@ import { ValidationDialog } from './validation/ValidationDialog';
 import { ValidationStatsCards } from './validation/ValidationStatsCards';
 import { useValidation } from './validation/useValidation';
 
+// New: Add a "VAPI interview filter" UI options
+const VAPI_FILTER_OPTIONS = [
+  { value: 'todos', label: 'Todos' },
+  { value: 'con_vapi', label: 'Con entrevista VAPI' },
+  { value: 'sin_vapi', label: 'Sin entrevista VAPI' },
+];
+
 const QualifiedLeadsApproval = () => {
   const { leads, updateLeadStatus, refetchLeads } = useLeads();
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedLeadId, setSelectedLeadId] = useState<number | null>(null);
   const [isValidationOpen, setIsValidationOpen] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [vapiFilter, setVapiFilter] = useState("todos"); // New state for filter
   const { stats, statsLoading } = useValidation();
   
   // Filter only qualified leads
   const qualifiedLeads = leads.filter(lead => lead.estado === 'Calificado');
   
+  // Apply VAPI interview filter
+  const filteredByVapi = qualifiedLeads.filter(lead => {
+    if (vapiFilter === "todos") return true;
+    if (vapiFilter === "con_vapi") return (lead.callCount ?? 0) > 0;
+    if (vapiFilter === "sin_vapi") return !lead.callCount || lead.callCount === 0;
+    return true;
+  });
+
   // Apply search filter if any
-  const filteredLeads = qualifiedLeads.filter(lead => {
+  const filteredLeads = filteredByVapi.filter(lead => {
     if (!searchQuery) return true;
-    
     const searchLower = searchQuery.toLowerCase();
     return (
       lead.nombre.toLowerCase().includes(searchLower) || 
@@ -52,18 +67,12 @@ const QualifiedLeadsApproval = () => {
   
   const handleValidationComplete = (status: 'approved' | 'rejected') => {
     if (!selectedLeadId) return;
-    
-    // Update lead status based on validation result
     updateLeadStatus(
       selectedLeadId, 
       status === 'approved' ? 'Aprobado' : 'Rechazado'
     );
-    
-    // Close dialog
     setIsValidationOpen(false);
     setSelectedLeadId(null);
-    
-    // Show toast notification
     if (status === 'approved') {
       toast.success('Custodio aprobado correctamente');
     } else {
@@ -75,11 +84,9 @@ const QualifiedLeadsApproval = () => {
     setIsRefreshing(true);
     try {
       await refetchLeads();
-      // Fix: Remove the object literal and use just the string for toast
       toast.success("Datos actualizados");
     } catch (error) {
       console.error("Error refreshing data:", error);
-      // Fix: Remove the object literal and use just the string for toast
       toast.error("No se pudieron actualizar los datos");
     } finally {
       setIsRefreshing(false);
@@ -107,6 +114,20 @@ const QualifiedLeadsApproval = () => {
             </div>
             
             <div className="flex mt-4 md:mt-0 w-full md:w-auto space-x-2">
+              {/* VAPI Interview filter UI - simple select */}
+              <div className="relative w-full md:w-44">
+                <Filter className="absolute left-2 top-3 h-4 w-4 text-slate-400" />
+                <select
+                  className="pl-8 pr-4 py-2 rounded-md bg-white border border-slate-200 text-sm shadow-sm w-full"
+                  value={vapiFilter}
+                  onChange={(e) => setVapiFilter(e.target.value)}
+                >
+                  {VAPI_FILTER_OPTIONS.map(opt => (
+                    <option key={opt.value} value={opt.value}>{opt.label}</option>
+                  ))}
+                </select>
+              </div>
+              {/* Search box */}
               <div className="relative w-full md:w-64">
                 <Search className="absolute left-2 top-3 h-4 w-4 text-muted-foreground" />
                 <Input
@@ -224,3 +245,4 @@ const QualifiedLeadsApproval = () => {
 };
 
 export default QualifiedLeadsApproval;
+
