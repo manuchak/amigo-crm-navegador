@@ -1,10 +1,8 @@
-
 import React, { useMemo } from "react";
 import { useLeads } from "@/context/LeadsContext";
 import { BarChart, Bar, PieChart, Pie, Cell, Legend, Tooltip, ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid } from "recharts";
 import { CircleArrowUp, CircleArrowDown, TrendingUp, TrendingDown, Gauge, LayoutDashboard } from "lucide-react";
 
-// UI colors for funnel/pie/charts
 const COLORS = ["#8B5CF6", "#33C3F0", "#7E69AB", "#9b87f5", "#F59E42", "#38BDF8", "#FD6F3B"];
 
 const STAGES = [
@@ -37,16 +35,13 @@ const funnelColors = [
   "#7E69AB", // Rechazado
 ];
 
-// Get stage counts, conversion rates, and more
 function useFunnelStats(leads: any[]) {
-  // Lead count per funnel stage
   const byStage = STAGES.map((stage, idx) => ({
     ...stage,
     value: leads.filter(lead => (lead.estado || "Nuevo").toLowerCase() === stage.key.toLowerCase()).length,
     color: funnelColors[idx] || "#DDD",
   }));
 
-  // Conversion rates (between each consecutive stage)
   const conversions = byStage.map((s, idx, arr) => {
     if (idx === arr.length - 1 || arr[idx].value === 0) return null;
     const val = arr[idx + 1]
@@ -64,10 +59,7 @@ function useFunnelStats(leads: any[]) {
   }
 }
 
-// Helper for time-in-stage - mock as days for now
 function useTimeMetrics(leads: any[]) {
-  // Simulate some time-in-stage data, in a real app get from timestamps
-  // For demo: random days per stage
   return STAGES.map((stage, idx) => ({
     name: stage.label,
     avgDays: 1.5 + idx + Math.random(),
@@ -77,14 +69,11 @@ function useTimeMetrics(leads: any[]) {
 const pieColors = [ "#8B5CF6", "#33C3F0", "#9b87f5", "#F59E42" ];
 const statusTextColor = ["text-primary", "text-sky-500", "text-vivid-purple", "text-orange-400", "text-red-400", "text-secondary"];
 
-// --- Main component
 const LeadsCrmDashboard: React.FC = () => {
   const { leads } = useLeads();
 
-  // Funnel summary and breakdowns
   const funnel = useFunnelStats(leads);
 
-  // Calculate last 6 months lead onboarded/month (trend)
   const monthlyTrend = useMemo(() => {
     const months = Array.from({ length: 6 }, (_, i) => {
       const date = new Date();
@@ -114,7 +103,6 @@ const LeadsCrmDashboard: React.FC = () => {
     }));
   }, [leads]);
 
-  // Pie chart for car ownership breakdown (mock props that exist)
   const carTypes = [
     { name: "Con Vehículo", val: leads.filter(l => l.tieneVehiculo === "SI").length },
     { name: "Sin Vehículo", val: leads.filter(l => l.tieneVehiculo === "NO" || !l.tieneVehiculo).length },
@@ -122,7 +110,6 @@ const LeadsCrmDashboard: React.FC = () => {
     { name: "Sin Armamento", val: leads.filter(l => !l.empresa?.includes("armado")).length },
   ];
 
-  // Performance alerts mock - show pending approvals, bottlenecks, etc
   const fakeAlerts = [
     {
       title: "Muchos leads pendientes",
@@ -144,14 +131,10 @@ const LeadsCrmDashboard: React.FC = () => {
     },
   ];
 
-  // For bar chart: funnel values, for pie chart: car types
   return (
     <div className="flex flex-col lg:flex-row gap-8 py-6 px-2 w-full animate-fade-in">
-      {/* Main left: metrics and funnel */}
       <div className="flex-1 w-full flex flex-col gap-6">
-        {/* Funnel and KPIs */}
         <div className="flex flex-col md:flex-row gap-4 items-stretch w-full">
-          {/* KPI cards (stage by stage) */}
           <div className="flex gap-3 flex-1 flex-wrap min-w-[360px]">
             {funnel.byStage.slice(0, 4).map((stage, i) => (
               <div key={stage.key} className={metricCardClass}>
@@ -173,7 +156,6 @@ const LeadsCrmDashboard: React.FC = () => {
               </div>
             ))}
           </div>
-          {/* Middle: Funnel Chart */}
           <div className="bg-white border rounded-xl shadow flex flex-col px-4 py-4 min-w-[300px] w-[350px] max-w-[420px] items-center">
             <div className="font-semibold text-primary mb-2 flex gap-2 items-center">
               <Gauge className="w-5 h-5 text-primary" /> Embudo de lead
@@ -181,7 +163,11 @@ const LeadsCrmDashboard: React.FC = () => {
             <ResponsiveContainer width="100%" height={180}>
               <BarChart data={funnel.byStage}>
                 <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="label" />
+                <XAxis 
+                  dataKey="label" 
+                  tick={{ fontSize: 14, fontWeight: 500, fill: "#334155" }} 
+                  height={36}
+                />
                 <YAxis />
                 <Tooltip />
                 <Bar dataKey="value">
@@ -194,7 +180,6 @@ const LeadsCrmDashboard: React.FC = () => {
             <div className="text-xs text-slate-400 text-center mt-1">Visualiza cuántos leads hay en cada etapa</div>
           </div>
         </div>
-        {/* Trend Line: monthly summary */}
         <div className="bg-white border rounded-xl shadow px-6 py-5 w-full flex flex-col">
           <div className="flex gap-2 items-center mb-2">
             <LayoutDashboard className="w-4 h-4 text-secondary" />
@@ -202,7 +187,11 @@ const LeadsCrmDashboard: React.FC = () => {
           </div>
           <ResponsiveContainer width="100%" height={180}>
             <LineChart data={monthlyTrend}>
-              <XAxis dataKey="name" />
+              <XAxis 
+                dataKey="name" 
+                tick={{ fontSize: 14, fontWeight: 500, fill: "#334155" }} 
+                height={36}
+              />
               <YAxis />
               <Tooltip />
               <Legend />
@@ -211,7 +200,6 @@ const LeadsCrmDashboard: React.FC = () => {
             </LineChart>
           </ResponsiveContainer>
         </div>
-        {/* Category breakdowns (Ejemplo: Car types, armados, etc) */}
         <div className="flex flex-col md:flex-row gap-6 mt-1 w-full">
           <div className="flex-1 bg-white border rounded-xl shadow p-6 flex flex-col min-w-[280px] items-center">
             <div className="font-semibold mb-2">Distribución perfiles</div>
@@ -239,7 +227,11 @@ const LeadsCrmDashboard: React.FC = () => {
             <div className="font-semibold mb-2">Tiempo en cada etapa</div>
             <ResponsiveContainer width="98%" height={140}>
               <BarChart data={useTimeMetrics(leads)}>
-                <XAxis dataKey="name" />
+                <XAxis 
+                  dataKey="name" 
+                  tick={{ fontSize: 14, fontWeight: 500, fill: "#334155" }} 
+                  height={36}
+                />
                 <YAxis />
                 <Tooltip />
                 <Bar dataKey="avgDays" fill="#F59E42" />
@@ -248,9 +240,7 @@ const LeadsCrmDashboard: React.FC = () => {
           </div>
         </div>
       </div>
-      {/* Right sidebar: alerts and activity */}
       <div className="md:w-[350px] w-full max-w-full flex-shrink-0 flex flex-col gap-6">
-        {/* Alerts mock */}
         <div className="bg-white border rounded-xl shadow p-6 flex flex-col gap-4">
           <div className="font-semibold text-lg mb-2">Alertas & Recomendaciones</div>
           {fakeAlerts.map((alert, idx) => (
@@ -266,7 +256,6 @@ const LeadsCrmDashboard: React.FC = () => {
             </div>
           ))}
         </div>
-        {/* Recent added leads */}
         <div className="bg-white border rounded-xl shadow p-6 flex flex-col gap-3 mt-3">
           <div className="font-semibold text-lg mb-2 text-primary">Leads recientemente añadidos</div>
           {(leads.slice(0, 3)).map((lead, idx) => (
@@ -281,6 +270,5 @@ const LeadsCrmDashboard: React.FC = () => {
     </div>
   );
 };
-
 
 export default LeadsCrmDashboard;
