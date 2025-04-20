@@ -1,4 +1,3 @@
-
 import React, { useMemo } from "react";
 import { useLeads } from "@/context/LeadsContext";
 import MetricsCards from "./dashboard/crm/MetricsCards";
@@ -9,6 +8,7 @@ import StageTimeBarChart from "./dashboard/crm/StageTimeBarChart";
 import AlertsPanel from "./dashboard/crm/AlertsPanel";
 import RecentLeadsList from "./dashboard/crm/RecentLeadsList";
 import { useFunnelStats, getMonthlyTrend, STAGES } from "./dashboard/crm/crmUtils";
+import { fakeAlerts } from "./dashboard/crm/fakeAlerts";
 
 const LeadsCrmDashboard: React.FC = () => {
   const { leads } = useLeads();
@@ -19,26 +19,6 @@ const LeadsCrmDashboard: React.FC = () => {
     { name: "Sin Vehículo", val: leads.filter(l => l.tieneVehiculo === "NO" || !l.tieneVehiculo).length },
     { name: "Armados", val: leads.filter(l => l.empresa?.includes("armado")).length },
     { name: "Sin Armamento", val: leads.filter(l => !l.empresa?.includes("armado")).length },
-  ];
-  const fakeAlerts = [
-    {
-      title: "Muchos leads pendientes",
-      text: "Hay un alto número de leads en etapa 'Nuevo' sin contacto inicial.",
-      action: "Contactar",
-      severity: "high",
-    },
-    {
-      title: "Baja conversión",
-      text: "La tasa de conversión hacia 'Calificado' es menor al 20%.",
-      action: "Ver detalles",
-      severity: "medium",
-    },
-    {
-      title: "Aprobaciones pendientes",
-      text: "Hay 5 custodios en espera de aprobación.",
-      action: "Aprobar",
-      severity: "medium",
-    },
   ];
 
   return (
