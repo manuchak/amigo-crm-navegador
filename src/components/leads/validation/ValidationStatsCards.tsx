@@ -59,6 +59,7 @@ export const ValidationStatsCards: React.FC<ValidationStatsCardsProps> = ({ stat
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      {/* Custodios Validados Card */}
       <Card className="bg-white shadow-sm hover:shadow-md transition-shadow">
         <CardHeader className="pb-2">
           <CardTitle className="text-sm font-medium text-muted-foreground">Custodios Validados</CardTitle>
@@ -76,6 +77,7 @@ export const ValidationStatsCards: React.FC<ValidationStatsCardsProps> = ({ stat
         </CardContent>
       </Card>
 
+      {/* Time to Complete Validation Form Card */}
       <Card className="bg-white shadow-sm hover:shadow-md transition-shadow">
         <CardHeader className="pb-2">
           <CardTitle className="text-sm font-medium text-muted-foreground">Tiempo Promedio</CardTitle>
@@ -91,6 +93,7 @@ export const ValidationStatsCards: React.FC<ValidationStatsCardsProps> = ({ stat
         </CardContent>
       </Card>
 
+      {/* Call Quality Card */}
       <Card className="bg-white shadow-sm hover:shadow-md transition-shadow">
         <CardHeader className="pb-2">
           <CardTitle className="text-sm font-medium text-muted-foreground">Calidad de Llamada</CardTitle>
@@ -107,6 +110,7 @@ export const ValidationStatsCards: React.FC<ValidationStatsCardsProps> = ({ stat
         </CardContent>
       </Card>
 
+      {/* Communication Card */}
       <Card className="bg-white shadow-sm hover:shadow-md transition-shadow">
         <CardHeader className="pb-2">
           <CardTitle className="text-sm font-medium text-muted-foreground">Comunicación</CardTitle>
