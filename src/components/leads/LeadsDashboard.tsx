@@ -16,8 +16,10 @@ import { useLeadCallLogs } from '@/hooks/lead-call-logs';
 import CallBatchDialog from './CallBatchDialog';
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Plus } from "lucide-react";
+import { Plus, PhoneCall, Filter, RefreshCw } from "lucide-react";
 import LeadCreationForm from './LeadCreationForm';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Badge } from "@/components/ui/badge";
 
 const LeadsDashboard = () => {
   const { leads, updateLeadStatus, refetchLeads } = useLeads();
@@ -29,6 +31,8 @@ const LeadsDashboard = () => {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [batchDialogOpen, setBatchDialogOpen] = useState(false);
   const [createLeadOpen, setCreateLeadOpen] = useState(false);
+  const [filterExpanded, setFilterExpanded] = useState(false);
+  const [view, setView] = useState<"list" | "cards">("list");
   
   const selectedLead = leads.find(lead => lead.id === selectedLeadId);
   
@@ -56,6 +60,11 @@ const LeadsDashboard = () => {
     calificados: leads.filter(lead => lead.estado === "Calificado").length,
     rechazados: leads.filter(lead => lead.estado === "Rechazado").length,
   };
+
+  // Calculate batch-eligible leads (new leads with phone numbers)
+  const eligibleForBatch = leads.filter(
+    lead => lead.estado === "Nuevo" && lead.telefono
+  ).length;
   
   const handleCall = async (lead: any) => {
     try {
@@ -188,27 +197,57 @@ const LeadsDashboard = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <LeadStats stats={stats} />
-        <div className="flex space-x-2">
+      {/* Main Actions Panel */}
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white p-4 rounded-lg shadow-sm border border-slate-100">
+        <div>
+          <h2 className="text-lg font-semibold flex items-center gap-2">
+            <PhoneCall className="h-5 w-5 text-primary" />
+            Gestión de Llamadas
+          </h2>
+          <p className="text-sm text-slate-500">Organice y realice llamadas a sus custodios</p>
+        </div>
+        
+        <div className="flex flex-wrap gap-2 w-full md:w-auto">
           <Button
             size="sm"
             variant="default"
+            className="flex-1 md:flex-none shadow-sm flex items-center gap-2 font-medium"
+            onClick={() => setBatchDialogOpen(true)}
+          >
+            <PhoneCall className="h-4 w-4" />
+            Llamadas Múltiples
+            {eligibleForBatch > 0 && (
+              <Badge variant="secondary" className="ml-1 bg-white text-primary">
+                {eligibleForBatch}
+              </Badge>
+            )}
+          </Button>
+          
+          <Button
+            size="sm"
+            variant="outline"
             onClick={() => setCreateLeadOpen(true)}
-            className="flex items-center gap-1"
+            className="flex-1 md:flex-none flex items-center gap-2"
           >
             <Plus className="h-4 w-4" />
             Crear Lead
           </Button>
+          
           <Button
             size="sm"
-            variant="subtle"
-            onClick={() => setBatchDialogOpen(true)}
+            variant="ghost"
+            onClick={handleRefreshData}
+            disabled={isRefreshing}
+            className="flex items-center gap-1"
           >
-            Llamadas Múltiples
+            <RefreshCw className={`h-4 w-4 ${isRefreshing ? "animate-spin" : ""}`} />
+            {isRefreshing ? "Actualizando..." : "Actualizar"}
           </Button>
         </div>
       </div>
+      
+      {/* Stats Summary */}
+      <LeadStats stats={stats} />
       
       <Dialog open={createLeadOpen} onOpenChange={setCreateLeadOpen}>
         <DialogContent className="sm:max-w-[800px] max-h-[90vh] overflow-y-auto">
@@ -226,9 +265,11 @@ const LeadsDashboard = () => {
         onProgressiveCall={handleProgressiveBatchCall}
         onPredictiveCall={handlePredictiveBatchCall}
       />
+
+      {/* Leads Table Card with Tabs */}
       <Card className="shadow-sm border-slate-100">
-        <CardHeader>
-          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <CardHeader className="pb-0">
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-3">
             <div>
               <CardTitle className="text-lg">Lista de Custodios</CardTitle>
               <CardDescription className="text-sm text-slate-500">
@@ -236,19 +277,54 @@ const LeadsDashboard = () => {
               </CardDescription>
             </div>
             
-            <LeadFilters 
-              filter={filter} 
-              setFilter={setFilter} 
-              onRefresh={handleRefreshData}
-              isRefreshing={isRefreshing}
-            />
+            <div className="w-full md:w-auto flex flex-col md:flex-row gap-2 items-start md:items-center">
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                className="flex items-center gap-1"
+                onClick={() => setFilterExpanded(!filterExpanded)}
+              >
+                <Filter className="h-4 w-4" />
+                Filtros
+              </Button>
+              
+              {filterExpanded && (
+                <LeadFilters 
+                  filter={filter} 
+                  setFilter={setFilter} 
+                  onRefresh={handleRefreshData}
+                  isRefreshing={isRefreshing}
+                />
+              )}
+            </div>
           </div>
+
+          <Tabs defaultValue="list" className="mt-6">
+            <TabsList>
+              <TabsTrigger 
+                value="list" 
+                onClick={() => setView("list")}
+                className="text-sm"
+              >
+                Vista de tabla
+              </TabsTrigger>
+              <TabsTrigger 
+                value="cards" 
+                onClick={() => setView("cards")}
+                className="text-sm"
+              >
+                Vista de tarjetas
+              </TabsTrigger>
+            </TabsList>
+          </Tabs>
         </CardHeader>
-        <CardContent>
+
+        <CardContent className="pt-4">
           <LeadTable 
             leads={filteredLeads} 
             onCall={handleCall} 
-            onViewCallLogs={handleViewCallLogs} 
+            onViewCallLogs={handleViewCallLogs}
+            view={view}
           />
         </CardContent>
       </Card>

@@ -6,3 +6,4 @@ export { default as LeadCallCount } from './LeadCallCount';
 export { default as LeadTableHeader } from './LeadTableHeader';
 export { default as LeadTableRow } from './LeadTableRow';
 export { default as LeadTable } from './LeadTable';
+export { default as LeadCard } from './LeadCard';
