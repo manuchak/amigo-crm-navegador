@@ -634,6 +634,10 @@ export type Database = {
       }
     }
     Functions: {
+      deduplicate_leads: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
       get_qualified_leads_from_calls: {
         Args: Record<PropertyKey, never>
         Returns: {
@@ -652,6 +656,10 @@ export type Database = {
       has_role: {
         Args: { user_uid: string; required_role: string }
         Returns: boolean
+      }
+      invoke_deduplicate_function: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
       }
       update_user_role: {
         Args: { target_user_id: string; new_role: string }
