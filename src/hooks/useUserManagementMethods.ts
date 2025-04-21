@@ -5,8 +5,8 @@ import { SPECIAL_USERS } from './auth/constants';
 import {
   createUser,
   findUserByEmail,
-  updateUserRole,
-  getAllUsers,
+  updateUserRole as updateUserRoleInStorage,
+  getAllUsers as getAllUsersFromStorage,
   verifyUserEmail,
   setAsVerifiedOwner
 } from '@/utils/localAuthStorage';
@@ -21,7 +21,7 @@ export const useUserManagementMethods = (
     setLoading(true);
     try {
       // Update user role in local storage
-      updateUserRole(uid, role);
+      updateUserRoleInStorage(uid, role);
       
       toast.success('Rol de usuario actualizado con éxito');
       await refreshUserData();
@@ -36,8 +36,8 @@ export const useUserManagementMethods = (
   const getAllUsers = async (): Promise<UserData[]> => {
     setLoading(true);
     try {
-      // Get users from local storage
-      const users = getAllUsers();
+      // Get users from local storage using the renamed import
+      const users = getAllUsersFromStorage();
       return users;
     } catch (error) {
       console.error('Error getting all users:', error);
