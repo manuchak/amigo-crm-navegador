@@ -10,7 +10,7 @@ const generateLifetimeId = (): string => {
   return `CUS-${year}-${randomChars}`;
 };
 
-// Verify session is valid
+// Verify session is valid with improved role checking for owners
 const verifySession = async (): Promise<boolean> => {
   try {
     // Check if there's a valid Supabase session
@@ -37,6 +37,25 @@ const verifySession = async (): Promise<boolean> => {
     if (!userData?.user?.id) {
       console.error('User verification failed: No user data');
       return false;
+    }
+    
+    // Check user role if needed - owners should have all permissions
+    try {
+      const { data: roleData } = await supabase.rpc('get_user_role', { 
+        user_uid: userData.user.id 
+      });
+      
+      // Log role for debugging
+      console.log('User role from verification:', roleData);
+      
+      // If the user is an owner or admin, they should always pass verification
+      if (roleData === 'owner' || roleData === 'admin') {
+        console.log('User is owner/admin - permissions granted');
+        return true;
+      }
+    } catch (roleError) {
+      console.error('Role check error:', roleError);
+      // Even if role check fails, we still have a valid session, so continue
     }
     
     return true;

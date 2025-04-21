@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Check, X } from 'lucide-react';
@@ -19,6 +18,17 @@ export const TriStateField: React.FC<TriStateFieldProps> = ({
   onChange,
   disabled = false
 }) => {
+  // Ensure value is always a boolean or null, never undefined
+  const safeValue = value !== undefined ? value : null;
+  
+  const handleClick = (newValue: boolean | null) => {
+    if (disabled) return;
+    
+    // If clicking the same value that's already selected, clear it (set to null)
+    // Otherwise set to the new value
+    onChange(name, safeValue === newValue ? null : newValue);
+  };
+
   return (
     <div className="space-y-2">
       <label className="text-sm font-medium">{label}</label>
@@ -26,8 +36,8 @@ export const TriStateField: React.FC<TriStateFieldProps> = ({
         <Button
           type="button"
           size="sm"
-          variant={value === true ? "default" : "outline"}
-          onClick={() => onChange(name, value === true ? null : true)}
+          variant={safeValue === true ? "default" : "outline"}
+          onClick={() => handleClick(true)}
           aria-label={`${label} - Sí`}
           disabled={disabled}
         >
@@ -36,8 +46,8 @@ export const TriStateField: React.FC<TriStateFieldProps> = ({
         <Button
           type="button"
           size="sm"
-          variant={value === false ? "destructive" : "outline"}
-          onClick={() => onChange(name, value === false ? null : false)}
+          variant={safeValue === false ? "destructive" : "outline"}
+          onClick={() => handleClick(false)}
           aria-label={`${label} - No`}
           disabled={disabled}
         >

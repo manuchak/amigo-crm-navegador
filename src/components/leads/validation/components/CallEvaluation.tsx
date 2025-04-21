@@ -14,6 +14,11 @@ export const CallEvaluation: React.FC<CallEvaluationProps> = ({
   onInputChange,
   disabled = false
 }) => {
+  // Ensure consistent handling of null/undefined values
+  const getValue = (field: keyof ValidationFormData) => {
+    return formData[field] !== undefined ? formData[field] : null;
+  };
+
   return (
     <div className="space-y-4">
       <h3 className="text-lg font-semibold">Evaluación de Llamada</h3>
@@ -22,7 +27,7 @@ export const CallEvaluation: React.FC<CallEvaluationProps> = ({
         <RatingField 
           label="Calidad de la llamada" 
           name="call_quality_score"
-          value={formData.call_quality_score}
+          value={getValue('call_quality_score') as number | null}
           onChange={onInputChange}
           disabled={disabled}
         />
@@ -30,7 +35,7 @@ export const CallEvaluation: React.FC<CallEvaluationProps> = ({
         <RatingField 
           label="Comunicación" 
           name="communication_score"
-          value={formData.communication_score}
+          value={getValue('communication_score') as number | null}
           onChange={onInputChange}
           disabled={disabled}
         />
@@ -38,7 +43,7 @@ export const CallEvaluation: React.FC<CallEvaluationProps> = ({
         <RatingField 
           label="Confiabilidad" 
           name="reliability_score"
-          value={formData.reliability_score}
+          value={getValue('reliability_score') as number | null}
           onChange={onInputChange}
           disabled={disabled}
         />

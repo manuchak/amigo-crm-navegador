@@ -18,9 +18,12 @@ export const RatingField: React.FC<RatingFieldProps> = ({
   onChange,
   disabled = false
 }) => {
+  // Ensure value is always a number or null, never undefined
+  const safeValue = value !== undefined ? value : null;
+  
   const handleRatingClick = (rating: number) => {
     // If clicking the same rating that's already selected, clear it
-    if (value === rating) {
+    if (safeValue === rating) {
       onChange(name, null);
     } else {
       onChange(name, rating);
@@ -36,7 +39,7 @@ export const RatingField: React.FC<RatingFieldProps> = ({
             key={rating}
             type="button"
             size="sm"
-            variant={value === rating ? "default" : "outline"}
+            variant={safeValue === rating ? "default" : "outline"}
             onClick={() => handleRatingClick(rating)}
             className="w-9 h-9 p-0 rounded-full"
             aria-label={`Rating ${rating}`}

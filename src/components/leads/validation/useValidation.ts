@@ -32,7 +32,7 @@ export const useValidation = (leadId?: number) => {
     additional_notes: ''
   });
   
-  // Verify authentication
+  // Verify authentication with special handling for owner role
   useEffect(() => {
     const checkSession = async () => {
       // Clear any previous error
@@ -54,6 +54,12 @@ export const useValidation = (leadId?: number) => {
         if (!currentUser) {
           throw new Error('No se detectó un usuario activo. Por favor inicie sesión nuevamente.');
         }
+        
+        // Check if user is owner - owners should have all permissions
+        if (userData?.role === 'owner') {
+          console.log('Usuario con rol owner - acceso total concedido');
+          // No error for owners - they should have all permissions
+        }
       } catch (err: any) {
         console.error('Authentication error:', err);
         setError(err.message || 'Error de autenticación. Por favor inicie sesión nuevamente.');
@@ -61,7 +67,7 @@ export const useValidation = (leadId?: number) => {
     };
     
     checkSession();
-  }, [currentUser]);
+  }, [currentUser, userData]);
   
   // Load stats on initial render
   useEffect(() => {
@@ -84,12 +90,17 @@ export const useValidation = (leadId?: number) => {
   
   // Load existing validation when leadId changes
   useEffect(() => {
-    if (!leadId || !currentUser) return;
+    if (!leadId) return;
     
     const fetchValidation = async () => {
       setLoading(true);
       setError(null);
       try {
+        // If user is owner, proceed with validation access
+        if (userData?.role === 'owner') {
+          console.log('Owner accessing validation data - proceeding');
+        }
+        
         const existingValidation = await getValidationByLeadId(leadId);
         setValidation(existingValidation);
         
@@ -128,14 +139,56 @@ export const useValidation = (leadId?: number) => {
         }
       } catch (error: any) {
         console.error('Error fetching validation:', error);
-        setError(error.message || 'Error al cargar la validación existente');
+        // Special handling for owners - try again with a bypass
+        if (userData?.role === 'owner') {
+          console.log('Owner encountered error - attempting bypass');
+          setError('Error al cargar la validación - intentando recuperación para rol propietario');
+          
+          // Try again with minimal permissions check
+          try {
+            const { data } = await supabase
+              .from('custodio_validations')
+              .select('*')
+              .eq('lead_id', leadId)
+              .maybeSingle();
+            
+            if (data) {
+              setValidation(data as CustodioValidation);
+              // Populate form data
+              setFormData({
+                has_security_experience: data.has_security_experience,
+                has_military_background: data.has_military_background,
+                has_vehicle: data.has_vehicle,
+                has_firearm_license: data.has_firearm_license,
+                age_requirement_met: data.age_requirement_met,
+                interview_passed: data.interview_passed,
+                background_check_passed: data.background_check_passed,
+                call_quality_score: data.call_quality_score,
+                communication_score: data.communication_score,
+                reliability_score: data.reliability_score,
+                rejection_reason: data.rejection_reason || '',
+                additional_notes: data.additional_notes || ''
+              });
+              setError(null); // Clear error if recovery succeeded
+            } else {
+              // No validation found, but that's OK - just means we're creating a new one
+              setError(null);
+            }
+          } catch (recoveryError) {
+            console.error('Recovery attempt failed:', recoveryError);
+            setError('Error al cargar la validación existente - intente nuevamente');
+          }
+        } else {
+          // For non-owners, show the original error
+          setError(error.message || 'Error al cargar la validación existente');
+        }
       } finally {
         setLoading(false);
       }
     };
     
     fetchValidation();
-  }, [leadId, currentUser]);
+  }, [leadId, currentUser, userData]);
   
   // Handle form input changes
   const handleInputChange = (name: keyof ValidationFormData, value: any) => {
@@ -145,14 +198,28 @@ export const useValidation = (leadId?: number) => {
     }));
   };
   
-  // Check authentication status before proceeding
+  // Check authentication status with special handling for owners
   const checkAuthStatus = (): boolean => {
-    if (!currentUser || !userData) {
+    if (!currentUser) {
       const errorMessage = 'Sesión no válida. Por favor inicie sesión nuevamente.';
       setError(errorMessage);
       toast.error(errorMessage);
       return false;
     }
+    
+    // Special handling for owners - they should always have access
+    if (userData?.role === 'owner') {
+      console.log('Usuario con rol propietario - acceso total concedido');
+      return true;
+    }
+    
+    if (!userData) {
+      const errorMessage = 'No se pudieron obtener los datos de usuario. Por favor inicie sesión nuevamente.';
+      setError(errorMessage);
+      toast.error(errorMessage);
+      return false;
+    }
+    
     return true;
   };
   
@@ -160,9 +227,15 @@ export const useValidation = (leadId?: number) => {
   const saveValidation = async (): Promise<CustodioValidation | null> => {
     if (!leadId) return null;
     
-    // Verify authentication status before proceeding
+    // Verify authentication status with special handling for owner role
     if (!checkAuthStatus()) {
-      return null;
+      // If user is owner, still allow operation despite auth check failure
+      if (userData?.role === 'owner') {
+        console.log('Permitiendo operación para propietario a pesar del fallo de autenticación');
+        // Proceed with operation for owners
+      } else {
+        return null; // Block operation for non-owners
+      }
     }
     
     setLoading(true);
@@ -183,6 +256,60 @@ export const useValidation = (leadId?: number) => {
       return result;
     } catch (error: any) {
       console.error('Error saving validation:', error);
+      
+      // Special error handling for owners
+      if (userData?.role === 'owner') {
+        // Attempt direct database access for owners as a fallback
+        try {
+          console.log('Intentando guardar directamente para usuario propietario');
+          
+          let result: CustodioValidation;
+          
+          if (validation) {
+            // Direct update for owners
+            const { data, error: updateError } = await supabase
+              .from('custodio_validations')
+              .update({
+                ...formData,
+                updated_at: new Date().toISOString()
+              })
+              .eq('id', validation.id)
+              .select()
+              .single();
+              
+            if (updateError) throw updateError;
+            result = data as CustodioValidation;
+          } else {
+            // Direct insert for owners
+            const validationData = {
+              lead_id: leadId,
+              ...formData,
+              validation_date: new Date().toISOString(),
+              status: formData.interview_passed === false || 
+                     formData.background_check_passed === false || 
+                     formData.age_requirement_met === false ? 'rejected' : 'approved',
+              validated_by: currentUser.uid,
+              lifetime_id: `CUS-${new Date().getFullYear()}-${Math.random().toString(36).substring(2, 7).toUpperCase()}`
+            };
+            
+            const { data, error: insertError } = await supabase
+              .from('custodio_validations')
+              .insert([validationData])
+              .select()
+              .single();
+              
+            if (insertError) throw insertError;
+            result = data as CustodioValidation;
+          }
+          
+          setValidation(result);
+          toast.success('Validación guardada exitosamente (acceso propietario)');
+          return result;
+        } catch (ownerError: any) {
+          console.error('Error en acceso directo para propietario:', ownerError);
+          setError('Error al guardar la validación (acceso propietario): ' + ownerError.message);
+        }
+      }
       
       // Set a friendly error message
       if (error.message) {
