@@ -1,3 +1,4 @@
+
 import { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.38.4";
 import { extractInfoFromTranscript } from "../../utils/transcriptProcessor.ts";
 
@@ -37,7 +38,7 @@ export async function processLeadValidation(
     // First try to extract from the direct webhook data
     if (webhookData && typeof webhookData === 'object' && (webhookData.car_brand || webhookData.car_model || webhookData.lead_name)) {
       console.log("Extracting info from direct webhook data");
-      extractedInfo = extractInfoFromTranscript(webhookData);
+      extractedInfo = extractInfoFromDirectData(webhookData);
     } else {
       // Fall back to transcript if available
       const transcript = callLogData?.transcript || webhookData.transcript;
@@ -91,6 +92,21 @@ export async function processLeadValidation(
       message: "Failed to process lead validation"
     };
   }
+}
+
+/**
+ * Helper to extract information directly from webhook data
+ */
+function extractInfoFromDirectData(data: any) {
+  // Extract relevant fields from direct data
+  return {
+    car_brand: data.car_brand || data.carBrand || null,
+    car_model: data.car_model || data.carModel || null,
+    car_year: data.car_year || data.carYear || null,
+    custodio_name: data.custodio_name || data.lead_name || data.nombre || null,
+    security_exp: data.security_exp || data.security_experience || data.experienciaseguridad || null,
+    sedena_id: data.sedena_id || data.credencialsedena || null
+  };
 }
 
 /**
@@ -184,13 +200,6 @@ export async function storeValidatedLead(
     };
   }
   
-  // Boolean conversion helper
-  const convertToBoolean = (value: any): boolean | null => {
-    if (value === true || value === 'true' || value === 'yes' || value === 1) return true;
-    if (value === false || value === 'false' || value === 'no' || value === 0) return false;
-    return null;
-  };
-  
   // Prepare data for validated_leads table - only include fields that exist in the table
   const validatedLeadData = {
     id: leadId, // Use the validated numeric ID
@@ -198,8 +207,8 @@ export async function storeValidatedLead(
     car_model: extractedInfo?.car_model || null,
     car_year: extractedInfo?.car_year || null,
     custodio_name: leadData?.nombre || extractedInfo?.custodio_name || null,
-    security_exp: convertToBoolean(extractedInfo?.security_exp),
-    sedena_id: convertToBoolean(extractedInfo?.sedena_id),
+    security_exp: extractedInfo?.security_exp || null,
+    sedena_id: extractedInfo?.sedena_id || null,
     call_id: callData?.log_id || callData?.id || null,
     vapi_call_data: callData || null
   };

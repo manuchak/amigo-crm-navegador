@@ -28,6 +28,7 @@ export function extractPhoneNumber(data: any): string | null {
   if (data.phone_number) return data.phone_number;
   if (data.caller_phone_number) return data.caller_phone_number;
   if (data.customer_number) return data.customer_number;
+  if (data.telefono) return data.telefono;
   
   // Check nested structures
   if (data.call && data.call.phone_number) return data.call.phone_number;

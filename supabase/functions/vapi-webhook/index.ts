@@ -43,7 +43,7 @@ serve(async (req) => {
     console.log("Received VAPI webhook data:", JSON.stringify(webhookData, null, 2));
 
     // Check if this is a test connection
-    if (webhookData.call_id === "test-connection") {
+    if (webhookData.call_id === "test-connection" || webhookData.test === true) {
       return handleTestConnection(corsHeaders);
     }
 
