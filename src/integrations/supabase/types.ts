@@ -239,6 +239,36 @@ export type Database = {
         }
         Relationships: []
       }
+      role_permissions: {
+        Row: {
+          allowed: boolean
+          created_at: string | null
+          id: number
+          permission_id: string
+          permission_type: string
+          role: string
+          updated_at: string | null
+        }
+        Insert: {
+          allowed?: boolean
+          created_at?: string | null
+          id?: never
+          permission_id: string
+          permission_type: string
+          role: string
+          updated_at?: string | null
+        }
+        Update: {
+          allowed?: boolean
+          created_at?: string | null
+          id?: never
+          permission_id?: string
+          permission_type?: string
+          role?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       secrets: {
         Row: {
           created_at: string

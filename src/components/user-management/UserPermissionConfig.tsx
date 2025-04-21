@@ -130,6 +130,7 @@ const UserPermissionConfig: React.FC = () => {
   const loadPermissions = async () => {
     setLoading(true);
     try {
+      // Query the role_permissions table for all permissions
       const { data: permissionsData, error } = await supabase
         .from('role_permissions')
         .select('*');
