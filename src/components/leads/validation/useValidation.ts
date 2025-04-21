@@ -5,6 +5,7 @@ import { createValidation, updateValidation, getValidationByLeadId, getValidatio
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/context/AuthContext';
 import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
 
 export const useValidation = (leadId?: number) => {
   const [validation, setValidation] = useState<CustodioValidation | null>(null);
@@ -33,14 +34,33 @@ export const useValidation = (leadId?: number) => {
   
   // Verify authentication
   useEffect(() => {
-    // Clear any previous error
-    setError(null);
+    const checkSession = async () => {
+      // Clear any previous error
+      setError(null);
     
-    // Check if user is authenticated
-    if (!currentUser) {
-      setError('No se detectó una sesión activa. Por favor inicie sesión nuevamente para continuar.');
-      console.error('Authentication error: No active user session detected');
-    }
+      try {
+        // Check if there's a valid session
+        const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+        
+        if (sessionError) {
+          throw new Error('Error al verificar la sesión: ' + sessionError.message);
+        }
+        
+        if (!sessionData?.session) {
+          throw new Error('No se detectó una sesión activa. Por favor inicie sesión nuevamente.');
+        }
+        
+        // Check if we have a user
+        if (!currentUser) {
+          throw new Error('No se detectó un usuario activo. Por favor inicie sesión nuevamente.');
+        }
+      } catch (err: any) {
+        console.error('Authentication error:', err);
+        setError(err.message || 'Error de autenticación. Por favor inicie sesión nuevamente.');
+      }
+    };
+    
+    checkSession();
   }, [currentUser]);
   
   // Load stats on initial render
@@ -106,9 +126,9 @@ export const useValidation = (leadId?: number) => {
             additional_notes: ''
           });
         }
-      } catch (error) {
+      } catch (error: any) {
         console.error('Error fetching validation:', error);
-        setError('Error al cargar la validación existente');
+        setError(error.message || 'Error al cargar la validación existente');
       } finally {
         setLoading(false);
       }

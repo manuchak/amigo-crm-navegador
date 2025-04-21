@@ -37,6 +37,7 @@ export const ValidationDialog: React.FC<ValidationDialogProps> = ({
   const [activeTab, setActiveTab] = useState('form');
   const [hasTranscript, setHasTranscript] = useState(false);
   const [checkingTranscript, setCheckingTranscript] = useState(true);
+  const [transcriptError, setTranscriptError] = useState<string | null>(null);
   const { currentUser } = useAuth();
   
   const {
@@ -59,7 +60,14 @@ export const ValidationDialog: React.FC<ValidationDialogProps> = ({
       
       try {
         setCheckingTranscript(true);
+        setTranscriptError(null);
         
+        // Check for session validity first
+        const { data: session, error: sessionError } = await supabase.auth.getSession();
+        if (sessionError || !session.session) {
+          throw new Error('Sesión no válida para verificar transcripción. Por favor inicie sesión nuevamente.');
+        }
+
         const { count, error } = await supabase
           .from('vapi_call_logs')
           .select('id', { count: 'exact', head: true })
@@ -69,8 +77,9 @@ export const ValidationDialog: React.FC<ValidationDialogProps> = ({
         if (error) throw error;
         
         setHasTranscript(count ? count > 0 : false);
-      } catch (error) {
+      } catch (error: any) {
         console.error('Error checking transcript:', error);
+        setTranscriptError(error.message || 'Error al verificar la transcripción');
         setHasTranscript(false);
       } finally {
         setCheckingTranscript(false);
@@ -131,6 +140,13 @@ export const ValidationDialog: React.FC<ValidationDialogProps> = ({
                 {!hasTranscript && <span className="ml-2 text-xs">(No disponible)</span>}
               </TabsTrigger>
             </TabsList>
+            
+            {transcriptError && (
+              <Alert variant="warning" className="mb-4">
+                <AlertTriangle className="h-4 w-4" />
+                <AlertDescription>{transcriptError}</AlertDescription>
+              </Alert>
+            )}
             
             <TabsContent value="form" className="mt-0">
               <ValidationForm

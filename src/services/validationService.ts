@@ -16,16 +16,26 @@ const verifySession = async (): Promise<boolean> => {
     // Check if there's a valid Supabase session
     const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
     
-    if (sessionError || !sessionData?.session) {
-      console.error('Session verification failed:', sessionError || 'No session data');
+    if (sessionError) {
+      console.error('Session verification error:', sessionError);
+      return false;
+    }
+    
+    if (!sessionData?.session) {
+      console.error('Session verification failed: No session data');
       return false;
     }
     
     // Verify the user exists in the session
     const { data: userData, error: userError } = await supabase.auth.getUser();
     
-    if (userError || !userData?.user?.id) {
-      console.error('User verification failed:', userError || 'No user data');
+    if (userError) {
+      console.error('User verification error:', userError);
+      return false;
+    }
+    
+    if (!userData?.user?.id) {
+      console.error('User verification failed: No user data');
       return false;
     }
     
@@ -156,7 +166,7 @@ export const createValidation = async (
       .eq('id', data.id);
     
     return data as CustodioValidation;
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error creating validation:', error);
     throw error;
   }
@@ -209,7 +219,7 @@ export const updateValidation = async (
     }
     
     return data as CustodioValidation;
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error updating validation:', error);
     throw error;
   }

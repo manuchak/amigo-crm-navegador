@@ -8,14 +8,25 @@ interface RatingFieldProps {
   name: keyof ValidationFormData;
   value: number | null;
   onChange: (name: keyof ValidationFormData, value: any) => void;
+  disabled?: boolean;
 }
 
 export const RatingField: React.FC<RatingFieldProps> = ({
   label,
   name,
   value,
-  onChange
+  onChange,
+  disabled = false
 }) => {
+  const handleRatingClick = (rating: number) => {
+    // If clicking the same rating that's already selected, clear it
+    if (value === rating) {
+      onChange(name, null);
+    } else {
+      onChange(name, rating);
+    }
+  };
+
   return (
     <div className="space-y-2">
       <label className="text-sm font-medium">{label}</label>
@@ -26,9 +37,10 @@ export const RatingField: React.FC<RatingFieldProps> = ({
             type="button"
             size="sm"
             variant={value === rating ? "default" : "outline"}
-            onClick={() => onChange(name, rating)}
+            onClick={() => handleRatingClick(rating)}
             className="w-9 h-9 p-0 rounded-full"
             aria-label={`Rating ${rating}`}
+            disabled={disabled}
           >
             {rating}
           </Button>

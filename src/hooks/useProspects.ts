@@ -25,12 +25,13 @@ export function useProspects(status?: string) {
       }
       
       setProspects(data);
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error fetching prospects:', err);
-      setError('No se pudieron cargar los prospectos');
+      const errorMessage = err.message || 'No se pudieron cargar los prospectos';
+      setError(errorMessage);
       toast({
         title: "Error",
-        description: "No se pudieron cargar los datos de prospectos",
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {

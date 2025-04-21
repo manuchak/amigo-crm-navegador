@@ -1,52 +1,49 @@
 
 import React from 'react';
-import { Badge } from '@/components/ui/badge';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Button } from '@/components/ui/button';
+import { Check, X } from 'lucide-react';
 import { ValidationFormData } from '../types';
 
 interface TriStateFieldProps {
   label: string;
   name: keyof ValidationFormData;
-  description?: string;
   value: boolean | null;
   onChange: (name: keyof ValidationFormData, value: any) => void;
+  disabled?: boolean;
 }
 
 export const TriStateField: React.FC<TriStateFieldProps> = ({
   label,
   name,
-  description,
   value,
-  onChange
+  onChange,
+  disabled = false
 }) => {
   return (
     <div className="space-y-2">
-      <div className="flex justify-between items-center">
-        <label className="text-sm font-medium">{label}</label>
-        {value !== null && (
-          <Badge 
-            variant={value === true ? "success" : "destructive"} 
-            className="ml-2"
-          >
-            {value === true ? "Sí" : "No"}
-          </Badge>
-        )}
+      <label className="text-sm font-medium">{label}</label>
+      <div className="flex space-x-2">
+        <Button
+          type="button"
+          size="sm"
+          variant={value === true ? "default" : "outline"}
+          onClick={() => onChange(name, value === true ? null : true)}
+          aria-label={`${label} - Sí`}
+          disabled={disabled}
+        >
+          <Check className="mr-1 h-4 w-4" /> Sí
+        </Button>
+        <Button
+          type="button"
+          size="sm"
+          variant={value === false ? "destructive" : "outline"}
+          onClick={() => onChange(name, value === false ? null : false)}
+          aria-label={`${label} - No`}
+          disabled={disabled}
+        >
+          <X className="mr-1 h-4 w-4" /> No
+        </Button>
       </div>
-      <RadioGroup 
-        className="flex space-x-4" 
-        value={value === null ? undefined : value.toString()}
-        onValueChange={(val) => onChange(name, val === "true")}
-      >
-        <div className="flex items-center space-x-1">
-          <RadioGroupItem value="true" id={`${name}-yes`} />
-          <label htmlFor={`${name}-yes`} className="text-sm font-normal">Sí</label>
-        </div>
-        <div className="flex items-center space-x-1">
-          <RadioGroupItem value="false" id={`${name}-no`} />
-          <label htmlFor={`${name}-no`} className="text-sm font-normal">No</label>
-        </div>
-      </RadioGroup>
-      {description && <p className="text-sm text-muted-foreground">{description}</p>}
     </div>
   );
 };

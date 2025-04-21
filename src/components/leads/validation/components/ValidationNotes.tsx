@@ -6,31 +6,35 @@ import { ValidationFormData } from '../types';
 interface ValidationNotesProps {
   formData: ValidationFormData;
   onInputChange: (name: keyof ValidationFormData, value: any) => void;
+  disabled?: boolean;
 }
 
-export const ValidationNotes: React.FC<ValidationNotesProps> = ({
-  formData,
-  onInputChange
+export const ValidationNotes: React.FC<ValidationNotesProps> = ({ 
+  formData, 
+  onInputChange,
+  disabled = false
 }) => {
   return (
     <div className="space-y-4">
-      <div className="space-y-2">
-        <label className="text-sm font-medium">Notas Adicionales</label>
+      <div>
+        <label className="text-sm font-medium block mb-2">Razón de rechazo (si aplica)</label>
         <Textarea
-          placeholder="Observaciones sobre el custodio..."
-          value={formData.additional_notes}
-          onChange={(e) => onInputChange("additional_notes", e.target.value)}
-          rows={3}
+          placeholder="Ingrese la razón por la que el custodio no cumple con los requisitos..."
+          value={formData.rejection_reason || ''}
+          onChange={(e) => onInputChange('rejection_reason', e.target.value)}
+          className="min-h-[80px] w-full"
+          disabled={disabled}
         />
       </div>
       
-      <div className="space-y-2">
-        <label className="text-sm font-medium">Razón de Rechazo (si aplica)</label>
+      <div>
+        <label className="text-sm font-medium block mb-2">Notas adicionales</label>
         <Textarea
-          placeholder="Razón por la cual el custodio no cumple con los requisitos..."
-          value={formData.rejection_reason}
-          onChange={(e) => onInputChange("rejection_reason", e.target.value)}
-          rows={2}
+          placeholder="Ingrese cualquier nota adicional sobre el custodio..."
+          value={formData.additional_notes || ''}
+          onChange={(e) => onInputChange('additional_notes', e.target.value)}
+          className="min-h-[80px] w-full"
+          disabled={disabled}
         />
       </div>
     </div>

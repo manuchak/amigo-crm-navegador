@@ -10,7 +10,7 @@ import { CallEvaluation } from './components/CallEvaluation';
 import { ValidationNotes } from './components/ValidationNotes';
 import { FormActions } from './components/FormActions';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { AlertTriangle } from 'lucide-react';
+import { AlertTriangle, Loader2 } from 'lucide-react';
 
 interface ValidationFormProps {
   formData: ValidationFormData;
@@ -55,26 +55,63 @@ export const ValidationForm: React.FC<ValidationFormProps> = ({
     }
   };
 
+  // If we're in a loading state initially, show a loading indicator
+  if (loading && Object.values(formData).every(value => value === null || value === '')) {
+    return (
+      <Card className="bg-white shadow-sm">
+        <CardContent className="pt-6">
+          <div className="flex flex-col items-center justify-center py-12">
+            <Loader2 className="h-8 w-8 animate-spin text-primary mb-4" />
+            <p className="text-sm text-muted-foreground">Cargando datos de validación...</p>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
   return (
     <Card className="bg-white shadow-sm">
       <CardContent className="pt-6">
+        {error && !isAuthError && (
+          <Alert variant="destructive" className="mb-4">
+            <AlertTriangle className="h-4 w-4" />
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
+        )}
+        
         <form onSubmit={handleSubmit} className="space-y-6">
           <ValidationFormHeader 
             leadName={leadName} 
-            error={!isAuthError ? error : null} 
+            error={null} 
             hasTranscript={hasTranscript} 
           />
           
           <div className="grid sm:grid-cols-2 gap-6">
-            <CriticalRequirements formData={formData} onInputChange={onInputChange} />
-            <AdditionalRequirements formData={formData} onInputChange={onInputChange} />
+            <CriticalRequirements 
+              formData={formData} 
+              onInputChange={onInputChange}
+              disabled={loading || isAuthError} 
+            />
+            <AdditionalRequirements 
+              formData={formData} 
+              onInputChange={onInputChange}
+              disabled={loading || isAuthError}
+            />
           </div>
           
           <div className="border-t pt-4">
-            <CallEvaluation formData={formData} onInputChange={onInputChange} />
+            <CallEvaluation 
+              formData={formData} 
+              onInputChange={onInputChange}
+              disabled={loading || isAuthError}
+            />
           </div>
           
-          <ValidationNotes formData={formData} onInputChange={onInputChange} />
+          <ValidationNotes 
+            formData={formData} 
+            onInputChange={onInputChange}
+            disabled={loading || isAuthError}
+          />
           
           <FormActions 
             loading={loading} 
