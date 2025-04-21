@@ -1,152 +1,55 @@
 
 import React from 'react';
 import { useFormContext } from 'react-hook-form';
-import { FormField, FormItem, FormLabel, FormControl } from '@/components/ui/form';
+import { FormField, FormItem, FormLabel, FormControl, FormMessage } from '@/components/ui/form';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { ShieldCheck, Milestone, Shield, Car } from 'lucide-react';
 import VehicleSection from './VehicleSection';
 
 const QualificationsSection = () => {
   const { control, watch } = useFormContext();
-  const watchTieneVehiculo = watch('tieneVehiculo');
+  const tieneVehiculo = watch('tieneVehiculo');
+  
+  const renderYesNoOption = (name: string, label: string) => (
+    <FormField
+      control={control}
+      name={name}
+      render={({ field }) => (
+        <FormItem className="space-y-1">
+          <FormLabel>{label}</FormLabel>
+          <FormControl>
+            <RadioGroup
+              onValueChange={field.onChange}
+              defaultValue={field.value}
+              className="flex space-x-4"
+            >
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="SI" id={`${name}-si`} />
+                <label htmlFor={`${name}-si`} className="text-sm cursor-pointer">Sí</label>
+              </div>
+              <div className="flex items-center space-x-2">
+                <RadioGroupItem value="NO" id={`${name}-no`} />
+                <label htmlFor={`${name}-no`} className="text-sm cursor-pointer">No</label>
+              </div>
+            </RadioGroup>
+          </FormControl>
+          <FormMessage />
+        </FormItem>
+      )}
+    />
+  );
   
   return (
-    <div className="space-y-4 md:col-span-2">
+    <div className="space-y-6">
       <h3 className="text-lg font-medium">Calificaciones</h3>
       
-      <FormField
-        control={control}
-        name="tieneVehiculo"
-        render={({ field }) => (
-          <FormItem className="space-y-3">
-            <FormLabel className="flex items-center gap-2">
-              <Car className="h-4 w-4 text-gray-500" />
-              ¿Cuenta con vehículo propio?
-            </FormLabel>
-            <FormControl>
-              <RadioGroup
-                onValueChange={field.onChange}
-                defaultValue={field.value}
-                className="flex flex-row space-x-4"
-              >
-                <FormItem className="flex items-center space-x-2 space-y-0">
-                  <FormControl>
-                    <RadioGroupItem value="SI" />
-                  </FormControl>
-                  <FormLabel className="font-normal">Sí</FormLabel>
-                </FormItem>
-                <FormItem className="flex items-center space-x-2 space-y-0">
-                  <FormControl>
-                    <RadioGroupItem value="NO" />
-                  </FormControl>
-                  <FormLabel className="font-normal">No</FormLabel>
-                </FormItem>
-              </RadioGroup>
-            </FormControl>
-          </FormItem>
-        )}
-      />
-      
-      <VehicleSection showVehicleDetails={watchTieneVehiculo === 'SI'} />
-      
-      <FormField
-        control={control}
-        name="experienciaSeguridad"
-        render={({ field }) => (
-          <FormItem className="space-y-3">
-            <FormLabel className="flex items-center gap-2">
-              <ShieldCheck className="h-4 w-4 text-gray-500" />
-              ¿Tiene experiencia en seguridad?
-            </FormLabel>
-            <FormControl>
-              <RadioGroup
-                onValueChange={field.onChange}
-                defaultValue={field.value}
-                className="flex flex-row space-x-4"
-              >
-                <FormItem className="flex items-center space-x-2 space-y-0">
-                  <FormControl>
-                    <RadioGroupItem value="SI" />
-                  </FormControl>
-                  <FormLabel className="font-normal">Sí</FormLabel>
-                </FormItem>
-                <FormItem className="flex items-center space-x-2 space-y-0">
-                  <FormControl>
-                    <RadioGroupItem value="NO" />
-                  </FormControl>
-                  <FormLabel className="font-normal">No</FormLabel>
-                </FormItem>
-              </RadioGroup>
-            </FormControl>
-          </FormItem>
-        )}
-      />
-      
-      <FormField
-        control={control}
-        name="credencialSedena"
-        render={({ field }) => (
-          <FormItem className="space-y-3">
-            <FormLabel className="flex items-center gap-2">
-              <Milestone className="h-4 w-4 text-gray-500" />
-              ¿Cuenta con credencial SEDENA?
-            </FormLabel>
-            <FormControl>
-              <RadioGroup
-                onValueChange={field.onChange}
-                defaultValue={field.value}
-                className="flex flex-row space-x-4"
-              >
-                <FormItem className="flex items-center space-x-2 space-y-0">
-                  <FormControl>
-                    <RadioGroupItem value="SI" />
-                  </FormControl>
-                  <FormLabel className="font-normal">Sí</FormLabel>
-                </FormItem>
-                <FormItem className="flex items-center space-x-2 space-y-0">
-                  <FormControl>
-                    <RadioGroupItem value="NO" />
-                  </FormControl>
-                  <FormLabel className="font-normal">No</FormLabel>
-                </FormItem>
-              </RadioGroup>
-            </FormControl>
-          </FormItem>
-        )}
-      />
-      
-      <FormField
-        control={control}
-        name="esArmado"
-        render={({ field }) => (
-          <FormItem className="space-y-3">
-            <FormLabel className="flex items-center gap-2">
-              <Shield className="h-4 w-4 text-gray-500" />
-              ¿Es armado?
-            </FormLabel>
-            <FormControl>
-              <RadioGroup
-                onValueChange={field.onChange}
-                defaultValue={field.value}
-                className="flex flex-row space-x-4"
-              >
-                <FormItem className="flex items-center space-x-2 space-y-0">
-                  <FormControl>
-                    <RadioGroupItem value="SI" />
-                  </FormControl>
-                  <FormLabel className="font-normal">Sí</FormLabel>
-                </FormItem>
-                <FormItem className="flex items-center space-x-2 space-y-0">
-                  <FormControl>
-                    <RadioGroupItem value="NO" />
-                  </FormControl>
-                  <FormLabel className="font-normal">No</FormLabel>
-                </FormItem>
-              </RadioGroup>
-            </FormControl>
-          </FormItem>
-        )}
-      />
+      <div className="space-y-4">
+        {renderYesNoOption('experienciaSeguridad', '¿Tiene experiencia en seguridad?')}
+        {renderYesNoOption('credencialSedena', '¿Tiene credencial SEDENA?')}
+        {renderYesNoOption('esArmado', '¿Está armado?')}
+        {renderYesNoOption('tieneVehiculo', '¿Cuenta con vehículo propio?')}
+        
+        <VehicleSection showVehicleDetails={tieneVehiculo === 'SI'} />
+      </div>
     </div>
   );
 };

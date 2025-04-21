@@ -9,6 +9,53 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      car_brands: {
+        Row: {
+          created_at: string
+          id: number
+          name: string
+        }
+        Insert: {
+          created_at?: string
+          id?: number
+          name: string
+        }
+        Update: {
+          created_at?: string
+          id?: number
+          name?: string
+        }
+        Relationships: []
+      }
+      car_models: {
+        Row: {
+          brand_id: number
+          created_at: string
+          id: number
+          name: string
+        }
+        Insert: {
+          brand_id: number
+          created_at?: string
+          id?: number
+          name: string
+        }
+        Update: {
+          brand_id?: number
+          created_at?: string
+          id?: number
+          name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "car_models_brand_id_fkey"
+            columns: ["brand_id"]
+            isOneToOne: false
+            referencedRelation: "car_brands"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       custodio_validations: {
         Row: {
           additional_notes: string | null

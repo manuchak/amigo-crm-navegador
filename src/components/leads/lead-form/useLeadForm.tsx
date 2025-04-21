@@ -6,6 +6,7 @@ import { useLeads } from '@/context/LeadsContext';
 import { executeWebhook } from '@/components/call-center/utils/webhook';
 import { toast } from 'sonner';
 import { createLead, LeadData } from '@/services/leadService';
+import { supabase } from '@/integrations/supabase/client';
 
 // Schema de validación para el formulario
 const formSchema = z.object({
@@ -14,6 +15,7 @@ const formSchema = z.object({
   prefijo: z.string().default('+52'),
   telefono: z.string().min(10, { message: 'Ingresa un número de 10 dígitos' }),
   tieneVehiculo: z.enum(['SI', 'NO']),
+  marcaVehiculo: z.string().optional(),
   modeloVehiculo: z.string().optional(),
   anoVehiculo: z.string().optional(),
   experienciaSeguridad: z.enum(['SI', 'NO']),
@@ -34,6 +36,9 @@ export const useLeadForm = () => {
       prefijo: '+52',
       telefono: '',
       tieneVehiculo: 'NO',
+      marcaVehiculo: '',
+      modeloVehiculo: '',
+      anoVehiculo: '',
       experienciaSeguridad: 'NO',
       credencialSedena: 'NO',
       esArmado: 'NO',
@@ -63,6 +68,20 @@ export const useLeadForm = () => {
       
       // Generate a unique ID for the new lead
       const newId = Date.now();
+      
+      // Get the brand name from the ID (if selected)
+      let brandName = "";
+      if (data.marcaVehiculo) {
+        const { data: brandData } = await supabase
+          .from('car_brands')
+          .select('name')
+          .eq('id', data.marcaVehiculo)
+          .single();
+        
+        if (brandData) {
+          brandName = brandData.name;
+        }
+      }
       
       // Crear nuevo lead for context
       const nuevoLead = {
@@ -106,7 +125,7 @@ export const useLeadForm = () => {
       const leadData: LeadData = {
         nombre: data.nombre,
         email: data.email,
-        telefono: phoneNumber, // Store as string now
+        telefono: phoneNumber,
         empresa: categoria,
         estado: 'Nuevo',
         fuente: 'Form',
