@@ -20,11 +20,25 @@ export const ProspectsList: React.FC<{
 }> = ({ onViewDetails, onViewCalls, onValidate }) => {
   const [filter, setFilter] = useState<string | undefined>(undefined);
   const [searchQuery, setSearchQuery] = useState('');
-  const [viewMode, setViewMode] = useState<'grid' | 'table'>('grid');
+  const [viewMode, setViewMode] = useState<'grid' | 'table'>('table'); // Changed default to 'table'
   const [showOnlyInterviewed, setShowOnlyInterviewed] = useState(true);
   const { prospects, loading, refetch } = useProspects(filter);
   const { toast } = useToast();
   const [refreshing, setRefreshing] = useState(false);
+  
+  // Filter out duplicates based on lead_id and validated_lead_id
+  const uniqueProspects = prospects.reduce((unique: Prospect[], prospect) => {
+    // Check if we already have this prospect in our unique array
+    const isDuplicate = unique.some(item => 
+      (prospect.lead_id && item.lead_id === prospect.lead_id) || 
+      (prospect.validated_lead_id && item.validated_lead_id === prospect.validated_lead_id)
+    );
+    
+    if (!isDuplicate) {
+      unique.push(prospect);
+    }
+    return unique;
+  }, []);
   
   const handleCallProspect = async (prospect: Prospect) => {
     if (!prospect.lead_id || !prospect.lead_phone) {
@@ -95,7 +109,7 @@ export const ProspectsList: React.FC<{
   };
   
   // Filter prospects based on search query and interview status
-  const filteredProspects = prospects
+  const filteredProspects = uniqueProspects
     .filter(p => 
       // Filter based on showOnlyInterviewed flag
       !showOnlyInterviewed || (

@@ -5,7 +5,7 @@ import { Prospect } from '@/services/prospectService';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { formatPhoneNumber } from '@/lib/utils';
-import { PhoneCall, FileText, Clock, CheckSquare, Info } from 'lucide-react';
+import { PhoneCall, FileText, Clock, CheckSquare, Info, Award, Shield, Check, X } from 'lucide-react';
 
 interface ProspectCardProps {
   prospect: Prospect;
@@ -41,6 +41,13 @@ const ProspectCard: React.FC<ProspectCardProps> = ({
       hour: '2-digit',
       minute: '2-digit'
     });
+  };
+
+  // Format boolean values to "Sí" or "No"
+  const formatBoolean = (value: boolean | undefined | null) => {
+    if (value === true) return "Sí";
+    if (value === false) return "No";
+    return "No especificado";
   };
   
   const hasCallHistory = prospect.call_count !== null && prospect.call_count > 0;
@@ -83,6 +90,47 @@ const ProspectCard: React.FC<ProspectCardProps> = ({
             <div className="flex justify-between">
               <span className="text-slate-500">Experiencia:</span>
               <span>{prospect.security_exp}</span>
+            </div>
+          )}
+
+          {prospect.sedena_id && (
+            <div className="flex justify-between">
+              <span className="text-slate-500">ID SEDENA:</span>
+              <span>{prospect.sedena_id}</span>
+            </div>
+          )}
+          
+          {/* SEDENA Info with Yes/No formatting */}
+          {typeof prospect.has_security_experience === 'boolean' && (
+            <div className="flex justify-between">
+              <span className="text-slate-500">Exp. Seguridad:</span>
+              <span className="flex items-center">
+                {prospect.has_security_experience ? 
+                  <><Check className="h-3.5 w-3.5 mr-1 text-green-600" /> Sí</> : 
+                  <><X className="h-3.5 w-3.5 mr-1 text-red-600" /> No</>}
+              </span>
+            </div>
+          )}
+
+          {typeof prospect.has_firearm_license === 'boolean' && (
+            <div className="flex justify-between">
+              <span className="text-slate-500">Licencia armas:</span>
+              <span className="flex items-center">
+                {prospect.has_firearm_license ? 
+                  <><Check className="h-3.5 w-3.5 mr-1 text-green-600" /> Sí</> : 
+                  <><X className="h-3.5 w-3.5 mr-1 text-red-600" /> No</>}
+              </span>
+            </div>
+          )}
+
+          {typeof prospect.has_military_background === 'boolean' && (
+            <div className="flex justify-between">
+              <span className="text-slate-500">Militar:</span>
+              <span className="flex items-center">
+                {prospect.has_military_background ? 
+                  <><Check className="h-3.5 w-3.5 mr-1 text-green-600" /> Sí</> : 
+                  <><X className="h-3.5 w-3.5 mr-1 text-red-600" /> No</>}
+              </span>
             </div>
           )}
           

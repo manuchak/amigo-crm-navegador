@@ -2,10 +2,9 @@
 import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import ProspectsList from './prospects/ProspectsList';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ProspectDetailView } from './prospects/ProspectDetailView';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, ClipboardCheck, PhoneCall, RefreshCw } from 'lucide-react';
+import { ArrowLeft, ClipboardCheck, PhoneCall } from 'lucide-react';
 import { Prospect } from '@/services/prospectService';
 import { useProspects } from '@/hooks/useProspects';
 import ProspectsCallHistory from './prospects/ProspectsCallHistory';
@@ -35,10 +34,6 @@ const ProspectsPage: React.FC = () => {
     setActiveView('list');
     setSelectedProspect(null);
   };
-  
-  const handleRefresh = () => {
-    refetch();
-  };
 
   const renderContent = () => {
     switch (activeView) {
@@ -50,20 +45,14 @@ const ProspectsPage: React.FC = () => {
             onViewCalls={() => handleViewCalls(selectedProspect)}
             onValidate={() => handleValidate(selectedProspect)}
           />
-        ) : (
-          // Return null instead of void
-          null 
-        );
+        ) : null;
       case 'calls':
         return selectedProspect ? (
           <ProspectsCallHistory 
             prospect={selectedProspect} 
             onBack={handleBackToList}
           />
-        ) : (
-          // Return null instead of void
-          null
-        );
+        ) : null;
       case 'validation':
         return selectedProspect ? (
           <ProspectsValidationView
@@ -74,10 +63,7 @@ const ProspectsPage: React.FC = () => {
               refetch();
             }}
           />
-        ) : (
-          // Return null instead of void
-          null
-        );
+        ) : null;
       default:
         return (
           <ProspectsList 
@@ -120,15 +106,7 @@ const ProspectsPage: React.FC = () => {
               </Button>
             )}
             
-            <Button 
-              variant="outline" 
-              size="sm" 
-              onClick={handleRefresh}
-              disabled={loading}
-            >
-              <RefreshCw className={`mr-1 h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
-              Actualizar
-            </Button>
+            {/* Removed redundant refresh button - the refresh functionality is already in the ProspectsList component */}
           </div>
         </CardHeader>
         <CardContent>
