@@ -42,7 +42,7 @@ export async function getProspects(): Promise<Prospect[]> {
       throw error;
     }
     
-    return data || [];
+    return data as Prospect[] || [];
   } catch (error) {
     console.error("Failed to fetch prospects:", error);
     throw error;
@@ -62,7 +62,7 @@ export async function getProspectById(leadId: number): Promise<Prospect | null> 
       throw error;
     }
     
-    return data;
+    return data as Prospect;
   } catch (error) {
     console.error(`Failed to fetch prospect with ID ${leadId}:`, error);
     throw error;
@@ -81,7 +81,7 @@ export async function getProspectsByStatus(status: string): Promise<Prospect[]> 
       throw error;
     }
     
-    return data || [];
+    return data as Prospect[] || [];
   } catch (error) {
     console.error(`Failed to fetch prospects with status ${status}:`, error);
     throw error;
