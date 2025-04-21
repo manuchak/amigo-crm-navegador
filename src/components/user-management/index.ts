@@ -7,4 +7,5 @@ export { default as UserAvatar } from './UserAvatar';
 export { default as EmailVerificationStatus } from './EmailVerificationStatus';
 export { default as RoleChangeConfirmation } from './RoleChangeConfirmation';
 export { default as RegistrationRequestsTable } from './RegistrationRequestsTable';
+export { default as UserPermissionConfig } from './UserPermissionConfig';
 export * from './utils';

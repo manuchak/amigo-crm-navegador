@@ -19,7 +19,8 @@ import {
   RoleChangeConfirmation,
   formatDate,
   canEditUser,
-  RegistrationRequestsTable
+  RegistrationRequestsTable,
+  UserPermissionConfig
 } from '@/components/user-management';
 
 const UserManagement = () => {
@@ -112,8 +113,9 @@ const UserManagement = () => {
     }
   };
 
-  // Only owners should see the registration requests tab
+  // Only owners should see the registration requests tab and permissions config
   const isOwner = currentUserData?.role === 'owner';
+  const isAdmin = currentUserData?.role === 'admin' || isOwner;
 
   if (loading) {
     return (
@@ -135,9 +137,10 @@ const UserManagement = () => {
         </CardHeader>
         <CardContent>
           <Tabs defaultValue="all-users" value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="grid w-full md:w-auto md:inline-flex grid-cols-2 mb-6">
+            <TabsList className="grid w-full md:w-auto md:inline-flex grid-cols-3 mb-6">
               <TabsTrigger value="all-users">Todos los Usuarios</TabsTrigger>
-              {isOwner && <TabsTrigger value="registration-requests">Solicitudes de Registro</TabsTrigger>}
+              {isOwner && <TabsTrigger value="registration-requests">Solicitudes</TabsTrigger>}
+              {isAdmin && <TabsTrigger value="permissions">Permisos</TabsTrigger>}
             </TabsList>
             
             <TabsContent value="all-users">
@@ -157,6 +160,12 @@ const UserManagement = () => {
                   onAssignRole={handleAssignRole}
                   onVerifyUser={handleVerifyUser}
                 />
+              </TabsContent>
+            )}
+
+            {isAdmin && (
+              <TabsContent value="permissions">
+                <UserPermissionConfig />
               </TabsContent>
             )}
           </Tabs>
