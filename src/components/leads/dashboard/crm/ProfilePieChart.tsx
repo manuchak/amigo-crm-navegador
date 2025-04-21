@@ -1,36 +1,56 @@
 
 import React from "react";
-import { ResponsiveContainer, PieChart, Pie, Cell, Legend } from "recharts";
+import { ResponsiveContainer, PieChart, Pie, Cell, Legend, Tooltip } from "recharts";
 import { pieColors } from "./crmUtils";
-import { Lead } from "@/context/LeadsContext";
+import { ChartTooltipContent } from "@/components/ui/chart";
 
 interface ProfilePieChartProps {
   carTypes: { name: string; val: number }[];
 }
 
+const RADIAN = Math.PI / 180;
+const renderCustomizedLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percent, name }: any) => {
+  const radius = innerRadius + (outerRadius - innerRadius) * 0.5;
+  const x = cx + radius * Math.cos(-midAngle * RADIAN);
+  const y = cy + radius * Math.sin(-midAngle * RADIAN);
+
+  return (
+    <text 
+      x={x} 
+      y={y} 
+      fill="#fff" 
+      textAnchor={x > cx ? 'start' : 'end'} 
+      dominantBaseline="central"
+      fontSize={12}
+    >
+      {`${(percent * 100).toFixed(0)}%`}
+    </text>
+  );
+};
+
 const ProfilePieChart: React.FC<ProfilePieChartProps> = ({ carTypes }) => (
-  <div className="flex-1 bg-white border rounded-xl shadow p-6 flex flex-col min-w-[280px] items-center">
-    <div className="font-semibold mb-2">Distribución perfiles</div>
-    <ResponsiveContainer width="99%" height={160}>
-      <PieChart>
-        <Pie
-          data={carTypes}
-          dataKey="val"
-          nameKey="name"
-          cy="50%"
-          outerRadius={60}
-          innerRadius={35}
-          fill="#8884d8"
-          label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-          >
-          {carTypes.map((entry, idx) => (
-            <Cell key={entry.name} fill={pieColors[idx % pieColors.length]} />
-          ))}
-        </Pie>
-        <Legend />
-      </PieChart>
-    </ResponsiveContainer>
-  </div>
+  <ResponsiveContainer width="100%" height="100%">
+    <PieChart>
+      <Pie
+        data={carTypes}
+        dataKey="val"
+        nameKey="name"
+        cx="50%"
+        cy="50%"
+        outerRadius={80}
+        innerRadius={40}
+        fill="#8884d8"
+        labelLine={false}
+        label={renderCustomizedLabel}
+      >
+        {carTypes.map((entry, idx) => (
+          <Cell key={entry.name} fill={pieColors[idx % pieColors.length]} />
+        ))}
+      </Pie>
+      <Tooltip content={<ChartTooltipContent />} />
+      <Legend layout="horizontal" verticalAlign="bottom" align="center" />
+    </PieChart>
+  </ResponsiveContainer>
 );
 
 export default ProfilePieChart;

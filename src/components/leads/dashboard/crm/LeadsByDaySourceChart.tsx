@@ -1,8 +1,7 @@
 
 import React, { useMemo, useState } from "react";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend, LabelList } from "recharts";
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import { ChartContainer, ChartTooltipContent } from "@/components/ui/chart";
+import { ChartTooltipContent } from "@/components/ui/chart";
 import { Lead } from "@/context/LeadsContext";
 import DateRangePicker from "./DateRangePicker";
 import { isValid, parseISO } from "date-fns";
@@ -101,51 +100,43 @@ const LeadsByDaySourceChart: React.FC<LeadsByDaySourceChartProps> = ({ leads }) 
   }, [sources]);
 
   return (
-    <Card className="w-full bg-white shadow-sm">
-      <CardHeader className="flex flex-col md:flex-row md:items-center md:justify-between">
-        <CardTitle className="text-base mb-2 md:mb-0">
-          Leads por día y fuente de ingreso
-        </CardTitle>
+    <div className="w-full h-full">
+      <div className="flex justify-end mb-4">
         <DateRangePicker
           value={dateRange}
           onChange={setDateRange}
         />
-      </CardHeader>
-      <CardContent className="pt-0 pb-6">
-        <div className="w-full" style={{ height: "280px" }}>
-          <ChartContainer config={chartConfig}>
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart 
-                data={filteredData} 
-                margin={{ top: 10, right: 20, left: 10, bottom: 50 }}
-              >
-                <XAxis 
-                  dataKey="fecha" 
-                  angle={-20} 
-                  textAnchor="end" 
-                  height={50} 
-                  fontSize={12}
-                />
-                <YAxis allowDecimals={false} />
-                <Tooltip content={<ChartTooltipContent nameKey="" />} />
-                <Legend />
-                {sources.map((src) => (
-                  <Bar
-                    key={src}
-                    dataKey={src}
-                    fill={DARK_GRAY}
-                    radius={[4, 4, 0, 0]}
-                    name={sourceLabels[src] || src}
-                  >
-                    <LabelList dataKey={src} position="top" fontSize={13} fill="#222" formatter={(val: number) => val ? val : ""} />
-                  </Bar>
-                ))}
-              </BarChart>
-            </ResponsiveContainer>
-          </ChartContainer>
-        </div>
-      </CardContent>
-    </Card>
+      </div>
+      
+      <ResponsiveContainer width="100%" height={250}>
+        <BarChart 
+          data={filteredData} 
+          margin={{ top: 10, right: 20, left: 10, bottom: 50 }}
+        >
+          <XAxis 
+            dataKey="fecha" 
+            angle={-20} 
+            textAnchor="end" 
+            height={50} 
+            fontSize={12}
+          />
+          <YAxis allowDecimals={false} />
+          <Tooltip content={<ChartTooltipContent />} />
+          <Legend />
+          {sources.map((src) => (
+            <Bar
+              key={src}
+              dataKey={src}
+              fill={DARK_GRAY}
+              radius={[4, 4, 0, 0]}
+              name={sourceLabels[src] || src}
+            >
+              <LabelList dataKey={src} position="top" fontSize={13} fill="#222" formatter={(val: number) => val ? val : ""} />
+            </Bar>
+          ))}
+        </BarChart>
+      </ResponsiveContainer>
+    </div>
   );
 };
 

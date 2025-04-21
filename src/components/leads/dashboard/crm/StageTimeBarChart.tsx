@@ -1,39 +1,39 @@
 
 import React from "react";
-import { ResponsiveContainer, BarChart, XAxis, YAxis, Tooltip, Bar } from "recharts";
+import { ResponsiveContainer, BarChart, XAxis, YAxis, Tooltip, Bar, LabelList } from "recharts";
 import { useTimeMetrics } from "./crmUtils";
 import { Lead } from "@/context/LeadsContext";
-import StageNameTick from "./StageNameTick";
-import BarValueLabel from "./BarValueLabel";
+import { ChartTooltipContent } from "@/components/ui/chart";
 
 interface StageTimeBarChartProps {
   leads: Lead[];
 }
 
-const StageTimeBarChart: React.FC<StageTimeBarChartProps> = ({ leads }) => (
-  <div className="flex-1 bg-white border rounded-xl shadow p-6 flex flex-col min-w-[280px] items-center">
-    <div className="font-semibold mb-2">Tiempo en cada etapa</div>
-    <ResponsiveContainer width="98%" height={140}>
-      <BarChart data={useTimeMetrics(leads)}>
+const StageTimeBarChart: React.FC<StageTimeBarChartProps> = ({ leads }) => {
+  const data = useTimeMetrics(leads);
+  
+  return (
+    <ResponsiveContainer width="100%" height="100%">
+      <BarChart data={data} margin={{ top: 10, right: 10, left: 10, bottom: 10 }}>
         <XAxis 
           dataKey="name" 
-          tick={<StageNameTick />}
-          height={32}
+          angle={-45}
+          textAnchor="end"
+          height={60}
+          fontSize={12}
         />
         <YAxis />
-        <Tooltip
-          formatter={(value: any) =>
-            typeof value === "number" ? value.toFixed(1) : value
-          }
-        />
+        <Tooltip content={<ChartTooltipContent />} />
         <Bar
           dataKey="avgDays"
           fill="#F59E42"
-          label={<BarValueLabel />}
-        />
+          radius={[4, 4, 0, 0]}
+        >
+          <LabelList dataKey="avgDays" position="top" formatter={(value: number) => value.toFixed(1)} />
+        </Bar>
       </BarChart>
     </ResponsiveContainer>
-  </div>
-);
+  );
+};
 
 export default StageTimeBarChart;

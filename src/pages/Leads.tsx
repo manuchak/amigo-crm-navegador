@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import LeadCreationForm from '@/components/leads/LeadCreationForm';
@@ -5,7 +6,7 @@ import LeadsDashboard from '@/components/leads/LeadsDashboard';
 import CallCenterTabs from '@/components/call-center/CallCenterTabs';
 import { SupplyTeamDashboard } from '@/components/supply-team';
 import { useLeads } from '@/context/LeadsContext';
-import { UserCheck, Package, Loader2 } from 'lucide-react';
+import { UserCheck, Package, Loader2, LayoutDashboard } from 'lucide-react';
 import QualifiedLeadsApproval from '@/components/leads/QualifiedLeadsApproval';
 import LeadsIntro from '@/components/leads/LeadsIntro';
 import LeadsCrmDashboard from '@/components/leads/LeadsCrmDashboard';
@@ -71,7 +72,10 @@ const Leads = () => {
       </div>
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="mb-6 bg-slate-100 p-1 rounded-lg">
-          <TabsTrigger value="dashboard" className="rounded-md font-semibold">Resumen CRM</TabsTrigger>
+          <TabsTrigger value="dashboard" className="rounded-md font-semibold">
+            <LayoutDashboard className="h-4 w-4 mr-1" />
+            Resumen CRM
+          </TabsTrigger>
           <TabsTrigger value="seguimiento" className="rounded-md">Seguimiento</TabsTrigger>
           <TabsTrigger value="clasificados" className="rounded-md">Leads clasificados</TabsTrigger>
           <TabsTrigger value="aprobacion" className="rounded-md">

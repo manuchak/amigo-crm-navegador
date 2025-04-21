@@ -1,6 +1,12 @@
 
 import React, { useMemo } from "react";
 import { useLeads } from "@/context/LeadsContext";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { LayoutDashboard, BarChart3, LineChart, PieChart, Activity, BellRing } from "lucide-react";
+import { useFunnelStats, getMonthlyTrend, STAGES } from "./dashboard/crm/crmUtils";
+import { fakeAlerts } from "./dashboard/crm/fakeAlerts";
+
+// Import dashboard components
 import MetricsCards from "./dashboard/crm/MetricsCards";
 import FunnelChart from "./dashboard/crm/FunnelChart";
 import MonthlyLineChart from "./dashboard/crm/MonthlyLineChart";
@@ -9,8 +15,6 @@ import StageTimeBarChart from "./dashboard/crm/StageTimeBarChart";
 import AlertsPanel from "./dashboard/crm/AlertsPanel";
 import RecentLeadsList from "./dashboard/crm/RecentLeadsList";
 import LeadsByDaySourceChart from "./dashboard/crm/LeadsByDaySourceChart";
-import { useFunnelStats, getMonthlyTrend, STAGES } from "./dashboard/crm/crmUtils";
-import { fakeAlerts } from "./dashboard/crm/fakeAlerts";
 
 const LeadsCrmDashboard: React.FC = () => {
   const { leads } = useLeads();
@@ -24,36 +28,116 @@ const LeadsCrmDashboard: React.FC = () => {
   ];
 
   return (
-    <div className="flex flex-col lg:flex-row gap-8 py-6 px-2 w-full animate-fade-in">
-      {/* Main content area */}
-      <div className="flex-1 w-full flex flex-col gap-8">
-        {/* Top section: Metrics Cards and Funnel */}
-        <div className="flex flex-col md:flex-row gap-6 items-stretch w-full">
-          <MetricsCards byStage={funnel.byStage} conversions={funnel.conversions} />
-          <FunnelChart byStage={funnel.byStage} />
-        </div>
-        
-        {/* Leads by day source chart in its own container */}
-        <div className="w-full">
-          <LeadsByDaySourceChart leads={leads} />
-        </div>
-        
-        {/* Monthly trend chart in its own container */}
-        <div className="w-full">
-          <MonthlyLineChart data={monthlyTrend} />
-        </div>
-        
-        {/* Bottom section: Profile pie chart and Stage time bar chart */}
-        <div className="flex flex-col md:flex-row gap-6 w-full">
-          <ProfilePieChart carTypes={carTypes} />
-          <StageTimeBarChart leads={leads} />
-        </div>
+    <div className="space-y-6 animate-fade-in">
+      {/* Dashboard Header */}
+      <div className="flex items-center gap-2 mb-2">
+        <LayoutDashboard className="h-5 w-5 text-primary" />
+        <h2 className="text-xl font-medium">Dashboard CRM de Custodios</h2>
       </div>
       
-      {/* Sidebar area */}
-      <div className="md:w-[350px] w-full max-w-full flex-shrink-0 flex flex-col gap-6">
-        <AlertsPanel alerts={fakeAlerts} />
-        <RecentLeadsList leads={leads} />
+      {/* Top metrics row */}
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
+        <MetricsCards byStage={funnel.byStage} conversions={funnel.conversions} />
+      </div>
+      
+      {/* Funnel and Monthly trend charts row */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <Card>
+          <CardHeader className="pb-2">
+            <div className="flex items-center gap-2">
+              <BarChart3 className="h-4 w-4 text-primary" />
+              <CardTitle className="text-base">Embudo de conversión</CardTitle>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="h-[280px]">
+              <FunnelChart byStage={funnel.byStage} />
+            </div>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardHeader className="pb-2">
+            <div className="flex items-center gap-2">
+              <LineChart className="h-4 w-4 text-primary" />
+              <CardTitle className="text-base">Rendimiento mensual onboarding de leads</CardTitle>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="h-[280px]">
+              <MonthlyLineChart data={monthlyTrend} />
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+      
+      {/* Source chart row */}
+      <Card>
+        <CardHeader className="pb-2">
+          <div className="flex items-center gap-2">
+            <BarChart3 className="h-4 w-4 text-secondary" />
+            <CardTitle className="text-base">Leads por día y fuente de ingreso</CardTitle>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="h-[320px]">
+            <LeadsByDaySourceChart leads={leads} />
+          </div>
+        </CardContent>
+      </Card>
+      
+      {/* Bottom charts and stats row */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <Card className="lg:col-span-1">
+          <CardHeader className="pb-2">
+            <div className="flex items-center gap-2">
+              <PieChart className="h-4 w-4 text-secondary" />
+              <CardTitle className="text-base">Distribución perfiles</CardTitle>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="h-[220px]">
+              <ProfilePieChart carTypes={carTypes} />
+            </div>
+          </CardContent>
+        </Card>
+        
+        <Card className="lg:col-span-1">
+          <CardHeader className="pb-2">
+            <div className="flex items-center gap-2">
+              <Activity className="h-4 w-4 text-secondary" />
+              <CardTitle className="text-base">Tiempo en cada etapa</CardTitle>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="h-[220px]">
+              <StageTimeBarChart leads={leads} />
+            </div>
+          </CardContent>
+        </Card>
+        
+        <div className="space-y-6">
+          <Card>
+            <CardHeader className="pb-2">
+              <div className="flex items-center gap-2">
+                <BellRing className="h-4 w-4 text-secondary" />
+                <CardTitle className="text-base">Alertas & Recomendaciones</CardTitle>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <AlertsPanel alerts={fakeAlerts} />
+            </CardContent>
+          </Card>
+          
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-base">Leads recientes</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <RecentLeadsList leads={leads} />
+            </CardContent>
+          </Card>
+        </div>
       </div>
     </div>
   );
