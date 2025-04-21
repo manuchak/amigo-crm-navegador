@@ -1,0 +1,136 @@
+
+import { useState } from 'react';
+import { Prospect } from '@/services/prospectService';
+import { useValidation } from '@/components/leads/validation/useValidation';
+import { useToast } from '@/hooks/use-toast';
+import { useLeads } from '@/context/LeadsContext';
+
+export const useValidationFlow = (
+  prospect: Prospect,
+  onComplete: () => void
+) => {
+  const [confirmDialog, setConfirmDialog] = useState<{ open: boolean, status: 'approved' | 'rejected' }>({ 
+    open: false, 
+    status: 'approved' 
+  });
+  
+  const [successDialog, setSuccessDialog] = useState<{ open: boolean, status: 'approved' | 'rejected', lifetime_id?: string }>({ 
+    open: false, 
+    status: 'approved'
+  });
+  
+  const { toast } = useToast();
+  const { updateLeadStatus, refetchLeads } = useLeads();
+  
+  const {
+    validation,
+    formData,
+    loading,
+    error,
+    handleInputChange,
+    saveValidation
+  } = useValidation(prospect.lead_id);
+
+  const handleSaveValidation = async () => {
+    const result = await saveValidation();
+    if (result) {
+      toast({
+        title: "Datos guardados",
+        description: "La validación ha sido guardada correctamente",
+      });
+      
+      if (result.lifetime_id) {
+        toast({
+          title: "ID Permanente Generado",
+          description: `Identificador único: ${result.lifetime_id}`,
+          variant: "default",
+        });
+      }
+    } else {
+      toast({
+        title: "Error",
+        description: error || "No se pudo guardar la validación",
+        variant: "destructive",
+      });
+    }
+  };
+  
+  const handleApprove = () => {
+    setConfirmDialog({ open: true, status: 'approved' });
+  };
+  
+  const handleReject = () => {
+    setConfirmDialog({ open: true, status: 'rejected' });
+  };
+  
+  const confirmStatusChange = async () => {
+    try {
+      const result = await saveValidation();
+      if (!result) {
+        toast({
+          title: "Error",
+          description: error || "No se pudo guardar la validación",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      if (prospect.lead_id) {
+        const newStatus = confirmDialog.status === 'approved' ? 'Calificado' : 'Rechazado';
+        await updateLeadStatus(prospect.lead_id, newStatus);
+        
+        setSuccessDialog({ 
+          open: true, 
+          status: confirmDialog.status,
+          lifetime_id: result.lifetime_id || undefined
+        });
+        
+        setConfirmDialog({ ...confirmDialog, open: false });
+        
+        await refetchLeads();
+      }
+    } catch (err) {
+      console.error("Error updating status:", err);
+      toast({
+        title: "Error",
+        description: "No se pudo actualizar el estado del custodio",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleComplete = () => {
+    setSuccessDialog({ ...successDialog, open: false });
+    onComplete();
+  };
+
+  // Determine if critical criteria are met and form is complete
+  const isCriticalCriteriaMet = 
+    formData.age_requirement_met === true && 
+    formData.interview_passed === true && 
+    formData.background_check_passed === true;
+  
+  const isFormComplete = 
+    formData.age_requirement_met !== null &&
+    formData.interview_passed !== null &&
+    formData.background_check_passed !== null;
+
+  return {
+    validation,
+    formData,
+    confirmDialog,
+    successDialog,
+    loading,
+    error,
+    isFormComplete,
+    isCriticalCriteriaMet,
+    handleInputChange,
+    handleSaveValidation,
+    handleApprove,
+    handleReject,
+    setConfirmDialog,
+    setSuccessDialog,
+    confirmStatusChange,
+    handleComplete
+  };
+};
