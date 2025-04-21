@@ -46,6 +46,12 @@ export const useValidationFlow = (
           variant: "default",
         });
       }
+      
+      // Update status to "Validado" when validation is successfully saved
+      if (prospect.lead_id) {
+        await updateLeadStatus(prospect.lead_id, "Validado");
+        await refetchLeads();
+      }
     } else {
       toast({
         title: "Error",
@@ -76,7 +82,8 @@ export const useValidationFlow = (
       }
       
       if (prospect.lead_id) {
-        const newStatus = confirmDialog.status === 'approved' ? 'Calificado' : 'Rechazado';
+        // When approved, change status to "Validado" instead of "Calificado"
+        const newStatus = confirmDialog.status === 'approved' ? 'Validado' : 'Rechazado';
         await updateLeadStatus(prospect.lead_id, newStatus);
         
         setSuccessDialog({ 

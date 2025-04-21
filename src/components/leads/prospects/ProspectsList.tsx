@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useProspects } from '@/hooks/useProspects';
 import { Prospect } from '@/services/prospectService';
@@ -133,28 +132,31 @@ export const ProspectsList: React.FC<{
     }
   };
   
-  // Filter prospects based on search query and interview status
-  const filteredProspects = uniqueProspects
-    .filter(p => 
-      // Filter based on showOnlyInterviewed flag
-      !showOnlyInterviewed || (
-        // Only show prospects that have been called and have transcript
-        p.call_count !== null && 
-        p.call_count > 0 && 
-        p.transcript !== null
-      )
-    )
-    .filter(p => 
-      // Filter based on search query
-      searchQuery.trim() === '' || 
-        (p.lead_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-         p.custodio_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-         p.lead_phone?.includes(searchQuery) ||
-         p.phone_number_intl?.includes(searchQuery) ||
-         p.car_brand?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-         p.car_model?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-         p.lead_status?.toLowerCase().includes(searchQuery.toLowerCase()))
+  // Apply VAPI interview filter
+  const filteredByVapi = uniqueProspects.filter(lead => {
+    if (filter === "todos") return true;
+    if (filter === "con_vapi") return (lead.call_count ?? 0) > 0;
+    if (filter === "sin_vapi") return !lead.call_count || lead.call_count === 0;
+    return true;
+  });
+
+  // Apply search filter and exclude "Validado" status prospects unless specifically filtered for
+  const filteredLeads = filteredByVapi.filter(lead => {
+    // Skip prospects with "Validado" status unless we're specifically filtering for them
+    if (filter !== "Validado" && lead.lead_status === "Validado") return false;
+    
+    if (!searchQuery) return true;
+    const searchLower = searchQuery.toLowerCase();
+    return (
+      lead.lead_name?.toLowerCase().includes(searchLower) || 
+      lead.empresa?.toLowerCase().includes(searchLower) ||
+      lead.contacto?.toLowerCase().includes(searchLower) ||
+      lead.lead_name?.toLowerCase().includes(searchLower) || 
+      lead.custodio_name?.toLowerCase().includes(searchLower) || 
+      lead.lead_phone?.includes(searchLower) ||
+      lead.phone_number_intl?.includes(searchLower)
     );
+  });
   
   return (
     <div className="space-y-4">
@@ -184,6 +186,7 @@ export const ProspectsList: React.FC<{
               <SelectItem value="Contactado">Contactados</SelectItem>
               <SelectItem value="Contacto Llamado">En Llamada</SelectItem>
               <SelectItem value="Calificado">Calificados</SelectItem>
+              <SelectItem value="Validado">Validados</SelectItem>
               <SelectItem value="Rechazado">Rechazados</SelectItem>
             </SelectContent>
           </Select>
