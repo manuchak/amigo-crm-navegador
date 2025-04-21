@@ -3,7 +3,6 @@ import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import { UserRole } from '@/types/auth';
-import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { 
@@ -48,6 +47,22 @@ const availableActions: PageAccess[] = [
   { id: 'validate_prospects', name: 'Validar prospectos', description: 'Puede validar prospectos' },
   { id: 'create_leads', name: 'Crear leads', description: 'Puede crear nuevos leads' },
 ];
+
+// Helper function to display role names in Spanish
+const getDisplayName = (role: UserRole): string => {
+  const displayNames: Record<UserRole, string> = {
+    'unverified': 'No verificado',
+    'pending': 'Pendiente',
+    'supply': 'Supply',
+    'supply_admin': 'Supply Admin',
+    'atención_afiliado': 'Atención al Afiliado',
+    'afiliados': 'Afiliados',
+    'admin': 'Administrador',
+    'owner': 'Propietario'
+  };
+  
+  return displayNames[role] || role;
+};
 
 const UserPermissionConfig: React.FC = () => {
   // Initialize permissions with default values
@@ -101,22 +116,6 @@ const UserPermissionConfig: React.FC = () => {
 
   const [permissions, setPermissions] = useState<RolePermission[]>(getInitialPermissions);
   const [selectedTab, setSelectedTab] = useState<'pages' | 'actions'>('pages');
-
-  // Helper function to display role names in Spanish
-  const getDisplayName = (role: UserRole): string => {
-    const displayNames: Record<UserRole, string> = {
-      'unverified': 'No verificado',
-      'pending': 'Pendiente',
-      'supply': 'Supply',
-      'supply_admin': 'Supply Admin',
-      'atención_afiliado': 'Atención al Afiliado',
-      'afiliados': 'Afiliados',
-      'admin': 'Administrador',
-      'owner': 'Propietario'
-    };
-    
-    return displayNames[role] || role;
-  };
 
   const handlePermissionChange = (roleIndex: number, type: 'pages' | 'actions', id: string, checked: boolean) => {
     const newPermissions = [...permissions];
