@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useProspects } from '@/hooks/useProspects';
 import { Prospect } from '@/services/prospectService';
@@ -149,8 +150,7 @@ export const ProspectsList: React.FC<{
     const searchLower = searchQuery.toLowerCase();
     return (
       lead.lead_name?.toLowerCase().includes(searchLower) || 
-      lead.empresa?.toLowerCase().includes(searchLower) ||
-      lead.contacto?.toLowerCase().includes(searchLower) ||
+      lead.lead_email?.toLowerCase().includes(searchLower) ||
       lead.lead_name?.toLowerCase().includes(searchLower) || 
       lead.custodio_name?.toLowerCase().includes(searchLower) || 
       lead.lead_phone?.includes(searchLower) ||
@@ -238,7 +238,7 @@ export const ProspectsList: React.FC<{
         <div className="flex items-center justify-center py-12">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
         </div>
-      ) : filteredProspects.length === 0 ? (
+      ) : filteredLeads.length === 0 ? (
         <div className="text-center py-12 text-slate-500">
           {showOnlyInterviewed ? (
             <p>No se encontraron prospectos con entrevistas</p>
@@ -248,7 +248,7 @@ export const ProspectsList: React.FC<{
         </div>
       ) : viewMode === 'grid' ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-          {filteredProspects.map((prospect) => (
+          {filteredLeads.map((prospect) => (
             <ProspectCard 
               key={`prospect-${prospect.lead_id}-${prospect.validated_lead_id}`}
               prospect={prospect}
@@ -261,7 +261,7 @@ export const ProspectsList: React.FC<{
         </div>
       ) : (
         <ProspectsTable 
-          prospects={filteredProspects} 
+          prospects={filteredLeads} 
           onViewDetails={onViewDetails}
           onCall={handleCallProspect}
           onViewCalls={onViewCalls}
