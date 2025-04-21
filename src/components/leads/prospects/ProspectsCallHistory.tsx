@@ -10,10 +10,18 @@ import { Loader2, FileText, Play, Volume2, ChevronDown, ChevronUp } from 'lucide
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useLeadCallLogs } from '@/hooks/lead-call-logs';
+import { VapiCallLog } from '@/components/leads/types';
+import { Json } from '@/integrations/supabase/types';
 
 interface ProspectsCallHistoryProps {
   prospect: Prospect;
   onBack: () => void;
+}
+
+interface TranscriptItem {
+  speaker: string;
+  text: string;
+  timestamp: string;
 }
 
 const ProspectsCallHistory: React.FC<ProspectsCallHistoryProps> = ({ prospect, onBack }) => {
@@ -80,6 +88,20 @@ const ProspectsCallHistory: React.FC<ProspectsCallHistoryProps> = ({ prospect, o
   
   const selectedCall = callLogs.find(log => log.id === selectedCallId);
   
+  // Check if transcript data is valid and parse it to the expected format
+  const hasValidTranscript = (data: Json | null): boolean => {
+    if (!data) return false;
+    if (typeof data === 'object' && data !== null && 'transcript' in data) {
+      return Array.isArray((data as any).transcript);
+    }
+    return false;
+  };
+
+  // Type guard to check if a value is a transcript object
+  const isTranscriptArray = (data: any): data is TranscriptItem[] => {
+    return Array.isArray(data) && data.length > 0 && 'speaker' in data[0] && 'text' in data[0];
+  };
+  
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-start">
@@ -130,14 +152,15 @@ const ProspectsCallHistory: React.FC<ProspectsCallHistoryProps> = ({ prospect, o
                 <TableBody>
                   {callLogs.map((call) => {
                     const isExpanded = expandedRows.includes(call.id);
+                    const status = call.status || null;
                     const hasTranscript = call.transcript !== null;
                     return (
                       <React.Fragment key={call.id}>
                         <TableRow className="hover:bg-slate-50">
                           <TableCell>{formatDate(call.start_time)}</TableCell>
                           <TableCell>
-                            <Badge className={getStatusColor(call.call_status || call.status)}>
-                              {call.call_status || call.status || 'Desconocido'}
+                            <Badge className={getStatusColor(status)}>
+                              {status || 'Desconocido'}
                             </Badge>
                           </TableCell>
                           <TableCell>{formatDuration(call.duration)}</TableCell>
@@ -237,8 +260,9 @@ const ProspectsCallHistory: React.FC<ProspectsCallHistoryProps> = ({ prospect, o
           <ScrollArea className="max-h-[60vh]">
             {selectedCall?.transcript && (
               <div className="space-y-4 p-4">
-                {Array.isArray(selectedCall.transcript.transcript) ? (
-                  selectedCall.transcript.transcript.map((item: any, index: number) => {
+                {hasValidTranscript(selectedCall.transcript) && 
+                 isTranscriptArray((selectedCall.transcript as any).transcript) ? (
+                  ((selectedCall.transcript as any).transcript as TranscriptItem[]).map((item, index) => {
                     const isAssistant = item.speaker.toLowerCase().includes('assistant');
                     
                     return (

@@ -50,14 +50,20 @@ const ProspectsPage: React.FC = () => {
             onViewCalls={() => handleViewCalls(selectedProspect)}
             onValidate={() => handleValidate(selectedProspect)}
           />
-        ) : handleBackToList();
+        ) : (
+          // Return null instead of void
+          null 
+        );
       case 'calls':
         return selectedProspect ? (
           <ProspectsCallHistory 
             prospect={selectedProspect} 
             onBack={handleBackToList}
           />
-        ) : handleBackToList();
+        ) : (
+          // Return null instead of void
+          null
+        );
       case 'validation':
         return selectedProspect ? (
           <ProspectsValidationView
@@ -68,7 +74,10 @@ const ProspectsPage: React.FC = () => {
               refetch();
             }}
           />
-        ) : handleBackToList();
+        ) : (
+          // Return null instead of void
+          null
+        );
       default:
         return (
           <ProspectsList 
