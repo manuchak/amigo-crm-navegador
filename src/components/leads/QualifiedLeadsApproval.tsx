@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useLeads } from '@/context/LeadsContext';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -11,13 +10,7 @@ import { Input } from '@/components/ui/input';
 import { ValidationDialog } from './validation/ValidationDialog';
 import { ValidationStatsCards } from './validation/ValidationStatsCards';
 import { useValidation } from './validation/useValidation';
-
-// New: Add a "VAPI interview filter" UI options
-const VAPI_FILTER_OPTIONS = [
-  { value: 'todos', label: 'Todos' },
-  { value: 'con_vapi', label: 'Con entrevista VAPI' },
-  { value: 'sin_vapi', label: 'Sin entrevista VAPI' },
-];
+import { VapiInterviewFilter } from './filters/VapiInterviewFilter';
 
 const QualifiedLeadsApproval = () => {
   const { leads, updateLeadStatus, refetchLeads } = useLeads();
@@ -25,7 +18,7 @@ const QualifiedLeadsApproval = () => {
   const [selectedLeadId, setSelectedLeadId] = useState<number | null>(null);
   const [isValidationOpen, setIsValidationOpen] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
-  const [vapiFilter, setVapiFilter] = useState("todos"); // New state for filter
+  const [vapiFilter, setVapiFilter] = useState("todos");
   const { stats, statsLoading } = useValidation();
   
   // Filter only qualified leads
@@ -114,19 +107,8 @@ const QualifiedLeadsApproval = () => {
             </div>
             
             <div className="flex mt-4 md:mt-0 w-full md:w-auto space-x-2">
-              {/* VAPI Interview filter UI - simple select */}
-              <div className="relative w-full md:w-44">
-                <Filter className="absolute left-2 top-3 h-4 w-4 text-slate-400" />
-                <select
-                  className="pl-8 pr-4 py-2 rounded-md bg-white border border-slate-200 text-sm shadow-sm w-full"
-                  value={vapiFilter}
-                  onChange={(e) => setVapiFilter(e.target.value)}
-                >
-                  {VAPI_FILTER_OPTIONS.map(opt => (
-                    <option key={opt.value} value={opt.value}>{opt.label}</option>
-                  ))}
-                </select>
-              </div>
+              {/* Selector modularizado */}
+              <VapiInterviewFilter value={vapiFilter} onChange={setVapiFilter} />
               {/* Search box */}
               <div className="relative w-full md:w-64">
                 <Search className="absolute left-2 top-3 h-4 w-4 text-muted-foreground" />
@@ -137,7 +119,6 @@ const QualifiedLeadsApproval = () => {
                   className="pl-8"
                 />
               </div>
-              
               <Button 
                 variant="outline" 
                 size="icon"
@@ -245,4 +226,3 @@ const QualifiedLeadsApproval = () => {
 };
 
 export default QualifiedLeadsApproval;
-
