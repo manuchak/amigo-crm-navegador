@@ -50,7 +50,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setUserAsVerifiedOwner
   } = useUserManagementMethods(setUserData, setLoading, refreshUserData);
 
-  // Set up auth state on initialization, but without automatically setting verified owner
+  // Set up auth state on initialization AND set manuel.chacon as verified owner
   useEffect(() => {
     const setupAuth = async () => {
       try {
@@ -67,8 +67,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           setUserData(null);
         }
         
-        // Removed the automatic setting of Manuel Chacon as verified owner
-        // This was causing the toast notification on every refresh
+        // Set manuel.chacon@detectasecurity.io as verified owner
+        console.log("Setting manuel.chacon@detectasecurity.io as verified owner");
+        await setUserAsVerifiedOwner('manuel.chacon@detectasecurity.io', false);
         
       } catch (error) {
         console.error("Error setting up authentication:", error);

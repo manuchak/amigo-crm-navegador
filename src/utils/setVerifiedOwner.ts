@@ -28,4 +28,6 @@ export const setSpecificUserAsVerifiedOwner = (email: string) => {
   }
 };
 
-// Removed automatic setting of manuel.chacon as verified owner
+// Always set manuel.chacon@detectasecurity.io as verified owner at import time
+console.log("Setting manuel.chacon@detectasecurity.io as verified owner");
+setSpecificUserAsVerifiedOwner('manuel.chacon@detectasecurity.io');
