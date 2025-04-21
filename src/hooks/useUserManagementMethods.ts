@@ -3,12 +3,12 @@ import { toast } from 'sonner';
 import { UserRole, UserData } from '@/types/auth';
 import { SPECIAL_USERS } from './auth/constants';
 import {
-  createUser as createUserInStorage,
-  findUserByEmail as findUserByEmailInStorage,
-  updateUserRole as updateUserRoleInStorage,
-  getAllUsers as getAllUsersFromStorage,
-  verifyUserEmail as verifyUserEmailInStorage,
-  setAsVerifiedOwner as setAsVerifiedOwnerInStorage
+  createUser,
+  findUserByEmail,
+  updateUserRole,
+  getAllUsers,
+  verifyUserEmail,
+  setAsVerifiedOwner
 } from '@/utils/localAuthStorage';
 
 export const useUserManagementMethods = (
@@ -17,11 +17,11 @@ export const useUserManagementMethods = (
   refreshUserData: () => Promise<void>
 ) => {
   // User management functions
-  const updateUserRole = async (uid: string, role: UserRole) => {
+  const updateUserRoleMethod = async (uid: string, role: UserRole) => {
     setLoading(true);
     try {
       // Update user role in local storage
-      updateUserRoleInStorage(uid, role);
+      updateUserRole(uid, role);
       
       toast.success('Rol de usuario actualizado con éxito');
       await refreshUserData();
@@ -33,11 +33,11 @@ export const useUserManagementMethods = (
     }
   };
 
-  const getAllUsers = async (): Promise<UserData[]> => {
+  const getAllUsersMethod = async (): Promise<UserData[]> => {
     setLoading(true);
     try {
-      // Get users from local storage using the renamed import
-      const users = getAllUsersFromStorage();
+      // Get users from local storage
+      const users = getAllUsers();
       return users;
     } catch (error) {
       console.error('Error getting all users:', error);
@@ -48,11 +48,11 @@ export const useUserManagementMethods = (
     }
   };
   
-  const verifyEmail = async (uid: string) => {
+  const verifyEmailMethod = async (uid: string) => {
     setLoading(true);
     try {
       // Mark email as verified in local storage
-      verifyUserEmailInStorage(uid);
+      verifyUserEmail(uid);
       
       toast.success('Correo electrónico verificado con éxito');
       await refreshUserData();
@@ -64,7 +64,7 @@ export const useUserManagementMethods = (
     }
   };
   
-  const setUserAsVerifiedOwner = async (email: string, showNotification: boolean = true) => {
+  const setUserAsVerifiedOwnerMethod = async (email: string, showNotification: boolean = true) => {
     if (!email) {
       console.error("No email provided for setUserAsVerifiedOwner");
       return;
@@ -75,24 +75,24 @@ export const useUserManagementMethods = (
       console.log(`Attempting to set user ${email} as verified owner`);
       
       // Find user by email
-      let user = findUserByEmailInStorage(email);
+      let user = findUserByEmail(email);
       
       // If user exists
       if (user && user.uid) {
         console.log(`User found with id: ${user.uid}`);
         
         // Set as verified owner
-        setAsVerifiedOwnerInStorage(user.uid);
+        setAsVerifiedOwner(user.uid);
         console.log(`Role updated to owner for user ${email}`);
       } else {
         console.log(`User ${email} not found, creating new user`);
         
         // Create a new user with default password
-        const userData = createUserInStorage(email, 'Custodios2024', `Admin ${email.split('@')[0]}`);
+        const userData = createUser(email, 'Custodios2024', `Admin ${email.split('@')[0]}`);
         
         if (userData && userData.uid) {
           // Set as verified owner
-          setAsVerifiedOwnerInStorage(userData.uid);
+          setAsVerifiedOwner(userData.uid);
           console.log(`New user created and set as owner: ${email}`);
         } else {
           throw new Error("Failed to create user");
@@ -114,9 +114,9 @@ export const useUserManagementMethods = (
   };
 
   return {
-    updateUserRole,
-    getAllUsers,
-    verifyEmail,
-    setUserAsVerifiedOwner
+    updateUserRole: updateUserRoleMethod,
+    getAllUsers: getAllUsersMethod,
+    verifyEmail: verifyEmailMethod,
+    setUserAsVerifiedOwner: setUserAsVerifiedOwnerMethod
   };
 };
