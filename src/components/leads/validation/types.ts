@@ -1,4 +1,3 @@
-
 export interface CustodioValidation {
   id: string;
   lead_id: number;
@@ -28,6 +27,9 @@ export interface CustodioValidation {
   validation_duration_seconds: number | null;
   created_at: string;
   updated_at: string;
+  
+  // Lifetime identifier
+  lifetime_id: string | null;
 }
 
 export interface ValidationStats {

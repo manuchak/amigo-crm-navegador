@@ -2,6 +2,14 @@
 import { supabase } from '@/integrations/supabase/client';
 import { CustodioValidation, ValidationStats } from '@/components/leads/validation/types';
 
+// Generate a unique lifetime ID for custodios
+const generateLifetimeId = (): string => {
+  // Format: CUS-YYYY-XXXXX (CUS prefix, year, and 5 random alphanumeric characters)
+  const year = new Date().getFullYear();
+  const randomChars = Math.random().toString(36).substring(2, 7).toUpperCase();
+  return `CUS-${year}-${randomChars}`;
+};
+
 // Get all validations
 export const getValidations = async (): Promise<CustodioValidation[]> => {
   const { data, error } = await supabase
@@ -68,12 +76,16 @@ export const createValidation = async (
       throw new Error('Usuario no autenticado. Por favor inicie sesión nuevamente.');
     }
     
+    // Generate a lifetime ID for the custodio
+    const lifetimeId = generateLifetimeId();
+    
     const validationData = {
       lead_id: leadId,
       ...formData,
       validation_date: new Date().toISOString(),
       status: determineValidationStatus(formData),
-      validated_by: userData.user.id // Use the actual user ID
+      validated_by: userData.user.id, // Use the actual user ID
+      lifetime_id: lifetimeId // Add the lifetime ID
     };
     
     const { data, error } = await supabase
@@ -116,6 +128,23 @@ export const updateValidation = async (
   };
   
   try {
+    // Check if the validation already has a lifetime ID
+    const { data: existingValidation, error: fetchError } = await supabase
+      .from('custodio_validations')
+      .select('lifetime_id')
+      .eq('id', id)
+      .single();
+    
+    if (fetchError) {
+      console.error('Error fetching existing validation:', fetchError);
+      throw fetchError;
+    }
+    
+    // If no lifetime ID exists, generate one and include it in the update
+    if (!existingValidation.lifetime_id) {
+      updatedData.lifetime_id = generateLifetimeId();
+    }
+    
     const { data, error } = await supabase
       .from('custodio_validations')
       .update(updatedData)

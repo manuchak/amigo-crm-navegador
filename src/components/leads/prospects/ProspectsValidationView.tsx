@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Prospect } from '@/services/prospectService';
 import { Button } from '@/components/ui/button';
@@ -30,6 +29,10 @@ const ProspectsValidationView: React.FC<ProspectsValidationViewProps> = ({
     open: false, 
     status: 'approved' 
   });
+  const [successDialog, setSuccessDialog] = useState<{ open: boolean, status: 'approved' | 'rejected', lifetime_id?: string }>({ 
+    open: false, 
+    status: 'approved'
+  });
   const { toast } = useToast();
   const { updateLeadStatus, refetchLeads } = useLeads();
   
@@ -49,6 +52,14 @@ const ProspectsValidationView: React.FC<ProspectsValidationViewProps> = ({
         title: "Datos guardados",
         description: "La validación ha sido guardada correctamente",
       });
+      
+      if (result.lifetime_id) {
+        toast({
+          title: "ID Permanente Generado",
+          description: `Identificador único: ${result.lifetime_id}`,
+          variant: "default",
+        });
+      }
     } else {
       toast({
         title: "Error",
@@ -68,7 +79,6 @@ const ProspectsValidationView: React.FC<ProspectsValidationViewProps> = ({
   
   const confirmStatusChange = async () => {
     try {
-      // First save the validation data
       const result = await saveValidation();
       if (!result) {
         toast({
@@ -79,24 +89,19 @@ const ProspectsValidationView: React.FC<ProspectsValidationViewProps> = ({
         return;
       }
       
-      // Then update the lead status
       if (prospect.lead_id) {
         const newStatus = confirmDialog.status === 'approved' ? 'Calificado' : 'Rechazado';
         await updateLeadStatus(prospect.lead_id, newStatus);
         
-        toast({
-          title: confirmDialog.status === 'approved' ? "Custodio aprobado" : "Custodio rechazado",
-          description: confirmDialog.status === 'approved' 
-            ? "El custodio ha sido aprobado y pasado a la siguiente etapa" 
-            : "El custodio ha sido marcado como rechazado",
+        setSuccessDialog({ 
+          open: true, 
+          status: confirmDialog.status,
+          lifetime_id: result.lifetime_id || undefined
         });
         
-        // Refresh leads data
-        await refetchLeads();
-        
-        // Close dialog and return to list
         setConfirmDialog({ ...confirmDialog, open: false });
-        onComplete();
+        
+        await refetchLeads();
       }
     } catch (err) {
       console.error("Error updating status:", err);
@@ -108,13 +113,16 @@ const ProspectsValidationView: React.FC<ProspectsValidationViewProps> = ({
     }
   };
 
-  // Determine if critical criteria are met
+  const handleComplete = () => {
+    setSuccessDialog({ ...successDialog, open: false });
+    onComplete();
+  };
+
   const isCriticalCriteriaMet = 
     formData.age_requirement_met === true && 
     formData.interview_passed === true && 
     formData.background_check_passed === true;
   
-  // Check if all required fields are filled
   const isFormComplete = 
     formData.age_requirement_met !== null &&
     formData.interview_passed !== null &&
@@ -205,7 +213,6 @@ const ProspectsValidationView: React.FC<ProspectsValidationViewProps> = ({
         </CardFooter>
       </Card>
       
-      {/* Confirmation Dialog */}
       <Dialog open={confirmDialog.open} onOpenChange={(open) => setConfirmDialog({ ...confirmDialog, open })}>
         <DialogContent>
           <DialogHeader>
@@ -229,6 +236,39 @@ const ProspectsValidationView: React.FC<ProspectsValidationViewProps> = ({
               disabled={loading}
             >
               {confirmDialog.status === 'approved' ? 'Aprobar' : 'Rechazar'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      
+      <Dialog open={successDialog.open} onOpenChange={(open) => setSuccessDialog({ ...successDialog, open })}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>
+              {successDialog.status === 'approved' ? 'Custodio Aprobado' : 'Custodio Rechazado'}
+            </DialogTitle>
+            <DialogDescription>
+              {successDialog.status === 'approved' 
+                ? 'El custodio ha sido aprobado y pasado a la siguiente etapa del proceso.'
+                : 'El custodio ha sido marcado como rechazado.'}
+            </DialogDescription>
+          </DialogHeader>
+          
+          {successDialog.lifetime_id && (
+            <div className="my-4 p-4 bg-muted rounded-md">
+              <h4 className="text-sm font-medium mb-2">Identificador Permanente del Custodio:</h4>
+              <p className="text-lg font-bold tracking-wider text-center p-2 bg-background rounded border">
+                {successDialog.lifetime_id}
+              </p>
+              <p className="text-xs text-muted-foreground mt-2">
+                Este identificador es único y permanente para este custodio en el sistema.
+              </p>
+            </div>
+          )}
+          
+          <DialogFooter>
+            <Button onClick={handleComplete}>
+              Entendido
             </Button>
           </DialogFooter>
         </DialogContent>
