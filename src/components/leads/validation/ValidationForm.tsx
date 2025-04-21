@@ -7,7 +7,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { ValidationFormData } from './types';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, Save } from 'lucide-react';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Loader2, Save, AlertTriangle } from 'lucide-react';
 
 interface ValidationFormProps {
   formData: ValidationFormData;
@@ -16,6 +17,7 @@ interface ValidationFormProps {
   loading: boolean;
   leadName: string;
   hasTranscript: boolean;
+  error?: string | null;
 }
 
 export const ValidationForm: React.FC<ValidationFormProps> = ({
@@ -24,7 +26,8 @@ export const ValidationForm: React.FC<ValidationFormProps> = ({
   onSubmit,
   loading,
   leadName,
-  hasTranscript
+  hasTranscript,
+  error
 }) => {
   // Check if all critical requirements are answered
   const isCriticalRequirementsMissing = 
@@ -113,10 +116,17 @@ export const ValidationForm: React.FC<ValidationFormProps> = ({
   return (
     <Card className="bg-white shadow-sm">
       <CardContent className="pt-6">
-        {/* Fix: Use a regular HTML form element instead of the Form component */}
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="space-y-2">
             <h3 className="text-lg font-medium">Validación de Custodio: {leadName}</h3>
+            
+            {error && (
+              <Alert variant="destructive" className="mb-4">
+                <AlertTriangle className="h-4 w-4 mr-2" />
+                <AlertDescription>{error}</AlertDescription>
+              </Alert>
+            )}
+            
             {!hasTranscript && (
               <div className="text-sm text-amber-600 bg-amber-50 p-2 rounded-md">
                 No se encontró transcripción de llamada para este custodio. Se recomienda realizar una llamada antes de validar.

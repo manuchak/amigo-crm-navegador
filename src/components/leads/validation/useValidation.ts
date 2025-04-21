@@ -6,6 +6,7 @@ import { createValidation, updateValidation, getValidationByLeadId, getValidatio
 export const useValidation = (leadId?: number) => {
   const [validation, setValidation] = useState<CustodioValidation | null>(null);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [stats, setStats] = useState<ValidationStats[]>([]);
   const [statsLoading, setStatsLoading] = useState(false);
   
@@ -48,6 +49,7 @@ export const useValidation = (leadId?: number) => {
     
     const fetchValidation = async () => {
       setLoading(true);
+      setError(null);
       try {
         const existingValidation = await getValidationByLeadId(leadId);
         setValidation(existingValidation);
@@ -87,6 +89,7 @@ export const useValidation = (leadId?: number) => {
         }
       } catch (error) {
         console.error('Error fetching validation:', error);
+        setError('Error al cargar la validación existente');
       } finally {
         setLoading(false);
       }
@@ -108,6 +111,8 @@ export const useValidation = (leadId?: number) => {
     if (!leadId) return null;
     
     setLoading(true);
+    setError(null);
+    
     try {
       let result: CustodioValidation;
       
@@ -121,8 +126,16 @@ export const useValidation = (leadId?: number) => {
       
       setValidation(result);
       return result;
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error saving validation:', error);
+      
+      // Set a friendly error message
+      if (error.code === '42501') {
+        setError('Error de permisos: No tiene permisos para guardar validaciones');
+      } else {
+        setError(error.message || 'Error al guardar la validación');
+      }
+      
       return null;
     } finally {
       setLoading(false);
@@ -133,6 +146,7 @@ export const useValidation = (leadId?: number) => {
     validation,
     formData,
     loading,
+    error,
     stats,
     statsLoading,
     handleInputChange,

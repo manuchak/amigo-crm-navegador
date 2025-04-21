@@ -55,35 +55,41 @@ export const createValidation = async (
 ): Promise<CustodioValidation> => {
   const startTime = new Date();
   
-  const validationData = {
-    lead_id: leadId,
-    ...formData,
-    validation_date: new Date().toISOString(),
-    status: determineValidationStatus(formData)
-  };
-  
-  const { data, error } = await supabase
-    .from('custodio_validations')
-    .insert([validationData])
-    .select()
-    .single();
-  
-  if (error) {
+  try {
+    const validationData = {
+      lead_id: leadId,
+      ...formData,
+      validation_date: new Date().toISOString(),
+      status: determineValidationStatus(formData),
+      validated_by: supabase.auth.getUser().then(res => res.data.user?.id) // Get current user ID
+    };
+    
+    const { data, error } = await supabase
+      .from('custodio_validations')
+      .insert([validationData])
+      .select()
+      .single();
+    
+    if (error) {
+      console.error('Error creating validation:', error);
+      throw error;
+    }
+    
+    // Calculate duration
+    const endTime = new Date();
+    const durationSeconds = Math.round((endTime.getTime() - startTime.getTime()) / 1000);
+    
+    // Update with duration
+    await supabase
+      .from('custodio_validations')
+      .update({ validation_duration_seconds: durationSeconds })
+      .eq('id', data.id);
+    
+    return data as CustodioValidation;
+  } catch (error) {
     console.error('Error creating validation:', error);
     throw error;
   }
-  
-  // Calculate duration
-  const endTime = new Date();
-  const durationSeconds = Math.round((endTime.getTime() - startTime.getTime()) / 1000);
-  
-  // Update with duration
-  await supabase
-    .from('custodio_validations')
-    .update({ validation_duration_seconds: durationSeconds })
-    .eq('id', data.id);
-  
-  return data as CustodioValidation;
 };
 
 // Update an existing validation
@@ -97,19 +103,24 @@ export const updateValidation = async (
     updated_at: new Date().toISOString()
   };
   
-  const { data, error } = await supabase
-    .from('custodio_validations')
-    .update(updatedData)
-    .eq('id', id)
-    .select()
-    .single();
-  
-  if (error) {
+  try {
+    const { data, error } = await supabase
+      .from('custodio_validations')
+      .update(updatedData)
+      .eq('id', id)
+      .select()
+      .single();
+    
+    if (error) {
+      console.error('Error updating validation:', error);
+      throw error;
+    }
+    
+    return data as CustodioValidation;
+  } catch (error) {
     console.error('Error updating validation:', error);
     throw error;
   }
-  
-  return data as CustodioValidation;
 };
 
 // Helper function to determine validation status based on criteria

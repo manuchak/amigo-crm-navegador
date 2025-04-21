@@ -10,7 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { formatPhoneNumber } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Info } from 'lucide-react';
+import { Info, AlertTriangle } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { useLeads } from '@/context/LeadsContext';
 
@@ -37,6 +37,7 @@ const ProspectsValidationView: React.FC<ProspectsValidationViewProps> = ({
     validation,
     formData,
     loading,
+    error,
     handleInputChange,
     saveValidation
   } = useValidation(prospect.lead_id);
@@ -51,7 +52,7 @@ const ProspectsValidationView: React.FC<ProspectsValidationViewProps> = ({
     } else {
       toast({
         title: "Error",
-        description: "No se pudo guardar la validación",
+        description: error || "No se pudo guardar la validación",
         variant: "destructive",
       });
     }
@@ -72,7 +73,7 @@ const ProspectsValidationView: React.FC<ProspectsValidationViewProps> = ({
       if (!result) {
         toast({
           title: "Error",
-          description: "No se pudo guardar la validación",
+          description: error || "No se pudo guardar la validación",
           variant: "destructive",
         });
         return;
@@ -97,8 +98,8 @@ const ProspectsValidationView: React.FC<ProspectsValidationViewProps> = ({
         setConfirmDialog({ ...confirmDialog, open: false });
         onComplete();
       }
-    } catch (error) {
-      console.error("Error updating status:", error);
+    } catch (err) {
+      console.error("Error updating status:", err);
       toast({
         title: "Error",
         description: "No se pudo actualizar el estado del custodio",
@@ -132,7 +133,17 @@ const ProspectsValidationView: React.FC<ProspectsValidationViewProps> = ({
         </CardHeader>
         
         <CardContent className="pt-4">
-          {!isFormComplete && validation === null && (
+          {error && (
+            <Alert className="mb-4" variant="destructive">
+              <AlertTriangle className="h-4 w-4" />
+              <AlertTitle>Error</AlertTitle>
+              <AlertDescription>
+                {error}
+              </AlertDescription>
+            </Alert>
+          )}
+          
+          {!isFormComplete && validation === null && !error && (
             <Alert className="mb-4">
               <Info className="h-4 w-4" />
               <AlertTitle>Validación inicial</AlertTitle>
@@ -157,6 +168,7 @@ const ProspectsValidationView: React.FC<ProspectsValidationViewProps> = ({
                 loading={loading}
                 leadName={prospect.lead_name || prospect.custodio_name || 'Prospecto'}
                 hasTranscript={prospect.transcript !== null}
+                error={error}
               />
             </TabsContent>
             
@@ -185,7 +197,7 @@ const ProspectsValidationView: React.FC<ProspectsValidationViewProps> = ({
             
             <Button 
               onClick={handleApprove}
-              disabled={!isFormComplete || !isCriticalCriteriaMet}
+              disabled={loading || !isFormComplete || !isCriticalCriteriaMet}
             >
               Aprobar custodio
             </Button>
@@ -214,6 +226,7 @@ const ProspectsValidationView: React.FC<ProspectsValidationViewProps> = ({
             <Button 
               onClick={confirmStatusChange}
               variant={confirmDialog.status === 'approved' ? 'default' : 'destructive'}
+              disabled={loading}
             >
               {confirmDialog.status === 'approved' ? 'Aprobar' : 'Rechazar'}
             </Button>
