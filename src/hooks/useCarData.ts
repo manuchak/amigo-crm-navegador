@@ -15,7 +15,6 @@ export type CarModel = {
 
 export const useCarData = () => {
   const [brands, setBrands] = useState<CarBrand[]>([]);
-  const [models, setModels] = useState<CarModel[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -48,6 +47,12 @@ export const useCarData = () => {
         .order('name');
 
       if (error) throw error;
+      
+      // If no models are found for this brand (except "Otro"), add a default "Otro" model
+      if ((data?.length === 0 || !data) && brandId !== 20) { // Assuming 20 is the ID for "Otro" brand
+        return [{ id: 0, brand_id: brandId, name: 'Otro' }];
+      }
+
       return data || [];
     } catch (err: any) {
       console.error('Error fetching car models:', err);

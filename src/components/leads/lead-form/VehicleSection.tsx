@@ -16,11 +16,24 @@ const VehicleSection = ({ showVehicleDetails }: VehicleSectionProps) => {
   const { control, setValue, watch } = useFormContext();
   const [availableModels, setAvailableModels] = useState<CarModel[]>([]);
   const { brands, fetchModelsByBrand, loading } = useCarData();
+  const [otherSelected, setOtherSelected] = useState(false);
   
   const currentYear = new Date().getFullYear();
   const years = Array.from({ length: 15 }, (_, i) => String(currentYear - i));
   
   const selectedBrandId = watch('marcaVehiculo');
+
+  // Check if "Otro" (Other) is selected
+  useEffect(() => {
+    if (selectedBrandId) {
+      const isOtherBrand = brands.find(brand => 
+        brand.id.toString() === selectedBrandId && brand.name === 'Otro'
+      );
+      setOtherSelected(!!isOtherBrand);
+    } else {
+      setOtherSelected(false);
+    }
+  }, [selectedBrandId, brands]);
 
   // Fetch car models when brand selection changes
   useEffect(() => {
@@ -73,34 +86,53 @@ const VehicleSection = ({ showVehicleDetails }: VehicleSectionProps) => {
         )}
       />
       
-      <FormField
-        control={control}
-        name="modeloVehiculo"
-        render={({ field }) => (
-          <FormItem>
-            <FormLabel>Modelo del vehículo</FormLabel>
-            <Select 
-              onValueChange={field.onChange} 
-              value={field.value || ''} 
-              disabled={!selectedBrandId || availableModels.length === 0}
-            >
+      {otherSelected ? (
+        <FormField
+          control={control}
+          name="modeloVehiculo"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Modelo del vehículo</FormLabel>
               <FormControl>
-                <SelectTrigger>
-                  <SelectValue placeholder={!selectedBrandId ? "Seleccione marca primero" : "Seleccione un modelo"} />
-                </SelectTrigger>
+                <Input 
+                  placeholder="Ingrese el modelo" 
+                  {...field} 
+                />
               </FormControl>
-              <SelectContent>
-                {availableModels.map((model) => (
-                  <SelectItem key={model.id} value={model.name}>
-                    {model.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <FormMessage />
-          </FormItem>
-        )}
-      />
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+      ) : (
+        <FormField
+          control={control}
+          name="modeloVehiculo"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Modelo del vehículo</FormLabel>
+              <Select 
+                onValueChange={field.onChange} 
+                value={field.value || ''} 
+                disabled={!selectedBrandId || availableModels.length === 0}
+              >
+                <FormControl>
+                  <SelectTrigger>
+                    <SelectValue placeholder={!selectedBrandId ? "Seleccione marca primero" : "Seleccione un modelo"} />
+                  </SelectTrigger>
+                </FormControl>
+                <SelectContent>
+                  {availableModels.map((model) => (
+                    <SelectItem key={model.id} value={model.name}>
+                      {model.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+      )}
       
       <FormField
         control={control}
