@@ -34,15 +34,15 @@ export interface Prospect {
 export async function getProspects(): Promise<Prospect[]> {
   try {
     const { data, error } = await supabase
-      .from('prospects')
-      .select('*');
+      .rpc('get_all_prospects')
+      .returns<Prospect[]>();
     
     if (error) {
       console.error("Error fetching prospects:", error);
       throw error;
     }
     
-    return data as Prospect[] || [];
+    return data || [];
   } catch (error) {
     console.error("Failed to fetch prospects:", error);
     throw error;
@@ -52,17 +52,16 @@ export async function getProspects(): Promise<Prospect[]> {
 export async function getProspectById(leadId: number): Promise<Prospect | null> {
   try {
     const { data, error } = await supabase
-      .from('prospects')
-      .select('*')
-      .eq('lead_id', leadId)
-      .maybeSingle();
+      .rpc('get_prospect_by_id', { p_lead_id: leadId })
+      .returns<Prospect[]>();
     
     if (error) {
       console.error(`Error fetching prospect with ID ${leadId}:`, error);
       throw error;
     }
     
-    return data as Prospect;
+    // We expect only one result, or null
+    return data && data.length > 0 ? data[0] : null;
   } catch (error) {
     console.error(`Failed to fetch prospect with ID ${leadId}:`, error);
     throw error;
@@ -72,16 +71,15 @@ export async function getProspectById(leadId: number): Promise<Prospect | null> 
 export async function getProspectsByStatus(status: string): Promise<Prospect[]> {
   try {
     const { data, error } = await supabase
-      .from('prospects')
-      .select('*')
-      .eq('lead_status', status);
+      .rpc('get_prospects_by_status', { p_status: status })
+      .returns<Prospect[]>();
     
     if (error) {
       console.error(`Error fetching prospects with status ${status}:`, error);
       throw error;
     }
     
-    return data as Prospect[] || [];
+    return data || [];
   } catch (error) {
     console.error(`Failed to fetch prospects with status ${status}:`, error);
     throw error;
