@@ -18,10 +18,10 @@ export const ProspectsList: React.FC<{
   onViewCalls?: (prospect: Prospect) => void;
   onValidate?: (prospect: Prospect) => void;
 }> = ({ onViewDetails, onViewCalls, onValidate }) => {
-  const [filter, setFilter] = useState<string | undefined>(undefined);
+  const [filter, setFilter] = useState<string | undefined>("Contacto Llamado"); // Default to "Contacto Llamado" status
   const [searchQuery, setSearchQuery] = useState('');
-  const [viewMode, setViewMode] = useState<'grid' | 'table'>('table'); // Default is now table view
-  const [showOnlyInterviewed, setShowOnlyInterviewed] = useState(false); // Changed to false to show all prospects by default
+  const [viewMode, setViewMode] = useState<'grid' | 'table'>('table'); // Default to table view
+  const [showOnlyInterviewed, setShowOnlyInterviewed] = useState(false);
   const { prospects, loading, refetch } = useProspects(filter);
   const { toast } = useToast();
   const [refreshing, setRefreshing] = useState(false);
@@ -171,7 +171,10 @@ export const ProspectsList: React.FC<{
             />
           </div>
           
-          <Select onValueChange={(value) => setFilter(value === 'todos' ? undefined : value)}>
+          <Select 
+            value={filter === undefined ? 'todos' : filter} 
+            onValueChange={(value) => setFilter(value === 'todos' ? undefined : value)}
+          >
             <SelectTrigger className="w-[180px]">
               <SelectValue placeholder="Filtrar por estado" />
             </SelectTrigger>

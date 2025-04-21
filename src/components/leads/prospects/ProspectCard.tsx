@@ -171,7 +171,7 @@ const ProspectCard: React.FC<ProspectCardProps> = ({
           </Button>
         )}
         
-        {onValidate && hasInterviewData && (
+        {onValidate && (
           <Button 
             variant="outline" 
             size="sm" 

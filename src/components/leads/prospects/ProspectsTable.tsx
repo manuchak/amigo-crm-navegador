@@ -4,7 +4,7 @@ import { Prospect } from '@/services/prospectService';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { CheckSquare, Clock, FileText, PhoneCall } from 'lucide-react';
+import { CheckSquare, Clock, FileText, PhoneCall, Check, X } from 'lucide-react';
 import { formatPhoneNumber } from '@/lib/utils';
 
 interface ProspectsTableProps {
@@ -39,10 +39,26 @@ const ProspectsTable: React.FC<ProspectsTableProps> = ({
     switch (status?.toLowerCase()) {
       case 'nuevo': return 'bg-blue-50 text-blue-600';
       case 'contactado': return 'bg-amber-50 text-amber-600';
+      case 'contacto llamado': return 'bg-amber-50 text-amber-600';
       case 'calificado': return 'bg-green-50 text-green-600';
       case 'rechazado': return 'bg-red-50 text-red-600';
       default: return 'bg-slate-100 text-slate-600';
     }
+  };
+
+  // Format boolean values to "Sí" or "No" with appropriate icons
+  const formatBoolean = (value: boolean | null | undefined) => {
+    if (value === true) return (
+      <span className="flex items-center text-green-600">
+        <Check className="h-3.5 w-3.5 mr-1" /> Sí
+      </span>
+    );
+    if (value === false) return (
+      <span className="flex items-center text-red-600">
+        <X className="h-3.5 w-3.5 mr-1" /> No
+      </span>
+    );
+    return "No especificado";
   };
 
   return (
@@ -54,7 +70,7 @@ const ProspectsTable: React.FC<ProspectsTableProps> = ({
             <TableHead>Contacto</TableHead>
             <TableHead>Estado</TableHead>
             <TableHead>Vehículo</TableHead>
-            <TableHead>Experiencia</TableHead>
+            <TableHead>SEDENA</TableHead>
             <TableHead>Llamadas</TableHead>
             <TableHead>Acciones</TableHead>
           </TableRow>
@@ -95,9 +111,27 @@ const ProspectsTable: React.FC<ProspectsTableProps> = ({
                   )}
                 </TableCell>
                 <TableCell>
-                  {prospect.security_exp || (
-                    <span className="text-slate-400">No registrada</span>
-                  )}
+                  <div className="space-y-1 text-sm">
+                    {prospect.sedena_id ? (
+                      <div>ID: {prospect.sedena_id}</div>
+                    ) : (
+                      <div className="text-slate-400">Sin ID</div>
+                    )}
+                    
+                    {typeof prospect.has_security_experience !== 'undefined' && (
+                      <div className="flex items-center gap-1">
+                        <span className="text-xs text-slate-500">Exp. Seguridad:</span>
+                        {formatBoolean(prospect.has_security_experience)}
+                      </div>
+                    )}
+                    
+                    {typeof prospect.has_firearm_license !== 'undefined' && (
+                      <div className="flex items-center gap-1">
+                        <span className="text-xs text-slate-500">Armas:</span>
+                        {formatBoolean(prospect.has_firearm_license)}
+                      </div>
+                    )}
+                  </div>
                 </TableCell>
                 <TableCell>
                   {prospect.call_count ? (
@@ -149,7 +183,7 @@ const ProspectsTable: React.FC<ProspectsTableProps> = ({
                       </Button>
                     )}
                     
-                    {onValidate && hasInterviewData && (
+                    {onValidate && (
                       <Button 
                         variant="outline" 
                         size="sm" 
