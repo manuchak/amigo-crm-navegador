@@ -82,7 +82,6 @@ const Leads = () => {
             <Users className="h-4 w-4 mr-1" />
             Prospectos
           </TabsTrigger>
-          <TabsTrigger value="clasificados" className="rounded-md">Leads clasificados</TabsTrigger>
           <TabsTrigger value="aprobacion" className="rounded-md">
             <UserCheck className="mr-1 h-4 w-4" />
             Aprobación
@@ -100,10 +99,6 @@ const Leads = () => {
         
         <TabsContent value="prospectos" className="mt-4">
           <ProspectsPage />
-        </TabsContent>
-
-        <TabsContent value="clasificados" className="mt-4">
-          <QualifiedLeadsApproval />
         </TabsContent>
 
         <TabsContent value="aprobacion" className="mt-4">
