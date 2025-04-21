@@ -1,16 +1,26 @@
-
-import React, { useMemo } from "react";
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend } from "recharts";
+import React, { useMemo, useState } from "react";
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend, LabelList } from "recharts";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { ChartContainer, ChartTooltipContent } from "@/components/ui/chart";
 import { Lead } from "@/context/LeadsContext";
+import DateRangePicker from "./DateRangePicker";
+import { isValid, parseISO } from "date-fns";
 
-// Helper para agrupar leads por día y fuente de ingreso
+const DARK_GRAY = "#222222";
+
 function getLeadsByDayAndSource(leads: Lead[]) {
-  // Creamos un mapa intermedio: { fecha: { fuente: count } }
+  const leadsWithValidDate = leads.filter((lead) => {
+    if (!lead.fechaCreacion) return false;
+    if (lead.fechaCreacion.length === 10) return isValid(parseISO(lead.fechaCreacion));
+    try {
+      return isValid(new Date(lead.fechaCreacion));
+    } catch {
+      return false;
+    }
+  });
+
   const grouped: Record<string, Record<string, number>> = {};
-  leads.forEach((lead) => {
-    // fecha en formato YYYY-MM-DD (solo día)
+  leadsWithValidDate.forEach((lead) => {
     let fecha = "";
     if (lead.fechaCreacion?.length === 10) {
       fecha = lead.fechaCreacion;
@@ -19,24 +29,23 @@ function getLeadsByDayAndSource(leads: Lead[]) {
         const d = new Date(lead.fechaCreacion);
         fecha = d.toISOString().slice(0, 10);
       } catch {
-        fecha = "Sin fecha";
+        return;
       }
     }
     const fuente = (lead as any).fuente || "Desconocida";
     if (!grouped[fecha]) grouped[fecha] = {};
     grouped[fecha][fuente] = (grouped[fecha][fuente] || 0) + 1;
   });
-  // Extracción de todas las fuentes
+
   const allSources: string[] = Array.from(
     new Set(
-      leads.map((l) =>
+      leadsWithValidDate.map((l) =>
         (l as any).fuente
           ? (l as any).fuente
           : "Desconocida"
       )
     )
   );
-  // Convertir a array de objetos para recharts
   const rows = Object.entries(grouped)
     .sort(([a], [b]) => a.localeCompare(b))
     .map(([fecha, fuentes]) => ({
@@ -52,16 +61,6 @@ interface LeadsByDaySourceChartProps {
   leads: Lead[];
 }
 
-const COLORS = [
-  "#1890ff", // Landing
-  "#52c41a", // Form
-  "#faad14", // Webhook
-  "#ff4d4f", // Desconocida
-  "#722ed1", // Otros
-];
-
-const getColor = (i: number) => COLORS[i % COLORS.length];
-
 const sourceLabels: Record<string, string> = {
   "Landing": "Landing",
   "Form": "Formulario",
@@ -70,45 +69,69 @@ const sourceLabels: Record<string, string> = {
 };
 
 const LeadsByDaySourceChart: React.FC<LeadsByDaySourceChartProps> = ({ leads }) => {
+  const [dateRange, setDateRange] = useState<{ from: Date | null, to: Date | null }>({
+    from: null,
+    to: null,
+  });
+
   const { data, sources } = useMemo(() => getLeadsByDayAndSource(leads), [leads]);
+
+  const filteredData = useMemo(() => {
+    if (!dateRange.from || !dateRange.to) return data;
+    const fromMs = dateRange.from.setHours(0,0,0,0);
+    const toMs = dateRange.to.setHours(23,59,59,999);
+    return data.filter(({ fecha }) => {
+      const fechaMs = new Date(fecha).getTime();
+      return fechaMs >= fromMs && fechaMs <= toMs;
+    });
+  }, [data, dateRange]);
+
   if (data.length === 0) return null;
 
-  // Configuración para el ChartContainer y leyenda
   const chartConfig = useMemo(() => {
     const conf: any = {};
-    sources.forEach((src, idx) => {
+    sources.forEach((src) => {
       conf[src] = {
         label: sourceLabels[src] || src,
-        color: getColor(idx),
+        color: DARK_GRAY,
       };
     });
     return conf;
   }, [sources]);
 
   return (
-    <Card className="w-full bg-white shadow-sm mt-2">
-      <CardHeader>
-        <CardTitle className="text-base">Leads por día y fuente de ingreso</CardTitle>
+    <Card className="w-full bg-white shadow-sm mt-4 mb-10">
+      <CardHeader className="flex flex-col md:flex-row md:items-center md:justify-between">
+        <CardTitle className="text-base mb-2 md:mb-0">
+          Leads por día y fuente de ingreso
+        </CardTitle>
+        <DateRangePicker
+          value={dateRange}
+          onChange={setDateRange}
+        />
       </CardHeader>
       <CardContent>
-        <div className="w-full h-72">
+        <div className="w-full h-72 md:h-80 xl:h-80">
           <ChartContainer config={chartConfig}>
-            <BarChart data={data}>
-              <XAxis dataKey="fecha" angle={-30} textAnchor="end" height={40} />
-              <YAxis allowDecimals={false} />
-              <Tooltip content={<ChartTooltipContent nameKey="" />} />
-              <Legend />
-              {sources.map((src, idx) => (
-                <Bar
-                  key={src}
-                  dataKey={src}
-                  stackId="a"
-                  fill={getColor(idx)}
-                  radius={[2, 2, 0, 0]}
-                  name={sourceLabels[src] || src}
-                />
-              ))}
-            </BarChart>
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={filteredData}>
+                <XAxis dataKey="fecha" angle={-20} textAnchor="end" height={50} fontSize={12} />
+                <YAxis allowDecimals={false} />
+                <Tooltip content={<ChartTooltipContent nameKey="" />} />
+                <Legend />
+                {sources.map((src) => (
+                  <Bar
+                    key={src}
+                    dataKey={src}
+                    fill={DARK_GRAY}
+                    radius={[4, 4, 0, 0]}
+                    name={sourceLabels[src] || src}
+                  >
+                    <LabelList dataKey={src} position="top" fontSize={13} fill="#222" formatter={(val: number) => val ? val : ""} />
+                  </Bar>
+                ))}
+              </BarChart>
+            </ResponsiveContainer>
           </ChartContainer>
         </div>
       </CardContent>
