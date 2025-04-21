@@ -13,6 +13,9 @@ import { CallTranscript } from './CallTranscript';
 import { supabase } from '@/integrations/supabase/client';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Loader2 } from 'lucide-react';
+import { useAuth } from '@/context/AuthContext';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { AlertTriangle } from 'lucide-react';
 
 interface ValidationDialogProps {
   open: boolean;
@@ -34,11 +37,13 @@ export const ValidationDialog: React.FC<ValidationDialogProps> = ({
   const [activeTab, setActiveTab] = useState('form');
   const [hasTranscript, setHasTranscript] = useState(false);
   const [checkingTranscript, setCheckingTranscript] = useState(true);
+  const { currentUser } = useAuth();
   
   const {
     validation,
     formData,
     loading,
+    error,
     handleInputChange,
     saveValidation
   } = useValidation(open ? leadId : undefined);
@@ -76,11 +81,22 @@ export const ValidationDialog: React.FC<ValidationDialogProps> = ({
   }, [open, leadPhone]);
 
   const handleSubmit = async () => {
+    if (!currentUser) {
+      return; // Don't attempt submission if not authenticated
+    }
+    
     const result = await saveValidation();
     if (result) {
       onValidationComplete(result.status as 'approved' | 'rejected');
     }
   };
+
+  // Check if there's an authentication error
+  const authError = !currentUser || (error && (
+    error.includes('sesión') || 
+    error.includes('autenticación') || 
+    error.includes('iniciar sesión')
+  ));
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -91,6 +107,16 @@ export const ValidationDialog: React.FC<ValidationDialogProps> = ({
             Revisa la información y completa la validación para determinar si el custodio cumple con los requisitos.
           </DialogDescription>
         </DialogHeader>
+        
+        {/* Authentication error alert */}
+        {authError && (
+          <Alert variant="destructive" className="mb-4">
+            <AlertTriangle className="h-4 w-4" />
+            <AlertDescription>
+              {error || 'Sesión no válida. Por favor inicie sesión nuevamente.'}
+            </AlertDescription>
+          </Alert>
+        )}
         
         {checkingTranscript ? (
           <div className="flex justify-center py-8">
@@ -114,6 +140,7 @@ export const ValidationDialog: React.FC<ValidationDialogProps> = ({
                 loading={loading}
                 leadName={leadName}
                 hasTranscript={hasTranscript}
+                error={error}
               />
             </TabsContent>
             

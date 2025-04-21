@@ -4,6 +4,7 @@ import { CustodioValidation, ValidationStats, ValidationFormData } from './types
 import { createValidation, updateValidation, getValidationByLeadId, getValidationStats } from '@/services/validationService';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/context/AuthContext';
+import { toast } from 'sonner';
 
 export const useValidation = (leadId?: number) => {
   const [validation, setValidation] = useState<CustodioValidation | null>(null);
@@ -11,8 +12,8 @@ export const useValidation = (leadId?: number) => {
   const [error, setError] = useState<string | null>(null);
   const [stats, setStats] = useState<ValidationStats[]>([]);
   const [statsLoading, setStatsLoading] = useState(false);
-  const { toast } = useToast();
-  const { currentUser } = useAuth(); // Acceder al contexto de autenticación
+  const { toast: uiToast } = useToast();
+  const { currentUser, userData } = useAuth(); // Access authentication context
   
   // Form state for validation
   const [formData, setFormData] = useState<ValidationFormData>({
@@ -30,18 +31,23 @@ export const useValidation = (leadId?: number) => {
     additional_notes: ''
   });
   
-  // Verificar autenticación
+  // Verify authentication
   useEffect(() => {
+    // Clear any previous error
+    setError(null);
+    
+    // Check if user is authenticated
     if (!currentUser) {
       setError('No se detectó una sesión activa. Por favor inicie sesión nuevamente para continuar.');
-    } else {
-      setError(null);
+      console.error('Authentication error: No active user session detected');
     }
   }, [currentUser]);
   
   // Load stats on initial render
   useEffect(() => {
     const fetchStats = async () => {
+      if (!currentUser) return; // Don't fetch if not authenticated
+      
       setStatsLoading(true);
       try {
         const statsData = await getValidationStats();
@@ -54,11 +60,11 @@ export const useValidation = (leadId?: number) => {
     };
     
     fetchStats();
-  }, []);
+  }, [currentUser]);
   
   // Load existing validation when leadId changes
   useEffect(() => {
-    if (!leadId) return;
+    if (!leadId || !currentUser) return;
     
     const fetchValidation = async () => {
       setLoading(true);
@@ -109,7 +115,7 @@ export const useValidation = (leadId?: number) => {
     };
     
     fetchValidation();
-  }, [leadId]);
+  }, [leadId, currentUser]);
   
   // Handle form input changes
   const handleInputChange = (name: keyof ValidationFormData, value: any) => {
@@ -119,16 +125,23 @@ export const useValidation = (leadId?: number) => {
     }));
   };
   
+  // Check authentication status before proceeding
+  const checkAuthStatus = (): boolean => {
+    if (!currentUser || !userData) {
+      const errorMessage = 'Sesión no válida. Por favor inicie sesión nuevamente.';
+      setError(errorMessage);
+      toast.error(errorMessage);
+      return false;
+    }
+    return true;
+  };
+  
   // Save validation (create or update)
   const saveValidation = async (): Promise<CustodioValidation | null> => {
     if (!leadId) return null;
-    if (!currentUser) {
-      setError('No se pudo obtener el usuario actual. Por favor inicie sesión nuevamente.');
-      toast({
-        title: "Error de autenticación",
-        description: "No se pudo obtener el usuario actual. Por favor inicie sesión nuevamente.",
-        variant: "destructive",
-      });
+    
+    // Verify authentication status before proceeding
+    if (!checkAuthStatus()) {
       return null;
     }
     
@@ -163,7 +176,8 @@ export const useValidation = (leadId?: number) => {
       }
       
       // Show toast with error
-      toast({
+      toast.error(error.message || 'Error al guardar la validación');
+      uiToast({
         title: "Error",
         description: error.message || 'Error al guardar la validación',
         variant: "destructive",

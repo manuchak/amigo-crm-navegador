@@ -10,8 +10,39 @@ const generateLifetimeId = (): string => {
   return `CUS-${year}-${randomChars}`;
 };
 
+// Verify session is valid
+const verifySession = async (): Promise<boolean> => {
+  try {
+    // Check if there's a valid Supabase session
+    const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+    
+    if (sessionError || !sessionData?.session) {
+      console.error('Session verification failed:', sessionError || 'No session data');
+      return false;
+    }
+    
+    // Verify the user exists in the session
+    const { data: userData, error: userError } = await supabase.auth.getUser();
+    
+    if (userError || !userData?.user?.id) {
+      console.error('User verification failed:', userError || 'No user data');
+      return false;
+    }
+    
+    return true;
+  } catch (error) {
+    console.error('Session verification error:', error);
+    return false;
+  }
+};
+
 // Get all validations
 export const getValidations = async (): Promise<CustodioValidation[]> => {
+  // Check session validity
+  if (!(await verifySession())) {
+    throw new Error('Sesión no válida. Por favor inicie sesión nuevamente.');
+  }
+  
   const { data, error } = await supabase
     .from('custodio_validations')
     .select('*')
@@ -27,6 +58,11 @@ export const getValidations = async (): Promise<CustodioValidation[]> => {
 
 // Get validation stats
 export const getValidationStats = async (): Promise<ValidationStats[]> => {
+  // Check session validity
+  if (!(await verifySession())) {
+    throw new Error('Sesión no válida. Por favor inicie sesión nuevamente.');
+  }
+  
   const { data, error } = await supabase
     .from('custodio_validation_stats')
     .select('*')
@@ -42,6 +78,11 @@ export const getValidationStats = async (): Promise<ValidationStats[]> => {
 
 // Get validation by lead ID
 export const getValidationByLeadId = async (leadId: number): Promise<CustodioValidation | null> => {
+  // Check session validity
+  if (!(await verifySession())) {
+    throw new Error('Sesión no válida. Por favor inicie sesión nuevamente.');
+  }
+  
   const { data, error } = await supabase
     .from('custodio_validations')
     .select('*')
@@ -64,15 +105,8 @@ export const createValidation = async (
   const startTime = new Date();
   
   try {
-    // Verificar que la sesión de usuario sea válida antes de continuar
-    const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
-    
-    if (sessionError) {
-      console.error('Error getting user session:', sessionError);
-      throw new Error('No se pudo obtener la sesión del usuario. Por favor inicie sesión nuevamente.');
-    }
-    
-    if (!sessionData?.session) {
+    // Verify session validity
+    if (!(await verifySession())) {
       throw new Error('Sesión no válida. Por favor inicie sesión nuevamente.');
     }
     
@@ -134,15 +168,8 @@ export const updateValidation = async (
   formData: any
 ): Promise<CustodioValidation> => {
   try {
-    // Verificar que la sesión de usuario sea válida antes de continuar
-    const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
-    
-    if (sessionError) {
-      console.error('Error getting user session:', sessionError);
-      throw new Error('No se pudo obtener la sesión del usuario. Por favor inicie sesión nuevamente.');
-    }
-    
-    if (!sessionData?.session) {
+    // Verify session validity
+    if (!(await verifySession())) {
       throw new Error('Sesión no válida. Por favor inicie sesión nuevamente.');
     }
     

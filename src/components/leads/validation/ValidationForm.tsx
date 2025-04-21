@@ -1,7 +1,6 @@
 
 import React from 'react';
 import { Form } from '@/components/ui/form';
-import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { ValidationFormData } from './types';
 import { ValidationFormHeader } from './components/ValidationFormHeader';
@@ -10,7 +9,6 @@ import { AdditionalRequirements } from './components/AdditionalRequirements';
 import { CallEvaluation } from './components/CallEvaluation';
 import { ValidationNotes } from './components/ValidationNotes';
 import { FormActions } from './components/FormActions';
-import { Loader2, Save } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AlertTriangle } from 'lucide-react';
 
@@ -42,9 +40,17 @@ export const ValidationForm: React.FC<ValidationFormProps> = ({
   // Determine if the form is valid for submission
   const isFormValid = !isCriticalRequirementsMissing;
 
+  // Check if there's an authentication error
+  const isAuthError = error && (
+    error.includes('sesión') || 
+    error.includes('autenticación') || 
+    error.includes('iniciar sesión') ||
+    error.includes('usuario')
+  );
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (isFormValid) {
+    if (isFormValid && !isAuthError) {
       onSubmit();
     }
   };
@@ -55,7 +61,7 @@ export const ValidationForm: React.FC<ValidationFormProps> = ({
         <form onSubmit={handleSubmit} className="space-y-6">
           <ValidationFormHeader 
             leadName={leadName} 
-            error={error} 
+            error={!isAuthError ? error : null} 
             hasTranscript={hasTranscript} 
           />
           
@@ -73,7 +79,8 @@ export const ValidationForm: React.FC<ValidationFormProps> = ({
           <FormActions 
             loading={loading} 
             isFormValid={isFormValid} 
-            isCriticalRequirementsMissing={isCriticalRequirementsMissing} 
+            isCriticalRequirementsMissing={isCriticalRequirementsMissing}
+            authError={isAuthError ? error : null}
           />
         </form>
       </CardContent>

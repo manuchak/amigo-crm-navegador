@@ -2,22 +2,33 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Loader2, Save } from 'lucide-react';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { AlertTriangle } from 'lucide-react';
 
 interface FormActionsProps {
   loading: boolean;
   isFormValid: boolean;
   isCriticalRequirementsMissing: boolean;
+  authError?: string | null;
 }
 
 export const FormActions: React.FC<FormActionsProps> = ({
   loading,
   isFormValid,
-  isCriticalRequirementsMissing
+  isCriticalRequirementsMissing,
+  authError
 }) => {
   return (
-    <div>
+    <div className="space-y-4">
+      {authError && (
+        <Alert variant="destructive">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertDescription>{authError}</AlertDescription>
+        </Alert>
+      )}
+      
       <div className="flex justify-end space-x-2">
-        <Button type="submit" disabled={loading || !isFormValid}>
+        <Button type="submit" disabled={loading || !isFormValid || !!authError}>
           {loading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
           Guardar Validación
         </Button>

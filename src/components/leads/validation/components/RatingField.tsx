@@ -28,6 +28,7 @@ export const RatingField: React.FC<RatingFieldProps> = ({
             variant={value === rating ? "default" : "outline"}
             onClick={() => onChange(name, rating)}
             className="w-9 h-9 p-0 rounded-full"
+            aria-label={`Rating ${rating}`}
           >
             {rating}
           </Button>
