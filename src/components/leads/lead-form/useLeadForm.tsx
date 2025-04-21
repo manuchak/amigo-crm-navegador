@@ -75,7 +75,7 @@ export const useLeadForm = () => {
         const { data: brandData } = await supabase
           .from('car_brands')
           .select('name')
-          .eq('id', data.marcaVehiculo)
+          .eq('id', parseInt(data.marcaVehiculo)) // Convert string to number
           .single();
         
         if (brandData) {
