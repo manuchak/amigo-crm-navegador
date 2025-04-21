@@ -1,3 +1,4 @@
+
 import React, { useMemo } from "react";
 import { useLeads } from "@/context/LeadsContext";
 import MetricsCards from "./dashboard/crm/MetricsCards";
@@ -29,9 +30,12 @@ const LeadsCrmDashboard: React.FC = () => {
           <MetricsCards byStage={funnel.byStage} conversions={funnel.conversions} />
           <FunnelChart byStage={funnel.byStage} />
         </div>
+        
+        {/* Self-contained chart cards with their own padding and margins */}
         <LeadsByDaySourceChart leads={leads} />
         <MonthlyLineChart data={monthlyTrend} />
-        <div className="flex flex-col md:flex-row gap-6 mt-1 w-full">
+        
+        <div className="flex flex-col md:flex-row gap-6 w-full">
           <ProfilePieChart carTypes={carTypes} />
           <StageTimeBarChart leads={leads} />
         </div>

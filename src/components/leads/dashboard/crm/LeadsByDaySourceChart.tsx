@@ -1,3 +1,4 @@
+
 import React, { useMemo, useState } from "react";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend, LabelList } from "recharts";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
@@ -100,7 +101,7 @@ const LeadsByDaySourceChart: React.FC<LeadsByDaySourceChartProps> = ({ leads }) 
   }, [sources]);
 
   return (
-    <Card className="w-full bg-white shadow-sm mt-4 mb-10">
+    <Card className="w-full bg-white shadow-sm my-6">
       <CardHeader className="flex flex-col md:flex-row md:items-center md:justify-between">
         <CardTitle className="text-base mb-2 md:mb-0">
           Leads por día y fuente de ingreso
@@ -110,12 +111,12 @@ const LeadsByDaySourceChart: React.FC<LeadsByDaySourceChartProps> = ({ leads }) 
           onChange={setDateRange}
         />
       </CardHeader>
-      <CardContent>
-        <div className="w-full h-72 md:h-80 xl:h-80">
+      <CardContent className="pb-6">
+        <div className="w-full h-[300px]">
           <ChartContainer config={chartConfig}>
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={filteredData}>
-                <XAxis dataKey="fecha" angle={-20} textAnchor="end" height={50} fontSize={12} />
+              <BarChart data={filteredData} margin={{ top: 20, right: 30, left: 20, bottom: 60 }}>
+                <XAxis dataKey="fecha" angle={-20} textAnchor="end" height={60} fontSize={12} />
                 <YAxis allowDecimals={false} />
                 <Tooltip content={<ChartTooltipContent nameKey="" />} />
                 <Legend />
