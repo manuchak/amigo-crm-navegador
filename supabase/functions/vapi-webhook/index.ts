@@ -39,18 +39,55 @@ serve(async (req) => {
 
   try {
     // Parse the webhook data from VAPI
-    const webhookData = await req.json();
-    console.log("Received VAPI webhook data:", JSON.stringify(webhookData, null, 2));
+    const requestBody = await req.text();
+    console.log("Raw request body:", requestBody);
+    
+    let webhookData;
+    try {
+      webhookData = JSON.parse(requestBody);
+      console.log("Parsed VAPI webhook data:", JSON.stringify(webhookData, null, 2));
+    } catch (parseError) {
+      console.error("Error parsing JSON:", parseError);
+      return new Response(
+        JSON.stringify({
+          error: "Invalid JSON in request body",
+          details: parseError.message
+        }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
+    }
 
     // Check if this is a test connection
-    if (webhookData.call_id === "test-connection" || webhookData.test === true) {
+    if (webhookData.call_id === "test-connection" || 
+        webhookData.test === true || 
+        webhookData.type === "test" ||
+        webhookData.manual_trigger === true) {
+      console.log("Processing test connection request");
       return handleTestConnection(corsHeaders);
     }
 
-    // Process the webhook data
-    return await processWebhookData(webhookData, supabase, corsHeaders);
+    // Process the webhook data with detailed error handling
+    try {
+      return await processWebhookData(webhookData, supabase, corsHeaders);
+    } catch (processingError) {
+      console.error("Error in webhook processing:", processingError);
+      return new Response(
+        JSON.stringify({
+          error: "Error processing webhook data",
+          details: processingError.message,
+          stack: processingError.stack
+        }),
+        {
+          status: 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
+    }
   } catch (error) {
-    console.error("Error processing webhook:", error);
+    console.error("Critical error processing webhook:", error);
     return new Response(
       JSON.stringify({
         error: "Internal server error",

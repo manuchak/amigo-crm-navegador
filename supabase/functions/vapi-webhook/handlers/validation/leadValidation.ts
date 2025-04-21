@@ -11,6 +11,10 @@ export async function processLeadValidation(
   supabase: SupabaseClient
 ) {
   try {
+    // Enhanced logging for debugging
+    console.log("VAPI Webhook processing started with data:", JSON.stringify(webhookData, null, 2));
+    console.log("Call log data:", JSON.stringify(callLogData, null, 2));
+    
     // Extract phone number to link with leads table
     const phoneNumber = extractPhoneNumber(webhookData) || 
                        callLogData?.customer_number || 
@@ -30,7 +34,8 @@ export async function processLeadValidation(
     }
     
     // Check if we have any ID, either from the found lead or in the webhook data
-    const hasLeadId = leadData?.id || webhookData?.leadId || webhookData?.lead_id;
+    const leadId = leadData?.id || webhookData?.leadId || webhookData?.lead_id;
+    console.log("Lead ID for validation:", leadId);
     
     // Process the webhook data or transcript to extract information
     let extractedInfo;
@@ -49,10 +54,9 @@ export async function processLeadValidation(
     console.log("Extracted information:", JSON.stringify(extractedInfo, null, 2));
 
     // If no lead ID was found, we need to handle this special case
-    if (!hasLeadId) {
+    if (!leadId) {
       console.warn("No lead ID found in any data source - creating a temporary validation record");
       
-      // We could create a new lead here, but for now let's just return the extracted info
       return {
         success: true,
         error: null,
@@ -66,24 +70,36 @@ export async function processLeadValidation(
 
     // Get lead ID from either the found lead or the webhook data
     const effectiveLeadId = leadData?.id || webhookData?.leadId || webhookData?.lead_id;
-    console.log("Using lead ID:", effectiveLeadId);
+    console.log("Using lead ID for validation:", effectiveLeadId);
 
-    // Store lead validation data
-    const validationResult = await storeValidatedLead(
-      { id: effectiveLeadId, ...leadData }, // Ensure ID is always present
-      extractedInfo || {}, 
-      callLogData || webhookData,
-      supabase
-    );
+    // Store lead validation data - improved with better error handling
+    try {
+      const validationResult = await storeValidatedLead(
+        { id: effectiveLeadId, ...leadData }, // Ensure ID is always present
+        extractedInfo || {}, 
+        callLogData || webhookData,
+        supabase
+      );
 
-    return {
-      success: !validationResult.error,
-      data: validationResult.data,
-      error: validationResult.error,
-      validated_lead_id: validationResult.data?.[0]?.id,
-      linked_lead_id: leadData?.id || webhookData?.leadId || webhookData?.lead_id,
-      extracted_info: extractedInfo
-    };
+      console.log("Validation result:", JSON.stringify(validationResult, null, 2));
+
+      return {
+        success: !validationResult.error,
+        data: validationResult.data,
+        error: validationResult.error,
+        validated_lead_id: validationResult.data?.[0]?.id,
+        linked_lead_id: effectiveLeadId,
+        extracted_info: extractedInfo
+      };
+    } catch (storeError) {
+      console.error("Critical error in storeValidatedLead:", storeError);
+      return {
+        success: false,
+        error: storeError,
+        message: "Failed to store validated lead data",
+        extracted_info: extractedInfo
+      };
+    }
   } catch (error) {
     console.error("Error in processLeadValidation:", error);
     return {
@@ -145,7 +161,7 @@ export async function findLeadByPhoneNumber(phoneNumber: string | null | undefin
 }
 
 /**
- * Store validated lead data
+ * Store validated lead data - improved with enhanced error handling and robust type checking
  */
 export async function storeValidatedLead(
   leadData: any, 
@@ -205,11 +221,11 @@ export async function storeValidatedLead(
     id: leadId, // Use the validated numeric ID
     car_brand: extractedInfo?.car_brand || null,
     car_model: extractedInfo?.car_model || null,
-    car_year: extractedInfo?.car_year || null,
+    car_year: extractedInfo?.car_year ? Number(extractedInfo.car_year) : null, // Ensure numeric
     custodio_name: leadData?.nombre || extractedInfo?.custodio_name || null,
     security_exp: extractedInfo?.security_exp || null,
     sedena_id: extractedInfo?.sedena_id || null,
-    call_id: callData?.log_id || callData?.id || null,
+    call_id: callData?.log_id || callData?.id || callData?.call_id || null,
     vapi_call_data: callData || null
   };
 
@@ -225,12 +241,17 @@ export async function storeValidatedLead(
   }
 
   // Check if record already exists for this lead
-  const { data: existingRecord } = await supabase
+  const { data: existingRecord, error: checkError } = await supabase
     .from("validated_leads")
     .select("id")
     .eq("id", validatedLeadData.id)
     .maybeSingle();
     
+  if (checkError) {
+    console.error("Error checking for existing record:", checkError);
+    return { error: checkError, data: null };
+  }
+  
   let result;
   
   // If record exists, update it; otherwise insert new record
@@ -268,6 +289,7 @@ function extractPhoneNumber(data: any): string | null {
   if (data.phone_number) return data.phone_number;
   if (data.caller_phone_number) return data.caller_phone_number;
   if (data.customer_number) return data.customer_number;
+  if (data.telefono) return data.telefono;
   
   // Check nested structures
   if (data.call && data.call.phone_number) return data.call.phone_number;
