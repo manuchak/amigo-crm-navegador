@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useLeads } from '@/context/LeadsContext';
@@ -14,6 +15,9 @@ import { incrementCallCount } from '@/services/leadService';
 import { useLeadCallLogs } from '@/hooks/lead-call-logs';
 import CallBatchDialog from './CallBatchDialog';
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Plus } from "lucide-react";
+import LeadCreationForm from './LeadCreationForm';
 
 const LeadsDashboard = () => {
   const { leads, updateLeadStatus, refetchLeads } = useLeads();
@@ -24,6 +28,7 @@ const LeadsDashboard = () => {
   const [isCallLogOpen, setIsCallLogOpen] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [batchDialogOpen, setBatchDialogOpen] = useState(false);
+  const [createLeadOpen, setCreateLeadOpen] = useState(false);
   
   const selectedLead = leads.find(lead => lead.id === selectedLeadId);
   
@@ -185,15 +190,35 @@ const LeadsDashboard = () => {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <LeadStats stats={stats} />
-        <Button
-          size="sm"
-          variant="subtle"
-          onClick={() => setBatchDialogOpen(true)}
-          className="ml-2"
-        >
-          Llamadas Múltiples
-        </Button>
+        <div className="flex space-x-2">
+          <Button
+            size="sm"
+            variant="default"
+            onClick={() => setCreateLeadOpen(true)}
+            className="flex items-center gap-1"
+          >
+            <Plus className="h-4 w-4" />
+            Crear Lead
+          </Button>
+          <Button
+            size="sm"
+            variant="subtle"
+            onClick={() => setBatchDialogOpen(true)}
+          >
+            Llamadas Múltiples
+          </Button>
+        </div>
       </div>
+      
+      <Dialog open={createLeadOpen} onOpenChange={setCreateLeadOpen}>
+        <DialogContent className="sm:max-w-[800px] max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Crear Nuevo Lead</DialogTitle>
+          </DialogHeader>
+          <LeadCreationForm />
+        </DialogContent>
+      </Dialog>
+      
       <CallBatchDialog
         open={batchDialogOpen}
         onOpenChange={setBatchDialogOpen}
