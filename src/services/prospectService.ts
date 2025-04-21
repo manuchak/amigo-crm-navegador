@@ -33,16 +33,17 @@ export interface Prospect {
 
 export async function getProspects(): Promise<Prospect[]> {
   try {
+    // We need to use raw SQL query instead of RPC because of type issues
     const { data, error } = await supabase
-      .rpc('get_all_prospects')
-      .returns<Prospect[]>();
+      .from('prospects')
+      .select('*');
     
     if (error) {
       console.error("Error fetching prospects:", error);
       throw error;
     }
     
-    return data || [];
+    return data as Prospect[] || [];
   } catch (error) {
     console.error("Failed to fetch prospects:", error);
     throw error;
@@ -51,17 +52,19 @@ export async function getProspects(): Promise<Prospect[]> {
 
 export async function getProspectById(leadId: number): Promise<Prospect | null> {
   try {
+    // We need to use raw SQL query instead of RPC because of type issues
     const { data, error } = await supabase
-      .rpc('get_prospect_by_id', { p_lead_id: leadId })
-      .returns<Prospect[]>();
+      .from('prospects')
+      .select('*')
+      .eq('lead_id', leadId)
+      .maybeSingle();
     
     if (error) {
       console.error(`Error fetching prospect with ID ${leadId}:`, error);
       throw error;
     }
     
-    // We expect only one result, or null
-    return data && data.length > 0 ? data[0] : null;
+    return data as Prospect | null;
   } catch (error) {
     console.error(`Failed to fetch prospect with ID ${leadId}:`, error);
     throw error;
@@ -70,16 +73,18 @@ export async function getProspectById(leadId: number): Promise<Prospect | null> 
 
 export async function getProspectsByStatus(status: string): Promise<Prospect[]> {
   try {
+    // We need to use raw SQL query instead of RPC because of type issues
     const { data, error } = await supabase
-      .rpc('get_prospects_by_status', { p_status: status })
-      .returns<Prospect[]>();
+      .from('prospects')
+      .select('*')
+      .eq('lead_status', status);
     
     if (error) {
       console.error(`Error fetching prospects with status ${status}:`, error);
       throw error;
     }
     
-    return data || [];
+    return data as Prospect[] || [];
   } catch (error) {
     console.error(`Failed to fetch prospects with status ${status}:`, error);
     throw error;

@@ -131,6 +131,13 @@ export type Database = {
             referencedRelation: "leads"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "custodio_validations_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "prospects"
+            referencedColumns: ["lead_id"]
+          },
         ]
       }
       leads: {
@@ -638,11 +645,131 @@ export type Database = {
         }
         Relationships: []
       }
+      prospects: {
+        Row: {
+          call_count: number | null
+          call_duration: number | null
+          call_log_id: string | null
+          call_start_time: string | null
+          call_status: string | null
+          car_brand: string | null
+          car_model: string | null
+          car_year: number | null
+          custodio_name: string | null
+          last_call_date: string | null
+          lead_created_at: string | null
+          lead_email: string | null
+          lead_id: number | null
+          lead_name: string | null
+          lead_phone: string | null
+          lead_source: string | null
+          lead_status: string | null
+          phone_number_intl: string | null
+          recording_url: string | null
+          security_exp: string | null
+          sedena_id: string | null
+          transcript: Json | null
+          validated_lead_id: number | null
+          validation_date: string | null
+          vapi_log_id: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       deduplicate_leads: {
         Args: Record<PropertyKey, never>
         Returns: undefined
+      }
+      get_all_prospects: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          lead_id: number
+          lead_name: string
+          lead_phone: string
+          lead_email: string
+          lead_status: string
+          lead_created_at: string
+          lead_source: string
+          call_count: number
+          last_call_date: string
+          validated_lead_id: number
+          custodio_name: string
+          car_brand: string
+          car_model: string
+          car_year: number
+          security_exp: string
+          sedena_id: string
+          phone_number_intl: string
+          validation_date: string
+          call_log_id: string
+          vapi_log_id: string
+          call_status: string
+          call_duration: number
+          call_start_time: string
+          recording_url: string
+          transcript: Json
+        }[]
+      }
+      get_prospect_by_id: {
+        Args: { p_lead_id: number }
+        Returns: {
+          lead_id: number
+          lead_name: string
+          lead_phone: string
+          lead_email: string
+          lead_status: string
+          lead_created_at: string
+          lead_source: string
+          call_count: number
+          last_call_date: string
+          validated_lead_id: number
+          custodio_name: string
+          car_brand: string
+          car_model: string
+          car_year: number
+          security_exp: string
+          sedena_id: string
+          phone_number_intl: string
+          validation_date: string
+          call_log_id: string
+          vapi_log_id: string
+          call_status: string
+          call_duration: number
+          call_start_time: string
+          recording_url: string
+          transcript: Json
+        }[]
+      }
+      get_prospects_by_status: {
+        Args: { p_status: string }
+        Returns: {
+          lead_id: number
+          lead_name: string
+          lead_phone: string
+          lead_email: string
+          lead_status: string
+          lead_created_at: string
+          lead_source: string
+          call_count: number
+          last_call_date: string
+          validated_lead_id: number
+          custodio_name: string
+          car_brand: string
+          car_model: string
+          car_year: number
+          security_exp: string
+          sedena_id: string
+          phone_number_intl: string
+          validation_date: string
+          call_log_id: string
+          vapi_log_id: string
+          call_status: string
+          call_duration: number
+          call_start_time: string
+          recording_url: string
+          transcript: Json
+        }[]
       }
       get_qualified_leads_from_calls: {
         Args: Record<PropertyKey, never>

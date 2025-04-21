@@ -32,7 +32,7 @@ export function useProspects(status?: string) {
 
   useEffect(() => {
     fetchProspects();
-  }, [status, toast]);
+  }, [status]);
 
   return { prospects, loading, error, refetch: fetchProspects };
 }
