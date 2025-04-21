@@ -7,6 +7,7 @@ import ProfilePieChart from "./dashboard/crm/ProfilePieChart";
 import StageTimeBarChart from "./dashboard/crm/StageTimeBarChart";
 import AlertsPanel from "./dashboard/crm/AlertsPanel";
 import RecentLeadsList from "./dashboard/crm/RecentLeadsList";
+import LeadsByDaySourceChart from "./dashboard/crm/LeadsByDaySourceChart";
 import { useFunnelStats, getMonthlyTrend, STAGES } from "./dashboard/crm/crmUtils";
 import { fakeAlerts } from "./dashboard/crm/fakeAlerts";
 
@@ -28,6 +29,7 @@ const LeadsCrmDashboard: React.FC = () => {
           <MetricsCards byStage={funnel.byStage} conversions={funnel.conversions} />
           <FunnelChart byStage={funnel.byStage} />
         </div>
+        <LeadsByDaySourceChart leads={leads} />
         <MonthlyLineChart data={monthlyTrend} />
         <div className="flex flex-col md:flex-row gap-6 mt-1 w-full">
           <ProfilePieChart carTypes={carTypes} />
