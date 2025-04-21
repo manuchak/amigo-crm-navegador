@@ -13,9 +13,17 @@ export function useProspects(status?: string) {
     setLoading(true);
     setError(null);
     try {
+      console.log("Fetching prospects with status filter:", status);
       const data = status 
         ? await getProspectsByStatus(status)
         : await getProspects();
+      console.log(`Fetched ${data.length} prospects`);
+      
+      // Log some of the first prospects to help with debugging
+      if (data.length > 0) {
+        console.log("Sample prospect data:", data[0]);
+      }
+      
       setProspects(data);
     } catch (err) {
       console.error('Error fetching prospects:', err);

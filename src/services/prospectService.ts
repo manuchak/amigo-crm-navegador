@@ -38,6 +38,7 @@ export interface Prospect {
 
 export async function getProspects(): Promise<Prospect[]> {
   try {
+    console.log("Fetching all prospects from database");
     // We need to use raw SQL query instead of RPC because of type issues
     const { data, error } = await supabase
       .from('prospects')
@@ -48,6 +49,7 @@ export async function getProspects(): Promise<Prospect[]> {
       throw error;
     }
     
+    console.log(`Retrieved ${data?.length || 0} prospects`);
     return data as Prospect[] || [];
   } catch (error) {
     console.error("Failed to fetch prospects:", error);
@@ -78,6 +80,7 @@ export async function getProspectById(leadId: number): Promise<Prospect | null> 
 
 export async function getProspectsByStatus(status: string): Promise<Prospect[]> {
   try {
+    console.log(`Fetching prospects with status: ${status}`);
     // We need to use raw SQL query instead of RPC because of type issues
     const { data, error } = await supabase
       .from('prospects')
@@ -89,6 +92,7 @@ export async function getProspectsByStatus(status: string): Promise<Prospect[]> 
       throw error;
     }
     
+    console.log(`Retrieved ${data?.length || 0} prospects with status ${status}`);
     return data as Prospect[] || [];
   } catch (error) {
     console.error(`Failed to fetch prospects with status ${status}:`, error);

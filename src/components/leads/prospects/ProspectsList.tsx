@@ -7,7 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
-import { Loader2, Search, RefreshCw, Table, List, Grid, Filter } from 'lucide-react';
+import { Loader2, Search, RefreshCw, Table, Grid, Filter } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { executeWebhook } from '@/components/call-center/utils/webhook';
 import { incrementCallCount } from '@/services/leadService';
@@ -20,19 +20,44 @@ export const ProspectsList: React.FC<{
 }> = ({ onViewDetails, onViewCalls, onValidate }) => {
   const [filter, setFilter] = useState<string | undefined>(undefined);
   const [searchQuery, setSearchQuery] = useState('');
-  const [viewMode, setViewMode] = useState<'grid' | 'table'>('table'); // Changed default to 'table'
-  const [showOnlyInterviewed, setShowOnlyInterviewed] = useState(true);
+  const [viewMode, setViewMode] = useState<'grid' | 'table'>('table'); // Default is now table view
+  const [showOnlyInterviewed, setShowOnlyInterviewed] = useState(false); // Changed to false to show all prospects by default
   const { prospects, loading, refetch } = useProspects(filter);
   const { toast } = useToast();
   const [refreshing, setRefreshing] = useState(false);
   
-  // Filter out duplicates based on lead_id and validated_lead_id
+  // Improved filtering logic to detect duplicates based on lead_id, validated_lead_id, and phone numbers
   const uniqueProspects = prospects.reduce((unique: Prospect[], prospect) => {
+    // First, normalize phone numbers for comparison by removing non-digit characters
+    const normalizePhone = (phone: string | null): string => {
+      if (!phone) return '';
+      return phone.replace(/\D/g, '').slice(-10); // Get last 10 digits only
+    };
+    
+    const prospectPhone = normalizePhone(prospect.lead_phone || prospect.phone_number_intl);
+    
     // Check if we already have this prospect in our unique array
-    const isDuplicate = unique.some(item => 
-      (prospect.lead_id && item.lead_id === prospect.lead_id) || 
-      (prospect.validated_lead_id && item.validated_lead_id === prospect.validated_lead_id)
-    );
+    const isDuplicate = unique.some(item => {
+      // Same lead_id or validated_lead_id
+      if ((prospect.lead_id && item.lead_id === prospect.lead_id) || 
+          (prospect.validated_lead_id && item.validated_lead_id === prospect.validated_lead_id)) {
+        return true;
+      }
+      
+      // Same phone number (if available)
+      if (prospectPhone && 
+          (normalizePhone(item.lead_phone) === prospectPhone || 
+           normalizePhone(item.phone_number_intl) === prospectPhone)) {
+        return true;
+      }
+      
+      // Same email (if available)
+      if (prospect.lead_email && item.lead_email === prospect.lead_email && prospect.lead_email !== '') {
+        return true;
+      }
+      
+      return false;
+    });
     
     if (!isDuplicate) {
       unique.push(prospect);
@@ -127,7 +152,8 @@ export const ProspectsList: React.FC<{
          p.lead_phone?.includes(searchQuery) ||
          p.phone_number_intl?.includes(searchQuery) ||
          p.car_brand?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-         p.car_model?.toLowerCase().includes(searchQuery.toLowerCase()))
+         p.car_model?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+         p.lead_status?.toLowerCase().includes(searchQuery.toLowerCase()))
     );
   
   return (
@@ -153,6 +179,7 @@ export const ProspectsList: React.FC<{
               <SelectItem value="todos">Todos</SelectItem>
               <SelectItem value="Nuevo">Nuevos</SelectItem>
               <SelectItem value="Contactado">Contactados</SelectItem>
+              <SelectItem value="Contacto Llamado">En Llamada</SelectItem>
               <SelectItem value="Calificado">Calificados</SelectItem>
               <SelectItem value="Rechazado">Rechazados</SelectItem>
             </SelectContent>
