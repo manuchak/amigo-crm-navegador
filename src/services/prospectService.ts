@@ -29,6 +29,11 @@ export interface Prospect {
   call_start_time: string | null;
   recording_url: string | null;
   transcript: any | null;
+  
+  // Add these missing boolean properties from custodio_validations
+  has_security_experience: boolean | null;
+  has_firearm_license: boolean | null;
+  has_military_background: boolean | null;
 }
 
 export async function getProspects(): Promise<Prospect[]> {
