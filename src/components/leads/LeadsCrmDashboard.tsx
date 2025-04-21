@@ -25,21 +25,32 @@ const LeadsCrmDashboard: React.FC = () => {
 
   return (
     <div className="flex flex-col lg:flex-row gap-8 py-6 px-2 w-full animate-fade-in">
-      <div className="flex-1 w-full flex flex-col gap-6">
-        <div className="flex flex-col md:flex-row gap-4 items-stretch w-full">
+      {/* Main content area */}
+      <div className="flex-1 w-full flex flex-col gap-8">
+        {/* Top section: Metrics Cards and Funnel */}
+        <div className="flex flex-col md:flex-row gap-6 items-stretch w-full">
           <MetricsCards byStage={funnel.byStage} conversions={funnel.conversions} />
           <FunnelChart byStage={funnel.byStage} />
         </div>
         
-        {/* Self-contained chart cards with their own padding and margins */}
-        <LeadsByDaySourceChart leads={leads} />
-        <MonthlyLineChart data={monthlyTrend} />
+        {/* Leads by day source chart in its own container */}
+        <div className="w-full">
+          <LeadsByDaySourceChart leads={leads} />
+        </div>
         
+        {/* Monthly trend chart in its own container */}
+        <div className="w-full">
+          <MonthlyLineChart data={monthlyTrend} />
+        </div>
+        
+        {/* Bottom section: Profile pie chart and Stage time bar chart */}
         <div className="flex flex-col md:flex-row gap-6 w-full">
           <ProfilePieChart carTypes={carTypes} />
           <StageTimeBarChart leads={leads} />
         </div>
       </div>
+      
+      {/* Sidebar area */}
       <div className="md:w-[350px] w-full max-w-full flex-shrink-0 flex flex-col gap-6">
         <AlertsPanel alerts={fakeAlerts} />
         <RecentLeadsList leads={leads} />
