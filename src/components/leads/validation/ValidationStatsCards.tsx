@@ -2,7 +2,7 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ValidationStats } from './types';
-import { Loader2, CheckCircle, Clock, ThumbsUp, MessageSquare } from 'lucide-react';
+import { Loader2, CheckCircle, Clock, ThumbsUp, MessageSquare, Star } from 'lucide-react';
 
 interface ValidationStatsCardsProps {
   stats: ValidationStats[];
@@ -26,6 +26,27 @@ export const ValidationStatsCards: React.FC<ValidationStatsCardsProps> = ({ stat
     const minutes = Math.floor(seconds / 60);
     const remainingSeconds = Math.floor(seconds % 60);
     return `${minutes}m ${remainingSeconds}s`;
+  };
+
+  // Helper function to get star rating elements
+  const renderStarRating = (rating: number) => {
+    const fullStars = Math.floor(rating);
+    const hasHalfStar = rating - fullStars >= 0.3 && rating - fullStars < 0.8;
+    const totalStars = 5;
+    
+    return (
+      <div className="flex items-center gap-0.5 ml-2">
+        {[...Array(fullStars)].map((_, i) => (
+          <Star key={`full-${i}`} className="h-4 w-4 fill-amber-400 text-amber-400" />
+        ))}
+        {hasHalfStar && (
+          <Star className="h-4 w-4 fill-amber-400 text-amber-400 opacity-60" />
+        )}
+        {[...Array(totalStars - fullStars - (hasHalfStar ? 1 : 0))].map((_, i) => (
+          <Star key={`empty-${i}`} className="h-4 w-4 text-gray-300" />
+        ))}
+      </div>
+    );
   };
 
   if (loading) {
@@ -77,7 +98,8 @@ export const ValidationStatsCards: React.FC<ValidationStatsCardsProps> = ({ stat
         <CardContent>
           <div className="flex items-center">
             <ThumbsUp className="h-5 w-5 text-indigo-500 mr-2" />
-            <div className="text-2xl font-bold">{avgCallQuality.toFixed(1)}/5</div>
+            <div className="text-2xl font-bold">{avgCallQuality.toFixed(1)}</div>
+            {renderStarRating(avgCallQuality)}
           </div>
           <div className="mt-2 text-xs text-muted-foreground">
             Puntuación promedio de calidad en entrevistas
@@ -92,7 +114,8 @@ export const ValidationStatsCards: React.FC<ValidationStatsCardsProps> = ({ stat
         <CardContent>
           <div className="flex items-center">
             <MessageSquare className="h-5 w-5 text-purple-500 mr-2" />
-            <div className="text-2xl font-bold">{avgCommunication.toFixed(1)}/5</div>
+            <div className="text-2xl font-bold">{avgCommunication.toFixed(1)}</div>
+            {renderStarRating(avgCommunication)}
           </div>
           <div className="mt-2 text-xs text-muted-foreground">
             Habilidades de comunicación de custodios
