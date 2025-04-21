@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import { CustodioValidation, ValidationStats, ValidationFormData } from './types';
 import { createValidation, updateValidation, getValidationByLeadId, getValidationStats } from '@/services/validationService';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/context/AuthContext';
 
 export const useValidation = (leadId?: number) => {
   const [validation, setValidation] = useState<CustodioValidation | null>(null);
@@ -11,6 +12,7 @@ export const useValidation = (leadId?: number) => {
   const [stats, setStats] = useState<ValidationStats[]>([]);
   const [statsLoading, setStatsLoading] = useState(false);
   const { toast } = useToast();
+  const { currentUser } = useAuth(); // Acceder al contexto de autenticación
   
   // Form state for validation
   const [formData, setFormData] = useState<ValidationFormData>({
@@ -27,6 +29,15 @@ export const useValidation = (leadId?: number) => {
     rejection_reason: '',
     additional_notes: ''
   });
+  
+  // Verificar autenticación
+  useEffect(() => {
+    if (!currentUser) {
+      setError('No se detectó una sesión activa. Por favor inicie sesión nuevamente para continuar.');
+    } else {
+      setError(null);
+    }
+  }, [currentUser]);
   
   // Load stats on initial render
   useEffect(() => {
@@ -111,6 +122,15 @@ export const useValidation = (leadId?: number) => {
   // Save validation (create or update)
   const saveValidation = async (): Promise<CustodioValidation | null> => {
     if (!leadId) return null;
+    if (!currentUser) {
+      setError('No se pudo obtener el usuario actual. Por favor inicie sesión nuevamente.');
+      toast({
+        title: "Error de autenticación",
+        description: "No se pudo obtener el usuario actual. Por favor inicie sesión nuevamente.",
+        variant: "destructive",
+      });
+      return null;
+    }
     
     setLoading(true);
     setError(null);
