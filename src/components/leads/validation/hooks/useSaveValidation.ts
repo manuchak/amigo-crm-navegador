@@ -90,7 +90,8 @@ export const useSaveValidation = (
           uiToast({
             title: "Advertencia",
             description: "Se detectaron errores pero se completó la operación con privilegios de propietario",
-            variant: "warning",
+            // Fix: Change "warning" to appropriate variant
+            variant: "default",
           });
           
           return recoveryResult;

@@ -104,7 +104,10 @@ const verifySession = async (): Promise<{ valid: boolean; role?: string; userId?
 // Get all validations
 export const getValidations = async (): Promise<CustodioValidation[]> => {
   // Check session validity
-  const { valid, role } = await verifySession();
+  const sessionVerification = await verifySession();
+  const { valid } = sessionVerification;
+  const role = sessionVerification.role || null;
+  
   if (!valid) {
     throw new Error('Sesión no válida. Por favor inicie sesión nuevamente.');
   }
@@ -125,7 +128,10 @@ export const getValidations = async (): Promise<CustodioValidation[]> => {
 // Get validation stats
 export const getValidationStats = async (): Promise<ValidationStats[]> => {
   // Check session validity
-  const { valid, role } = await verifySession();
+  const sessionVerification = await verifySession();
+  const { valid } = sessionVerification;
+  const role = sessionVerification.role || null;
+  
   if (!valid) {
     throw new Error('Sesión no válida. Por favor inicie sesión nuevamente.');
   }
@@ -146,7 +152,10 @@ export const getValidationStats = async (): Promise<ValidationStats[]> => {
 // Get validation by lead ID
 export const getValidationByLeadId = async (leadId: number): Promise<CustodioValidation | null> => {
   // Check session validity
-  const { valid, role } = await verifySession();
+  const sessionVerification = await verifySession();
+  const { valid } = sessionVerification;
+  const role = sessionVerification.role || null;
+  
   if (!valid) {
     throw new Error('Sesión no válida. Por favor inicie sesión nuevamente.');
   }
@@ -188,13 +197,22 @@ export const createValidation = async (
   try {
     // Verify session validity with role checking
     // Skip verification if owner override is requested during emergency
-    let sessionVerification = { valid: false, role: undefined, userId: undefined };
+    let sessionVerification: { valid: boolean; role: string | undefined; userId: string | undefined } = { 
+      valid: false, 
+      role: undefined, 
+      userId: undefined 
+    };
     
     if (isEmergencyBypass) {
       console.log('Emergency owner bypass requested - skipping session verification');
       sessionVerification = { valid: true, role: 'owner', userId: 'owner-emergency-bypass' };
     } else {
-      sessionVerification = await verifySession();
+      const verification = await verifySession();
+      sessionVerification = {
+        valid: verification.valid,
+        role: verification.role || undefined,
+        userId: verification.userId || undefined
+      };
     }
     
     const { valid, role, userId } = sessionVerification;
@@ -344,13 +362,22 @@ export const updateValidation = async (
     
     // Verify session validity with role checking
     // Skip verification if owner override is requested during emergency
-    let sessionVerification = { valid: false, role: undefined, userId: undefined };
+    let sessionVerification: { valid: boolean; role: string | undefined; userId: string | undefined } = { 
+      valid: false, 
+      role: undefined, 
+      userId: undefined 
+    };
     
     if (isEmergencyBypass) {
       console.log('Emergency owner bypass requested - skipping session verification');
       sessionVerification = { valid: true, role: 'owner', userId: 'owner-emergency-bypass' };
     } else {
-      sessionVerification = await verifySession();
+      const verification = await verifySession();
+      sessionVerification = {
+        valid: verification.valid,
+        role: verification.role || undefined,
+        userId: verification.userId || undefined
+      };
     }
     
     const { valid, role, userId } = sessionVerification;

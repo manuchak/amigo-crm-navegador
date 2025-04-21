@@ -1,3 +1,4 @@
+
 export interface CustodioValidation {
   id: string;
   lead_id: number;
@@ -55,4 +56,5 @@ export interface ValidationFormData {
   reliability_score: number | null;
   rejection_reason: string;
   additional_notes: string;
+  forced_status?: 'approved' | 'rejected'; // Add this field for owner overrides
 }

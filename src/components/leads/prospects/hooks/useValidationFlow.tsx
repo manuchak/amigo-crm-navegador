@@ -61,7 +61,8 @@ export const useValidationFlow = (
         toast({
           title: "Advertencia",
           description: "Error detectado pero se intentará continuar con privilegios de propietario",
-          variant: "warning",
+          // Fix: Change "warning" to appropriate variant
+          variant: "default",
         });
       } else {
         toast({
@@ -86,7 +87,8 @@ export const useValidationFlow = (
       // For owners, force the status in the form data before saving
       if (isOwner) {
         // Add the forced status to formData
-        handleInputChange('forced_status', confirmDialog.status);
+        // Fix: Cast the key to be compatible with ValidationFormData
+        handleInputChange('forced_status' as keyof typeof formData, confirmDialog.status);
       }
       
       const result = await saveValidation();
@@ -97,7 +99,8 @@ export const useValidationFlow = (
           toast({
             title: "Advertencia",
             description: "Error detectado pero se continúa con privilegios de propietario",
-            variant: "warning",
+            // Fix: Change "warning" to appropriate variant
+            variant: "default",
           });
           
           // For owners, even if validation fails, we will update the lead status
@@ -148,7 +151,8 @@ export const useValidationFlow = (
         toast({
           title: "Advertencia",
           description: "Error detectado pero se continúa con privilegios de propietario",
-          variant: "warning",
+          // Fix: Change "warning" to appropriate variant
+          variant: "default",
         });
         
         if (prospect.lead_id) {
