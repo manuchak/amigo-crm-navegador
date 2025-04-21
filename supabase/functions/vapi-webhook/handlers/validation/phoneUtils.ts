@@ -1,34 +1,41 @@
 
 /**
- * Utilities for extracting data from webhook payloads
+ * Utilities for phone number formatting and extraction
  */
 
 /**
- * Extract call ID from various webhook payload structures
+ * Format phone number to international format
  */
-export function extractCallId(data: any): string | null {
-  // Check direct call_id fields
-  if (data.call_id) return data.call_id;
-  if (data.id) return data.id;
-  if (data.log_id) return data.log_id;
+export function formatPhoneNumberIntl(phoneNumber: string | null | undefined): string | null {
+  if (!phoneNumber) {
+    return null;
+  }
 
-  // Check nested structures
-  if (data.call && data.call.id) return data.call.id;
-  if (data.call && data.call.call_id) return data.call.call_id;
-  if (data.call && data.call.log_id) return data.call.log_id;
-  
-  // Check metadata
-  if (data.metadata && data.metadata.call_id) return data.metadata.call_id;
-  
-  // Check event object
-  if (data.event && data.event.call_id) return data.event.call_id;
-  if (data.event && data.event.id) return data.event.id;
-  
-  return null;
+  // Remove all non-digit characters
+  const digitsOnly = phoneNumber.replace(/\D/g, '');
+
+  // Get the last 10 digits for Mexican numbers
+  const lastTenDigits = digitsOnly.slice(-10);
+
+  // Add the +52 prefix for Mexican numbers
+  return lastTenDigits ? `+52${lastTenDigits}` : null;
 }
 
 /**
- * Extract phone number from various webhook payload structures
+ * Extract raw phone number in numeric format
+ */
+export function extractRawPhoneNumber(phoneNumber: string | null | undefined): number | null {
+  if (!phoneNumber) {
+    return null;
+  }
+  
+  const digitsOnly = phoneNumber.replace(/\D/g, '');
+  const lastTenDigits = digitsOnly.slice(-10);
+  return lastTenDigits ? Number(lastTenDigits) : null;
+}
+
+/**
+ * Helper function to extract phone number from various payload structures
  */
 export function extractPhoneNumber(data: any): string | null {
   // Check direct phone fields
