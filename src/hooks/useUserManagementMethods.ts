@@ -3,12 +3,12 @@ import { toast } from 'sonner';
 import { UserRole, UserData } from '@/types/auth';
 import { SPECIAL_USERS } from './auth/constants';
 import {
-  createUser,
-  findUserByEmail,
+  createUser as createUserInStorage,
+  findUserByEmail as findUserByEmailInStorage,
   updateUserRole as updateUserRoleInStorage,
   getAllUsers as getAllUsersFromStorage,
-  verifyUserEmail,
-  setAsVerifiedOwner
+  verifyUserEmail as verifyUserEmailInStorage,
+  setAsVerifiedOwner as setAsVerifiedOwnerInStorage
 } from '@/utils/localAuthStorage';
 
 export const useUserManagementMethods = (
@@ -52,7 +52,7 @@ export const useUserManagementMethods = (
     setLoading(true);
     try {
       // Mark email as verified in local storage
-      verifyUserEmail(uid);
+      verifyUserEmailInStorage(uid);
       
       toast.success('Correo electrónico verificado con éxito');
       await refreshUserData();
@@ -75,24 +75,24 @@ export const useUserManagementMethods = (
       console.log(`Attempting to set user ${email} as verified owner`);
       
       // Find user by email
-      let user = findUserByEmail(email);
+      let user = findUserByEmailInStorage(email);
       
       // If user exists
       if (user && user.uid) {
         console.log(`User found with id: ${user.uid}`);
         
         // Set as verified owner
-        setAsVerifiedOwner(user.uid);
+        setAsVerifiedOwnerInStorage(user.uid);
         console.log(`Role updated to owner for user ${email}`);
       } else {
         console.log(`User ${email} not found, creating new user`);
         
         // Create a new user with default password
-        const userData = createUser(email, 'Custodios2024', `Admin ${email.split('@')[0]}`);
+        const userData = createUserInStorage(email, 'Custodios2024', `Admin ${email.split('@')[0]}`);
         
         if (userData && userData.uid) {
           // Set as verified owner
-          setAsVerifiedOwner(userData.uid);
+          setAsVerifiedOwnerInStorage(userData.uid);
           console.log(`New user created and set as owner: ${email}`);
         } else {
           throw new Error("Failed to create user");
