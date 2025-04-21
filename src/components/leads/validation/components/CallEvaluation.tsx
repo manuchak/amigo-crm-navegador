@@ -20,7 +20,7 @@ export const CallEvaluation: React.FC<CallEvaluationProps> = ({
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4" data-testid="call-evaluation">
       <h3 className="text-lg font-semibold">Evaluación de Llamada</h3>
       
       <div className="grid sm:grid-cols-3 gap-6">

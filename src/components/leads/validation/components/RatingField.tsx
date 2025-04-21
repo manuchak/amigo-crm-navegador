@@ -31,7 +31,7 @@ export const RatingField: React.FC<RatingFieldProps> = ({
   };
 
   return (
-    <div className="space-y-2">
+    <div className="space-y-2" data-testid={`rating-field-${name}`}>
       <label className="text-sm font-medium">{label}</label>
       <div className="flex space-x-3">
         {[1, 2, 3, 4, 5].map(rating => (

@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Check, X } from 'lucide-react';
@@ -30,7 +31,7 @@ export const TriStateField: React.FC<TriStateFieldProps> = ({
   };
 
   return (
-    <div className="space-y-2">
+    <div className="space-y-2" data-testid={`tristate-field-${name}`}>
       <label className="text-sm font-medium">{label}</label>
       <div className="flex space-x-2">
         <Button
