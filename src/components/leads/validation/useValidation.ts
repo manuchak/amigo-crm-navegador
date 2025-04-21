@@ -6,6 +6,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/context/AuthContext';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
+import { UserRole } from '@/types/auth';
 
 export const useValidation = (leadId?: number) => {
   const [validation, setValidation] = useState<CustodioValidation | null>(null);
@@ -48,7 +49,7 @@ export const useValidation = (leadId?: number) => {
         
         if (!sessionData?.session) {
           // Special case for owner role - allow operation despite missing session
-          if (userData?.role === 'owner') {
+          if (userData?.role === 'owner' as UserRole) {
             console.log('Usuario con rol owner - acceso concedido a pesar de sesión faltante');
             return; // Exit early, don't throw error for owners
           }
@@ -57,18 +58,18 @@ export const useValidation = (leadId?: number) => {
         }
         
         // Check if we have a user
-        if (!currentUser && userData?.role !== 'owner') {
+        if (!currentUser && userData?.role !== 'owner' as UserRole) {
           throw new Error('No se detectó un usuario activo. Por favor inicie sesión nuevamente.');
         }
         
         // Check if user is owner - owners should have all permissions
-        if (userData?.role === 'owner') {
+        if (userData?.role === 'owner' as UserRole) {
           console.log('Usuario con rol owner - acceso total concedido');
           // No error for owners - they should have all permissions
         }
       } catch (err: any) {
         // Special case for owner role - always grant access regardless of errors
-        if (userData?.role === 'owner') {
+        if (userData?.role === 'owner' as UserRole) {
           console.log('Error de autenticación pero usuario es propietario - acceso concedido');
           return; // Exit early, don't set error for owners
         }
@@ -85,7 +86,7 @@ export const useValidation = (leadId?: number) => {
   useEffect(() => {
     const fetchStats = async () => {
       // Skip fetch if not authenticated and not owner
-      if (!currentUser && userData?.role !== 'owner') return;
+      if (!currentUser && userData?.role !== 'owner' as UserRole) return;
       
       setStatsLoading(true);
       try {
@@ -95,7 +96,7 @@ export const useValidation = (leadId?: number) => {
         console.error('Error fetching validation stats:', error);
         
         // Don't show errors for owners
-        if (userData?.role !== 'owner') {
+        if (userData?.role !== 'owner' as UserRole) {
           setError(error.message || 'Error al cargar estadísticas');
         }
       } finally {
@@ -115,7 +116,7 @@ export const useValidation = (leadId?: number) => {
       setError(null);
       try {
         // If user is owner, proceed with validation access
-        if (userData?.role === 'owner') {
+        if (userData?.role === 'owner' as UserRole) {
           console.log('Owner accessing validation data - proceeding');
         }
         
@@ -158,7 +159,7 @@ export const useValidation = (leadId?: number) => {
       } catch (error: any) {
         console.error('Error fetching validation:', error);
         // Special handling for owners - try again with a bypass
-        if (userData?.role === 'owner') {
+        if (userData?.role === 'owner' as UserRole) {
           console.log('Owner encountered error - attempting bypass');
           setError('Error al cargar la validación - intentando recuperación para rol propietario');
           
@@ -218,7 +219,7 @@ export const useValidation = (leadId?: number) => {
   
   // Check authentication status with special handling for owners
   const checkAuthStatus = (): boolean => {
-    if (!currentUser && userData?.role !== 'owner') {
+    if (!currentUser && userData?.role !== 'owner' as UserRole) {
       const errorMessage = 'Sesión no válida. Por favor inicie sesión nuevamente.';
       setError(errorMessage);
       toast.error(errorMessage);
@@ -226,12 +227,12 @@ export const useValidation = (leadId?: number) => {
     }
     
     // Special handling for owners - they should always have access
-    if (userData?.role === 'owner') {
+    if (userData?.role === 'owner' as UserRole) {
       console.log('Usuario con rol propietario - acceso total concedido');
       return true;
     }
     
-    if (!userData && userData?.role !== 'owner') {
+    if (!userData && userData?.role !== 'owner' as UserRole) {
       const errorMessage = 'No se pudieron obtener los datos de usuario. Por favor inicie sesión nuevamente.';
       setError(errorMessage);
       toast.error(errorMessage);
@@ -246,7 +247,7 @@ export const useValidation = (leadId?: number) => {
     if (!leadId) return null;
     
     // Special case for owners - bypass regular auth checks
-    const isOwner = userData?.role === 'owner';
+    const isOwner = userData?.role === 'owner' as UserRole;
     
     // For non-owners, verify authentication status
     if (!isOwner && !checkAuthStatus()) {

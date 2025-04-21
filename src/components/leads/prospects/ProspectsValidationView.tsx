@@ -44,7 +44,7 @@ const ProspectsValidationView: React.FC<ProspectsValidationViewProps> = ({
   return (
     <div className="space-y-6">
       {isOwner && (
-        <Alert variant="outline" className="bg-blue-50 border-blue-200">
+        <Alert variant="info" className="bg-blue-50 border-blue-200">
           <Info className="h-4 w-4 text-blue-500" />
           <AlertDescription className="text-blue-700">
             Modo propietario activo - acceso total a validaciones concedido
@@ -53,7 +53,7 @@ const ProspectsValidationView: React.FC<ProspectsValidationViewProps> = ({
       )}
       
       {error && isOwner && (
-        <Alert variant="default" className="bg-amber-50 border-amber-200">
+        <Alert variant="warning" className="bg-amber-50 border-amber-200">
           <AlertTriangle className="h-4 w-4 text-amber-500" />
           <AlertDescription className="text-amber-700">
             Se detectó un error pero se está intentando continuar con privilegios de propietario
