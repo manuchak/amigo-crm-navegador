@@ -129,11 +129,11 @@ export const updateValidation = async (
   
   try {
     // Check if the validation already has a lifetime ID
-    const { data: existingValidation, error: fetchError } = await supabase
+    const { data: existingData, error: fetchError } = await supabase
       .from('custodio_validations')
       .select('lifetime_id')
       .eq('id', id)
-      .single();
+      .maybeSingle();
     
     if (fetchError) {
       console.error('Error fetching existing validation:', fetchError);
@@ -141,7 +141,7 @@ export const updateValidation = async (
     }
     
     // If no lifetime ID exists, generate one and include it in the update
-    if (!existingValidation.lifetime_id) {
+    if (existingData && !existingData.lifetime_id) {
       updatedData.lifetime_id = generateLifetimeId();
     }
     

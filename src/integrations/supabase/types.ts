@@ -71,6 +71,7 @@ export type Database = {
           id: string
           interview_passed: boolean | null
           lead_id: number
+          lifetime_id: string | null
           rejection_reason: string | null
           reliability_score: number | null
           status: string
@@ -93,6 +94,7 @@ export type Database = {
           id?: string
           interview_passed?: boolean | null
           lead_id: number
+          lifetime_id?: string | null
           rejection_reason?: string | null
           reliability_score?: number | null
           status?: string
@@ -115,6 +117,7 @@ export type Database = {
           id?: string
           interview_passed?: boolean | null
           lead_id?: number
+          lifetime_id?: string | null
           rejection_reason?: string | null
           reliability_score?: number | null
           status?: string
