@@ -4,7 +4,11 @@ import { useAuth } from '@/context/AuthContext';
 import {
   Card,
   CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
 } from '@/components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { UserData, UserRole } from '@/types/auth';
@@ -14,7 +18,8 @@ import {
   UserManagementHeader,
   RoleChangeConfirmation,
   formatDate,
-  canEditUser
+  canEditUser,
+  RegistrationRequestsTable
 } from '@/components/user-management';
 
 const UserManagement = () => {
@@ -25,6 +30,7 @@ const UserManagement = () => {
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isConfirmationOpen, setIsConfirmationOpen] = useState(false);
   const [newRole, setNewRole] = useState<UserRole>('unverified');
+  const [activeTab, setActiveTab] = useState('all-users');
   
   useEffect(() => {
     const fetchUsers = async () => {
@@ -67,6 +73,7 @@ const UserManagement = () => {
       
       setIsEditDialogOpen(false);
       setIsConfirmationOpen(true);
+      toast.success(`Rol actualizado a ${newRole} para ${selectedUser.displayName || selectedUser.email}`);
     } catch (error) {
       console.error('Error updating role:', error);
       toast.error('Error al actualizar el rol del usuario');
@@ -82,12 +89,31 @@ const UserManagement = () => {
         u.uid === user.uid ? { ...u, emailVerified: true } : u
       ));
       
-      toast.success(`Email verificado para ${user.displayName}`);
+      toast.success(`Email verificado para ${user.displayName || user.email}`);
     } catch (error) {
       console.error('Error verifying user email:', error);
       toast.error('Error al verificar el email del usuario');
     }
   };
+
+  const handleAssignRole = async (user: UserData, role: UserRole) => {
+    try {
+      await updateUserRole(user.uid, role);
+      
+      // Update the user in the local state
+      setUsers(users.map(u => 
+        u.uid === user.uid ? { ...u, role } : u
+      ));
+      
+      toast.success(`Usuario ${user.displayName || user.email} asignado como ${role}`);
+    } catch (error) {
+      console.error('Error assigning role:', error);
+      toast.error('Error al asignar rol al usuario');
+    }
+  };
+
+  // Only owners should see the registration requests tab
+  const isOwner = currentUserData?.role === 'owner';
 
   if (loading) {
     return (
@@ -103,15 +129,37 @@ const UserManagement = () => {
   return (
     <div className="container mx-auto py-20 px-4">
       <Card className="shadow-md">
-        <UserManagementHeader />
+        <CardHeader>
+          <CardTitle>Gestión de Usuarios</CardTitle>
+          <CardDescription>Administre los usuarios y roles en el sistema</CardDescription>
+        </CardHeader>
         <CardContent>
-          <UserTable 
-            users={users}
-            onEditClick={handleEditClick}
-            onVerifyUser={handleVerifyUser}
-            canEditUser={(user) => canEditUser(currentUserData, user)}
-            formatDate={formatDate}
-          />
+          <Tabs defaultValue="all-users" value={activeTab} onValueChange={setActiveTab} className="w-full">
+            <TabsList className="grid w-full md:w-auto md:inline-flex grid-cols-2 mb-6">
+              <TabsTrigger value="all-users">Todos los Usuarios</TabsTrigger>
+              {isOwner && <TabsTrigger value="registration-requests">Solicitudes de Registro</TabsTrigger>}
+            </TabsList>
+            
+            <TabsContent value="all-users">
+              <UserTable 
+                users={users}
+                onEditClick={handleEditClick}
+                onVerifyUser={handleVerifyUser}
+                canEditUser={(user) => canEditUser(currentUserData, user)}
+                formatDate={formatDate}
+              />
+            </TabsContent>
+            
+            {isOwner && (
+              <TabsContent value="registration-requests">
+                <RegistrationRequestsTable 
+                  users={users}
+                  onAssignRole={handleAssignRole}
+                  onVerifyUser={handleVerifyUser}
+                />
+              </TabsContent>
+            )}
+          </Tabs>
         </CardContent>
       </Card>
 
