@@ -1,11 +1,11 @@
 
 import React from 'react';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { PhoneCall, Calendar, Car, Briefcase, Award, Clock, FileText, CheckSquare } from 'lucide-react';
 import { Prospect } from '@/services/prospectService';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { formatPhoneNumber } from '@/lib/utils';
+import { PhoneCall, FileText, Clock, CheckSquare, Info } from 'lucide-react';
 
 interface ProspectCardProps {
   prospect: Prospect;
@@ -15,20 +15,13 @@ interface ProspectCardProps {
   onValidate?: (prospect: Prospect) => void;
 }
 
-const ProspectCard: React.FC<ProspectCardProps> = ({ 
-  prospect, 
+const ProspectCard: React.FC<ProspectCardProps> = ({
+  prospect,
   onViewDetails,
   onCall,
   onViewCalls,
   onValidate
 }) => {
-  // Format date helper
-  const formatDate = (dateString: string | null) => {
-    if (!dateString) return 'N/A';
-    return new Date(dateString).toLocaleDateString('es-MX');
-  };
-  
-  // Get status color
   const getStatusColor = (status: string | null) => {
     switch (status?.toLowerCase()) {
       case 'nuevo': return 'bg-blue-50 text-blue-600';
@@ -39,105 +32,97 @@ const ProspectCard: React.FC<ProspectCardProps> = ({
     }
   };
   
-  // Check if prospect has call history
-  const hasCallHistory = prospect.call_count !== null && prospect.call_count > 0;
+  const formatDate = (date: string | null) => {
+    if (!date) return '';
+    return new Date(date).toLocaleDateString('es-MX', { 
+      year: 'numeric', 
+      month: '2-digit', 
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  };
   
-  // Check if prospect has interview data
+  const hasCallHistory = prospect.call_count !== null && prospect.call_count > 0;
   const hasInterviewData = prospect.transcript !== null;
   
   return (
-    <Card className="h-full shadow-sm hover:shadow transition-shadow">
-      <CardHeader className="pb-3">
+    <Card className="h-full flex flex-col">
+      <CardHeader className="pb-2">
         <div className="flex justify-between items-start">
-          <div>
-            <CardTitle className="text-lg font-medium">
-              {prospect.lead_name || prospect.custodio_name || "Prospecto Sin Nombre"}
-            </CardTitle>
-            <div className="text-sm text-slate-500 flex items-center mt-1">
-              <PhoneCall className="h-3.5 w-3.5 mr-1 text-slate-400" />
-              {formatPhoneNumber(prospect.lead_phone || prospect.phone_number_intl || "No disponible")}
-            </div>
-          </div>
-          
+          <CardTitle className="text-base">
+            {prospect.lead_name || prospect.custodio_name || "Sin nombre"}
+          </CardTitle>
           {prospect.lead_status && (
-            <Badge className={`${getStatusColor(prospect.lead_status)}`}>
+            <Badge className={getStatusColor(prospect.lead_status)}>
               {prospect.lead_status}
             </Badge>
           )}
         </div>
+        <div className="text-sm text-slate-500 flex flex-col">
+          <span>{formatPhoneNumber(prospect.lead_phone || prospect.phone_number_intl || "")}</span>
+          {prospect.lead_email && <span className="text-xs">{prospect.lead_email}</span>}
+        </div>
+        {hasInterviewData && (
+          <Badge variant="outline" className="mt-2 bg-green-50 text-green-600 border-green-200">
+            <FileText className="h-3 w-3 mr-1" /> Con entrevista
+          </Badge>
+        )}
       </CardHeader>
       
-      <CardContent className="pb-2">
-        <div className="grid grid-cols-2 gap-2">
+      <CardContent className="py-2 flex-grow">
+        <div className="space-y-2 text-sm">
           {prospect.car_brand && (
-            <div className="flex items-center">
-              <Car className="h-4 w-4 mr-1 text-slate-400" />
-              <span className="text-sm">{prospect.car_brand} {prospect.car_model} {prospect.car_year}</span>
+            <div className="flex justify-between">
+              <span className="text-slate-500">Vehículo:</span>
+              <span>{prospect.car_brand} {prospect.car_model} {prospect.car_year}</span>
             </div>
           )}
           
           {prospect.security_exp && (
-            <div className="flex items-center">
-              <Briefcase className="h-4 w-4 mr-1 text-slate-400" />
-              <span className="text-sm">Exp: {prospect.security_exp}</span>
+            <div className="flex justify-between">
+              <span className="text-slate-500">Experiencia:</span>
+              <span>{prospect.security_exp}</span>
             </div>
           )}
           
-          {prospect.sedena_id && (
-            <div className="flex items-center">
-              <Award className="h-4 w-4 mr-1 text-slate-400" />
-              <span className="text-sm">SEDENA: {prospect.sedena_id}</span>
-            </div>
-          )}
-          
-          {prospect.call_count !== null && prospect.call_count > 0 && (
-            <div className="flex items-center">
-              <Clock className="h-4 w-4 mr-1 text-slate-400" />
-              <span className="text-sm">{prospect.call_count} llamadas</span>
-              {prospect.last_call_date && (
-                <span className="text-xs text-slate-400 ml-1">
-                  (Última: {formatDate(prospect.last_call_date)})
-                </span>
-              )}
+          {hasCallHistory && (
+            <div className="flex justify-between">
+              <span className="text-slate-500">Llamadas:</span>
+              <span>
+                {prospect.call_count} {prospect.call_count === 1 ? 'llamada' : 'llamadas'}
+                {prospect.last_call_date && (
+                  <span className="text-xs block text-slate-400">
+                    Última: {formatDate(prospect.last_call_date)}
+                  </span>
+                )}
+              </span>
             </div>
           )}
         </div>
-        
-        <div className="flex items-center mt-3 text-xs text-slate-400">
-          <Calendar className="h-3.5 w-3.5 mr-1" />
-          Creado: {formatDate(prospect.lead_created_at)}
-        </div>
-
-        {hasInterviewData && (
-          <div className="mt-2">
-            <Badge variant="outline" className="bg-green-50 text-green-600 border-green-200">
-              <FileText className="h-3 w-3 mr-1" /> Entrevista disponible
-            </Badge>
-          </div>
-        )}
       </CardContent>
       
       <CardFooter className="pt-2 flex flex-wrap gap-2">
-        {onViewDetails && (
-          <Button variant="ghost" size="sm" onClick={() => onViewDetails(prospect)}>
-            Ver detalles
+        {onCall && (
+          <Button variant="outline" size="sm" className="flex-1" onClick={() => onCall(prospect)}>
+            <PhoneCall className="h-3.5 w-3.5 mr-1" /> Llamar
           </Button>
         )}
         
-        {onCall && (
-          <Button variant="outline" size="sm" onClick={() => onCall(prospect)}>
-            <PhoneCall className="h-4 w-4 mr-1" /> Llamar
+        {onViewDetails && (
+          <Button variant="ghost" size="sm" className="flex-1" onClick={() => onViewDetails(prospect)}>
+            <Info className="h-3.5 w-3.5 mr-1" /> Detalle
           </Button>
         )}
-
+        
         {onViewCalls && hasCallHistory && (
           <Button 
             variant="outline" 
             size="sm" 
             onClick={() => onViewCalls(prospect)}
-            className="bg-blue-50 text-blue-600 hover:bg-blue-100 border-blue-200"
+            className="flex-1 bg-blue-50 text-blue-600 hover:bg-blue-100 border-blue-200"
           >
-            <Clock className="h-4 w-4 mr-1" /> Historial
+            <Clock className="h-3.5 w-3.5 mr-1" /> Historial
           </Button>
         )}
         
@@ -146,9 +131,9 @@ const ProspectCard: React.FC<ProspectCardProps> = ({
             variant="outline" 
             size="sm" 
             onClick={() => onValidate(prospect)}
-            className="bg-green-50 text-green-600 hover:bg-green-100 border-green-200"
+            className="flex-1 bg-green-50 text-green-600 hover:bg-green-100 border-green-200"
           >
-            <CheckSquare className="h-4 w-4 mr-1" /> Validar
+            <CheckSquare className="h-3.5 w-3.5 mr-1" /> Validar
           </Button>
         )}
       </CardFooter>

@@ -7,7 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
-import { Loader2, Search, RefreshCw, Table, List, Grid } from 'lucide-react';
+import { Loader2, Search, RefreshCw, Table, List, Grid, Filter } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { executeWebhook } from '@/components/call-center/utils/webhook';
 import { incrementCallCount } from '@/services/leadService';
@@ -21,6 +21,7 @@ export const ProspectsList: React.FC<{
   const [filter, setFilter] = useState<string | undefined>(undefined);
   const [searchQuery, setSearchQuery] = useState('');
   const [viewMode, setViewMode] = useState<'grid' | 'table'>('grid');
+  const [showOnlyInterviewed, setShowOnlyInterviewed] = useState(true);
   const { prospects, loading, refetch } = useProspects(filter);
   const { toast } = useToast();
   const [refreshing, setRefreshing] = useState(false);
@@ -93,16 +94,27 @@ export const ProspectsList: React.FC<{
     }
   };
   
-  const filteredProspects = searchQuery.trim() === '' 
-    ? prospects
-    : prospects.filter(p => 
+  // Filter prospects based on search query and interview status
+  const filteredProspects = prospects
+    .filter(p => 
+      // Filter based on showOnlyInterviewed flag
+      !showOnlyInterviewed || (
+        // Only show prospects that have been called and have transcript
+        p.call_count !== null && 
+        p.call_count > 0 && 
+        p.transcript !== null
+      )
+    )
+    .filter(p => 
+      // Filter based on search query
+      searchQuery.trim() === '' || 
         (p.lead_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
          p.custodio_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
          p.lead_phone?.includes(searchQuery) ||
          p.phone_number_intl?.includes(searchQuery) ||
          p.car_brand?.toLowerCase().includes(searchQuery.toLowerCase()) ||
          p.car_model?.toLowerCase().includes(searchQuery.toLowerCase()))
-      );
+    );
   
   return (
     <div className="space-y-4">
@@ -133,7 +145,17 @@ export const ProspectsList: React.FC<{
           </Select>
         </div>
         
-        <div className="flex space-x-2 w-full md:w-auto justify-end">
+        <div className="flex items-center space-x-2 w-full md:w-auto justify-end">
+          <Button
+            variant="outline"
+            size="sm"
+            className={`${!showOnlyInterviewed ? 'border-primary text-primary' : ''}`}
+            onClick={() => setShowOnlyInterviewed(!showOnlyInterviewed)}
+          >
+            <Filter className="h-4 w-4 mr-1" />
+            {showOnlyInterviewed ? 'Mostrar todos' : 'Solo entrevistados'}
+          </Button>
+          
           <div className="flex rounded-md border">
             <Button
               variant="ghost" 
@@ -152,6 +174,7 @@ export const ProspectsList: React.FC<{
               <Table className="h-4 w-4" />
             </Button>
           </div>
+          
           <Button 
             variant="outline" 
             size="sm" 
@@ -170,7 +193,11 @@ export const ProspectsList: React.FC<{
         </div>
       ) : filteredProspects.length === 0 ? (
         <div className="text-center py-12 text-slate-500">
-          <p>No se encontraron prospectos</p>
+          {showOnlyInterviewed ? (
+            <p>No se encontraron prospectos con entrevistas</p>
+          ) : (
+            <p>No se encontraron prospectos</p>
+          )}
         </div>
       ) : viewMode === 'grid' ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
