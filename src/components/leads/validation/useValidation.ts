@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react';
 import { CustodioValidation, ValidationStats, ValidationFormData } from './types';
 import { createValidation, updateValidation, getValidationByLeadId, getValidationStats } from '@/services/validationService';
+import { useToast } from '@/hooks/use-toast';
 
 export const useValidation = (leadId?: number) => {
   const [validation, setValidation] = useState<CustodioValidation | null>(null);
@@ -9,6 +10,7 @@ export const useValidation = (leadId?: number) => {
   const [error, setError] = useState<string | null>(null);
   const [stats, setStats] = useState<ValidationStats[]>([]);
   const [statsLoading, setStatsLoading] = useState(false);
+  const { toast } = useToast();
   
   // Form state for validation
   const [formData, setFormData] = useState<ValidationFormData>({
@@ -130,11 +132,22 @@ export const useValidation = (leadId?: number) => {
       console.error('Error saving validation:', error);
       
       // Set a friendly error message
-      if (error.code === '42501') {
+      if (error.message) {
+        setError(error.message);
+      } else if (error.code === '22P02') {
+        setError('Error de formato: Valor inválido para el tipo de dato');
+      } else if (error.code === '42501') {
         setError('Error de permisos: No tiene permisos para guardar validaciones');
       } else {
-        setError(error.message || 'Error al guardar la validación');
+        setError('Error al guardar la validación. Por favor intente nuevamente.');
       }
+      
+      // Show toast with error
+      toast({
+        title: "Error",
+        description: error.message || 'Error al guardar la validación',
+        variant: "destructive",
+      });
       
       return null;
     } finally {

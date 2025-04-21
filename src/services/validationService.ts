@@ -56,12 +56,24 @@ export const createValidation = async (
   const startTime = new Date();
   
   try {
+    // Get current user
+    const { data: userData, error: userError } = await supabase.auth.getUser();
+    
+    if (userError) {
+      console.error('Error getting current user:', userError);
+      throw new Error('No se pudo obtener el usuario actual. Por favor inicie sesión nuevamente.');
+    }
+    
+    if (!userData?.user?.id) {
+      throw new Error('Usuario no autenticado. Por favor inicie sesión nuevamente.');
+    }
+    
     const validationData = {
       lead_id: leadId,
       ...formData,
       validation_date: new Date().toISOString(),
       status: determineValidationStatus(formData),
-      validated_by: supabase.auth.getUser().then(res => res.data.user?.id) // Get current user ID
+      validated_by: userData.user.id // Use the actual user ID
     };
     
     const { data, error } = await supabase
