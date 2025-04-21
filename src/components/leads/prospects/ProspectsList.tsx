@@ -7,14 +7,20 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
-import { Loader2, Search, RefreshCw } from 'lucide-react';
+import { Loader2, Search, RefreshCw, Table, List, Grid } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { executeWebhook } from '@/components/call-center/utils/webhook';
 import { incrementCallCount } from '@/services/leadService';
+import ProspectsTable from './ProspectsTable';
 
-export const ProspectsList: React.FC = () => {
+export const ProspectsList: React.FC<{
+  onViewDetails?: (prospect: Prospect) => void;
+  onViewCalls?: (prospect: Prospect) => void;
+  onValidate?: (prospect: Prospect) => void;
+}> = ({ onViewDetails, onViewCalls, onValidate }) => {
   const [filter, setFilter] = useState<string | undefined>(undefined);
   const [searchQuery, setSearchQuery] = useState('');
+  const [viewMode, setViewMode] = useState<'grid' | 'table'>('grid');
   const { prospects, loading, refetch } = useProspects(filter);
   const { toast } = useToast();
   const [refreshing, setRefreshing] = useState(false);
@@ -65,15 +71,6 @@ export const ProspectsList: React.FC = () => {
         variant: "destructive",
       });
     }
-  };
-  
-  const handleViewDetails = (prospect: Prospect) => {
-    // This would navigate to a prospect detail page
-    console.log("View details for prospect:", prospect);
-    toast({
-      title: "Detalles del prospecto",
-      description: "Función en desarrollo",
-    });
   };
 
   const handleRefresh = async () => {
@@ -136,15 +133,35 @@ export const ProspectsList: React.FC = () => {
           </Select>
         </div>
         
-        <Button 
-          variant="outline" 
-          size="sm" 
-          onClick={handleRefresh}
-          disabled={refreshing}
-        >
-          <RefreshCw className={`h-4 w-4 mr-1 ${refreshing ? "animate-spin" : ""}`} />
-          {refreshing ? "Actualizando..." : "Actualizar"}
-        </Button>
+        <div className="flex space-x-2 w-full md:w-auto justify-end">
+          <div className="flex rounded-md border">
+            <Button
+              variant="ghost" 
+              size="sm" 
+              className={`px-3 ${viewMode === 'grid' ? 'bg-slate-100' : ''}`}
+              onClick={() => setViewMode('grid')}
+            >
+              <Grid className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="ghost" 
+              size="sm" 
+              className={`px-3 ${viewMode === 'table' ? 'bg-slate-100' : ''}`}
+              onClick={() => setViewMode('table')}
+            >
+              <Table className="h-4 w-4" />
+            </Button>
+          </div>
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={handleRefresh}
+            disabled={refreshing}
+          >
+            <RefreshCw className={`h-4 w-4 mr-1 ${refreshing ? "animate-spin" : ""}`} />
+            {refreshing ? "Actualizando..." : "Actualizar"}
+          </Button>
+        </div>
       </div>
       
       {loading ? (
@@ -155,17 +172,27 @@ export const ProspectsList: React.FC = () => {
         <div className="text-center py-12 text-slate-500">
           <p>No se encontraron prospectos</p>
         </div>
-      ) : (
+      ) : viewMode === 'grid' ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
           {filteredProspects.map((prospect) => (
             <ProspectCard 
               key={`prospect-${prospect.lead_id}-${prospect.validated_lead_id}`}
               prospect={prospect}
-              onViewDetails={handleViewDetails}
+              onViewDetails={onViewDetails}
               onCall={handleCallProspect}
+              onViewCalls={onViewCalls}
+              onValidate={onValidate}
             />
           ))}
         </div>
+      ) : (
+        <ProspectsTable 
+          prospects={filteredProspects} 
+          onViewDetails={onViewDetails}
+          onCall={handleCallProspect}
+          onViewCalls={onViewCalls}
+          onValidate={onValidate}
+        />
       )}
     </div>
   );
