@@ -2,7 +2,7 @@
 import React from 'react';
 import { TableHead, TableHeader, TableRow } from '@/components/ui/table';
 
-const TableHeader: React.FC = () => {
+const ProspectsTableHeader: React.FC = () => {
   return (
     <TableHeader>
       <TableRow>
@@ -18,4 +18,4 @@ const TableHeader: React.FC = () => {
   );
 };
 
-export default TableHeader;
+export default ProspectsTableHeader;

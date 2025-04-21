@@ -1,5 +1,5 @@
 
-export { default as TableHeader } from './TableHeader';
+export { default as ProspectsTableHeader } from './TableHeader';
 export { default as BooleanDisplay } from './BooleanDisplay';
 export { default as StatusBadge } from './StatusBadge';
 export { default as DateFormatter } from './DateFormatter';

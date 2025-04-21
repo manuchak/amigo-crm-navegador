@@ -2,7 +2,7 @@
 import React from 'react';
 import { Prospect } from '@/services/prospectService';
 import { Table, TableBody } from '@/components/ui/table';
-import { TableHeader, ProspectRow } from './table';
+import { ProspectsTableHeader, ProspectRow } from './table';
 
 interface ProspectsTableProps {
   prospects: Prospect[];
@@ -22,7 +22,7 @@ const ProspectsTable: React.FC<ProspectsTableProps> = ({
   return (
     <div className="border rounded-md">
       <Table>
-        <TableHeader />
+        <ProspectsTableHeader />
         <TableBody>
           {prospects.map((prospect) => (
             <ProspectRow
