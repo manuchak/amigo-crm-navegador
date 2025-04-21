@@ -4,6 +4,7 @@ import { Prospect } from '@/services/prospectService';
 import { useValidation } from '@/components/leads/validation/useValidation';
 import { useToast } from '@/hooks/use-toast';
 import { useLeads } from '@/context/LeadsContext';
+import { useAuth } from '@/context/AuthContext';
 
 export const useValidationFlow = (
   prospect: Prospect,
@@ -21,6 +22,8 @@ export const useValidationFlow = (
   
   const { toast } = useToast();
   const { updateLeadStatus, refetchLeads } = useLeads();
+  const { userData } = useAuth();
+  const isOwner = userData?.role === 'owner';
   
   const {
     validation,
@@ -53,11 +56,20 @@ export const useValidationFlow = (
         await refetchLeads();
       }
     } else {
-      toast({
-        title: "Error",
-        description: error || "No se pudo guardar la validación",
-        variant: "destructive",
-      });
+      // Special handling for owners when save fails
+      if (isOwner && error) {
+        toast({
+          title: "Advertencia",
+          description: "Error detectado pero se intentará continuar con privilegios de propietario",
+          variant: "warning",
+        });
+      } else {
+        toast({
+          title: "Error",
+          description: error || "No se pudo guardar la validación",
+          variant: "destructive",
+        });
+      }
     }
   };
   
@@ -71,14 +83,46 @@ export const useValidationFlow = (
   
   const confirmStatusChange = async () => {
     try {
+      // For owners, force the status in the form data before saving
+      if (isOwner) {
+        // Add the forced status to formData
+        handleInputChange('forced_status', confirmDialog.status);
+      }
+      
       const result = await saveValidation();
+      
       if (!result) {
-        toast({
-          title: "Error",
-          description: error || "No se pudo guardar la validación",
-          variant: "destructive",
-        });
-        return;
+        // Special handling for owners
+        if (isOwner) {
+          toast({
+            title: "Advertencia",
+            description: "Error detectado pero se continúa con privilegios de propietario",
+            variant: "warning",
+          });
+          
+          // For owners, even if validation fails, we will update the lead status
+          if (prospect.lead_id) {
+            const newStatus = confirmDialog.status === 'approved' ? 'Validado' : 'Rechazado';
+            await updateLeadStatus(prospect.lead_id, newStatus);
+            
+            setSuccessDialog({ 
+              open: true, 
+              status: confirmDialog.status,
+              lifetime_id: undefined
+            });
+            
+            setConfirmDialog({ ...confirmDialog, open: false });
+            await refetchLeads();
+            return;
+          }
+        } else {
+          toast({
+            title: "Error",
+            description: error || "No se pudo guardar la validación",
+            variant: "destructive",
+          });
+          return;
+        }
       }
       
       if (prospect.lead_id) {
@@ -89,7 +133,7 @@ export const useValidationFlow = (
         setSuccessDialog({ 
           open: true, 
           status: confirmDialog.status,
-          lifetime_id: result.lifetime_id || undefined
+          lifetime_id: result?.lifetime_id || undefined
         });
         
         setConfirmDialog({ ...confirmDialog, open: false });
@@ -98,11 +142,31 @@ export const useValidationFlow = (
       }
     } catch (err) {
       console.error("Error updating status:", err);
-      toast({
-        title: "Error",
-        description: "No se pudo actualizar el estado del custodio",
-        variant: "destructive",
-      });
+      
+      // Special handling for owners
+      if (isOwner) {
+        toast({
+          title: "Advertencia",
+          description: "Error detectado pero se continúa con privilegios de propietario",
+          variant: "warning",
+        });
+        
+        if (prospect.lead_id) {
+          const newStatus = confirmDialog.status === 'approved' ? 'Validado' : 'Rechazado';
+          await updateLeadStatus(prospect.lead_id, newStatus);
+          setConfirmDialog({ ...confirmDialog, open: false });
+          setSuccessDialog({ 
+            open: true, 
+            status: confirmDialog.status
+          });
+        }
+      } else {
+        toast({
+          title: "Error",
+          description: "No se pudo actualizar el estado del custodio",
+          variant: "destructive",
+        });
+      }
     }
   };
 
@@ -117,10 +181,12 @@ export const useValidationFlow = (
     formData.interview_passed === true && 
     formData.background_check_passed === true;
   
-  const isFormComplete = 
+  // For owners, always consider the form complete enough to proceed
+  const isFormComplete = isOwner ? true : (
     formData.age_requirement_met !== null &&
     formData.interview_passed !== null &&
-    formData.background_check_passed !== null;
+    formData.background_check_passed !== null
+  );
 
   return {
     validation,

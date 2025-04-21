@@ -12,10 +12,10 @@ import { ValidationForm } from './ValidationForm';
 import { CallTranscript } from './CallTranscript';
 import { supabase } from '@/integrations/supabase/client';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Loader2 } from 'lucide-react';
+import { Loader2, ShieldCheck } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { AlertTriangle } from 'lucide-react';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { AlertTriangle, Info } from 'lucide-react';
 
 interface ValidationDialogProps {
   open: boolean;
@@ -38,7 +38,8 @@ export const ValidationDialog: React.FC<ValidationDialogProps> = ({
   const [hasTranscript, setHasTranscript] = useState(false);
   const [checkingTranscript, setCheckingTranscript] = useState(true);
   const [transcriptError, setTranscriptError] = useState<string | null>(null);
-  const { currentUser } = useAuth();
+  const { currentUser, userData } = useAuth();
+  const isOwner = userData?.role === 'owner';
   
   const {
     validation,
@@ -61,6 +62,13 @@ export const ValidationDialog: React.FC<ValidationDialogProps> = ({
       try {
         setCheckingTranscript(true);
         setTranscriptError(null);
+        
+        // Owner users bypass transcript validation checks
+        if (isOwner) {
+          console.log("Owner user detected - bypassing transcript validation checks");
+          setCheckingTranscript(false);
+          return;
+        }
         
         // Check for session validity first
         const { data: session, error: sessionError } = await supabase.auth.getSession();
@@ -87,11 +95,12 @@ export const ValidationDialog: React.FC<ValidationDialogProps> = ({
     };
     
     checkTranscript();
-  }, [open, leadPhone]);
+  }, [open, leadPhone, isOwner]);
 
   const handleSubmit = async () => {
-    if (!currentUser) {
-      return; // Don't attempt submission if not authenticated
+    // For owners, always proceed with validation regardless of auth state
+    if (!currentUser && !isOwner) {
+      return; // Don't attempt submission if not authenticated and not owner
     }
     
     const result = await saveValidation();
@@ -101,11 +110,11 @@ export const ValidationDialog: React.FC<ValidationDialogProps> = ({
   };
 
   // Check if there's an authentication error
-  const authError = !currentUser || (error && (
+  const authError = !isOwner && (!currentUser || (error && (
     error.includes('sesión') || 
     error.includes('autenticación') || 
     error.includes('iniciar sesión')
-  ));
+  )));
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -117,8 +126,19 @@ export const ValidationDialog: React.FC<ValidationDialogProps> = ({
           </DialogDescription>
         </DialogHeader>
         
-        {/* Authentication error alert */}
-        {authError && (
+        {/* Owner mode indicator */}
+        {isOwner && (
+          <Alert variant="info" className="mb-4 bg-blue-50 border-blue-200">
+            <ShieldCheck className="h-4 w-4 text-blue-600" />
+            <AlertTitle className="text-blue-700">Modo propietario activo</AlertTitle>
+            <AlertDescription className="text-blue-600">
+              Acceso total a validaciones concedido como propietario del sistema.
+            </AlertDescription>
+          </Alert>
+        )}
+        
+        {/* Authentication error alert - only show for non-owners */}
+        {authError && !isOwner && (
           <Alert variant="destructive" className="mb-4">
             <AlertTriangle className="h-4 w-4" />
             <AlertDescription>
@@ -135,13 +155,13 @@ export const ValidationDialog: React.FC<ValidationDialogProps> = ({
           <Tabs value={activeTab} onValueChange={setActiveTab}>
             <TabsList className="grid grid-cols-2 mb-6">
               <TabsTrigger value="form">Formulario de Validación</TabsTrigger>
-              <TabsTrigger value="transcript" disabled={!hasTranscript}>
+              <TabsTrigger value="transcript" disabled={!hasTranscript && !isOwner}>
                 Transcripción de Llamada
-                {!hasTranscript && <span className="ml-2 text-xs">(No disponible)</span>}
+                {!hasTranscript && !isOwner && <span className="ml-2 text-xs">(No disponible)</span>}
               </TabsTrigger>
             </TabsList>
             
-            {transcriptError && (
+            {transcriptError && !isOwner && (
               <Alert variant="warning" className="mb-4">
                 <AlertTriangle className="h-4 w-4" />
                 <AlertDescription>{transcriptError}</AlertDescription>
@@ -155,8 +175,8 @@ export const ValidationDialog: React.FC<ValidationDialogProps> = ({
                 onSubmit={handleSubmit}
                 loading={loading}
                 leadName={leadName}
-                hasTranscript={hasTranscript}
-                error={error}
+                hasTranscript={hasTranscript || isOwner}
+                error={isOwner ? null : error}
               />
             </TabsContent>
             

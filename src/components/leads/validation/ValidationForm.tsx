@@ -9,8 +9,9 @@ import { AdditionalRequirements } from './components/AdditionalRequirements';
 import { CallEvaluation } from './components/CallEvaluation';
 import { ValidationNotes } from './components/ValidationNotes';
 import { FormActions } from './components/FormActions';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { AlertTriangle, Loader2 } from 'lucide-react';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { AlertTriangle, InfoIcon, Loader2, ShieldCheck } from 'lucide-react';
+import { useAuth } from '@/context/AuthContext';
 
 interface ValidationFormProps {
   formData: ValidationFormData;
@@ -31,6 +32,9 @@ export const ValidationForm: React.FC<ValidationFormProps> = ({
   hasTranscript,
   error
 }) => {
+  const { userData } = useAuth();
+  const isOwner = userData?.role === 'owner';
+  
   // Check if all critical requirements are answered
   const isCriticalRequirementsMissing = 
     formData.age_requirement_met === null ||
@@ -38,7 +42,8 @@ export const ValidationForm: React.FC<ValidationFormProps> = ({
     formData.background_check_passed === null;
   
   // Determine if the form is valid for submission
-  const isFormValid = !isCriticalRequirementsMissing;
+  // For owners, we always allow submission
+  const isFormValid = isOwner ? true : !isCriticalRequirementsMissing;
 
   // Check if there's an authentication error
   const isAuthError = error && (
@@ -50,7 +55,7 @@ export const ValidationForm: React.FC<ValidationFormProps> = ({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (isFormValid && !isAuthError) {
+    if (isOwner || (isFormValid && !isAuthError)) {
       onSubmit();
     }
   };
@@ -72,6 +77,16 @@ export const ValidationForm: React.FC<ValidationFormProps> = ({
   return (
     <Card className="bg-white shadow-sm">
       <CardContent className="pt-6">
+        {isOwner && (
+          <Alert variant="info" className="mb-4 bg-blue-50 border-blue-200">
+            <ShieldCheck className="h-4 w-4 text-blue-600" />
+            <AlertTitle className="text-blue-700">Modo propietario activo</AlertTitle>
+            <AlertDescription className="text-blue-600">
+              Como propietario, puede guardar validaciones y validar custodios sin restricciones.
+            </AlertDescription>
+          </Alert>
+        )}
+        
         {error && !isAuthError && (
           <Alert variant="destructive" className="mb-4">
             <AlertTriangle className="h-4 w-4" />
@@ -118,6 +133,7 @@ export const ValidationForm: React.FC<ValidationFormProps> = ({
             isFormValid={isFormValid} 
             isCriticalRequirementsMissing={isCriticalRequirementsMissing}
             authError={isAuthError ? error : null}
+            isOwner={isOwner}
           />
         </form>
       </CardContent>

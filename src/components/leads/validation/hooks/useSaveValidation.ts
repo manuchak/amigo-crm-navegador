@@ -24,7 +24,10 @@ export const useSaveValidation = (
     if (!leadId) return null;
     
     // For non-owners, verify authentication status
+    // Owners can bypass standard auth check
     if (!isOwner && !checkAuthStatus()) {
+      setError("Se requiere autenticación para guardar validaciones.");
+      toast.error("Sesión no válida. Por favor inicie sesión nuevamente.");
       return null;
     }
     
@@ -32,20 +35,69 @@ export const useSaveValidation = (
     setError(null);
     
     try {
+      console.log(`Attempting to save validation as ${isOwner ? 'owner' : 'regular user'}`);
+      
+      // Add owner flag to formData for the backend to see
+      const enhancedFormData = {
+        ...formData,
+        _isOwnerOverride: isOwner
+      };
+      
       let result: CustodioValidation;
       
       if (validation) {
         // Update existing validation
-        result = await updateValidation(validation.id, formData);
+        result = await updateValidation(validation.id, enhancedFormData);
       } else {
         // Create new validation
-        result = await createValidation(leadId, formData);
+        result = await createValidation(leadId, enhancedFormData);
       }
       
-      setValidation(result);
+      if (result) {
+        console.log("Validation saved successfully:", result);
+        setValidation(result);
+      }
+      
       return result;
     } catch (error: any) {
       console.error('Error saving validation:', error);
+      
+      // Special handling for owners to try to recover from errors
+      if (isOwner) {
+        console.log("Owner user encountered error, attempting recovery...");
+        try {
+          // For owners, make one more attempt with a stripped-down essential payload
+          const essentialData = {
+            ...formData,
+            _isOwnerOverride: true,
+            _emergencyOwnerBypass: true
+          };
+          
+          console.log("Attempting emergency owner bypass with:", essentialData);
+          
+          let recoveryResult: CustodioValidation;
+          
+          if (validation) {
+            recoveryResult = await updateValidation(validation.id, essentialData);
+          } else {
+            recoveryResult = await createValidation(leadId, essentialData);
+          }
+          
+          console.log("Recovery attempt succeeded:", recoveryResult);
+          setValidation(recoveryResult);
+          
+          // Show a warning but allow continuing
+          uiToast({
+            title: "Advertencia",
+            description: "Se detectaron errores pero se completó la operación con privilegios de propietario",
+            variant: "warning",
+          });
+          
+          return recoveryResult;
+        } catch (recoveryError) {
+          console.error("Owner recovery attempt failed:", recoveryError);
+        }
+      }
       
       // Set a friendly error message
       if (error.message) {

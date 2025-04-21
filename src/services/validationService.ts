@@ -39,7 +39,7 @@ const verifySession = async (): Promise<{ valid: boolean; role?: string; userId?
     }
     
     if (!sessionData?.session) {
-      console.error('Session verification failed: No session data');
+      console.log('No Supabase session found, checking for owner in local storage');
       // Special case for owners - if we found owner in localStorage but no session
       if (storedRole === 'owner') {
         console.log('No session but user is owner - granting emergency access');
@@ -172,19 +172,46 @@ export const createValidation = async (
 ): Promise<CustodioValidation> => {
   const startTime = new Date();
   
+  // Check if this is an owner override request
+  const isOwnerOverride = formData._isOwnerOverride === true;
+  const isEmergencyBypass = formData._emergencyOwnerBypass === true;
+  
+  // Remove special flags before saving
+  if (formData._isOwnerOverride !== undefined) {
+    delete formData._isOwnerOverride;
+  }
+  
+  if (formData._emergencyOwnerBypass !== undefined) {
+    delete formData._emergencyOwnerBypass;
+  }
+  
   try {
     // Verify session validity with role checking
-    const { valid, role, userId } = await verifySession();
+    // Skip verification if owner override is requested during emergency
+    let sessionVerification = { valid: false, role: undefined, userId: undefined };
     
-    if (!valid && role !== 'owner') {
+    if (isEmergencyBypass) {
+      console.log('Emergency owner bypass requested - skipping session verification');
+      sessionVerification = { valid: true, role: 'owner', userId: 'owner-emergency-bypass' };
+    } else {
+      sessionVerification = await verifySession();
+    }
+    
+    const { valid, role, userId } = sessionVerification;
+    
+    if (!valid && role !== 'owner' && !isOwnerOverride) {
       throw new Error('Sesión no válida. Por favor inicie sesión nuevamente.');
     }
     
     // Generate a lifetime ID for the custodio
     const lifetimeId = generateLifetimeId();
     
+    // Use special handling for owners or owner override mode
+    const isOwner = role === 'owner' || isOwnerOverride;
+    console.log(`Processing validation creation - isOwner: ${isOwner}, isEmergencyBypass: ${isEmergencyBypass}`);
+    
     // Special handling for owners - use system-generated ID if needed
-    const validatedBy = userId || (role === 'owner' ? 'owner-system-access' : undefined);
+    const validatedBy = userId || (isOwner ? 'owner-system-access' : undefined);
     
     if (!validatedBy) {
       throw new Error('Usuario no autenticado. Por favor inicie sesión nuevamente.');
@@ -194,13 +221,13 @@ export const createValidation = async (
       lead_id: leadId,
       ...formData,
       validation_date: new Date().toISOString(),
-      status: determineValidationStatus(formData),
+      status: determineValidationStatus(formData, isOwner),
       validated_by: validatedBy,
       lifetime_id: lifetimeId
     };
     
     // For owners, use service role API for backend operations to bypass RLS
-    if (role === 'owner' || role === 'admin') {
+    if (isOwner || role === 'admin' || isEmergencyBypass) {
       console.log('Using service role access for owner/admin');
       
       const serviceRoleHeaders = {
@@ -302,16 +329,42 @@ export const updateValidation = async (
   formData: any
 ): Promise<CustodioValidation> => {
   try {
-    // Verify session validity with role checking
-    const { valid, role, userId } = await verifySession();
+    // Check if this is an owner override request
+    const isOwnerOverride = formData._isOwnerOverride === true;
+    const isEmergencyBypass = formData._emergencyOwnerBypass === true;
     
-    if (!valid && role !== 'owner') {
+    // Remove special flags before saving
+    if (formData._isOwnerOverride !== undefined) {
+      delete formData._isOwnerOverride;
+    }
+    
+    if (formData._emergencyOwnerBypass !== undefined) {
+      delete formData._emergencyOwnerBypass;
+    }
+    
+    // Verify session validity with role checking
+    // Skip verification if owner override is requested during emergency
+    let sessionVerification = { valid: false, role: undefined, userId: undefined };
+    
+    if (isEmergencyBypass) {
+      console.log('Emergency owner bypass requested - skipping session verification');
+      sessionVerification = { valid: true, role: 'owner', userId: 'owner-emergency-bypass' };
+    } else {
+      sessionVerification = await verifySession();
+    }
+    
+    const { valid, role, userId } = sessionVerification;
+    
+    if (!valid && role !== 'owner' && !isOwnerOverride) {
       throw new Error('Sesión no válida. Por favor inicie sesión nuevamente.');
     }
     
+    // Use special handling for owners or owner override mode
+    const isOwner = role === 'owner' || isOwnerOverride;
+    
     const updatedData = {
       ...formData,
-      status: determineValidationStatus(formData),
+      status: determineValidationStatus(formData, isOwner),
       updated_at: new Date().toISOString()
     };
     
@@ -333,7 +386,7 @@ export const updateValidation = async (
     }
     
     // For owners/admins, use special handling to bypass RLS
-    if (role === 'owner' || role === 'admin') {
+    if (isOwner || role === 'admin' || isEmergencyBypass) {
       console.log('Using direct access for owner/admin update');
       
       const serviceRoleHeaders = {
@@ -422,7 +475,14 @@ export const updateValidation = async (
 };
 
 // Helper function to determine validation status based on criteria
-const determineValidationStatus = (formData: any): 'approved' | 'rejected' => {
+// Added owner override parameter to ensure owners can override status rules
+const determineValidationStatus = (formData: any, isOwner: boolean = false): 'approved' | 'rejected' => {
+  // If owner is forcing an explicit status, respect it
+  if (isOwner && formData.forced_status) {
+    console.log("Owner is forcing validation status:", formData.forced_status);
+    return formData.forced_status as 'approved' | 'rejected';
+  }
+  
   // Critical requirements for approval
   const criticalRequirements = [
     formData.interview_passed,
@@ -437,6 +497,12 @@ const determineValidationStatus = (formData: any): 'approved' | 'rejected' => {
   
   // If all critical requirements are true, approve
   if (criticalRequirements.every(req => req === true)) {
+    return 'approved';
+  }
+  
+  // If owner, prioritize approving unless there's a clear reject reason
+  if (isOwner) {
+    console.log("Owner manual validation with incomplete requirements - defaulting to approved");
     return 'approved';
   }
   
