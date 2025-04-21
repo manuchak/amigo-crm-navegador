@@ -1,6 +1,7 @@
 
 import { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.38.4";
 import { extractInfoFromTranscript } from "../../utils/transcriptProcessor.ts";
+import { extractPhoneNumber } from "../../utils/extractors.ts";
 
 /**
  * Process incoming webhook data to extract lead information
@@ -78,7 +79,8 @@ export async function processLeadValidation(
         { id: effectiveLeadId, ...leadData }, // Ensure ID is always present
         extractedInfo || {}, 
         callLogData || webhookData,
-        supabase
+        supabase,
+        phoneNumber // Pass the phone number for international formatting
       );
 
       console.log("Validation result:", JSON.stringify(validationResult, null, 2));
@@ -161,19 +163,39 @@ export async function findLeadByPhoneNumber(phoneNumber: string | null | undefin
 }
 
 /**
+ * Format phone number to international format
+ */
+function formatPhoneNumberIntl(phoneNumber: string | null | undefined): string | null {
+  if (!phoneNumber) {
+    return null;
+  }
+
+  // Remove all non-digit characters
+  const digitsOnly = phoneNumber.replace(/\D/g, '');
+
+  // Get the last 10 digits for Mexican numbers
+  const lastTenDigits = digitsOnly.slice(-10);
+
+  // Add the +52 prefix for Mexican numbers
+  return lastTenDigits ? `+52${lastTenDigits}` : null;
+}
+
+/**
  * Store validated lead data - improved with enhanced error handling and robust type checking
  */
 export async function storeValidatedLead(
   leadData: any, 
   extractedInfo: any, 
   callData: any,
-  supabase: SupabaseClient
+  supabase: SupabaseClient,
+  phoneNumber: string | null | undefined
 ) {
   // Detailed logging of all input data for debugging
   console.log("Store validated lead - input data:");
   console.log("- Lead data:", JSON.stringify(leadData, null, 2));
   console.log("- Extracted info:", JSON.stringify(extractedInfo, null, 2));
   console.log("- Call data:", JSON.stringify(callData, null, 2));
+  console.log("- Phone number:", phoneNumber);
   
   // Double-check for valid lead ID - this is critical since id field is NOT NULL
   if (!leadData?.id) {
@@ -215,6 +237,18 @@ export async function storeValidatedLead(
       data: null 
     };
   }
+
+  // Format the phone number for international format
+  const phoneNumberIntl = formatPhoneNumberIntl(phoneNumber);
+  console.log("Formatted international phone number:", phoneNumberIntl);
+  
+  // Extract raw phone number (numeric) for storage
+  let rawPhoneNumber: number | null = null;
+  if (phoneNumber) {
+    const digitsOnly = phoneNumber.replace(/\D/g, '');
+    const lastTenDigits = digitsOnly.slice(-10);
+    rawPhoneNumber = lastTenDigits ? Number(lastTenDigits) : null;
+  }
   
   // Prepare data for validated_leads table - only include fields that exist in the table
   const validatedLeadData = {
@@ -226,6 +260,8 @@ export async function storeValidatedLead(
     security_exp: extractedInfo?.security_exp || null,
     sedena_id: extractedInfo?.sedena_id || null,
     call_id: callData?.log_id || callData?.id || callData?.call_id || null,
+    phone_number: rawPhoneNumber,
+    phone_number_intl: phoneNumberIntl,
     vapi_call_data: callData || null
   };
 

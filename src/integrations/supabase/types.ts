@@ -507,6 +507,8 @@ export type Database = {
           created_at: string
           custodio_name: string | null
           id: number
+          phone_number: number | null
+          phone_number_intl: string | null
           security_exp: string | null
           sedena_id: string | null
           vapi_call_data: Json | null
@@ -519,6 +521,8 @@ export type Database = {
           created_at?: string
           custodio_name?: string | null
           id?: number
+          phone_number?: number | null
+          phone_number_intl?: string | null
           security_exp?: string | null
           sedena_id?: string | null
           vapi_call_data?: Json | null
@@ -531,6 +535,8 @@ export type Database = {
           created_at?: string
           custodio_name?: string | null
           id?: number
+          phone_number?: number | null
+          phone_number_intl?: string | null
           security_exp?: string | null
           sedena_id?: string | null
           vapi_call_data?: Json | null
