@@ -1,4 +1,6 @@
+
 import { UserData, UserRole } from '@/types/auth';
+import { supabase } from '@/integrations/supabase/client';
 
 export const formatDate = (date: Date | string | null | undefined): string => {
   if (!date) return 'N/A';
