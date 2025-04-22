@@ -15,20 +15,35 @@ import { useCarData } from "@/hooks/useCarData";
 import DashcamFeatures from "./DashcamFeatures";
 
 const GPS_FEATURE_OPTIONS = [
-  { label: "Detección de eventos (ignición/paro de motor)", value: "ignition_event" },
-  { label: "Corte remoto de motor (relay)", value: "engine_cut" },
+  { label: "Seguimiento en tiempo real", value: "realtime_tracking" },
+  { label: "Alertas de geocercas (entrada/salida)", value: "geofence_alerts" },
+  { label: "Corte remoto de motor", value: "engine_cut" },
+  { label: "Detección de encendido/apagado de motor", value: "ignition_event" },
+  { label: "Reporte de recorridos y paradas", value: "trip_report" },
   { label: "Sensor de puertas", value: "door_sensor" },
   { label: "Botón de pánico", value: "panic_button" },
   { label: "Identificación de conductor (iButton, RFID)", value: "driver_id" },
   { label: "Sensor de temperatura", value: "temperature_sensor" },
-  { label: "Sensor de combustible/sonda (nivel y robos)", value: "fuel_sensor" },
-  { label: "Apertura de caja o remolque", value: "cargo_door_sensor" },
+  { label: "Sensor de combustible/robo", value: "fuel_sensor" },
   { label: "Sensor de movimiento/vibración", value: "motion_sensor" },
-  { label: "Anti-jammer (detección de inhibidor)", value: "anti_jammer" },
-  { label: "Sirena audible", value: "siren" },
-  { label: "Micrófono para escucha remota", value: "microphone" },
+  { label: "Anti-jammer", value: "anti_jammer" },
   { label: "Inmovilizador", value: "immobilizer" },
-  { label: "Sensor de fatiga/conducta (driver monitor)", value: "driver_monitor" },
+  { label: "Micrófono remoto", value: "microphone" },
+  { label: "Sirena", value: "siren" },
+  { label: "Sensor de fatiga/conducta", value: "driver_monitor" }
+];
+
+const DASHCAM_FEATURE_OPTIONS = [
+  { label: "ADAS (Asistencia Avanzada Conducción)", value: "adas" },
+  { label: "DMS (Monitoreo de Fatiga/Distraído)", value: "dms" },
+  { label: "Transmisión en tiempo real de video", value: "streaming" },
+  { label: "Grabación de video local", value: "local_recording" },
+  { label: "Reconocimiento de matrículas (LPR)", value: "lpr" },
+  { label: "Alerta de desvío de carril (LDW)", value: "lane_departure" },
+  { label: "Alerta de colisión frontal (FCW)", value: "forward_collision" },
+  { label: "Audio en cabina (altavoz/mic)", value: "audio" },
+  { label: "Alerta de uso de celular/cigarro", value: "alert_smoking" },
+  { label: "Video en cabina", value: "cabin_video" }
 ];
 
 const gpsInstallSchema = z.object({
@@ -246,20 +261,20 @@ export default function GpsInstallForm({ onNext }: GpsInstallFormProps) {
                   Selecciona las funciones del GPS para este vehículo
                 </FormLabel>
                 <p className="text-muted-foreground text-xs mb-2">
-                  Marca las opciones relevantes que reflejan el hardware y necesidades de esta unidad. Consulta la hoja técnica del equipo antes de seleccionar.
+                  Marca solo las funciones realmente necesarias. Las funciones aquí mostradas reflejan las capacidades principales en plataformas modernas (ej: Wialon).
                 </p>
                 <Controller
                   control={form.control}
                   name="gpsFeatures"
                   render={({ field }) => (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
                       {GPS_FEATURE_OPTIONS.map((option) => (
                         <Button
                           key={option.value}
                           type="button"
                           size="sm"
                           variant={field.value?.includes(option.value) ? "default" : "outline"}
-                          className="rounded-full flex justify-start"
+                          className="rounded-full flex items-center justify-start px-3 py-1 text-xs whitespace-nowrap hover-scale min-w-[120px]"
                           onClick={() => {
                             const v = field.value ?? [];
                             if (v.includes(option.value)) {
@@ -282,11 +297,38 @@ export default function GpsInstallForm({ onNext }: GpsInstallFormProps) {
             {(form.watch("type") === "dashcam") && (
               <FormItem>
                 <FormLabel>
-                  Selecciona funciones de la Dashcam/Video + cámaras
+                  Selecciona funciones de la Dashcam / cámaras
                 </FormLabel>
                 <p className="text-muted-foreground text-xs mb-2">
-                  Elige funciones avanzadas, cantidad de cámaras y sus ubicaciones en el croquis. ADAS y DMS son funciones líderes en soluciones de videovigilancia para transporte.
+                  Elige funciones avanzadas reales de video telemático, cantidad y ubicaciones de cámaras. ADAS (asistencia avanzada), DMS (monitoreo conductor), LPR (placas), etc.
                 </p>
+                <Controller
+                  control={form.control}
+                  name="dashcamFeatures"
+                  render={() => (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
+                      {DASHCAM_FEATURE_OPTIONS.map((option) => (
+                        <Button
+                          key={option.value}
+                          type="button"
+                          size="sm"
+                          variant={dashcamFeatures.includes(option.value) ? "default" : "outline"}
+                          className="rounded-full flex items-center justify-start px-3 py-1 text-xs whitespace-nowrap hover-scale min-w-[120px]"
+                          onClick={() => {
+                            if (dashcamFeatures.includes(option.value)) {
+                              setDashcamFeatures(dashcamFeatures.filter(f => f !== option.value));
+                            } else {
+                              setDashcamFeatures([...dashcamFeatures, option.value]);
+                            }
+                          }}
+                          aria-pressed={dashcamFeatures.includes(option.value)}
+                        >
+                          {option.label}
+                        </Button>
+                      ))}
+                    </div>
+                  )}
+                />
                 <DashcamFeatures
                   features={dashcamFeatures}
                   onFeatureChange={setDashcamFeatures}
@@ -296,7 +338,7 @@ export default function GpsInstallForm({ onNext }: GpsInstallFormProps) {
                   setCameraPositions={setDashcamCameraLocations}
                 />
                 <div className="pt-2 text-xs text-muted-foreground">
-                  Si requieres más especificaciones, por favor agrégalas en las notas al final del formulario.
+                  Si requieres especificaciones adicionales, agrégalas en las notas del formulario.
                 </div>
               </FormItem>
             )}
