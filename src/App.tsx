@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -20,6 +19,7 @@ import AuthGuard from "./components/auth/AuthGuard";
 import Landing from "./pages/Landing";
 // Import the page with the updated name
 import AtencionAlAfiliado from "./pages/Support";
+import InstalacionGPS from "./pages/InstalacionGPS";
 
 const queryClient = new QueryClient();
 
@@ -75,6 +75,13 @@ const AppWithNavbar = () => {
           </AuthGuard>
         } />
 
+        {/* Nueva ruta Instalación GPS */}
+        <Route path="/instalacion-gps" element={
+          <AuthGuard>
+            <InstalacionGPS />
+          </AuthGuard>
+        } />
+        
         {/* Update the route name */}
         <Route path="/support" element={
           <AuthGuard>

@@ -2,7 +2,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { Card, CardContent } from '@/components/ui/card';
-import { ArrowRight, Shield, Users, LineChart, Settings, LifeBuoy } from 'lucide-react';
+import { ArrowRight, Shield, Users, LineChart, Settings, LifeBuoy, Car } from 'lucide-react';
 
 const Index = () => {
   const menuItems = [
@@ -31,7 +31,15 @@ const Index = () => {
       icon: <Shield className="w-5 h-5" />
     },
     {
-      title: 'Atención al Afiliado', // Updated name here
+      title: 'Instalación GPS',
+      description: 'Registra instalaciones para clientes y custodios',
+      path: '/instalacion-gps',
+      color: 'bg-gradient-to-br from-green-500 to-lime-400',
+      textColor: 'text-white',
+      icon: <Car className="w-5 h-5" />
+    },
+    {
+      title: 'Atención al Afiliado',
       description: 'Centro de atención y consultas',
       path: '/support',
       color: 'bg-gradient-to-br from-blue-500 to-purple-400',
