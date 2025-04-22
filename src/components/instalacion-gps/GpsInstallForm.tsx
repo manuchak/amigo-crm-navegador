@@ -12,8 +12,8 @@ import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from "
 import { Car } from "lucide-react";
 import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from "@/components/ui/select";
 import { useCarData } from "@/hooks/useCarData";
+import DashcamFeatures from "./DashcamFeatures";
 
-// Nueva lista de funcionalidades basada en hardware de seguimiento profesional y referencias de Wialon
 const GPS_FEATURE_OPTIONS = [
   { label: "Detección de eventos (ignición/paro de motor)", value: "ignition_event" },
   { label: "Corte remoto de motor (relay)", value: "engine_cut" },
@@ -39,6 +39,9 @@ const gpsInstallSchema = z.object({
   year: z.string().min(4, "Campo requerido"),
   type: z.enum(["fijo", "dashcam"]),
   gpsFeatures: z.array(z.string()).optional(),
+  dashcamFeatures: z.array(z.string()).optional(),
+  dashcamCameraCount: z.number().min(1).max(6).optional(),
+  dashcamCameraLocations: z.array(z.string()).optional(),
   notes: z.string().optional(),
 });
 
@@ -50,6 +53,9 @@ export default function GpsInstallForm({ onNext }: GpsInstallFormProps) {
   const { brands, fetchModelsByBrand, loading: loadingBrands } = useCarData();
   const [models, setModels] = React.useState<{ id: number; brand_id: number; name: string }[]>([]);
   const [brandId, setBrandId] = React.useState<number | null>(null);
+  const [dashcamFeatures, setDashcamFeatures] = React.useState<string[]>([]);
+  const [dashcamCameraCount, setDashcamCameraCount] = React.useState<number>(2);
+  const [dashcamCameraLocations, setDashcamCameraLocations] = React.useState<string[]>([]);
 
   const form = useForm<z.infer<typeof gpsInstallSchema>>({
     resolver: zodResolver(gpsInstallSchema),
@@ -72,6 +78,19 @@ export default function GpsInstallForm({ onNext }: GpsInstallFormProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [brandId]);
 
+  const handleNext = (data: z.infer<typeof gpsInstallSchema>) => {
+    if (data.type === "dashcam") {
+      onNext({
+        ...data,
+        dashcamFeatures,
+        dashcamCameraCount,
+        dashcamCameraLocations,
+      });
+    } else {
+      onNext(data);
+    }
+  };
+
   return (
     <Card className="w-full max-w-2xl mx-auto shadow-xl my-4">
       <CardHeader>
@@ -86,7 +105,7 @@ export default function GpsInstallForm({ onNext }: GpsInstallFormProps) {
         <Form {...form}>
           <form
             className="space-y-5"
-            onSubmit={form.handleSubmit(onNext)}
+            onSubmit={form.handleSubmit(handleNext)}
             autoComplete="off"
           >
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -117,7 +136,6 @@ export default function GpsInstallForm({ onNext }: GpsInstallFormProps) {
                 )}
               />
 
-              {/* SELECT DE MARCAS */}
               <FormField
                 control={form.control}
                 name="brand"
@@ -151,7 +169,6 @@ export default function GpsInstallForm({ onNext }: GpsInstallFormProps) {
                 )}
               />
 
-              {/* SELECT DE MODELOS */}
               <FormField
                 control={form.control}
                 name="model"
@@ -223,41 +240,66 @@ export default function GpsInstallForm({ onNext }: GpsInstallFormProps) {
               />
             </div>
 
-            {/* Funcionalidades adicionales mejoradas */}
-            <FormItem>
-              <FormLabel>Selecciona las funciones del GPS para este vehículo</FormLabel>
-              <p className="text-muted-foreground text-xs mb-2">
-                Marca las opciones relevantes que reflejan el hardware y necesidades de esta unidad de transporte. Consulta la hoja técnica del equipo antes de seleccionar.
-              </p>
-              <Controller
-                control={form.control}
-                name="gpsFeatures"
-                render={({ field }) => (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                    {GPS_FEATURE_OPTIONS.map((option) => (
-                      <Button
-                        key={option.value}
-                        type="button"
-                        size="sm"
-                        variant={field.value?.includes(option.value) ? "default" : "outline"}
-                        className="rounded-full flex justify-start"
-                        onClick={() => {
-                          const v = field.value ?? [];
-                          if (v.includes(option.value)) {
-                            field.onChange(v.filter((s: string) => s !== option.value));
-                          } else {
-                            field.onChange([...v, option.value]);
-                          }
-                        }}
-                      >
-                        {option.label}
-                      </Button>
-                    ))}
-                  </div>
-                )}
-              />
-              <FormMessage />
-            </FormItem>
+            {(form.watch("type") === "fijo") && (
+              <FormItem>
+                <FormLabel>
+                  Selecciona las funciones del GPS para este vehículo
+                </FormLabel>
+                <p className="text-muted-foreground text-xs mb-2">
+                  Marca las opciones relevantes que reflejan el hardware y necesidades de esta unidad. Consulta la hoja técnica del equipo antes de seleccionar.
+                </p>
+                <Controller
+                  control={form.control}
+                  name="gpsFeatures"
+                  render={({ field }) => (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                      {GPS_FEATURE_OPTIONS.map((option) => (
+                        <Button
+                          key={option.value}
+                          type="button"
+                          size="sm"
+                          variant={field.value?.includes(option.value) ? "default" : "outline"}
+                          className="rounded-full flex justify-start"
+                          onClick={() => {
+                            const v = field.value ?? [];
+                            if (v.includes(option.value)) {
+                              field.onChange(v.filter((s: string) => s !== option.value));
+                            } else {
+                              field.onChange([...v, option.value]);
+                            }
+                          }}
+                        >
+                          {option.label}
+                        </Button>
+                      ))}
+                    </div>
+                  )}
+                />
+                <FormMessage />
+              </FormItem>
+            )}
+
+            {(form.watch("type") === "dashcam") && (
+              <FormItem>
+                <FormLabel>
+                  Selecciona funciones de la Dashcam/Video + cámaras
+                </FormLabel>
+                <p className="text-muted-foreground text-xs mb-2">
+                  Elige funciones avanzadas, cantidad de cámaras y sus ubicaciones en el croquis. ADAS y DMS son funciones líderes en soluciones de videovigilancia para transporte.
+                </p>
+                <DashcamFeatures
+                  features={dashcamFeatures}
+                  onFeatureChange={setDashcamFeatures}
+                  cameraCount={dashcamCameraCount}
+                  setCameraCount={setDashcamCameraCount}
+                  cameraPositions={dashcamCameraLocations}
+                  setCameraPositions={setDashcamCameraLocations}
+                />
+                <div className="pt-2 text-xs text-muted-foreground">
+                  Si requieres más especificaciones, por favor agrégalas en las notas al final del formulario.
+                </div>
+              </FormItem>
+            )}
 
             <FormField
               control={form.control}
