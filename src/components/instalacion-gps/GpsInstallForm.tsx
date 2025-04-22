@@ -300,35 +300,8 @@ export default function GpsInstallForm({ onNext }: GpsInstallFormProps) {
                   Selecciona funciones de la Dashcam / cámaras
                 </FormLabel>
                 <p className="text-muted-foreground text-xs mb-2">
-                  Elige funciones avanzadas reales de video telemático, cantidad y ubicaciones de cámaras. ADAS (asistencia avanzada), DMS (monitoreo conductor), LPR (placas), etc.
+                  Elige funciones avanzadas reales de video telemático, cantidad y ubicaciones de cámaras. ADAS (asistencia avanzada), DMS (monitoreo conductor), etc.
                 </p>
-                <Controller
-                  control={form.control}
-                  name="dashcamFeatures"
-                  render={() => (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
-                      {DASHCAM_FEATURE_OPTIONS.map((option) => (
-                        <Button
-                          key={option.value}
-                          type="button"
-                          size="sm"
-                          variant={dashcamFeatures.includes(option.value) ? "default" : "outline"}
-                          className="rounded-full flex items-center justify-start px-3 py-1 text-xs whitespace-nowrap hover-scale min-w-[120px]"
-                          onClick={() => {
-                            if (dashcamFeatures.includes(option.value)) {
-                              setDashcamFeatures(dashcamFeatures.filter(f => f !== option.value));
-                            } else {
-                              setDashcamFeatures([...dashcamFeatures, option.value]);
-                            }
-                          }}
-                          aria-pressed={dashcamFeatures.includes(option.value)}
-                        >
-                          {option.label}
-                        </Button>
-                      ))}
-                    </div>
-                  )}
-                />
                 <DashcamFeatures
                   features={dashcamFeatures}
                   onFeatureChange={setDashcamFeatures}

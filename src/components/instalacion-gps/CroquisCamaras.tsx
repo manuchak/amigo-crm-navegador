@@ -8,18 +8,21 @@ type CroquisCamarasProps = {
   options: { value: string; label: string }[];
 };
 
-// Solo se permiten las ubicaciones del enunciado
-const POSITIONS: Record<string, { cx: number; cy: number; label: string; labelDx?: number; labelDy?: number }> = {
-  frontal:      { cx: 120, cy: 30, label: "Frontal", labelDy: -20 },
-  lateral_izq:  { cx: 50,  cy: 70, label: "Lateral Izq.", labelDx: -40 },
-  lateral_der:  { cx: 190, cy: 70, label: "Lateral Der.", labelDx: 45 },
-  cajuela:      { cx: 120, cy: 108, label: "Cajuela", labelDy: 27 },
-};
+// Paleta de tonos violeta/gris neutro
+const CAR_BODY = "#E7E2F7";
+const CAR_OUTLINE = "#7153C4";
+const CAMERA_SELECTED = "#22c55e";
+const CAMERA_AVAILABLE = "#818CF8";
 
-// paleta pastel violeta/gris neutro
-const CAR_BODY_COLOR = "#E5DEFF";
-const CAR_DETAILS_COLOR = "#9b87f5";
-const WHEEL_COLOR = "#8E9196";
+const POSITIONS: Record<
+  string,
+  { cx: number; cy: number; label: string; labelDx?: number; labelDy?: number }
+> = {
+  frontal:      { cx: 120, cy: 36, label: "Frontal", labelDy: -18 },
+  lateral_izq:  { cx: 55,  cy: 80, label: "Lateral Izq.", labelDx: -50 },
+  lateral_der:  { cx: 185, cy: 80, label: "Lateral Der.", labelDx: 54 },
+  cajuela:      { cx: 120, cy: 128, label: "Cajuela", labelDy: 20 },
+};
 
 export default function CroquisCamaras({ cameraCount, positions, setPositions, options }: CroquisCamarasProps) {
   // Permite al usuario seleccionar posiciones diferentes para las cámaras.
@@ -34,46 +37,53 @@ export default function CroquisCamaras({ cameraCount, positions, setPositions, o
   };
 
   return (
-    <div className="flex flex-col items-center gap-3 w-full">
+    <div className="flex flex-col items-center gap-2 w-full">
       <div className="relative">
-        <svg width={260} height={150} viewBox="0 0 240 145" className="mx-auto rounded" style={{ background: "#fff" }}>
-          {/* Carro: sedan visto desde arriba simplificado */}
-          {/* Cuerpo principal del auto */}
-          <rect
-            x="45"
-            y="25"
-            width="150"
-            height="95"
-            rx="48"
-            fill={CAR_BODY_COLOR}
-            stroke={CAR_DETAILS_COLOR}
+        <svg width={240} height={160} viewBox="0 0 240 160" className="mx-auto" style={{ background: "#fff" }}>
+          {/* Silueta superior de sedán, simplificado */}
+          <ellipse 
+            cx="120" cy="82" rx="74" ry="44"
+            fill={CAR_BODY}
+            stroke={CAR_OUTLINE}
             strokeWidth="4"
           />
-          {/* parabrisas delantero */}
-          <rect x="95" y="27" width="50" height="16" rx="8" fill={CAR_DETAILS_COLOR} opacity="0.18"/>
-          {/* parabrisas trasero */}
-          <rect x="95" y="102" width="50" height="16" rx="8" fill={CAR_DETAILS_COLOR} opacity="0.18"/>
-          {/* 4 llantas */}
-          <ellipse cx="55" cy="33" rx="12" ry="8" fill={WHEEL_COLOR} opacity="0.7" />
-          <ellipse cx="185" cy="33" rx="12" ry="8" fill={WHEEL_COLOR} opacity="0.7" />
-          <ellipse cx="55" cy="112" rx="12" ry="8" fill={WHEEL_COLOR} opacity="0.7" />
-          <ellipse cx="185" cy="112" rx="12" ry="8" fill={WHEEL_COLOR} opacity="0.7" />
-          {/* puntos interactivos para cámaras */}
+          {/* Cabina */}
+          <ellipse 
+            cx="120" cy="82" rx="44" ry="27"
+            fill="#BBADE7"
+            stroke={CAR_OUTLINE}
+            strokeWidth="2"
+            opacity="0.75"
+          />
+          {/* Parabrisas delantero */}
+          <rect 
+            x="88" y="36" width="64" height="14"
+            rx="7"
+            fill="#A897D4"
+            opacity="0.28"
+          />
+          {/* Parabrisas trasero */}
+          <rect 
+            x="88" y="110" width="64" height="14"
+            rx="7"
+            fill="#A897D4"
+            opacity="0.28"
+          />
+          {/* Puntos interactivos para seleccionar cámaras */}
           {options.map((opt) => {
             const conf = POSITIONS[opt.value];
             if (!conf) return null;
             const selected = positions.includes(opt.value);
-            // Punto y leyenda flotante
             return (
               <g key={opt.value} tabIndex={0} aria-label={conf.label}>
                 <circle
                   cx={conf.cx}
                   cy={conf.cy}
                   r={selected ? 15 : 12}
-                  fill={selected ? "#22c55e" : "#60a5fa"}
-                  stroke="#6366f1"
+                  fill={selected ? CAMERA_SELECTED : CAMERA_AVAILABLE}
+                  stroke={CAR_OUTLINE}
                   strokeWidth={selected ? 3 : 2}
-                  cursor="pointer"
+                  style={{ cursor: "pointer" }}
                   onClick={() => handleSelect(opt.value)}
                 />
                 <text
@@ -92,7 +102,7 @@ export default function CroquisCamaras({ cameraCount, positions, setPositions, o
           })}
         </svg>
       </div>
-      <div className="flex flex-wrap gap-2 justify-center w-full max-w-[350px]">
+      <div className="flex flex-wrap gap-2 justify-center w-full max-w-[340px]">
         {options.map((opt) => (
           <button
             key={opt.value}

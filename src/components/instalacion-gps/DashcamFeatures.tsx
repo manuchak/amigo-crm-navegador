@@ -1,6 +1,6 @@
 
 import React from "react";
-import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import CroquisCamaras from "./CroquisCamaras";
 
 type DashcamFeaturesProps = {
@@ -21,7 +21,7 @@ const POSICIONES: { value: string; label: string }[] = [
   { value: "cajuela", label: "Cajuela" },
 ];
 
-const ADAS_FEATURES = [
+const DASHCAM_FEATURES = [
   { value: "adas", label: "ADAS (Asistencia Avanzada al Conductor)" },
   { value: "dms", label: "DMS (Monitoreo de Conductor)" },
   { value: "grabacion_eventos", label: "Grabación automática de eventos" },
@@ -57,24 +57,26 @@ export default function DashcamFeatures({
   return (
     <div className="space-y-6">
       <div>
-        <label className="font-semibold block mb-1">¿Qué funciones adicionales requiere la dashcam?</label>
-        <div className="flex flex-wrap gap-2 mb-1">
-          {ADAS_FEATURES.map((feat) => (
-            <button
+        <label className="font-semibold block mb-1">
+          ¿Qué funciones adicionales requiere la dashcam?
+        </label>
+        <div className="flex flex-col gap-2 mb-1 max-w-lg">
+          {DASHCAM_FEATURES.map(feat => (
+            <label
               key={feat.value}
-              onClick={() => handleFeatureToggle(feat.value)}
-              type="button"
-              className={
-                "rounded-full border px-3 py-2 text-xs transition-all font-semibold flex-shrink-0 whitespace-nowrap " +
-                (features.includes(feat.value)
-                  ? "bg-violet-600 text-white border-violet-700 scale-105 shadow"
-                  : "bg-slate-50 border-slate-300 text-gray-800 hover:bg-slate-100")
-              }
-              style={{ maxWidth: 210, textOverflow: "ellipsis", overflow: "hidden" }}
-              title={feat.label}
+              className="flex items-center gap-2 cursor-pointer select-none rounded-md px-2 py-1 hover:bg-slate-50"
+              style={{ maxWidth: 440 }}
             >
-              {feat.label}
-            </button>
+              <Checkbox
+                checked={features.includes(feat.value)}
+                onCheckedChange={() => handleFeatureToggle(feat.value)}
+                id={`dashcam-feature-${feat.value}`}
+                className="border-violet-400"
+              />
+              <span className="text-xs text-gray-800" style={{ whiteSpace: "normal" }}>
+                {feat.label}
+              </span>
+            </label>
           ))}
         </div>
         <p className="text-xs text-muted-foreground mb-2">
@@ -82,25 +84,29 @@ export default function DashcamFeatures({
         </p>
       </div>
       <div>
-        <label className="font-semibold block mb-1">Número de cámaras requeridas:</label>
+        <label className="font-semibold block mb-1">
+          Número de cámaras requeridas:
+        </label>
         <div className="flex items-center gap-2 mb-1">
-          <Button
+          <button
             type="button"
             onClick={() => updateCameraCount(-1)}
-            size="icon"
-            variant="outline"
             disabled={cameraCount <= 1}
             aria-label="Menos cámaras"
-          >-</Button>
+            className="border rounded-full px-2 py-0.5 bg-slate-50 text-violet-700 border-violet-300 disabled:bg-slate-100 disabled:text-gray-300"
+          >
+            –
+          </button>
           <span className="w-7 text-center font-semibold">{cameraCount}</span>
-          <Button
+          <button
             type="button"
             onClick={() => updateCameraCount(+1)}
-            size="icon"
-            variant="outline"
             disabled={cameraCount >= MAX_CAMERAS}
             aria-label="Más cámaras"
-          >+</Button>
+            className="border rounded-full px-2 py-0.5 bg-slate-50 text-violet-700 border-violet-300 disabled:bg-slate-100 disabled:text-gray-300"
+          >
+            +
+          </button>
         </div>
         <p className="text-xs text-muted-foreground mb-2">
           Elige cuántas cámaras instalar (máx. {MAX_CAMERAS}) y las posiciones exactas.
