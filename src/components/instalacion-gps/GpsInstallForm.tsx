@@ -1,4 +1,3 @@
-
 import React from "react";
 import { useForm, Controller } from "react-hook-form";
 import { z } from "zod";
@@ -14,20 +13,22 @@ import { Car } from "lucide-react";
 import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from "@/components/ui/select";
 import { useCarData } from "@/hooks/useCarData";
 
-// Nueva lista de features clave inspirada en plataformas de gestión de flotas modernas (ejemplo Wialon)
+// Nueva lista de funcionalidades basada en hardware de seguimiento profesional y referencias de Wialon
 const GPS_FEATURE_OPTIONS = [
-  { label: "Sensor de puertas", value: "sensor_puertas" },
-  { label: "Sensor de temperatura", value: "sensor_temperatura" },
-  { label: "Sensor de combustible", value: "sensor_combustible" },
-  { label: "Corte de motor (relay)", value: "relay" },
-  { label: "Sensor de apertura de caja", value: "sensor_apertura_caja" },
-  { label: "Botón de pánico", value: "panico" },
-  { label: "Identificación de conductor (iButton/RFID)", value: "driver_id" },
-  { label: "Sensor de vibración", value: "sensor_vibracion" },
-  { label: "Sensor de movimiento", value: "sensor_movimiento" },
-  { label: "Detección de inhibidor (jamming)", value: "anti_jammer" },
-  { label: "Sirena", value: "sirena" },
-  { label: "Micrófono", value: "microfono" },
+  { label: "Detección de eventos (ignición/paro de motor)", value: "ignition_event" },
+  { label: "Corte remoto de motor (relay)", value: "engine_cut" },
+  { label: "Sensor de puertas", value: "door_sensor" },
+  { label: "Botón de pánico", value: "panic_button" },
+  { label: "Identificación de conductor (iButton, RFID)", value: "driver_id" },
+  { label: "Sensor de temperatura", value: "temperature_sensor" },
+  { label: "Sensor de combustible/sonda (nivel y robos)", value: "fuel_sensor" },
+  { label: "Apertura de caja o remolque", value: "cargo_door_sensor" },
+  { label: "Sensor de movimiento/vibración", value: "motion_sensor" },
+  { label: "Anti-jammer (detección de inhibidor)", value: "anti_jammer" },
+  { label: "Sirena audible", value: "siren" },
+  { label: "Micrófono para escucha remota", value: "microphone" },
+  { label: "Inmovilizador", value: "immobilizer" },
+  { label: "Sensor de fatiga/conducta (driver monitor)", value: "driver_monitor" },
 ];
 
 const gpsInstallSchema = z.object({
@@ -222,24 +223,24 @@ export default function GpsInstallForm({ onNext }: GpsInstallFormProps) {
               />
             </div>
 
-            {/* Funcionalidades adicionales (UX optimizada) */}
+            {/* Funcionalidades adicionales mejoradas */}
             <FormItem>
-              <FormLabel>¿Qué funcionalidades adicionales instalarás?</FormLabel>
+              <FormLabel>Selecciona las funciones del GPS para este vehículo</FormLabel>
               <p className="text-muted-foreground text-xs mb-2">
-                Selecciona una o más funcionalidades del GPS que sean relevantes para la operación de este vehículo de carga.
+                Marca las opciones relevantes que reflejan el hardware y necesidades de esta unidad de transporte. Consulta la hoja técnica del equipo antes de seleccionar.
               </p>
               <Controller
                 control={form.control}
                 name="gpsFeatures"
                 render={({ field }) => (
-                  <div className="flex flex-wrap gap-2">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                     {GPS_FEATURE_OPTIONS.map((option) => (
                       <Button
                         key={option.value}
                         type="button"
                         size="sm"
                         variant={field.value?.includes(option.value) ? "default" : "outline"}
-                        className="rounded-full"
+                        className="rounded-full flex justify-start"
                         onClick={() => {
                           const v = field.value ?? [];
                           if (v.includes(option.value)) {
@@ -280,4 +281,3 @@ export default function GpsInstallForm({ onNext }: GpsInstallFormProps) {
     </Card>
   );
 }
-
