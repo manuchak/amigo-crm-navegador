@@ -11,13 +11,16 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from "@/components/ui/form";
-import { Car, MapPin, Calendar, Timer } from "lucide-react";
+import { Car } from "lucide-react";
+import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from "@/components/ui/select";
+
+import { useCarData } from "@/hooks/useCarData";
 
 const gpsInstallSchema = z.object({
   ownerName: z.string().min(2, "Campo requerido"),
   vehiclePlate: z.string().min(4, "Campo requerido"),
   brand: z.string().min(2, "Campo requerido"),
-  model: z.string().min(2, "Campo requerido"),
+  model: z.string().min(1, "Campo requerido"),
   year: z.string().min(4, "Campo requerido"),
   type: z.enum(["fijo", "dashcam"]),
   extraSensors: z.array(z.string()).optional(),
@@ -40,6 +43,10 @@ const SENSOR_OPTIONS = [
 ];
 
 export default function GpsInstallForm({ onNext }: GpsInstallFormProps) {
+  const { brands, fetchModelsByBrand, loading: loadingBrands } = useCarData();
+  const [models, setModels] = React.useState<{ id: number; brand_id: number; name: string }[]>([]);
+  const [brandId, setBrandId] = React.useState<number | null>(null);
+
   const form = useForm<z.infer<typeof gpsInstallSchema>>({
     resolver: zodResolver(gpsInstallSchema),
     defaultValues: {
@@ -51,7 +58,20 @@ export default function GpsInstallForm({ onNext }: GpsInstallFormProps) {
     },
   });
 
-  const { watch } = form;
+  // Actualiza modelos cuando cambia brand
+  React.useEffect(() => {
+    async function fetchModels() {
+      if (!brandId) return setModels([]);
+      const result = await fetchModelsByBrand(brandId);
+      setModels(result);
+      // Si había un modelo seleccionado y ya no existe, borra el valor
+      if (!result.some(m => m.name === form.getValues("model"))) {
+        form.setValue("model", "");
+      }
+    }
+    fetchModels();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [brandId]);
 
   return (
     <Card className="w-full max-w-2xl mx-auto shadow-xl my-4">
@@ -71,6 +91,7 @@ export default function GpsInstallForm({ onNext }: GpsInstallFormProps) {
             autoComplete="off"
           >
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+
               <FormField
                 control={form.control}
                 name="ownerName"
@@ -97,32 +118,68 @@ export default function GpsInstallForm({ onNext }: GpsInstallFormProps) {
                   </FormItem>
                 )}
               />
+
+              {/* --- SELECT DE MARCAS --- */}
               <FormField
                 control={form.control}
                 name="brand"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Marca</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Ej: Toyota" {...field} />
-                    </FormControl>
+                    <Select
+                      value={field.value}
+                      onValueChange={(value) => {
+                        field.onChange(value);
+                        const selectedBrand = brands.find(b => b.name === value);
+                        if (selectedBrand) {
+                          setBrandId(selectedBrand.id);
+                        } else {
+                          setBrandId(null);
+                        }
+                      }}
+                      disabled={loadingBrands}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Selecciona una marca" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {brands.map(b => (
+                          <SelectItem value={b.name} key={b.id}>{b.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                     <FormMessage />
                   </FormItem>
                 )}
               />
+
+              {/* --- SELECT DE MODELOS --- */}
               <FormField
                 control={form.control}
                 name="model"
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Modelo</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Ej: Hilux" {...field} />
-                    </FormControl>
+                    <Select
+                      value={field.value}
+                      onValueChange={field.onChange}
+                      disabled={!brandId || models.length === 0}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder={brandId ? "Selecciona modelo" : "Selecciona marca primero"} />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {models.map(m => (
+                          <SelectItem value={m.name} key={m.id}>{m.name}</SelectItem>
+                        ))}
+                        <SelectItem value="Otro">Otro</SelectItem>
+                      </SelectContent>
+                    </Select>
                     <FormMessage />
                   </FormItem>
                 )}
               />
+
               <FormField
                 control={form.control}
                 name="year"
@@ -272,3 +329,4 @@ export default function GpsInstallForm({ onNext }: GpsInstallFormProps) {
     </Card>
   );
 }
+
