@@ -13,6 +13,7 @@ import { Car } from "lucide-react";
 import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from "@/components/ui/select";
 import { useCarData } from "@/hooks/useCarData";
 import DashcamFeatures from "./DashcamFeatures";
+import { Checkbox } from "@/components/ui/checkbox";
 
 const GPS_FEATURE_OPTIONS = [
   { label: "Seguimiento en tiempo real", value: "realtime_tracking" },
@@ -267,25 +268,27 @@ export default function GpsInstallForm({ onNext }: GpsInstallFormProps) {
                   control={form.control}
                   name="gpsFeatures"
                   render={({ field }) => (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
+                    <div className="flex flex-col gap-1 max-w-2xl">
                       {GPS_FEATURE_OPTIONS.map((option) => (
-                        <Button
+                        <label
                           key={option.value}
-                          type="button"
-                          size="sm"
-                          variant={field.value?.includes(option.value) ? "default" : "outline"}
-                          className="rounded-full flex items-center justify-start px-3 py-1 text-xs whitespace-nowrap hover-scale min-w-[120px]"
-                          onClick={() => {
-                            const v = field.value ?? [];
-                            if (v.includes(option.value)) {
-                              field.onChange(v.filter((s: string) => s !== option.value));
-                            } else {
-                              field.onChange([...v, option.value]);
-                            }
-                          }}
+                          className="flex items-center gap-2 p-1 rounded-md cursor-pointer hover:bg-slate-50 select-none"
+                          style={{ maxWidth: 520 }}
                         >
-                          {option.label}
-                        </Button>
+                          <Checkbox
+                            checked={field.value?.includes(option.value)}
+                            onCheckedChange={() => {
+                              const v = field.value ?? [];
+                              if (v.includes(option.value)) {
+                                field.onChange(v.filter((s: string) => s !== option.value));
+                              } else {
+                                field.onChange([...v, option.value]);
+                              }
+                            }}
+                            id={`gps-feature-${option.value}`}
+                          />
+                          <span className="text-xs text-gray-800">{option.label}</span>
+                        </label>
                       ))}
                     </div>
                   )}
