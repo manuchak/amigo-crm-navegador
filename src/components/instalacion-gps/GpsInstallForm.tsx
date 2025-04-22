@@ -8,13 +8,27 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from "@/components/ui/form";
 import { Car } from "lucide-react";
 import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from "@/components/ui/select";
-
 import { useCarData } from "@/hooks/useCarData";
+
+// Nueva lista de features clave inspirada en plataformas de gestión de flotas modernas (ejemplo Wialon)
+const GPS_FEATURE_OPTIONS = [
+  { label: "Sensor de puertas", value: "sensor_puertas" },
+  { label: "Sensor de temperatura", value: "sensor_temperatura" },
+  { label: "Sensor de combustible", value: "sensor_combustible" },
+  { label: "Corte de motor (relay)", value: "relay" },
+  { label: "Sensor de apertura de caja", value: "sensor_apertura_caja" },
+  { label: "Botón de pánico", value: "panico" },
+  { label: "Identificación de conductor (iButton/RFID)", value: "driver_id" },
+  { label: "Sensor de vibración", value: "sensor_vibracion" },
+  { label: "Sensor de movimiento", value: "sensor_movimiento" },
+  { label: "Detección de inhibidor (jamming)", value: "anti_jammer" },
+  { label: "Sirena", value: "sirena" },
+  { label: "Micrófono", value: "microfono" },
+];
 
 const gpsInstallSchema = z.object({
   ownerName: z.string().min(2, "Campo requerido"),
@@ -23,24 +37,13 @@ const gpsInstallSchema = z.object({
   model: z.string().min(1, "Campo requerido"),
   year: z.string().min(4, "Campo requerido"),
   type: z.enum(["fijo", "dashcam"]),
-  extraSensors: z.array(z.string()).optional(),
+  gpsFeatures: z.array(z.string()).optional(),
   notes: z.string().optional(),
-  requiresRelay: z.boolean().optional(),
-  requiresSiren: z.boolean().optional(),
-  requiresMicrophone: z.boolean().optional(),
 });
 
 type GpsInstallFormProps = {
   onNext: (data: z.infer<typeof gpsInstallSchema>) => void;
 };
-const SENSOR_OPTIONS = [
-  { label: "Sensor de puertas", value: "sensor_puertas" },
-  { label: "Sensor de temperatura", value: "sensor_temperatura" },
-  { label: "Sensor de combustible", value: "sensor_combustible" },
-  { label: "Corte de motor (relay)", value: "relay" },
-  { label: "Sirena", value: "sirena" },
-  { label: "Micrófono", value: "microfono" },
-];
 
 export default function GpsInstallForm({ onNext }: GpsInstallFormProps) {
   const { brands, fetchModelsByBrand, loading: loadingBrands } = useCarData();
@@ -51,20 +54,15 @@ export default function GpsInstallForm({ onNext }: GpsInstallFormProps) {
     resolver: zodResolver(gpsInstallSchema),
     defaultValues: {
       type: "fijo",
-      extraSensors: [],
-      requiresRelay: false,
-      requiresSiren: false,
-      requiresMicrophone: false,
+      gpsFeatures: [],
     },
   });
 
-  // Actualiza modelos cuando cambia brand
   React.useEffect(() => {
     async function fetchModels() {
       if (!brandId) return setModels([]);
       const result = await fetchModelsByBrand(brandId);
       setModels(result);
-      // Si había un modelo seleccionado y ya no existe, borra el valor
       if (!result.some(m => m.name === form.getValues("model"))) {
         form.setValue("model", "");
       }
@@ -91,7 +89,6 @@ export default function GpsInstallForm({ onNext }: GpsInstallFormProps) {
             autoComplete="off"
           >
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-
               <FormField
                 control={form.control}
                 name="ownerName"
@@ -119,7 +116,7 @@ export default function GpsInstallForm({ onNext }: GpsInstallFormProps) {
                 )}
               />
 
-              {/* --- SELECT DE MARCAS --- */}
+              {/* SELECT DE MARCAS */}
               <FormField
                 control={form.control}
                 name="brand"
@@ -153,7 +150,7 @@ export default function GpsInstallForm({ onNext }: GpsInstallFormProps) {
                 )}
               />
 
-              {/* --- SELECT DE MODELOS --- */}
+              {/* SELECT DE MODELOS */}
               <FormField
                 control={form.control}
                 name="model"
@@ -225,16 +222,20 @@ export default function GpsInstallForm({ onNext }: GpsInstallFormProps) {
               />
             </div>
 
+            {/* Funcionalidades adicionales (UX optimizada) */}
             <FormItem>
-              <FormLabel>Sensores adicionales a instalar</FormLabel>
-              <div className="flex flex-wrap gap-2 mt-2">
-                {SENSOR_OPTIONS.map((option) => (
-                  <Controller
-                    key={option.value}
-                    control={form.control}
-                    name="extraSensors"
-                    render={({ field }) => (
+              <FormLabel>¿Qué funcionalidades adicionales instalarás?</FormLabel>
+              <p className="text-muted-foreground text-xs mb-2">
+                Selecciona una o más funcionalidades del GPS que sean relevantes para la operación de este vehículo de carga.
+              </p>
+              <Controller
+                control={form.control}
+                name="gpsFeatures"
+                render={({ field }) => (
+                  <div className="flex flex-wrap gap-2">
+                    {GPS_FEATURE_OPTIONS.map((option) => (
                       <Button
+                        key={option.value}
                         type="button"
                         size="sm"
                         variant={field.value?.includes(option.value) ? "default" : "outline"}
@@ -250,62 +251,12 @@ export default function GpsInstallForm({ onNext }: GpsInstallFormProps) {
                       >
                         {option.label}
                       </Button>
-                    )}
-                  />
-                ))}
-              </div>
+                    ))}
+                  </div>
+                )}
+              />
+              <FormMessage />
             </FormItem>
-
-            <div className="flex flex-wrap gap-5">
-              <FormField
-                control={form.control}
-                name="requiresRelay"
-                render={({ field }) => (
-                  <FormItem className="flex items-center space-x-3">
-                    <FormLabel className="mb-0">¿Agregar relay (corte motor)?</FormLabel>
-                    <FormControl>
-                      <Switch
-                        checked={field.value}
-                        onCheckedChange={field.onChange}
-                        id="relay-switch"
-                      />
-                    </FormControl>
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="requiresSiren"
-                render={({ field }) => (
-                  <FormItem className="flex items-center space-x-3">
-                    <FormLabel className="mb-0">¿Agregar sirena?</FormLabel>
-                    <FormControl>
-                      <Switch
-                        checked={field.value}
-                        onCheckedChange={field.onChange}
-                        id="siren-switch"
-                      />
-                    </FormControl>
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="requiresMicrophone"
-                render={({ field }) => (
-                  <FormItem className="flex items-center space-x-3">
-                    <FormLabel className="mb-0">¿Agregar micrófono?</FormLabel>
-                    <FormControl>
-                      <Switch
-                        checked={field.value}
-                        onCheckedChange={field.onChange}
-                        id="microphone-switch"
-                      />
-                    </FormControl>
-                  </FormItem>
-                )}
-              />
-            </div>
 
             <FormField
               control={form.control}
