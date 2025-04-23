@@ -14,6 +14,7 @@ import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Form } from "@/components/ui/form";
 import { Textarea } from "@/components/ui/textarea";
+import { useAuth } from "@/context/AuthContext";
 
 type GpsAppointmentFormProps = {
   onBack: () => void;
@@ -42,7 +43,9 @@ type AppointmentFormData = z.infer<typeof appointmentSchema>;
 
 export default function GpsAppointmentForm({ onBack, onSchedule, installData }: GpsAppointmentFormProps) {
   const [isSaving, setIsSaving] = React.useState(false);
+  const [error, setError] = React.useState<string | null>(null);
   const { toast } = useToast();
+  const { userData } = useAuth();
 
   const form = useForm<AppointmentFormData>({
     resolver: zodResolver(appointmentSchema),
@@ -57,6 +60,7 @@ export default function GpsAppointmentForm({ onBack, onSchedule, installData }: 
   const handleSubmit = async (formData: AppointmentFormData) => {
     console.log("Submit attempt with form data:", formData);
     setIsSaving(true);
+    setError(null);
     
     try {
       // Ensure that all required fields are present before proceeding
@@ -81,11 +85,14 @@ export default function GpsAppointmentForm({ onBack, onSchedule, installData }: 
         email: installData.email || "",
         install_address: installData.installAddress || {},
         installer_id: installData.installer_id || null,
-        notes: formData.notes || null
+        notes: formData.notes || null,
+        // Add user_id to associate the installation with the current user
+        user_id: userData?.id || null
       };
       
       console.log("Sending installation data:", installationData);
       
+      // Use the authenticated client for insert operations
       const { data, error } = await supabase
         .from('gps_installations')
         .insert(installationData)
@@ -93,6 +100,7 @@ export default function GpsAppointmentForm({ onBack, onSchedule, installData }: 
       
       if (error) {
         console.error("Supabase error:", error);
+        setError(`No se pudo programar la instalación: ${error.message}`);
         throw error;
       }
 
@@ -110,8 +118,10 @@ export default function GpsAppointmentForm({ onBack, onSchedule, installData }: 
         title: "¡Éxito!",
         description: "La cita se ha programado correctamente.",
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error al programar la instalación:", error);
+      setError(`No se pudo programar la instalación: ${error.message || 'Error desconocido'}`);
+      
       toast({
         variant: "destructive",
         title: "Error",
@@ -144,7 +154,8 @@ export default function GpsAppointmentForm({ onBack, onSchedule, installData }: 
     isValid: form.formState.isValid,
     isDirty: form.formState.isDirty,
     errors: form.formState.errors,
-    values: form.getValues()
+    values: form.getValues(),
+    userData: userData
   });
 
   return (
@@ -176,6 +187,14 @@ export default function GpsAppointmentForm({ onBack, onSchedule, installData }: 
                   {...form.register("notes")}
                 />
               </div>
+
+              {error && (
+                <Alert variant="destructive" className="mt-4">
+                  <AlertTriangle className="h-4 w-4" />
+                  <AlertTitle>Error</AlertTitle>
+                  <AlertDescription>{error}</AlertDescription>
+                </Alert>
+              )}
 
               <div className="flex justify-between gap-4 pt-6">
                 <Button 

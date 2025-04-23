@@ -1,5 +1,4 @@
-
-import React from "react";
+import React, { useEffect } from "react";
 import { Card, CardContent, CardTitle, CardHeader } from "@/components/ui/card";
 import GpsInstallForm from "@/components/instalacion-gps/GpsInstallForm";
 import GpsAppointmentForm from "@/components/instalacion-gps/GpsAppointmentForm";
@@ -12,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Plus, MapPin, Star, X, Calendar } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import type { Tables } from "@/integrations/supabase/types";
+import { supabase } from "@/integrations/supabase/client";
 
 function getNiceAddress(addrRaw: string | null | undefined) {
   if (!addrRaw) return null;
@@ -43,6 +43,28 @@ const InstalacionGPS = () => {
   const [showInstallerRegister, setShowInstallerRegister] = React.useState(false);
   const [selectedInstaller, setSelectedInstaller] = React.useState<Tables<"gps_installers"> | null>(null);
   const { toast } = useToast();
+
+  useEffect(() => {
+    const setupRlsPolicies = async () => {
+      try {
+        const response = await fetch("https://beefjsdgrdeiymzxwxru.supabase.co/functions/v1/setup-rls-policies", {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${supabase.auth.session()?.access_token || ''}`
+          }
+        });
+        
+        if (!response.ok) {
+          console.error("Failed to setup RLS policies:", response.statusText);
+        }
+      } catch (error) {
+        console.error("Error setting up RLS policies:", error);
+      }
+    };
+    
+    setupRlsPolicies();
+  }, []);
 
   return (
     <>

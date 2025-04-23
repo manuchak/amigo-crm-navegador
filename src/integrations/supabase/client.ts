@@ -19,6 +19,22 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABL
   }
 });
 
+// Enhanced utility to ensure we always have a valid session for authenticated requests
+export const getAuthenticatedClient = async () => {
+  // Check if we already have a session
+  const session = supabase.auth.session();
+  
+  // If session exists, but token is expired, try to refresh it
+  if (session && session.expires_at && session.expires_at < Math.floor(Date.now() / 1000)) {
+    const { data, error } = await supabase.auth.refreshSession();
+    if (error) {
+      console.error("Error refreshing session:", error);
+    }
+  }
+  
+  return supabase;
+};
+
 // Create a separate client with the service role key for admin operations
 export const supabaseAdmin = createClient<Database>(
   SUPABASE_URL,
