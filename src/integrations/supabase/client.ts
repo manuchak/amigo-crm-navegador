@@ -22,7 +22,18 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABL
 // Enhanced utility to ensure we always have a valid session for authenticated requests
 export const getAuthenticatedClient = async () => {
   try {
-    // Get the current session
+    // CHANGED: First check localStorage for JWT token directly
+    const localStorageKey = `sb-${SUPABASE_URL.split('//')[1].split('.')[0]}-auth-token`;
+    const localSession = localStorage.getItem(localStorageKey);
+    const hasLocalStorage = localSession && JSON.parse(localSession)?.access_token;
+    
+    if (!hasLocalStorage) {
+      console.warn("No session found in localStorage");
+    } else {
+      console.log("Found session token in localStorage");
+    }
+    
+    // Get the current session using Supabase method
     const { data: { session }, error: sessionError } = await supabase.auth.getSession();
     
     if (sessionError) {
@@ -32,13 +43,28 @@ export const getAuthenticatedClient = async () => {
     
     // If no session exists, throw an error
     if (!session) {
-      console.warn("No active session found");
-      // Instead of throwing, we'll return the client which will operate with anonymous privileges
-      return supabase;
+      console.warn("No active session found via supabase.auth.getSession()");
+      
+      if (hasLocalStorage) {
+        // Try refreshing the session
+        console.log("Attempting to refresh session...");
+        const { data, error } = await supabase.auth.refreshSession();
+        
+        if (error || !data.session) {
+          console.error("Error refreshing session:", error);
+          throw new Error("No se encontró una sesión autenticada. Por favor inicie sesión nuevamente.");
+        } else {
+          console.log("Session refreshed successfully");
+          return supabase;
+        }
+      } else {
+        // No local storage and no session from getSession - truly not logged in
+        throw new Error("No se encontró una sesión autenticada. Por favor inicie sesión nuevamente.");
+      }
     }
     
     // If session exists, but token is expired, try to refresh it
-    if (session?.expires_at && session.expires_at < Math.floor(Date.now() / 1000)) {
+    if (session?.expires_at && session.expires_at < Math.floor(Date.now() / 1000) - 10) { // Add buffer
       console.log("Session token expired, refreshing...");
       const { data, error } = await supabase.auth.refreshSession();
       
@@ -49,8 +75,7 @@ export const getAuthenticatedClient = async () => {
       
       if (!data.session) {
         console.warn("Session refresh did not return a valid session");
-        // Return supabase client which will operate with anonymous privileges
-        return supabase;
+        throw new Error("No se encontró una sesión autenticada. Por favor inicie sesión nuevamente.");
       }
       
       console.log("Session refreshed successfully");
@@ -61,8 +86,8 @@ export const getAuthenticatedClient = async () => {
     return supabase;
   } catch (error) {
     console.error("Error in getAuthenticatedClient:", error);
-    // Return the regular client as a fallback, which will operate with anonymous privileges
-    return supabase;
+    // Throw error instead of returning unauthenticated client
+    throw error;
   }
 };
 

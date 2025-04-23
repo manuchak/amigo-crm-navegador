@@ -21,6 +21,7 @@ const UserPermissionConfig: React.FC = () => {
     permissions,
     loading,
     saving,
+    error,
     handlePermissionChange,
     handleSavePermissions,
   } = useRolePermissions();
@@ -53,6 +54,13 @@ const UserPermissionConfig: React.FC = () => {
         <CardTitle className="text-xl">Configuración de Permisos por Rol</CardTitle>
       </CardHeader>
       <CardContent>
+        {error && (
+          <Alert variant="destructive" className="mb-4">
+            <AlertTriangle className="h-4 w-4" />
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
+        )}
+        
         <div className="mb-4 flex space-x-2">
           <Button 
             variant={selectedTab === 'pages' ? 'default' : 'outline'} 
