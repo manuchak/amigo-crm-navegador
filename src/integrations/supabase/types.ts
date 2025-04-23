@@ -162,6 +162,13 @@ export type Database = {
           rfc: string | null
           taller: boolean | null
           taller_direccion: string | null
+          taller_direccion_city: string | null
+          taller_direccion_colonia: string | null
+          taller_direccion_number: string | null
+          taller_direccion_postal_code: string | null
+          taller_direccion_references: string | null
+          taller_direccion_state: string | null
+          taller_direccion_street: string | null
           taller_features: Json
           taller_images: Json | null
           telefono: string | null
@@ -185,6 +192,13 @@ export type Database = {
           rfc?: string | null
           taller?: boolean | null
           taller_direccion?: string | null
+          taller_direccion_city?: string | null
+          taller_direccion_colonia?: string | null
+          taller_direccion_number?: string | null
+          taller_direccion_postal_code?: string | null
+          taller_direccion_references?: string | null
+          taller_direccion_state?: string | null
+          taller_direccion_street?: string | null
           taller_features?: Json
           taller_images?: Json | null
           telefono?: string | null
@@ -208,6 +222,13 @@ export type Database = {
           rfc?: string | null
           taller?: boolean | null
           taller_direccion?: string | null
+          taller_direccion_city?: string | null
+          taller_direccion_colonia?: string | null
+          taller_direccion_number?: string | null
+          taller_direccion_postal_code?: string | null
+          taller_direccion_references?: string | null
+          taller_direccion_state?: string | null
+          taller_direccion_street?: string | null
           taller_features?: Json
           taller_images?: Json | null
           telefono?: string | null

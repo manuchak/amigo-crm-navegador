@@ -19,7 +19,8 @@ export default function InstaladorRegistro() {
     handleImageChange,
     imagePreviews,
     onSubmit,
-    direccionPersonalFields
+    direccionPersonalFields,
+    tallerDireccionFields,
   } = useInstaladorRegistroForm();
 
   return (
@@ -57,38 +58,37 @@ export default function InstaladorRegistro() {
                 <label className="font-medium">RFC para facturación *</label>
                 <Input {...register("rfc", { required: true })} />
               </div>
-              {/* Dirección personal, con los mismos campos de instalacion GPS */}
               <div>
                 <label className="font-medium">Dirección personal *</label>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                   <div>
                     <label className="text-xs">Estado *</label>
-                    <Input {...register("direccion_personal.state", { required: true })} placeholder="Ej: Jalisco" />
+                    <Input {...direccionPersonalFields.state} placeholder="Ej: Jalisco" />
                   </div>
                   <div>
                     <label className="text-xs">Ciudad *</label>
-                    <Input {...register("direccion_personal.city", { required: true })} placeholder="Ej: Guadalajara" />
+                    <Input {...direccionPersonalFields.city} placeholder="Ej: Guadalajara" />
                   </div>
                   <div>
                     <label className="text-xs">Colonia</label>
-                    <Input {...register("direccion_personal.colonia")} placeholder="Colonia/Barrio/Fraccionamiento" />
+                    <Input {...direccionPersonalFields.colonia} placeholder="Colonia/Barrio/Fraccionamiento" />
                   </div>
                   <div>
                     <label className="text-xs">Calle *</label>
-                    <Input {...register("direccion_personal.street", { required: true })} placeholder="Ej: Av. Vallarta" />
+                    <Input {...direccionPersonalFields.street} placeholder="Ej: Av. Vallarta" />
                   </div>
                   <div>
                     <label className="text-xs">Número *</label>
-                    <Input {...register("direccion_personal.number", { required: true })} placeholder="Ej: 123" />
+                    <Input {...direccionPersonalFields.number} placeholder="Ej: 123" />
                   </div>
                   <div>
                     <label className="text-xs">Código Postal *</label>
-                    <Input {...register("direccion_personal.postalCode", { required: true })} placeholder="Ej: 44100" />
+                    <Input {...direccionPersonalFields.postalCode} placeholder="Ej: 44100" />
                   </div>
                 </div>
                 <div className="mt-2">
                   <label className="text-xs">Referencias</label>
-                  <Input {...register("direccion_personal.references")} placeholder="Entre calles o señas" />
+                  <Input {...direccionPersonalFields.references} placeholder="Entre calles o señas" />
                 </div>
               </div>
               <div>
@@ -105,6 +105,7 @@ export default function InstaladorRegistro() {
                 handleFeatureToggle={handleFeatureToggle}
                 handleImageChange={handleImageChange}
                 imagePreviews={imagePreviews}
+                tallerDireccionFields={tallerDireccionFields}
               />
 
               <div>

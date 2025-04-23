@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { supabase } from "@/integrations/supabase/client";
@@ -33,7 +32,7 @@ export type FormValues = {
   direccion_personal: AddressFields;
   rfc: string;
   taller: boolean;
-  taller_direccion: string;
+  taller_direccion: AddressFields;
   taller_imagenes: FileList | null;
   certificaciones: string;
   comentarios: string;
@@ -58,7 +57,15 @@ export function useInstaladorRegistroForm() {
       },
       rfc: "",
       taller: false,
-      taller_direccion: "",
+      taller_direccion: {
+        state: "",
+        city: "",
+        colonia: "",
+        street: "",
+        number: "",
+        postalCode: "",
+        references: "",
+      },
       taller_imagenes: null,
       certificaciones: "",
       comentarios: "",
@@ -92,7 +99,6 @@ export function useInstaladorRegistroForm() {
     try {
       setUploading(true);
 
-      // Validation: required fields before submit
       if (!data.nombre || !data.telefono || !data.email || !data.rfc ||
         !data.direccion_personal?.state ||
         !data.direccion_personal?.city ||
@@ -105,8 +111,15 @@ export function useInstaladorRegistroForm() {
         return;
       }
       if (taller) {
-        if (!data.taller_direccion) {
-          toast.error("La dirección del taller es obligatoria.");
+        const addr = data.taller_direccion;
+        if (
+          !addr.state ||
+          !addr.city ||
+          !addr.street ||
+          !addr.number ||
+          !addr.postalCode
+        ) {
+          toast.error("Llena todos los campos obligatorios de la dirección del taller.");
           setUploading(false);
           return;
         }
@@ -135,11 +148,6 @@ export function useInstaladorRegistroForm() {
         }
       }
 
-      // Guarantee arrays for JSON fields to match SQL NOT NULL and DEFAULT constraints
-      const safeTallerFeatures = taller ? selectedFeatures : [];
-      const safeTallerImages = taller ? imagenUrls : [];
-
-      // Build the payload, set both JSON string and new columns
       const address = {
         state: data.direccion_personal.state,
         city: data.direccion_personal.city,
@@ -149,13 +157,28 @@ export function useInstaladorRegistroForm() {
         postalCode: data.direccion_personal.postalCode,
         references: data.direccion_personal.references || ""
       };
+      const tallerAddress = taller
+        ? {
+            state: data.taller_direccion.state,
+            city: data.taller_direccion.city,
+            colonia: data.taller_direccion.colonia || "",
+            street: data.taller_direccion.street,
+            number: data.taller_direccion.number,
+            postalCode: data.taller_direccion.postalCode,
+            references: data.taller_direccion.references || ""
+          }
+        : {
+            state: null, city: null, colonia: null, street: null, number: null, postalCode: null, references: null
+          };
+
+      const safeTallerFeatures = taller ? selectedFeatures : [];
+      const safeTallerImages = taller ? imagenUrls : [];
 
       const payload = {
         nombre: data.nombre,
         telefono: data.telefono,
         email: data.email,
         rfc: data.rfc,
-        // New columns for address fields
         direccion_personal: JSON.stringify(address),
         direccion_personal_state: address.state,
         direccion_personal_city: address.city,
@@ -165,20 +188,25 @@ export function useInstaladorRegistroForm() {
         direccion_personal_postal_code: address.postalCode,
         direccion_personal_references: address.references,
         taller: !!taller,
-        taller_direccion: taller ? data.taller_direccion : null,
+        taller_direccion: taller ? JSON.stringify(tallerAddress) : null,
+        taller_direccion_state: tallerAddress.state,
+        taller_direccion_city: tallerAddress.city,
+        taller_direccion_colonia: tallerAddress.colonia,
+        taller_direccion_street: tallerAddress.street,
+        taller_direccion_number: tallerAddress.number,
+        taller_direccion_postal_code: tallerAddress.postalCode,
+        taller_direccion_references: tallerAddress.references,
         taller_features: safeTallerFeatures,
         taller_images: safeTallerImages,
         certificaciones: data.certificaciones?.trim() || null,
         comentarios: data.comentarios?.trim() || null,
       };
 
-      // Clean up empty strings to null for optional fields
       Object.entries(payload).forEach(([key, value]) => {
         if (typeof value === "string" && value.trim() === "") {
           // @ts-ignore
           payload[key] = null;
         }
-        // Ensure arrays are NOT null nor undefined
         if (
           (key === "taller_features" || key === "taller_images") &&
           (!Array.isArray(value) || value == null)
@@ -188,7 +216,6 @@ export function useInstaladorRegistroForm() {
         }
       });
 
-      // Insert into gps_installers
       const { error: dbError } = await supabase.from("gps_installers").insert(payload);
       if (dbError) throw dbError;
 
@@ -207,7 +234,6 @@ export function useInstaladorRegistroForm() {
     }
   };
 
-  // Para exponer campos individuales opcionalmente en el form padre
   const direccionPersonalFields = {
     state: register("direccion_personal.state", { required: true }),
     city: register("direccion_personal.city", { required: true }),
@@ -216,6 +242,16 @@ export function useInstaladorRegistroForm() {
     number: register("direccion_personal.number", { required: true }),
     postalCode: register("direccion_personal.postalCode", { required: true }),
     references: register("direccion_personal.references"),
+  };
+
+  const tallerDireccionFields = {
+    state: register("taller_direccion.state", { required: taller }),
+    city: register("taller_direccion.city", { required: taller }),
+    colonia: register("taller_direccion.colonia"),
+    street: register("taller_direccion.street", { required: taller }),
+    number: register("taller_direccion.number", { required: taller }),
+    postalCode: register("taller_direccion.postalCode", { required: taller }),
+    references: register("taller_direccion.references"),
   };
 
   return {
@@ -232,6 +268,7 @@ export function useInstaladorRegistroForm() {
     onSubmit,
     setSelectedFeatures,
     reset,
-    direccionPersonalFields
+    direccionPersonalFields,
+    tallerDireccionFields,
   };
 }
