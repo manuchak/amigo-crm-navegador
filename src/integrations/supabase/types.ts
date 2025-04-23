@@ -157,6 +157,7 @@ export type Database = {
           direccion_personal_state: string | null
           direccion_personal_street: string | null
           email: string | null
+          foto_instalador: string | null
           id: number
           nombre: string
           rfc: string | null
@@ -187,6 +188,7 @@ export type Database = {
           direccion_personal_state?: string | null
           direccion_personal_street?: string | null
           email?: string | null
+          foto_instalador?: string | null
           id?: number
           nombre: string
           rfc?: string | null
@@ -217,6 +219,7 @@ export type Database = {
           direccion_personal_state?: string | null
           direccion_personal_street?: string | null
           email?: string | null
+          foto_instalador?: string | null
           id?: number
           nombre?: string
           rfc?: string | null
