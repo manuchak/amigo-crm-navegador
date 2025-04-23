@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Button } from '@/components/ui/button';
-import { Loader2, AlertTriangle, ShieldCheck, RefreshCw } from 'lucide-react';
+import { Loader2, AlertTriangle, ShieldCheck, RefreshCw, Shield } from 'lucide-react';
 import {
   useRolePermissions,
   availablePages,
@@ -71,9 +71,10 @@ const UserPermissionConfig: React.FC = () => {
               size="sm" 
               onClick={onRetry} 
               title="Recargar permisos"
+              className="flex items-center gap-1"
             >
               <RefreshCw className="h-4 w-4" />
-              <span className="ml-1">Recargar</span>
+              <span>Recargar</span>
             </Button>
             
             {isOwner && (
@@ -89,18 +90,22 @@ const UserPermissionConfig: React.FC = () => {
       </CardHeader>
       <CardContent>
         {error && (
-          <Alert variant="destructive" className="mb-4">
-            <AlertTriangle className="h-4 w-4" />
-            <AlertDescription>
-              {error}
+          <Alert variant="destructive" className="mb-4 border-rose-300">
+            <div className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5" />
+              <AlertDescription className="text-sm flex-1">
+                {error}
+              </AlertDescription>
               <Button 
-                variant="link" 
-                className="p-0 h-auto ml-2 text-destructive underline" 
+                variant="outline" 
+                size="sm" 
+                className="ml-auto border-rose-300 hover:bg-rose-50"
                 onClick={onRetry}
               >
+                <RefreshCw className="h-3 w-3 mr-1" />
                 Reintentar
               </Button>
-            </AlertDescription>
+            </div>
           </Alert>
         )}
         
@@ -141,7 +146,14 @@ const UserPermissionConfig: React.FC = () => {
             <TableBody>
               {permissions.map((rolePermission, roleIndex) => (
                 <TableRow key={rolePermission.role}>
-                  <TableCell className="font-medium">{rolePermission.displayName}</TableCell>
+                  <TableCell className="font-medium">
+                    <div className="flex items-center gap-2">
+                      {rolePermission.role === 'owner' && (
+                        <Shield className="h-4 w-4 text-amber-500" />
+                      )}
+                      {rolePermission.displayName}
+                    </div>
+                  </TableCell>
                   {selectedTab === 'pages' ? (
                     availablePages.map(page => (
                       <TableCell key={page.id} className="text-center">
@@ -153,6 +165,7 @@ const UserPermissionConfig: React.FC = () => {
                               handlePermissionChange(roleIndex, 'pages', page.id, checked as boolean)
                             }
                             disabled={rolePermission.role === 'owner'}
+                            className={rolePermission.role === 'owner' ? "opacity-60" : ""}
                           />
                         </div>
                       </TableCell>
@@ -168,6 +181,7 @@ const UserPermissionConfig: React.FC = () => {
                               handlePermissionChange(roleIndex, 'actions', action.id, checked as boolean)
                             }
                             disabled={rolePermission.role === 'owner'}
+                            className={rolePermission.role === 'owner' ? "opacity-60" : ""}
                           />
                         </div>
                       </TableCell>
@@ -181,7 +195,7 @@ const UserPermissionConfig: React.FC = () => {
         <div className="mt-6 flex justify-end">
           <Button 
             onClick={onSave} 
-            disabled={saving}
+            disabled={saving || !!error}
             className={isOwner ? "bg-green-600 hover:bg-green-700" : ""}
           >
             {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}

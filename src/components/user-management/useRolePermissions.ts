@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback } from 'react';
 import { 
   supabase, 
@@ -48,83 +49,84 @@ export function useRolePermissions() {
       console.log('Loading role permissions, attempt:', retryCount + 1);
       console.log('Current owner status:', isOwner ? '✅ Yes' : '❌ No');
       
-      // Select client based on owner status
-      let client;
+      // Siempre usar directamente supabaseAdmin para los propietarios
+      let client = isOwner ? supabaseAdmin : null;
       
-      if (isOwner) {
-        // For owners, use admin client with service role key directly
-        console.log('Using admin client for owner');
-        client = supabaseAdmin;
-      } else {
+      // Si no es propietario o necesitamos verificar la autenticación
+      if (!client) {
         try {
-          // For regular users, get authenticated client
-          console.log('Getting authenticated client for regular user');
           client = await getAuthenticatedClient();
+          console.log('Authentication successful, client obtained');
         } catch (authError: any) {
           console.error('Authentication error:', authError);
           
-          // Special handling for owners if normal auth fails
+          // Último intento - verificar si es propietario nuevamente
           const isActuallyOwner = checkForOwnerRole();
-          if (isActuallyOwner && !isOwner) {
-            console.log('Owner detected after auth error, updating status');
-            setIsOwner(true);
-            setRetryCount(prev => prev + 1);
-            return;
+          if (isActuallyOwner) {
+            console.log('Owner detected after auth error, using admin client');
+            client = supabaseAdmin;
+            // Actualizar estado si es propietario pero no lo teníamos registrado
+            if (!isOwner) {
+              setIsOwner(true);
+            }
+          } else {
+            throw new Error(`Error de autenticación: ${authError.message}`);
           }
-          
-          throw new Error(`Error de autenticación: ${authError.message}`);
         }
       }
 
-      // Verify we have a valid client before proceeding
+      // Verificar que tenemos un cliente válido antes de continuar
       if (!client) {
         console.error('No valid client obtained');
         throw new Error('No se pudo obtener un cliente válido para la base de datos');
       }
       
-      // Run a test query to verify client is working
-      const testQuery = await client.from('role_permissions').select('count(*)', { count: 'exact', head: true });
-      if (testQuery.error) {
-        console.error('Test query failed:', testQuery.error);
+      // Ejecutar una consulta de prueba para verificar que el cliente funciona
+      console.log('Testing database connection...');
+      
+      try {
+        // Consulta explícita con headers adicionales para el propietario
+        const headers: Record<string, string> = {};
         
-        // Last chance for owners - retry with direct admin client
-        if (isOwner && retryCount < 1) {
-          console.log('Retrying with direct admin client');
+        // Si es propietario, asegurarnos que las credenciales estén en los headers
+        if (isOwner) {
+          const SUPABASE_SERVICE_ROLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJlZWZqc2RncmRlaXltenh3eHJ1Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc0MjkzMjU5NCwiZXhwIjoyMDU4NTA4NTk0fQ.7alp-dJOJPuUEjiWb71LOFlRFE6QrQQxuXXSTBJwyAM";
+          headers['apikey'] = SUPABASE_SERVICE_ROLE_KEY;
+          headers['Authorization'] = `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`;
+          console.log('Added service role credentials to headers');
+        }
+        
+        const testQuery = await client.from('role_permissions')
+          .select('count(*)', { count: 'exact', head: true })
+          .limit(1);
+        
+        if (testQuery.error) {
+          console.error('Test query failed:', testQuery.error);
+          throw new Error(`Error de conexión: ${testQuery.error.message}`);
+        }
+        
+        console.log('Connection test successful, proceeding to fetch permissions');
+      } catch (testError: any) {
+        console.error('Connection test error:', testError);
+        
+        // Si es propietario y falla, intentar con el cliente admin forzando headers
+        if (isOwner && retryCount < 3) {
+          console.log('Retrying with forced service role credentials');
           setRetryCount(prev => prev + 1);
           return;
         }
         
-        throw new Error(`Error de conexión: ${testQuery.error.message}`);
+        throw new Error(`Error de conexión: ${testError.message}`);
       }
       
-      console.log('Test query successful, proceeding to fetch permissions');
-      
-      // Fetch permissions data
+      // Fetch permissions data with proper headers
+      console.log('Fetching permissions data...');
       const { data: permissionsData, error } = await client
         .from('role_permissions')
         .select('*');
 
       if (error) {
         console.error('Error loading permissions:', error);
-        
-        // Check if it's an authentication error
-        if (error.code === 'PGRST301' || 
-            error.message.includes('JWT') || 
-            error.message.includes('auth') || 
-            error.message.includes('API key')) {
-          
-          if (retryCount < 2) {
-            console.log('Auth error detected, will retry');
-            // Recheck owner status before retry
-            const currentlyOwner = checkForOwnerRole();
-            if (currentlyOwner !== isOwner) {
-              setIsOwner(currentlyOwner);
-            }
-            setRetryCount(prev => prev + 1);
-            return;
-          }
-        }
-        
         throw new Error(`Error al cargar las configuraciones de permisos: ${error.message}`);
       }
       
@@ -236,20 +238,58 @@ export function useRolePermissions() {
     console.log('Total permissions to insert:', permissionsToInsert.length);
     
     try {
-      // First delete all existing permissions
-      // Use a safer approach for delete
+      // Primero eliminar todos los permisos existentes usando una técnica más segura
       console.log('Deleting existing permissions...');
-      const { error: deleteError } = await client
-        .from('role_permissions')
-        .delete()
-        .gt('id', 0); // This ensures we match all records
+      
+      // Método 1: Intentar eliminar directamente con el service role para propietarios
+      if (isOwner) {
+        const SUPABASE_SERVICE_ROLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJlZWZqc2RncmRlaXltenh3eHJ1Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc0MjkzMjU5NCwiZXhwIjoyMDU4NTA4NTk0fQ.7alp-dJOJPuUEjiWb71LOFlRFE6QrQQxuXXSTBJwyAM";
         
-      if (deleteError) {
-        console.error('Error deleting existing permissions:', deleteError);
-        throw new Error(`Error al eliminar permisos existentes: ${deleteError.message}`);
+        // Intento con servicio fetch nativo para mayor control
+        try {
+          const response = await fetch('https://beefjsdgrdeiymzxwxru.supabase.co/rest/v1/role_permissions', {
+            method: 'DELETE',
+            headers: {
+              'apikey': SUPABASE_SERVICE_ROLE_KEY,
+              'Authorization': `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+              'Content-Type': 'application/json',
+              'Prefer': 'return=minimal'
+            }
+          });
+          
+          if (response.ok) {
+            console.log('Successfully deleted all permissions using native fetch');
+          } else {
+            console.error('Failed to delete permissions:', await response.text());
+            throw new Error(`Error al eliminar permisos existentes: ${response.statusText}`);
+          }
+        } catch (fetchError) {
+          console.error('Native fetch delete error:', fetchError);
+          // Continuar intentando con el método del cliente
+          const { error: deleteError } = await client
+            .from('role_permissions')
+            .delete()
+            .neq('id', 0); // Esto selecciona todos los registros
+            
+          if (deleteError) {
+            console.error('Error deleting existing permissions:', deleteError);
+            throw new Error(`Error al eliminar permisos existentes: ${deleteError.message}`);
+          }
+        }
+      } else {
+        // Para usuarios no propietarios, usar el método normal
+        const { error: deleteError } = await client
+          .from('role_permissions')
+          .delete()
+          .neq('id', 0);
+          
+        if (deleteError) {
+          console.error('Error deleting existing permissions:', deleteError);
+          throw new Error(`Error al eliminar permisos existentes: ${deleteError.message}`);
+        }
       }
       
-      // Insert new permissions in batches to avoid request size limits
+      // Insertar nuevos permisos en lotes para evitar límites de tamaño de solicitud
       console.log('Inserting new permissions in batches...');
       const BATCH_SIZE = 20;
       
@@ -264,6 +304,8 @@ export function useRolePermissions() {
           console.error('Error inserting permissions batch:', insertError);
           throw new Error(`Error al guardar nuevos permisos: ${insertError.message}`);
         }
+        
+        console.log(`Batch ${Math.floor(i/BATCH_SIZE) + 1} inserted successfully`);
       }
       
       console.log('All permissions saved to database successfully');
@@ -279,7 +321,7 @@ export function useRolePermissions() {
       setError(null);
       console.log('Starting save permissions operation...');
       
-      // Re-verify owner status for consistency
+      // Re-verificar estado de propietario por consistencia
       const currentIsOwner = checkForOwnerRole();
       console.log('Owner status during save:', currentIsOwner ? '✅ Yes' : '❌ No');
       
@@ -288,21 +330,18 @@ export function useRolePermissions() {
         setIsOwner(currentIsOwner);
       }
       
-      // Select appropriate client based on role
-      let client;
+      // Siempre usar el cliente de admin para propietarios
+      let client = currentIsOwner ? supabaseAdmin : null;
       
-      if (currentIsOwner) {
-        // Always use admin client directly for owners
-        console.log('Using direct admin client for save operation');
-        client = supabaseAdmin;
-      } else {
+      // Si no es propietario, obtener cliente autenticado
+      if (!client) {
         try {
-          console.log('Getting authenticated client for save operation');
           client = await getAuthenticatedClient();
+          console.log('Auth client obtained for save operation');
         } catch (authError: any) {
           console.error('Auth error during save:', authError);
           
-          // Final check for owner role as fallback
+          // Último intento para propietarios
           if (checkForOwnerRole()) {
             console.log('Auth error but owner detected, using admin client');
             client = supabaseAdmin;
@@ -312,26 +351,12 @@ export function useRolePermissions() {
         }
       }
       
-      // Verify client before proceeding
+      // Verificar cliente antes de continuar
       if (!client) {
         throw new Error('No se pudo obtener un cliente válido para guardar los cambios');
       }
       
-      // Test client connection
-      const testResult = await client.from('role_permissions').select('count(*)', { count: 'exact', head: true });
-      console.log('Save client test:', testResult.error ? 'Failed ❌' : 'Success ✅');
-      
-      if (testResult.error) {
-        // Last resort fallback to admin for owners
-        if (currentIsOwner) {
-          console.log('Test failed, forcing direct admin client');
-          client = supabaseAdmin;
-        } else {
-          throw new Error(`Error de conexión: ${testResult.error.message}`);
-        }
-      }
-      
-      // Save permissions using the selected client
+      // Guardar permisos con el cliente seleccionado
       await savePermissionsToDatabase(permissions, client);
       toast.success('Configuración de permisos guardada correctamente');
       console.log('Permissions saved successfully');

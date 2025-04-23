@@ -10,16 +10,29 @@ const SUPABASE_SERVICE_ROLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3Mi
 // Import the supabase client like this:
 // import { supabase } from "@/integrations/supabase/client";
 
+// Configuración común para todos los clientes
+const commonOptions = {
+  auth: {
+    persistSession: true,
+    autoRefreshToken: true,
+    detectSessionInUrl: true
+  }
+};
+
 // Create client with explicit auth configuration
 export const supabase = createClient<Database>(
   SUPABASE_URL, 
   SUPABASE_PUBLISHABLE_KEY,
   {
+    ...commonOptions,
     auth: {
-      persistSession: true,
-      autoRefreshToken: true,
-      storage: typeof window !== 'undefined' ? window.localStorage : undefined,
-      detectSessionInUrl: true
+      ...commonOptions.auth,
+      storage: typeof window !== 'undefined' ? window.localStorage : undefined
+    },
+    global: {
+      headers: {
+        'Content-Type': 'application/json'
+      }
     }
   }
 );
@@ -29,9 +42,17 @@ export const supabaseAdmin = createClient<Database>(
   SUPABASE_URL,
   SUPABASE_SERVICE_ROLE_KEY,
   {
+    ...commonOptions,
     auth: {
       autoRefreshToken: false,
       persistSession: false
+    },
+    global: {
+      headers: {
+        'Content-Type': 'application/json',
+        'apikey': SUPABASE_SERVICE_ROLE_KEY,
+        'Authorization': `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`
+      }
     }
   }
 );
