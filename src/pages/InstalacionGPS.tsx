@@ -7,7 +7,7 @@ import { useNavigate } from "react-router-dom";
 import { InstallerSelectMinimal } from "@/components/instalacion-gps/installers/InstallerSelectMinimal";
 import InstallerRegisterForm from "@/components/instalacion-gps/installers/InstallerRegisterForm";
 import { Button } from "@/components/ui/button";
-import { Plus, MapPin, Star, X } from "lucide-react";
+import { Plus, MapPin, Star, X, Calendar } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 function getNiceAddress(addrRaw: string | null | undefined) {
@@ -86,18 +86,18 @@ const InstalacionGPS = () => {
     <div className="min-h-screen flex flex-col pt-20 px-2 animate-fade-in bg-[linear-gradient(110deg,#F1F0FB_40%,#E5DEFF_100%)]">
       <main className="flex-1 container mx-auto py-10">
         <div className="max-w-3xl mx-auto flex flex-col items-center w-full">
-          <h1 className="font-playfair text-3xl md:text-4xl font-semibold text-primary/80 text-center mb-7">
-            Nueva Instalación de GPS
-          </h1>
-          <div className="w-full flex flex-row items-center justify-between mb-4">
-            <div className="w-full max-w-lg mx-auto">
-              <InstallerSelectMinimal 
-                value={selectedInstaller}
-                onChange={inst => { setSelectedInstaller(inst); setShowInstallerRegister(false); }}
-                onRegisterNew={() => setShowInstallerRegister(true)}
-                disabled={step !== 1}
-              />
-            </div>
+          <div className="w-full flex flex-row items-center justify-between mb-7">
+            <h1 className="font-playfair text-3xl md:text-4xl font-semibold text-primary/80">
+              Nueva Instalación de GPS
+            </h1>
+            <Button
+              variant="outline"
+              onClick={() => navigate('/instalacion-gps/agendadas')}
+              className="gap-2"
+            >
+              <Calendar className="w-4 h-4" />
+              Ver Agendadas
+            </Button>
           </div>
 
           {renderSelectedInstallerCard()}

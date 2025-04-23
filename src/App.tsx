@@ -21,6 +21,7 @@ import AtencionAlAfiliado from "./pages/Support";
 import InstalacionGPS from "./pages/InstalacionGPS";
 import InstalacionGPSInstallers from "./pages/InstalacionGPSInstallers";
 import InstaladorRegistro from "./pages/InstaladorRegistro";
+import InstalacionesAgendadas from "./pages/InstalacionesAgendadas";
 
 const queryClient = new QueryClient();
 
@@ -105,6 +106,12 @@ const AppWithNavbar = () => {
         <Route path="/user-management" element={
           <AuthGuard allowedRoles={['admin', 'owner']}>
             <UserManagement />
+          </AuthGuard>
+        } />
+
+        <Route path="/instalacion-gps/agendadas" element={
+          <AuthGuard>
+            <InstalacionesAgendadas />
           </AuthGuard>
         } />
 
