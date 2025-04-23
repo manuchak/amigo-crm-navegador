@@ -1,25 +1,32 @@
 
-import * as XLSX from 'xlsx';
+import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
 export async function fetchExcelData() {
   try {
-    const response = await fetch('https://docs.google.com/spreadsheets/d/e/2PACX-1vRvhX-tD4plowwSiAPKu0rhd5VKgsuwWFNDFrGsG5BkBhcK0N3HEI-5_tOJKPxdfvlSo9FguDgPArjF/pub?output=xlsx');
-    
-    if (!response.ok) {
-      throw new Error('Failed to fetch Google Sheets data');
+    const { data, error } = await supabase
+      .from('custodio_excel_data')
+      .select('*')
+      .order('fecha_cita', { ascending: false });
+
+    if (error) {
+      console.error("Error fetching custodio data:", error);
+      toast.error("Error loading performance data");
+      throw error;
     }
 
-    const arrayBuffer = await response.arrayBuffer();
-    const workbook = XLSX.read(arrayBuffer);
-    
-    if (!workbook.SheetNames.length) {
-      throw new Error('No sheets found in the Excel file');
-    }
-
-    const worksheet = workbook.Sheets[workbook.SheetNames[0]];
-    return XLSX.utils.sheet_to_json(worksheet);
-
+    return data.map(row => ({
+      FechaCita: row.fecha_cita,
+      NombreCustodio: row.nombre_custodio,
+      MesesActivo: row.meses_activo,
+      TrabajosCompletados: row.trabajos_completados,
+      CalificacionPromedio: row.calificacion_promedio,
+      Confiabilidad: row.confiabilidad,
+      TiempoRespuesta: row.tiempo_respuesta,
+      Ingresos: row.ingresos,
+      ValorVidaCliente: row.valor_vida_cliente,
+      Estado: row.estado
+    }));
   } catch (error) {
     console.error("Error fetching Excel data:", error);
     toast.error("Error loading performance data");

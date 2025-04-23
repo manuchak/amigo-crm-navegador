@@ -56,6 +56,51 @@ export type Database = {
           },
         ]
       }
+      custodio_excel_data: {
+        Row: {
+          calificacion_promedio: number | null
+          confiabilidad: number | null
+          created_at: string
+          estado: string | null
+          fecha_cita: string | null
+          id: number
+          ingresos: number | null
+          meses_activo: number | null
+          nombre_custodio: string | null
+          tiempo_respuesta: number | null
+          trabajos_completados: number | null
+          valor_vida_cliente: number | null
+        }
+        Insert: {
+          calificacion_promedio?: number | null
+          confiabilidad?: number | null
+          created_at?: string
+          estado?: string | null
+          fecha_cita?: string | null
+          id?: number
+          ingresos?: number | null
+          meses_activo?: number | null
+          nombre_custodio?: string | null
+          tiempo_respuesta?: number | null
+          trabajos_completados?: number | null
+          valor_vida_cliente?: number | null
+        }
+        Update: {
+          calificacion_promedio?: number | null
+          confiabilidad?: number | null
+          created_at?: string
+          estado?: string | null
+          fecha_cita?: string | null
+          id?: number
+          ingresos?: number | null
+          meses_activo?: number | null
+          nombre_custodio?: string | null
+          tiempo_respuesta?: number | null
+          trabajos_completados?: number | null
+          valor_vida_cliente?: number | null
+        }
+        Relationships: []
+      }
       custodio_validations: {
         Row: {
           additional_notes: string | null
