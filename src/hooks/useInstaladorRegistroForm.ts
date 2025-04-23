@@ -77,15 +77,18 @@ export function useInstaladorRegistroForm() {
       // Validation: required fields before submit
       if (!data.nombre || !data.telefono || !data.email || !data.rfc || !data.direccion_personal) {
         toast.error("Por favor, llena todos los campos obligatorios marcados con *");
+        setUploading(false);
         return;
       }
       if (taller) {
         if (!data.taller_direccion) {
           toast.error("La dirección del taller es obligatoria.");
+          setUploading(false);
           return;
         }
         if (selectedFeatures.length === 0) {
           toast.error("Selecciona al menos una característica del taller.");
+          setUploading(false);
           return;
         }
       }
@@ -108,7 +111,12 @@ export function useInstaladorRegistroForm() {
         }
       }
 
-      // Use clean values for nullable/optional fields
+      // Guarantee arrays for JSON fields to match SQL NOT NULL and DEFAULT constraints
+      const safeTallerFeatures = taller ? selectedFeatures : [];
+      const safeTallerImages = taller ? imagenUrls : [];
+
+      // Use clean values for nullable/optional fields,
+      // and ensure 'taller_features' is always an array for NOT NULL column
       const payload = {
         nombre: data.nombre,
         telefono: data.telefono,
@@ -117,10 +125,10 @@ export function useInstaladorRegistroForm() {
         direccion_personal: data.direccion_personal,
         taller: !!taller,
         taller_direccion: taller ? data.taller_direccion : null,
-        taller_features: taller ? selectedFeatures : [],
-        taller_images: taller ? imagenUrls : [],
-        certificaciones: data.certificaciones || null,
-        comentarios: data.comentarios || null,
+        taller_features: safeTallerFeatures,
+        taller_images: safeTallerImages,
+        certificaciones: data.certificaciones?.trim() || null,
+        comentarios: data.comentarios?.trim() || null,
       };
 
       // Clean up empty strings to null for optional fields, match column names
@@ -128,6 +136,14 @@ export function useInstaladorRegistroForm() {
         if (typeof value === "string" && value.trim() === "") {
           // @ts-ignore
           payload[key] = null;
+        }
+        // Ensure arrays are NOT null nor undefined
+        if (
+          (key === "taller_features" || key === "taller_images") &&
+          (!Array.isArray(value) || value == null)
+        ) {
+          // @ts-ignore
+          payload[key] = [];
         }
       });
 

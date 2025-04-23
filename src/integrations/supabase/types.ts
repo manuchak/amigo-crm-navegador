@@ -155,6 +155,7 @@ export type Database = {
           rfc: string | null
           taller: boolean | null
           taller_direccion: string | null
+          taller_features: Json
           taller_images: Json | null
           telefono: string | null
           updated_at: string
@@ -170,6 +171,7 @@ export type Database = {
           rfc?: string | null
           taller?: boolean | null
           taller_direccion?: string | null
+          taller_features?: Json
           taller_images?: Json | null
           telefono?: string | null
           updated_at?: string
@@ -185,6 +187,7 @@ export type Database = {
           rfc?: string | null
           taller?: boolean | null
           taller_direccion?: string | null
+          taller_features?: Json
           taller_images?: Json | null
           telefono?: string | null
           updated_at?: string
