@@ -9,6 +9,7 @@ import { InstallerSelectMinimal } from "@/components/instalacion-gps/installers/
 import InstallerRegisterForm from "@/components/instalacion-gps/installers/InstallerRegisterForm";
 import { Button } from "@/components/ui/button";
 import { Plus, MapPin, Star, X } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
 function getNiceAddress(addrRaw: string | null | undefined) {
   if (!addrRaw) return null;
@@ -39,6 +40,7 @@ const InstalacionGPS = () => {
   const navigate = useNavigate();
   const [showInstallerRegister, setShowInstallerRegister] = React.useState(false);
   const [selectedInstaller, setSelectedInstaller] = React.useState<any>(null);
+  const { toast } = useToast();
 
   // Tarjeta integrando nombre, estado, dirección y calificación con botón "Limpiar"
   const renderSelectedInstallerCard = () => {
@@ -139,13 +141,23 @@ const InstalacionGPS = () => {
                 }}
               />
             )}
-            {step === 2 && (
+            {step === 2 && installData && (
               <GpsAppointmentForm
+                installData={installData}
                 onBack={() => setStep(1)}
                 onSchedule={(appt) => {
-                  setInstallData({ ...installData, appointment: appt });
-                  alert("¡Cita agendada exitosamente!");
-                  setStep(1);
+                  const completeData = { ...installData, appointment: appt };
+                  setInstallData(completeData);
+                  toast({
+                    title: "¡Excelente!",
+                    description: "Cita agendada exitosamente.",
+                    variant: "success"
+                  });
+                  // Reset form after successful appointment
+                  setTimeout(() => {
+                    setInstallData(null);
+                    setStep(1);
+                  }, 2000);
                 }}
               />
             )}

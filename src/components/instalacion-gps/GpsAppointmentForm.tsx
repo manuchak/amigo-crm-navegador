@@ -8,6 +8,7 @@ import { format, isWeekend, isBefore, startOfToday } from "date-fns";
 import { MapPin, CalendarIcon, Clock, AlertTriangle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
+import { useToast } from "@/hooks/use-toast"; // Import the toast hook
 
 type GpsAppointmentFormProps = {
   onBack: () => void;
@@ -45,6 +46,7 @@ export default function GpsAppointmentForm({ onBack, onSchedule, installData }: 
   const [time, setTime] = React.useState("");
   const [timezone, setTimezone] = React.useState("GMT-6 México");
   const [notes, setNotes] = React.useState("");
+  const { toast } = useToast(); // Use the toast hook
 
   const handleDateSelect = (selectedDate: Date | undefined) => {
     if (!selectedDate) return;
@@ -78,6 +80,8 @@ export default function GpsAppointmentForm({ onBack, onSchedule, installData }: 
 
   // Format vehicle features for display
   const formatFeatures = (vehicle: any) => {
+    if (!vehicle) return "";
+    
     const features = [];
     if (vehicle.type === "fijo") {
       features.push(...(vehicle.gpsFeatures || []));
@@ -87,6 +91,24 @@ export default function GpsAppointmentForm({ onBack, onSchedule, installData }: 
     }
     return features.join(", ");
   };
+
+  // Adding null check for installData
+  if (!installData) {
+    return (
+      <div className="w-full max-w-4xl mx-auto space-y-6">
+        <Alert variant="destructive">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertTitle>Error</AlertTitle>
+          <AlertDescription>
+            No se encontraron datos de instalación. Por favor regrese e ingrese la información necesaria.
+          </AlertDescription>
+        </Alert>
+        <div className="flex justify-center">
+          <Button onClick={onBack}>Regresar</Button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="w-full max-w-4xl mx-auto space-y-6">
@@ -101,23 +123,25 @@ export default function GpsAppointmentForm({ onBack, onSchedule, installData }: 
               <h3 className="font-medium text-gray-600 mb-2">Cliente</h3>
               <div className="space-y-2">
                 <p className="text-gray-800">{installData.ownerName}</p>
-                <p className="text-gray-600">{installData.installAddress.phone}</p>
+                <p className="text-gray-600">{installData.installAddress?.phone}</p>
               </div>
             </div>
             <div>
               <h3 className="font-medium text-gray-600 mb-2">Ubicación</h3>
               <p className="text-gray-800">
-                {`${installData.installAddress.street} ${installData.installAddress.number}, 
+                {installData.installAddress ? 
+                  `${installData.installAddress.street} ${installData.installAddress.number}, 
                   ${installData.installAddress.colonia}, 
                   ${installData.installAddress.city}, 
-                  ${installData.installAddress.state}`}
+                  ${installData.installAddress.state}` : 
+                  "Dirección no disponible"}
               </p>
             </div>
           </div>
           <div className="border-t pt-4 mt-4">
             <h3 className="font-medium text-gray-600 mb-3">Vehículos y Equipamiento</h3>
             <div className="space-y-3">
-              {installData.vehicles.map((vehicle: any, idx: number) => (
+              {installData.vehicles && installData.vehicles.map((vehicle: any, idx: number) => (
                 <div key={idx} className="bg-gray-50 p-3 rounded-lg">
                   <p className="font-medium text-gray-800">
                     {vehicle.brand} {vehicle.model} {vehicle.year} - {vehicle.vehiclePlate}
