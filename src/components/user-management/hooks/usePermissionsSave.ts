@@ -14,7 +14,9 @@ export function usePermissionsSave() {
       
       // Test connection with a simple, reliable request first
       console.log('Testing database connection before save operation...');
-      const { data: testData, error: testError } = await client.rpc('version');
+      const { data: testData, error: testError } = await client
+        .from('role_permissions')
+        .select('count(*)', { count: 'exact', head: true });
       
       if (testError) {
         console.error('Connection test failed:', testError);
@@ -25,16 +27,16 @@ export function usePermissionsSave() {
       
       // STEP 2: Get current permissions for comparison
       console.log('Checking existing permissions...');
-      const { data: existingPerms, error: checkError } = await client
+      const { count: existingCount, error: checkError } = await client
         .from('role_permissions')
-        .select('count(*)', { head: true, count: 'exact' });
+        .select('*', { count: 'exact', head: true });
         
       if (checkError) {
         console.error('Error checking existing permissions:', checkError);
         throw new Error(`Error al verificar permisos existentes: ${checkError.message}`);
       }
       
-      const beforeCount = existingPerms?.count || 0;
+      const beforeCount = existingCount || 0;
       console.log(`Current permissions count: ${beforeCount}`);
       
       // STEP 3: Prepare data for insertion

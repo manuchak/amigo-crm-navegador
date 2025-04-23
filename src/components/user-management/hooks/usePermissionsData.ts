@@ -36,7 +36,10 @@ export function usePermissionsData() {
       
       // Test connection with a simple, lightweight request first before proceeding
       console.log('Testing initial database connection...');
-      const { data: testData, error: testError } = await adminClient.rpc('version');
+      // Use FROM to check connection instead of RPC which has strict typing
+      const { data: testData, error: testError } = await adminClient
+        .from('role_permissions')
+        .select('count(*)', { count: 'exact', head: true });
       
       if (testError) {
         console.error('Initial connection test failed:', testError);
