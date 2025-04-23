@@ -17,7 +17,7 @@ export function usePermissionsSave() {
       if (!client) {
         if (currentOwnerStatus) {
           console.log('Using admin client for owner');
-          client = await getAdminClient();
+          client = supabaseAdmin;
         } else {
           console.log('Getting authenticated client');
           client = await getAuthenticatedClient();
@@ -29,11 +29,11 @@ export function usePermissionsSave() {
       
       if (currentOwnerStatus) {
         try {
-          // Corregido: Método delete en supabase
+          // Corrección: Usar la instancia correcta del cliente de supabase
           const { error: deleteError } = await supabaseAdmin
             .from('role_permissions')
             .delete()
-            .neq('id', 0);
+            .gt('id', 0);
           
           if (deleteError) {
             console.error('Admin client delete failed:', deleteError);
@@ -50,11 +50,10 @@ export function usePermissionsSave() {
       if (!deleteSuccess) {
         console.log('Using standard client for delete operation');
         const standardClient = await getAuthenticatedClient();
-        // Corregido: Método delete en client de supabase
         const { error: deleteError } = await standardClient
           .from('role_permissions')
           .delete()
-          .neq('id', 0);
+          .gt('id', 0);
         
         if (deleteError) {
           console.error('Standard client delete failed:', deleteError);
@@ -66,12 +65,11 @@ export function usePermissionsSave() {
       const BATCH_SIZE = 20;
       const client_to_use = currentOwnerStatus 
         ? supabaseAdmin 
-        : (await getAuthenticatedClient());
+        : await getAuthenticatedClient();
       
       for (let i = 0; i < permissionsToInsert.length; i += BATCH_SIZE) {
         const batch = permissionsToInsert.slice(i, i + BATCH_SIZE);
         
-        // Corregido: Método insert en client de supabase
         const { error: insertError } = await client_to_use
           .from('role_permissions')
           .insert(batch);

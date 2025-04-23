@@ -36,8 +36,10 @@ export function usePermissionsData() {
       if (currentOwnerStatus) {
         try {
           console.log('Attempting to fetch permissions with admin client for owner');
-          const adminClient = getAdminClient();
-          const { data, error } = await adminClient.select('*');
+          // Corrección: Usa directamente el cliente administrador
+          const { data, error } = await supabaseAdmin
+            .from('role_permissions')
+            .select('*');
           
           if (error) {
             console.error('Admin client query failed:', error);
@@ -56,9 +58,9 @@ export function usePermissionsData() {
           console.log('Attempting to fetch permissions with standard client');
           const client = await getAuthenticatedClient();
           
-          const testQuery = await client.from('role_permissions')
-            .select('count(*)', { count: 'exact', head: true })
-            .limit(1);
+          const testQuery = await client
+            .from('role_permissions')
+            .select('count(*)', { count: 'exact', head: true });
             
           if (testQuery.error) {
             console.error('Test query failed:', testQuery.error);
@@ -67,7 +69,8 @@ export function usePermissionsData() {
           
           console.log('Test query successful, proceeding with main query');
           
-          const { data, error } = await client.from('role_permissions')
+          const { data, error } = await client
+            .from('role_permissions')
             .select('*');
             
           if (error) {

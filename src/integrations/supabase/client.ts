@@ -28,11 +28,6 @@ export const supabase = createClient<Database>(
     auth: {
       ...commonOptions.auth,
       storage: typeof window !== 'undefined' ? window.localStorage : undefined
-    },
-    global: {
-      headers: {
-        'Content-Type': 'application/json'
-      }
     }
   }
 );
@@ -45,13 +40,6 @@ export const supabaseAdmin = createClient<Database>(
     auth: {
       autoRefreshToken: false,
       persistSession: false
-    },
-    global: {
-      headers: {
-        'Content-Type': 'application/json',
-        'apikey': SUPABASE_SERVICE_ROLE_KEY,
-        'Authorization': `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`
-      }
     }
   }
 );
@@ -76,19 +64,11 @@ export const checkForOwnerRole = (): boolean => {
 };
 
 /**
- * Gets a direct instance of supabaseAdmin client with properly set headers
- * for service role operations (primarily for owner users)
+ * Gets a direct instance of supabaseAdmin client for service role operations
+ * (primarily for owner users)
  */
 export const getAdminClient = () => {
-  // Define headers for service role operations
-  const headers = {
-    'Content-Type': 'application/json',
-    'apikey': SUPABASE_SERVICE_ROLE_KEY,
-    'Authorization': `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`
-  };
-  
-  // Corregido: No se puede pasar headers en select() directamente
-  // En su lugar, usamos la instancia de supabaseAdmin que ya tiene los headers globales
+  // Corrección: Devolver la instancia de supabaseAdmin.from() directamente
   return supabaseAdmin.from('role_permissions');
 };
 
