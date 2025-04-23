@@ -22,7 +22,7 @@ export const supabase = createClient<Database>(
 );
 
 // Admin client with service role for privileged operations
-// IMPORTANT: We're not using auth options that could conflict with the normal client
+// Using different auth options to prevent conflicts
 export const supabaseAdmin = createClient<Database>(
   SUPABASE_URL,
   SUPABASE_SERVICE_ROLE_KEY,
@@ -57,7 +57,17 @@ export const checkForOwnerRole = (): boolean => {
  * Gets a direct reference to the supabaseAdmin client for service role operations
  */
 export const getAdminClient = () => {
-  return supabaseAdmin;
+  // Ensure we're returning a fresh instance with the service role key
+  return createClient<Database>(
+    SUPABASE_URL,
+    SUPABASE_SERVICE_ROLE_KEY,
+    {
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false
+      }
+    }
+  );
 };
 
 /**
@@ -69,7 +79,7 @@ export const getAuthenticatedClient = async () => {
   
   if (isOwner) {
     console.log("✅ Owner role detected - using admin client");
-    return supabaseAdmin;
+    return getAdminClient();
   }
 
   try {
@@ -87,7 +97,7 @@ export const getAuthenticatedClient = async () => {
       // Final check for owner role as fallback before failing
       if (checkForOwnerRole()) {
         console.log("No session but owner role detected in fallback - using admin client");
-        return supabaseAdmin;
+        return getAdminClient();
       }
       
       throw new Error("No hay sesión activa. Por favor inicie sesión nuevamente.");
@@ -101,7 +111,7 @@ export const getAuthenticatedClient = async () => {
     // Always fallback to admin client for owners even if there are errors
     if (checkForOwnerRole()) {
       console.log("Error occurred but owner detected - using admin client");
-      return supabaseAdmin;
+      return getAdminClient();
     }
     
     throw error;

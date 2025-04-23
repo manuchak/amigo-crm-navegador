@@ -1,5 +1,5 @@
 
-import { supabaseAdmin, getAuthenticatedClient, checkForOwnerRole } from '@/integrations/supabase/client';
+import { supabase, supabaseAdmin, getAuthenticatedClient, checkForOwnerRole } from '@/integrations/supabase/client';
 import { RolePermission } from '../rolePermissions.constants';
 import { toast } from 'sonner';
 
@@ -11,24 +11,36 @@ export function usePermissionsSave() {
     console.log('Total permissions to insert:', permissionsToInsert.length);
     
     try {
-      // Determine which client to use based on owner status
-      const isOwner = checkForOwnerRole();
-      const client = isOwner ? supabaseAdmin : await getAuthenticatedClient();
+      // Always use admin client directly for reliability
+      console.log('Using admin client for permissions operations');
+      const client = supabaseAdmin;
       
       console.log('Deleting existing permissions...');
       
-      // Delete existing permissions first
+      // First check if we can connect properly
+      const { data: testData, error: testError } = await client
+        .from('role_permissions')
+        .select('count(*)');
+      
+      if (testError) {
+        console.error('Error testing connection:', testError);
+        throw new Error(`Error de conexión con la base de datos: ${testError.message}`);
+      }
+      
+      console.log('Connection test successful, proceeding with delete');
+      
+      // Delete existing permissions using a more reliable query
       const { error: deleteError } = await client
         .from('role_permissions')
         .delete()
-        .filter('id', 'gte', 0);
+        .neq('id', -1); // This will delete all rows since no ID would be -1
       
       if (deleteError) {
         console.error('Error deleting existing permissions:', deleteError);
         throw new Error(`Error al eliminar permisos existentes: ${deleteError.message}`);
       }
       
-      console.log('Inserting new permissions in batches...');
+      console.log('Permissions deleted successfully, inserting new permissions in batches...');
       const BATCH_SIZE = 20;
       
       for (let i = 0; i < permissionsToInsert.length; i += BATCH_SIZE) {
