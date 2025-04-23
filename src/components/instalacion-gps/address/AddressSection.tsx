@@ -1,8 +1,6 @@
-
 import React from "react";
 import AddressFields from "./AddressFields";
 import ContactFields from "./ContactFields";
-import InstallerWorkshopField from "./InstallerWorkshopField";
 import MapFields from "./MapFields";
 
 export default function AddressSection({ control }: { control: any }) {
@@ -11,7 +9,6 @@ export default function AddressSection({ control }: { control: any }) {
       <div className="mb-2 font-semibold text-violet-700 text-base">Ubicación de la instalación</div>
       <AddressFields control={control} />
       <ContactFields control={control} />
-      <InstallerWorkshopField control={control} />
       <MapFields control={control} />
     </section>
   );

@@ -1,22 +1,18 @@
 import React from "react";
-import { useForm, useFieldArray, Controller } from "react-hook-form";
+import { useForm, useFieldArray } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
   Card, CardContent, CardHeader, CardTitle
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from "@/components/ui/form";
 import { Car } from "lucide-react";
-import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from "@/components/ui/select";
 import { useCarData } from "@/hooks/useCarData";
-import DashcamFeatures from "./DashcamFeatures";
-import { Checkbox } from "@/components/ui/checkbox";
 import VehiclesFieldArray from "./VehiclesFieldArray";
 import AddressSection from "./address/AddressSection";
-import { InstallerRegisterForm, InstallersList } from "./installers";
+import InstallerWorkshopField from "./address/InstallerWorkshopField";
 import { useAuth } from "@/context/AuthContext";
 
 const GPS_FEATURE_OPTIONS = [
@@ -83,9 +79,11 @@ const gpsInstallSchema = z.object({
 
 type GpsInstallFormProps = {
   onNext: (data: z.infer<typeof gpsInstallSchema>) => void;
+  installer?: any;
 };
 
-export default function GpsInstallForm(props: any) {
+export default function GpsInstallForm(props: GpsInstallFormProps) {
+  const { installer, onNext } = props;
   const { brands, fetchModelsByBrand, loading: loadingBrands } = useCarData();
   const { userData } = useAuth();
 
@@ -149,6 +147,50 @@ export default function GpsInstallForm(props: any) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fields.length, brands]);
 
+  React.useEffect(() => {
+    const val = form.watch("installInWorkshop");
+    if (
+      val &&
+      installer &&
+      installer.taller &&
+      installer.taller_direccion
+    ) {
+      const tallerDir = installer.taller_direccion || "";
+      const parseDir = (str: string) => {
+        const cpMatch = str.match(/CP\s?(\d{5})/i);
+        const postalCode = cpMatch ? cpMatch[1] : "";
+        let street = str;
+        const parts = str.split(",");
+        let state = "", city = "", colonia = "", number = "";
+        if (parts.length >= 2) {
+          street = parts[0]?.trim() || "";
+          city = parts.at(-2)?.trim() || "";
+          state = parts.at(-1)?.trim() || "";
+          if (parts.length >= 3) colonia = parts[1]?.trim() || "";
+        }
+        const numMatch = street.match(/#(\d+)/);
+        if (numMatch) number = numMatch[1];
+        return {
+          street,
+          number,
+          colonia,
+          postalCode,
+          city,
+          state
+        };
+      };
+
+      const parsed = parseDir(tallerDir);
+      form.setValue("installAddress.street", parsed.street);
+      form.setValue("installAddress.number", parsed.number);
+      form.setValue("installAddress.colonia", parsed.colonia);
+      form.setValue("installAddress.postalCode", parsed.postalCode);
+      form.setValue("installAddress.city", parsed.city);
+      form.setValue("installAddress.state", parsed.state);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [form.watch("installInWorkshop"), installer]);
+
   const handleNext = (data: z.infer<typeof gpsInstallSchema>) => {
     const enrichedVehicles = data.vehicles.map((veh, idx) => {
       if (veh.type === "dashcam") {
@@ -161,7 +203,7 @@ export default function GpsInstallForm(props: any) {
       }
       return veh;
     });
-    props.onNext({ ...data, vehicles: enrichedVehicles });
+    onNext({ ...data, vehicles: enrichedVehicles });
   };
 
   return (
@@ -191,6 +233,7 @@ export default function GpsInstallForm(props: any) {
                   </FormItem>
                 )}
               />
+              <InstallerWorkshopField control={form.control} />
               <AddressSection control={form.control} />
               <VehiclesFieldArray
                 form={form}
