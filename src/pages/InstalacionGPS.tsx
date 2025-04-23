@@ -1,3 +1,4 @@
+
 import React from "react";
 import { Card, CardContent, CardTitle, CardHeader } from "@/components/ui/card";
 import GpsInstallForm from "@/components/instalacion-gps/GpsInstallForm";
@@ -43,47 +44,6 @@ const InstalacionGPS = () => {
   const [selectedInstaller, setSelectedInstaller] = React.useState<Tables<"gps_installers"> | null>(null);
   const { toast } = useToast();
 
-  const renderSelectedInstallerCard = () => {
-    if (!selectedInstaller) return null;
-    const { nombre, direccion_personal, certificaciones } = selectedInstaller;
-    const address = getNiceAddress(direccion_personal);
-    return (
-      <Card className="w-full my-5 rounded-2xl border-0 shadow-md bg-white/95 animate-fade-in relative">
-        <Button
-          size="icon"
-          variant="ghost"
-          className="absolute top-2 right-2 z-10 text-slate-400 hover:bg-slate-200 hover:text-slate-700 transition"
-          aria-label="Limpiar instalador seleccionado"
-          onClick={() => setSelectedInstaller(null)}
-        >
-          <X className="w-5 h-5" />
-        </Button>
-        <CardContent className="flex items-center gap-4 py-5">
-          <div className="flex flex-col min-w-0 flex-1">
-            <div className="flex items-center gap-2 mb-1">
-              <span className="text-lg font-semibold text-primary">{nombre}</span>
-              {certificaciones && (
-                <span className="ml-2 text-xs bg-violet-100 text-violet-700 px-2 py-0.5 rounded">
-                  {certificaciones}
-                </span>
-              )}
-            </div>
-            {address && (
-              <div className="flex items-center gap-2 text-sm text-slate-700 mb-1">
-                <MapPin className="w-4 h-4 text-violet-400" />
-                <span className="truncate">{address}</span>
-              </div>
-            )}
-            <div className="flex items-center gap-2 text-sm text-slate-500 mt-1">
-              <Star className="w-4 h-4 text-yellow-400" />
-              <span>Sin calificación</span>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-    );
-  };
-
   return (
     <>
       <GpsNavMenu />
@@ -103,8 +63,6 @@ const InstalacionGPS = () => {
                 Ver Agendadas
               </Button>
             </div>
-
-            {renderSelectedInstallerCard()}
 
             {showInstallerRegister && (
               <Card className="w-full max-w-lg mx-auto glass border-0 shadow-lg bg-white/90 transition-all animate-fade-in mb-8">
