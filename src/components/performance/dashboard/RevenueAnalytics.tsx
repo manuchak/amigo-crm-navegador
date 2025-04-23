@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -40,7 +39,7 @@ export function RevenueAnalytics({ data, isLoading }: RevenueAnalyticsProps) {
   };
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
       <Card className="border-0 shadow-md lg:col-span-2">
         <CardHeader className="pb-3">
           <CardTitle className="text-lg font-medium">
@@ -49,13 +48,13 @@ export function RevenueAnalytics({ data, isLoading }: RevenueAnalyticsProps) {
         </CardHeader>
         <CardContent className="pt-0">
           {isLoading ? (
-            <Skeleton className="h-[300px] w-full" />
+            <Skeleton className="h-[400px] w-full" />
           ) : (
-            <div className="h-[300px]">
+            <div className="h-[400px]">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart 
                   data={data?.byMonth} 
-                  margin={{ top: 5, right: 5, left: 5, bottom: 20 }}
+                  margin={{ top: 20, right: 20, left: 20, bottom: 60 }}
                 >
                   <CartesianGrid strokeDasharray="3 3" opacity={0.2} />
                   <XAxis 
@@ -93,50 +92,52 @@ export function RevenueAnalytics({ data, isLoading }: RevenueAnalyticsProps) {
         </CardHeader>
         <CardContent className="pt-0">
           {isLoading ? (
-            <Skeleton className="h-[300px] w-full" />
+            <Skeleton className="h-[400px] w-full" />
           ) : (
-            <div className="h-[300px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart margin={{ top: 5, right: 5, left: 5, bottom: 5 }}>
-                  <Tooltip 
-                    formatter={(value: number) => [formatCurrency(value), "Ingresos"]}
-                  />
-                  <Pie
-                    data={data?.byService}
-                    cx="50%"
-                    cy="50%"
-                    labelLine={false}
-                    outerRadius={80}
-                    fill="#8884d8"
-                    dataKey="revenue"
-                    nameKey="service"
-                    label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                  >
-                    {data?.byService.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                    ))}
-                  </Pie>
-                  <Legend layout="vertical" verticalAlign="bottom" align="center" />
-                </PieChart>
-              </ResponsiveContainer>
+            <div className="flex flex-col gap-8">
+              <div className="h-[300px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart margin={{ top: 0, right: 0, left: 0, bottom: 0 }}>
+                    <Tooltip 
+                      formatter={(value: number) => [formatCurrency(value), "Ingresos"]}
+                    />
+                    <Pie
+                      data={data?.byService}
+                      cx="50%"
+                      cy="50%"
+                      labelLine={false}
+                      outerRadius={80}
+                      fill="#8884d8"
+                      dataKey="revenue"
+                      nameKey="service"
+                      label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                    >
+                      {data?.byService.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                      ))}
+                    </Pie>
+                    <Legend layout="vertical" verticalAlign="bottom" align="center" />
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
+              
+              <div className="space-y-6">
+                <div>
+                  <p className="text-muted-foreground text-sm">Ingresos Totales</p>
+                  <p className="text-2xl font-semibold">
+                    {isLoading ? <Skeleton className="h-8 w-32" /> : formatCurrency(data?.totalRevenue || 0)}
+                  </p>
+                </div>
+                
+                <div>
+                  <p className="text-muted-foreground text-sm">Promedio por Custodio</p>
+                  <p className="text-2xl font-semibold">
+                    {isLoading ? <Skeleton className="h-8 w-32" /> : formatCurrency(data?.averageRevenue || 0)}
+                  </p>
+                </div>
+              </div>
             </div>
           )}
-          
-          <div className="mt-4 space-y-4">
-            <div>
-              <p className="text-muted-foreground text-sm">Ingresos Totales</p>
-              <p className="text-2xl font-semibold">
-                {isLoading ? <Skeleton className="h-8 w-32" /> : formatCurrency(data?.totalRevenue || 0)}
-              </p>
-            </div>
-            
-            <div>
-              <p className="text-muted-foreground text-sm">Promedio por Custodio</p>
-              <p className="text-2xl font-semibold">
-                {isLoading ? <Skeleton className="h-8 w-32" /> : formatCurrency(data?.averageRevenue || 0)}
-              </p>
-            </div>
-          </div>
         </CardContent>
       </Card>
     </div>

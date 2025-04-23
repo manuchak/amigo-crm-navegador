@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { CustodioPerformanceDashboard } from "@/components/performance/CustodioPerformanceDashboard";
@@ -15,7 +15,7 @@ export default function Performance() {
   });
 
   return (
-    <div className="container mx-auto py-10 space-y-6">
+    <div className="container mx-auto space-y-8 py-8 px-4 md:px-6">
       <PerformanceHeader />
       <PerformanceFilter dateRange={dateRange} setDateRange={setDateRange} />
       <CustodioPerformanceDashboard dateRange={dateRange} />

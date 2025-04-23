@@ -48,8 +48,8 @@ export function RetentionMetrics({ data, isLoading }: RetentionMetricsProps) {
   );
 
   return (
-    <div className="space-y-6">
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+    <div className="space-y-8">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <RetentionCard 
           title="Retención a 30 días" 
           value={data?.retention30Days} 
@@ -80,13 +80,13 @@ export function RetentionMetrics({ data, isLoading }: RetentionMetricsProps) {
         </CardHeader>
         <CardContent className="pt-0">
           {isLoading ? (
-            <Skeleton className="h-[300px] w-full" />
+            <Skeleton className="h-[400px] w-full" />
           ) : (
-            <div className="h-[300px]">
+            <div className="h-[400px] w-full">
               <ResponsiveContainer width="100%" height="100%">
                 <AreaChart
                   data={data?.retentionByMonth}
-                  margin={{ top: 5, right: 5, left: 5, bottom: 20 }}
+                  margin={{ top: 20, right: 20, left: 20, bottom: 60 }}
                 >
                   <defs>
                     <linearGradient id="colorRate" x1="0" y1="0" x2="0" y2="1">
