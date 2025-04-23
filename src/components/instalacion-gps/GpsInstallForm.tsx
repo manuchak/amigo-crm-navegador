@@ -88,7 +88,6 @@ type GpsInstallFormProps = {
 export default function GpsInstallForm(props: any) {
   const { brands, fetchModelsByBrand, loading: loadingBrands } = useCarData();
   const { userData } = useAuth();
-  const isAdmin = userData?.role === "admin" || userData?.role === "owner";
 
   const form = useForm<z.infer<typeof gpsInstallSchema>>({
     resolver: zodResolver(gpsInstallSchema),
@@ -217,12 +216,6 @@ export default function GpsInstallForm(props: any) {
           </Form>
         </CardContent>
       </Card>
-      {isAdmin && (
-        <section className="mt-8">
-          <InstallerRegisterForm onRegistered={() => {}} />
-          <InstallersList />
-        </section>
-      )}
     </div>
   );
 }

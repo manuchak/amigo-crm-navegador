@@ -1,12 +1,16 @@
 
 import React from "react";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardTitle, CardHeader } from "@/components/ui/card";
 import GpsInstallForm from "@/components/instalacion-gps/GpsInstallForm";
 import GpsAppointmentForm from "@/components/instalacion-gps/GpsAppointmentForm";
+import { InstallerRegisterForm, InstallersList } from "@/components/instalacion-gps/installers";
+import { useAuth } from "@/context/AuthContext";
 
 const InstalacionGPS = () => {
   const [step, setStep] = React.useState<1 | 2>(1);
   const [installData, setInstallData] = React.useState<any>(null);
+  const { userData } = useAuth();
+  const isAdmin = userData?.role === "admin" || userData?.role === "owner";
 
   // Journey visual indicator (very simple for now)
   const steps = [
@@ -48,6 +52,18 @@ const InstalacionGPS = () => {
                 setStep(1);
               }}
             />
+          )}
+
+          {isAdmin && (
+            <div className="w-full flex flex-col md:flex-row gap-6 justify-between mt-12">
+              {/* Panel de gestión de instaladores */}
+              <div className="md:w-1/2 w-full">
+                <InstallerRegisterForm />
+              </div>
+              <div className="md:w-1/2 w-full">
+                <InstallersList />
+              </div>
+            </div>
           )}
 
           {/* Message for next integration */}
