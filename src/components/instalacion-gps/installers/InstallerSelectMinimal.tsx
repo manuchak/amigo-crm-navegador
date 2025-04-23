@@ -1,4 +1,3 @@
-
 import React, { useEffect, useRef, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -9,25 +8,23 @@ import type { Tables } from "@/integrations/supabase/types";
 import InstallerProfileDialog from "./InstallerProfileDialog";
 
 // Helper: Parse address JSON string or just return as string if fails/null
-function getNiceAddress(addrRaw: string | null | undefined) {
+function getAddressParts(addrRaw: string | null | undefined) {
   if (!addrRaw) return null;
   try {
-    // If it's already an object, not string
     if (typeof addrRaw === "object") return null; // Should be string
     const addr = JSON.parse(addrRaw);
-    // Compose full address, can adapt if you want more/less fields
-    const parts = [
-      [addr.street, addr.number].filter(Boolean).join(" "),
+    // streetLine: calle y número, addressLine2: colonia, ciudad, estado, CP
+    const streetLine = [addr.street, addr.number].filter(Boolean).join(" ");
+    const secondLine = [
       addr.colonia,
-      addr.city,
-      addr.state,
+      [addr.city, addr.state].filter(Boolean).join(", "),
       addr.postalCode ? `CP ${addr.postalCode}` : null,
-    ].filter(Boolean);
-    return parts.join(", ");
+    ].filter(Boolean).join(" · ");
+    return { streetLine, secondLine };
   } catch (e) {
-    // fallback: Possibly legacy data? Just show as is, no JSON string
     if (typeof addrRaw === "string" && addrRaw.length < 80 && !addrRaw.startsWith("{")) {
-      return addrRaw;
+      // If it's a simple old-style address, use all in streetLine
+      return { streetLine: addrRaw, secondLine: "" };
     }
     return null;
   }
@@ -82,23 +79,33 @@ export function InstallerSelectMinimal({ value, onChange, onRegisterNew, disable
     || inst.rfc?.toLowerCase().includes(search.toLowerCase())
   );
 
-  // Card rendering with improved minimal and correct address extraction
+  // Card rendering improved: address clearly split onto two lines, more minimalist look
   const renderInstallerLabel = (inst: Installer) => {
-    const address = getNiceAddress(inst.direccion_personal || "");
+    const addressParts = getAddressParts(inst.direccion_personal || "");
     return (
-      <div className="flex flex-col items-start gap-0 min-w-0">
+      <div className="flex flex-col gap-0 min-w-0">
+        {/* Name and certification */}
         <div className="flex items-center gap-1">
-          <span className="font-semibold text-lg text-slate-900">{inst.nombre}</span>
+          <span className="font-semibold text-base text-slate-900">{inst.nombre}</span>
           {inst.certificaciones && (
             <Badge variant="purple" className="ml-1">{inst.certificaciones}</Badge>
           )}
         </div>
-        {address && (
-          <div className="flex items-center gap-1 text-xs text-slate-600 mt-1">
-            <MapPin className="w-3 h-3 text-violet-300" />
-            <span className="truncate">{address}</span>
+        {/* Address: 2 lines */}
+        {addressParts && (
+          <div className="flex flex-col text-xs text-slate-600 mt-1 leading-tight min-w-0">
+            {addressParts.streetLine && (
+              <div className="flex items-center gap-1">
+                <MapPin className="w-3 h-3 text-violet-300 shrink-0" />
+                <span className="truncate min-w-0">{addressParts.streetLine}</span>
+              </div>
+            )}
+            {addressParts.secondLine && addressParts.secondLine.trim() && (
+              <span className="ml-5 truncate min-w-0">{addressParts.secondLine}</span>
+            )}
           </div>
         )}
+        {/* Rating */}
         <div className="flex items-center gap-2 text-xs text-slate-500 mt-1">
           <Star className="w-3 h-3 text-yellow-400" />
           <span>Sin calificación</span>
@@ -112,7 +119,7 @@ export function InstallerSelectMinimal({ value, onChange, onRegisterNew, disable
       <button
         type="button"
         className={cn(
-          "w-full text-left flex items-center gap-3 px-5 py-3 rounded-2xl shadow border border-violet-100 bg-white transition-all focus-visible:ring-2 focus-visible:ring-violet-300 focus:outline-none",
+          "w-full text-left flex items-center gap-3 px-5 py-3 rounded-2xl shadow border border-violet-100 bg-white hover:border-violet-200 transition-all focus-visible:ring-2 focus-visible:ring-violet-300 focus:outline-none",
           disabled && "opacity-60 pointer-events-none"
         )}
         onClick={() => setOpen(!open)}
