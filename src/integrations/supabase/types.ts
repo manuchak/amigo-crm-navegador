@@ -149,6 +149,13 @@ export type Database = {
           comentarios: string | null
           created_at: string
           direccion_personal: string | null
+          direccion_personal_city: string | null
+          direccion_personal_colonia: string | null
+          direccion_personal_number: string | null
+          direccion_personal_postal_code: string | null
+          direccion_personal_references: string | null
+          direccion_personal_state: string | null
+          direccion_personal_street: string | null
           email: string | null
           id: number
           nombre: string
@@ -165,6 +172,13 @@ export type Database = {
           comentarios?: string | null
           created_at?: string
           direccion_personal?: string | null
+          direccion_personal_city?: string | null
+          direccion_personal_colonia?: string | null
+          direccion_personal_number?: string | null
+          direccion_personal_postal_code?: string | null
+          direccion_personal_references?: string | null
+          direccion_personal_state?: string | null
+          direccion_personal_street?: string | null
           email?: string | null
           id?: number
           nombre: string
@@ -181,6 +195,13 @@ export type Database = {
           comentarios?: string | null
           created_at?: string
           direccion_personal?: string | null
+          direccion_personal_city?: string | null
+          direccion_personal_colonia?: string | null
+          direccion_personal_number?: string | null
+          direccion_personal_postal_code?: string | null
+          direccion_personal_references?: string | null
+          direccion_personal_state?: string | null
+          direccion_personal_street?: string | null
           email?: string | null
           id?: number
           nombre?: string

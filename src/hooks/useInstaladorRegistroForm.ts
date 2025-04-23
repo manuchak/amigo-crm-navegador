@@ -139,22 +139,31 @@ export function useInstaladorRegistroForm() {
       const safeTallerFeatures = taller ? selectedFeatures : [];
       const safeTallerImages = taller ? imagenUrls : [];
 
-      // Use clean values for nullable/optional fields,
-      // direccion_personal de forma compatible al GPSForm
+      // Build the payload, set both JSON string and new columns
+      const address = {
+        state: data.direccion_personal.state,
+        city: data.direccion_personal.city,
+        colonia: data.direccion_personal.colonia || "",
+        street: data.direccion_personal.street,
+        number: data.direccion_personal.number,
+        postalCode: data.direccion_personal.postalCode,
+        references: data.direccion_personal.references || ""
+      };
+
       const payload = {
         nombre: data.nombre,
         telefono: data.telefono,
         email: data.email,
         rfc: data.rfc,
-        direccion_personal: {
-          state: data.direccion_personal.state,
-          city: data.direccion_personal.city,
-          colonia: data.direccion_personal.colonia || "",
-          street: data.direccion_personal.street,
-          number: data.direccion_personal.number,
-          postalCode: data.direccion_personal.postalCode,
-          references: data.direccion_personal.references || ""
-        },
+        // New columns for address fields
+        direccion_personal: JSON.stringify(address),
+        direccion_personal_state: address.state,
+        direccion_personal_city: address.city,
+        direccion_personal_colonia: address.colonia,
+        direccion_personal_street: address.street,
+        direccion_personal_number: address.number,
+        direccion_personal_postal_code: address.postalCode,
+        direccion_personal_references: address.references,
         taller: !!taller,
         taller_direccion: taller ? data.taller_direccion : null,
         taller_features: safeTallerFeatures,
@@ -163,7 +172,7 @@ export function useInstaladorRegistroForm() {
         comentarios: data.comentarios?.trim() || null,
       };
 
-      // Clean up empty strings to null for optional fields, match column names
+      // Clean up empty strings to null for optional fields
       Object.entries(payload).forEach(([key, value]) => {
         if (typeof value === "string" && value.trim() === "") {
           // @ts-ignore
