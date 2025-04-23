@@ -30,44 +30,35 @@ export function usePermissionsData() {
         setIsOwner(currentOwnerStatus);
       }
 
-      let permissionsData = null;
-
-      // Always use a fresh admin client for consistent permissions access
-      try {
-        console.log('Loading permissions with fresh admin client');
+      // Always use a fresh admin client for permissions access
+      console.log('Getting fresh admin client for permissions data');
+      const adminClient = getAdminClient();
+      
+      // Test connection first to validate API key
+      console.log('Testing database connection...');
+      const { data: testData, error: testError } = await adminClient
+        .from('role_permissions')
+        .select('count(*)');
         
-        // Get a fresh admin client instance to avoid any stale connection issues
-        const adminClient = getAdminClient();
-        
-        // Test connection first
-        const { data: testData, error: testError } = await adminClient
-          .from('role_permissions')
-          .select('count(*)');
-          
-        if (testError) {
-          console.error('Admin client connection test failed:', testError);
-          throw new Error(`Error de conexión con la base de datos: ${testError.message}`);
-        }
-          
-        console.log('Connection test successful, proceeding with query');
-        
-        // Proceed with actual data query
-        const { data, error } = await adminClient
-          .from('role_permissions')
-          .select('*');
-        
-        if (error) {
-          console.error('Admin client query failed:', error);
-          throw new Error(`Error al cargar permisos: ${error.message}`);
-        } else {
-          permissionsData = data;
-          console.log('Admin client query successful, records:', permissionsData?.length);
-        }
-      } catch (adminError: any) {
-        console.error('Error with admin client:', adminError);
-        throw new Error(adminError.message || 'Error al acceder a la base de datos');
+      if (testError) {
+        console.error('Admin client connection test failed:', testError);
+        throw new Error(`Error de conexión con la base de datos: ${testError.message}`);
       }
-
+        
+      console.log('Connection test successful, proceeding with permissions query');
+      
+      // Proceed with actual data query
+      const { data: permissionsData, error: queryError } = await adminClient
+        .from('role_permissions')
+        .select('*');
+      
+      if (queryError) {
+        console.error('Error fetching permissions data:', queryError);
+        throw new Error(`Error al cargar permisos: ${queryError.message}`);
+      }
+      
+      console.log('Permission data fetched successfully, records found:', permissionsData?.length);
+      
       // Handle the case where no permissions are found
       if (!permissionsData || permissionsData.length === 0) {
         console.log('No permissions found, creating default values');
@@ -81,14 +72,26 @@ export function usePermissionsData() {
       
       setError(null);
     } catch (err: any) {
-      console.error('Final error in loadPermissions:', err);
-      setError(err.message || 'Error al cargar los permisos');
+      console.error('Error in loadPermissions:', err);
+      
+      // Check if this is an API key related error
+      const errorMessage = err.message || 'Error desconocido';
+      const isApiKeyError = errorMessage.includes('Invalid API key') || 
+                           errorMessage.includes('clave API') || 
+                           errorMessage.includes('JWT');
+      
+      if (isApiKeyError) {
+        setError('Error de autenticación con la base de datos. Por favor intente nuevamente.');
+      } else {
+        setError(errorMessage);
+      }
       
       // Use default permissions as fallback in case of error
+      console.log('Loading default permissions as fallback');
       const defaultPermissions = getInitialPermissions();
       setPermissions(defaultPermissions);
       
-      toast.error(`Error al cargar permisos: ${err.message || 'Error desconocido'}`);
+      toast.error(`Error al cargar permisos: ${errorMessage}`);
     } finally {
       setLoading(false);
     }

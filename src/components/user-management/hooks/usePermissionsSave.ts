@@ -5,66 +5,86 @@ import { getAdminClient } from '@/integrations/supabase/client';
 
 export function usePermissionsSave() {
   const savePermissionsToDatabase = async (permsToSave: RolePermission[]) => {
-    console.log('Saving permissions to database');
-    const permissionsToInsert = preparePermissionsForInsert(permsToSave);
-
-    console.log('Total permissions to insert:', permissionsToInsert.length);
+    console.log('Starting permissions save process');
+    
+    // Create fresh admin client for permissions operations
+    let client;
     
     try {
-      // Always use a fresh admin client for permissions operations
       console.log('Creating fresh admin client for permissions operations');
-      const client = getAdminClient();
+      client = getAdminClient();
       
-      // Test client connection first
-      console.log('Testing database connection...');
+      // Validate client is working with a simple query
       const { data: connectionTest, error: connectionError } = await client
         .from('role_permissions')
         .select('count(*)')
         .limit(1);
-      
+        
       if (connectionError) {
-        console.error('Error testing admin client connection:', connectionError);
+        console.error('Admin client connection validation failed:', connectionError);
         throw new Error(`Error de conexión con la base de datos: ${connectionError.message}`);
       }
       
-      console.log('Connection test successful:', connectionTest);
-      console.log('Proceeding with permission update...');
+      console.log('Admin client connection validated successfully');
       
-      // Delete existing permissions using a reliable method
+      const permissionsToInsert = preparePermissionsForInsert(permsToSave);
+      console.log('Total permissions to insert:', permissionsToInsert.length);
+      
+      // Delete existing permissions
       console.log('Deleting existing permissions...');
+      
+      // Use a more reliable deletion approach
       const { error: deleteError } = await client
         .from('role_permissions')
         .delete()
-        .gt('id', 0); // This is safer than using 'neq' with a negative value
-      
+        .gte('id', 1); // This ensures we're targeting all rows
+        
       if (deleteError) {
         console.error('Error deleting existing permissions:', deleteError);
         throw new Error(`Error al eliminar permisos existentes: ${deleteError.message}`);
       }
       
-      console.log('Permissions deleted successfully, inserting new permissions in batches...');
+      console.log('Permissions deleted successfully');
+      
+      // Insert new permissions in batches to avoid request size limitations
       const BATCH_SIZE = 20;
+      console.log(`Inserting ${permissionsToInsert.length} permissions in batches of ${BATCH_SIZE}`);
       
       for (let i = 0; i < permissionsToInsert.length; i += BATCH_SIZE) {
         const batch = permissionsToInsert.slice(i, i + BATCH_SIZE);
+        const batchNumber = Math.floor(i / BATCH_SIZE) + 1;
+        
+        console.log(`Inserting batch ${batchNumber} (${batch.length} items)`);
         
         const { error: insertError } = await client
           .from('role_permissions')
           .insert(batch);
           
         if (insertError) {
-          console.error('Error inserting permissions batch:', insertError);
-          throw new Error(`Error al guardar nuevos permisos: ${insertError.message}`);
+          console.error(`Error inserting batch ${batchNumber}:`, insertError);
+          throw new Error(`Error al guardar permisos (lote ${batchNumber}): ${insertError.message}`);
         }
         
-        console.log(`Batch ${Math.floor(i/BATCH_SIZE) + 1} inserted successfully`);
+        console.log(`Batch ${batchNumber} inserted successfully`);
       }
       
       console.log('All permissions saved to database successfully');
       toast.success('Permisos guardados correctamente');
     } catch (error: any) {
       console.error('Error in savePermissionsToDatabase:', error);
-      toast.error(`Error al guardar permisos: ${error.message || 'Error desconocido'}`);
+      
+      // Determine if this is an API key error
+      const errorMessage = error.message || 'Error desconocido';
+      const isApiKeyError = errorMessage.includes('Invalid API key') || 
+                           errorMessage.includes('clave API') || 
+                           errorMessage.includes('JWT');
+      
+      if (isApiKeyError) {
+        toast.error('Error de autenticación con la base de datos. Por favor intente nuevamente o contacte al administrador.');
+      } else {
+        toast.error(`Error al guardar permisos: ${errorMessage}`);
+      }
+      
       throw error;
     }
   };
