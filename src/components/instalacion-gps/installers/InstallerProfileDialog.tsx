@@ -1,4 +1,3 @@
-
 import React from "react";
 import {
   Dialog,
@@ -43,7 +42,7 @@ const InfoRow = ({
     <div className={`flex items-center gap-2 text-slate-700 text-sm ${className}`}>
       <Icon className="w-4 h-4 text-violet-400" />
       {label && <span className="font-medium">{label}:</span>}
-      <span className={label ? "ml-1" : ""}>{String(value)}</span>
+      <span className={label ? "ml-1" : ""}>{value}</span>
     </div>
   ) : null;
 
@@ -62,7 +61,6 @@ const FieldGroup = ({
   </div>
 );
 
-// Nuevo: Estilos mejorados de ancho, centrado y padding
 const InstallerProfileDialog: React.FC<InstallerProfileDialogProps> = ({
   installer,
   open,
@@ -70,8 +68,33 @@ const InstallerProfileDialog: React.FC<InstallerProfileDialogProps> = ({
 }) => {
   if (!installer) return null;
 
+  // Serialización segura para valores objeto o lista
+  function renderFieldValue(value: any): React.ReactNode {
+    if (value === null || value === undefined) return "-";
+    if (typeof value === "boolean") return value ? "Sí" : "No";
+    if (typeof value === "object") {
+      if (Array.isArray(value)) {
+        if (value.length === 0) return "[]";
+        // Mostrar hasta 5 elementos en lista, luego indicar que hay más
+        const display = value.slice(0, 5).map((v, i) =>
+          typeof v === "object" ? <div key={i}>Objeto</div> : <div key={i}>{String(v)}</div>
+        );
+        if (value.length > 5) display.push(<div key="more">…y {value.length - 5} más</div>);
+        return (
+          <span className="text-xs text-slate-500 flex flex-col gap-0.5">{display}</span>
+        );
+      }
+      // Es un objeto "puro", mostrarlo como JSON corto
+      return (
+        <span className="text-xs text-slate-500">
+          {JSON.stringify(value, null, 2)}
+        </span>
+      );
+    }
+    return String(value);
+  }
+
   // Extraemos TODAS las variables del registro del instalador (incluyendo desconocidas)
-  // Versión flexible: se listan todas las claves, valor por valor
   const allFieldsRows = Object.entries(installer)
     .filter(([key]) => !["taller_images", "taller_features", "comentarios", "certificaciones", "created_at", "updated_at"].includes(key))
     .map(([key, value]) => (
@@ -79,7 +102,7 @@ const InstallerProfileDialog: React.FC<InstallerProfileDialogProps> = ({
         key={key}
         icon={FileText}
         label={key.replace(/_/g, " ")}
-        value={typeof value === "boolean" ? (value ? "Sí" : "No") : value || "-"}
+        value={renderFieldValue(value)}
       />
     ));
 
