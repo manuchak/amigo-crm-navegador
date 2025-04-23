@@ -1,9 +1,9 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Button } from '@/components/ui/button';
-import { Loader2, AlertTriangle, ShieldCheck } from 'lucide-react';
+import { Loader2, AlertTriangle, ShieldCheck, RefreshCw } from 'lucide-react';
 import {
   useRolePermissions,
   availablePages,
@@ -25,7 +25,13 @@ const UserPermissionConfig: React.FC = () => {
     isOwner,
     handlePermissionChange,
     handleSavePermissions,
+    reloadPermissions,
   } = useRolePermissions();
+
+  // Log owner status when it changes
+  useEffect(() => {
+    console.log('UserPermissionConfig owner status:', isOwner ? '✅ Yes' : '❌ No');
+  }, [isOwner]);
 
   const onSave = async () => {
     try {
@@ -34,6 +40,11 @@ const UserPermissionConfig: React.FC = () => {
       console.error('Error saving permissions:', error);
       // Error is handled inside handleSavePermissions
     }
+  };
+
+  const onRetry = () => {
+    reloadPermissions();
+    toast.info('Recargando configuración de permisos...');
   };
 
   if (loading) {
@@ -54,21 +65,42 @@ const UserPermissionConfig: React.FC = () => {
       <CardHeader>
         <div className="flex justify-between items-center">
           <CardTitle className="text-xl">Configuración de Permisos por Rol</CardTitle>
-          {isOwner && (
-            <Alert variant="default" className="max-w-fit p-1 px-3 bg-green-50 border-green-200">
-              <div className="flex items-center gap-2">
-                <ShieldCheck className="h-4 w-4 text-green-500" />
-                <AlertDescription className="text-green-700 text-sm">Modo Propietario: acceso total</AlertDescription>
-              </div>
-            </Alert>
-          )}
+          <div className="flex items-center gap-2">
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={onRetry} 
+              title="Recargar permisos"
+            >
+              <RefreshCw className="h-4 w-4" />
+              <span className="ml-1">Recargar</span>
+            </Button>
+            
+            {isOwner && (
+              <Alert variant="default" className="max-w-fit p-1 px-3 bg-green-50 border-green-200">
+                <div className="flex items-center gap-2">
+                  <ShieldCheck className="h-4 w-4 text-green-500" />
+                  <AlertDescription className="text-green-700 text-sm">Modo Propietario: acceso total</AlertDescription>
+                </div>
+              </Alert>
+            )}
+          </div>
         </div>
       </CardHeader>
       <CardContent>
         {error && (
           <Alert variant="destructive" className="mb-4">
             <AlertTriangle className="h-4 w-4" />
-            <AlertDescription>{error}</AlertDescription>
+            <AlertDescription>
+              {error}
+              <Button 
+                variant="link" 
+                className="p-0 h-auto ml-2 text-destructive underline" 
+                onClick={onRetry}
+              >
+                Reintentar
+              </Button>
+            </AlertDescription>
           </Alert>
         )}
         

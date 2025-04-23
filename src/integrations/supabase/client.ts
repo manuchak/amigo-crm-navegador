@@ -10,14 +10,31 @@ const SUPABASE_SERVICE_ROLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3Mi
 // Import the supabase client like this:
 // import { supabase } from "@/integrations/supabase/client";
 
-export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
-  auth: {
-    persistSession: true,
-    autoRefreshToken: true,
-    storage: typeof window !== 'undefined' ? window.localStorage : undefined,
-    detectSessionInUrl: true
+// Create client with explicit auth configuration
+export const supabase = createClient<Database>(
+  SUPABASE_URL, 
+  SUPABASE_PUBLISHABLE_KEY,
+  {
+    auth: {
+      persistSession: true,
+      autoRefreshToken: true,
+      storage: typeof window !== 'undefined' ? window.localStorage : undefined,
+      detectSessionInUrl: true
+    }
   }
-});
+);
+
+// Admin client with service role for privileged operations
+export const supabaseAdmin = createClient<Database>(
+  SUPABASE_URL,
+  SUPABASE_SERVICE_ROLE_KEY,
+  {
+    auth: {
+      autoRefreshToken: false,
+      persistSession: false
+    }
+  }
+);
 
 /**
  * Check if the current user has owner role from localStorage
@@ -39,40 +56,51 @@ export const checkForOwnerRole = (): boolean => {
 };
 
 /**
- * Enhanced function to ensure we always have a valid session
- * with special handling for owner role users
+ * Enhanced function to ensure we always have a valid client for API operations,
+ * with special handling for owner role users who will use the service role client
  */
 export const getAuthenticatedClient = async () => {
+  // First check if user is owner (faster path)
+  const isOwner = checkForOwnerRole();
+  
+  if (isOwner) {
+    console.log("✅ Owner role detected - using admin client");
+    return supabaseAdmin;
+  }
+
   try {
-    // Check if user is owner first for faster resolution
-    const isOwner = checkForOwnerRole();
-    
-    if (isOwner) {
-      console.log("✅ Owner role detected, using service role client");
-      return supabaseAdmin;
-    }
-    
-    // Regular session handling
+    // Check current session
     const { data: { session }, error: sessionError } = await supabase.auth.getSession();
     
     if (sessionError) {
       console.error("Session error:", sessionError);
-      throw new Error("Error al verificar la sesión: " + sessionError.message);
+      throw new Error(`Error al verificar la sesión: ${sessionError.message}`);
     }
     
-    // If no session or it's about to expire, try refreshing
-    if (!session || (session.expires_at && session.expires_at < Math.floor(Date.now() / 1000) - 60)) {
-      console.log("Session not found or expiring soon, attempting refresh...");
+    if (!session) {
+      console.warn("No active session found");
       
-      // Try refreshing the session
+      // Final check for owner role as fallback before failing
+      if (checkForOwnerRole()) {
+        console.log("No session but owner role detected in fallback - using admin client");
+        return supabaseAdmin;
+      }
+      
+      throw new Error("No hay sesión activa. Por favor inicie sesión nuevamente.");
+    }
+    
+    // Check if session is about to expire (within next 60 seconds) and refresh if needed
+    if (session.expires_at && session.expires_at < Math.floor(Date.now() / 1000) + 60) {
+      console.log("Session expiring soon, refreshing...");
+      
       const { data, error: refreshError } = await supabase.auth.refreshSession();
       
       if (refreshError || !data.session) {
         console.error("Session refresh error:", refreshError);
         
-        // Final check for owner role as fallback
+        // Last chance fallback for owners
         if (checkForOwnerRole()) {
-          console.log("Owner fallback activated after refresh failure");
+          console.log("Session refresh failed but owner detected - using admin client");
           return supabaseAdmin;
         }
         
@@ -80,32 +108,19 @@ export const getAuthenticatedClient = async () => {
       }
       
       console.log("Session refreshed successfully");
-      return supabase;
     }
     
-    console.log("Using existing valid session");
+    console.log("Using authenticated client with valid session");
     return supabase;
   } catch (error) {
-    console.error("Error in getAuthenticatedClient:", error);
+    console.error("Auth client error:", error);
     
-    // Final check for owner fallback
+    // Always fallback to admin client for owners even if there are errors
     if (checkForOwnerRole()) {
-      console.log("Owner fallback activated in error handler");
+      console.log("Error occurred but owner detected - using admin client");
       return supabaseAdmin;
     }
     
     throw error;
   }
 };
-
-// Cliente con service role para operaciones administrativas
-export const supabaseAdmin = createClient<Database>(
-  SUPABASE_URL,
-  SUPABASE_SERVICE_ROLE_KEY,
-  {
-    auth: {
-      autoRefreshToken: false,
-      persistSession: false
-    }
-  }
-);
