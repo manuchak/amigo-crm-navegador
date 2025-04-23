@@ -36,8 +36,8 @@ export function usePermissionsData() {
       if (currentOwnerStatus) {
         try {
           console.log('Attempting to fetch permissions with admin client for owner');
-          const adminQuery = getAdminClient();
-          const { data, error } = await adminQuery.select('*');
+          const adminClient = getAdminClient();
+          const { data, error } = await adminClient.select('*');
           
           if (error) {
             console.error('Admin client query failed:', error);

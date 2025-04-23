@@ -87,10 +87,9 @@ export const getAdminClient = () => {
     'Authorization': `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`
   };
   
-  // Fix: La forma correcta de configurar los headers en una consulta de Supabase
-  return supabaseAdmin.from('role_permissions').select('*', { 
-    headers: headers 
-  });
+  // Corregido: No se puede pasar headers en select() directamente
+  // En su lugar, usamos la instancia de supabaseAdmin que ya tiene los headers globales
+  return supabaseAdmin.from('role_permissions');
 };
 
 /**
