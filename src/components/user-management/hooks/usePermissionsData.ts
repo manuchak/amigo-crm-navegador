@@ -4,8 +4,12 @@ import { getAdminClient, getAuthenticatedClient, supabaseAdmin, checkForOwnerRol
 import { RolePermission } from '../rolePermissions.constants';
 import { getInitialPermissions } from '../rolePermissions.utils';
 import { toast } from 'sonner';
+import { processPermissionsData } from '../utils/permissionsDataProcessor';
+import { usePermissionsSave } from './usePermissionsSave';
 
 export function usePermissionsData() {
+  const { savePermissionsToDatabase } = usePermissionsSave();
+  
   const loadPermissions = async (
     setLoading: (loading: boolean) => void,
     setError: (error: string | null) => void,

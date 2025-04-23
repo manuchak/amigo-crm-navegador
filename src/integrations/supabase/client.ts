@@ -88,7 +88,7 @@ export const getAdminClient = () => {
   };
   
   // Return the client with headers properly set
-  // The error was here - headers should be passed as an object to the headers() method
+  // Fix: Pass headers directly to the headers method
   return supabaseAdmin.from('role_permissions').headers(headers);
 };
 

@@ -8,7 +8,7 @@ import {
   useRolePermissions,
   availablePages,
   availableActions,
-} from './useRolePermissions';
+} from './hooks';
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from '@/components/ui/table';
