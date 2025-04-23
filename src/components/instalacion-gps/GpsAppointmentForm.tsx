@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -8,6 +7,10 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { InstallationSummary } from "./appointment/InstallationSummary";
 import { DateTimeSelector } from "./appointment/DateTimeSelector";
+import { useForm } from "react-hook-form";
+import { format } from "date-fns";
+import { z } from "zod";
+import { zodResolver } from "@hookform/resolvers/zod";
 
 type GpsAppointmentFormProps = {
   onBack: () => void;
@@ -22,37 +25,48 @@ type GpsAppointmentFormData = {
   notes?: string;
 };
 
+const appointmentSchema = z.object({
+  date: z.date().min(new Date(), "La fecha debe ser en el futuro"),
+  time: z.string().min(1, "Selecciona una hora"),
+  timezone: z.string(),
+  notes: z.string().optional()
+});
+
+type AppointmentFormData = z.infer<typeof appointmentSchema>;
+
 export default function GpsAppointmentForm({ onBack, onSchedule, installData }: GpsAppointmentFormProps) {
-  const [date, setDate] = React.useState<Date | null>(null);
-  const [time, setTime] = React.useState("");
-  const [timezone, setTimezone] = React.useState("GMT-6 México");
-  const [notes, setNotes] = React.useState("");
   const [isSaving, setIsSaving] = React.useState(false);
   const { toast } = useToast();
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!date || !time) return;
-    
+  const form = useForm<AppointmentFormData>({
+    resolver: zodResolver(appointmentSchema),
+    defaultValues: {
+      date: null,
+      time: "",
+      timezone: "GMT-6 México",
+      notes: ""
+    }
+  });
+
+  const handleSubmit = async (formData: AppointmentFormData) => {
     setIsSaving(true);
     
     try {
-      const formattedDate = format(date, "yyyy-MM-dd");
+      const formattedDate = format(formData.date, "yyyy-MM-dd");
       
       const installationData = {
         date: formattedDate,
-        time,
-        timezone,
+        time: formData.time,
+        timezone: formData.timezone,
         vehicles: installData.vehicles,
         owner_name: installData.ownerName,
         email: installData.email,
         install_address: installData.installAddress,
         installer_id: installData.installer_id,
-        notes: notes || null
+        notes: formData.notes || null
       };
       
-      const { data, error } = await supabase
+      const { error } = await supabase
         .from('gps_installations')
         .insert(installationData)
         .select();
@@ -60,8 +74,13 @@ export default function GpsAppointmentForm({ onBack, onSchedule, installData }: 
       if (error) {
         throw error;
       }
+
+      onSchedule(formData);
       
-      onSchedule({ date, time, timezone, notes });
+      toast({
+        title: "¡Éxito!",
+        description: "La cita se ha programado correctamente.",
+      });
     } catch (error) {
       console.error("Error al programar la instalación:", error);
       toast({
@@ -100,14 +119,15 @@ export default function GpsAppointmentForm({ onBack, onSchedule, installData }: 
           <CardTitle className="text-xl font-medium text-gray-800">Agendar cita de instalación</CardTitle>
         </CardHeader>
         <CardContent>
-          <form className="space-y-6" onSubmit={handleSubmit}>
+          <form className="space-y-6" onSubmit={form.handleSubmit(handleSubmit)}>
             <DateTimeSelector
-              date={date}
-              time={time}
-              timezone={timezone}
-              onDateSelect={(selectedDate) => setDate(selectedDate || null)}
-              onTimeSelect={setTime}
-              onTimezoneSelect={setTimezone}
+              date={form.watch("date")}
+              time={form.watch("time")}
+              timezone={form.watch("timezone")}
+              onDateSelect={(selectedDate) => form.setValue("date", selectedDate || null)}
+              onTimeSelect={(time) => form.setValue("time", time)}
+              onTimezoneSelect={(timezone) => form.setValue("timezone", timezone)}
+              errors={form.formState.errors}
             />
 
             <div className="flex justify-between gap-4 pt-6">
@@ -121,7 +141,7 @@ export default function GpsAppointmentForm({ onBack, onSchedule, installData }: 
               </Button>
               <Button 
                 type="submit" 
-                disabled={!date || !time || isSaving}
+                disabled={!form.formState.isValid || isSaving}
                 className="px-10 bg-violet-600 hover:bg-violet-700"
               >
                 {isSaving ? "Guardando..." : "Agendar instalación"}
