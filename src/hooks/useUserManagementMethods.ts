@@ -72,12 +72,24 @@ export const useUserManagementMethods = (
         if (profiles && profiles.length > 0) {
           // Map profiles to UserData format
           return profiles.map(profile => {
+            // Fix: Safely access the role property from user_roles
+            // Check if user_roles exists and has a role property
+            let role: UserRole = 'unverified';
+            
+            if (profile.user_roles && typeof profile.user_roles === 'object') {
+              // If user_roles is an object with role property
+              role = (profile.user_roles as { role: UserRole }).role || 'unverified';
+            } else if (Array.isArray(profile.user_roles) && profile.user_roles.length > 0) {
+              // If user_roles is an array, take the first item's role
+              role = (profile.user_roles[0] as { role: UserRole })?.role || 'unverified';
+            }
+            
             return {
               uid: profile.id,
               email: profile.email,
               displayName: profile.display_name || profile.email,
               photoURL: profile.photo_url || null,
-              role: profile.user_roles?.role || 'unverified',
+              role: role,
               emailVerified: true, // Assume verified if in database
               createdAt: profile.created_at ? new Date(profile.created_at) : new Date(),
               lastLogin: profile.last_login ? new Date(profile.last_login) : new Date(),
