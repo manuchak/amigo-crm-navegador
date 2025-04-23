@@ -12,8 +12,8 @@ import { useForm } from "react-hook-form";
 import { format } from "date-fns";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { Form } from "@/components/ui/form";
 import { Textarea } from "@/components/ui/textarea";
-import { FormField, FormItem, FormLabel, FormControl, FormMessage } from "@/components/ui/form";
 
 type GpsAppointmentFormProps = {
   onBack: () => void;
@@ -58,6 +58,17 @@ export default function GpsAppointmentForm({ onBack, onSchedule, installData }: 
     setIsSaving(true);
     
     try {
+      // Ensure that all required fields are present before proceeding
+      if (!formData.date || !formData.time || !formData.timezone) {
+        toast({
+          variant: "destructive",
+          title: "Error de validación",
+          description: "Por favor completa todos los campos requeridos.",
+        });
+        setIsSaving(false);
+        return;
+      }
+      
       const formattedDate = format(formData.date, "yyyy-MM-dd");
       
       const installationData = {
@@ -72,18 +83,21 @@ export default function GpsAppointmentForm({ onBack, onSchedule, installData }: 
         notes: formData.notes || null
       };
       
+      console.log("Sending installation data:", installationData);
+      
       const { error } = await supabase
         .from('gps_installations')
         .insert(installationData)
         .select();
       
       if (error) {
+        console.error("Supabase error:", error);
         throw error;
       }
 
-      // Aseguramos que todos los datos requeridos están presentes
+      // Make sure all required data is available in the callback
       onSchedule({
-        date: formData.date, // Garantizado por la validación
+        date: formData.date,
         time: formData.time,
         timezone: formData.timezone,
         notes: formData.notes
@@ -105,7 +119,7 @@ export default function GpsAppointmentForm({ onBack, onSchedule, installData }: 
     }
   };
 
-  // Debugging para ver el estado de validación
+  // Debugging
   console.log("Form state:", {
     isValid: form.formState.isValid,
     isDirty: form.formState.isDirty,
@@ -139,53 +153,46 @@ export default function GpsAppointmentForm({ onBack, onSchedule, installData }: 
           <CardTitle className="text-xl font-medium text-gray-800">Agendar cita de instalación</CardTitle>
         </CardHeader>
         <CardContent>
-          <form className="space-y-6" onSubmit={form.handleSubmit(handleSubmit)}>
-            <DateTimeSelector
-              date={form.watch("date")}
-              time={form.watch("time")}
-              timezone={form.watch("timezone")}
-              onDateSelect={(selectedDate) => form.setValue("date", selectedDate || null, { shouldValidate: true })}
-              onTimeSelect={(time) => form.setValue("time", time, { shouldValidate: true })}
-              onTimezoneSelect={(timezone) => form.setValue("timezone", timezone, { shouldValidate: true })}
-              errors={form.formState.errors}
-            />
+          <Form {...form}>
+            <form className="space-y-6" onSubmit={form.handleSubmit(handleSubmit)}>
+              <DateTimeSelector
+                date={form.watch("date")}
+                time={form.watch("time")}
+                timezone={form.watch("timezone")}
+                onDateSelect={(selectedDate) => form.setValue("date", selectedDate || null, { shouldValidate: true })}
+                onTimeSelect={(time) => form.setValue("time", time, { shouldValidate: true })}
+                onTimezoneSelect={(timezone) => form.setValue("timezone", timezone, { shouldValidate: true })}
+                errors={form.formState.errors}
+              />
 
-            <FormField
-              control={form.control}
-              name="notes"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel className="text-sm font-medium text-gray-700">Notas adicionales</FormLabel>
-                  <FormControl>
-                    <Textarea 
-                      placeholder="Instrucciones especiales, referencias, etc."
-                      className="resize-none border-gray-200"
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-gray-700">Notas adicionales</label>
+                <Textarea 
+                  placeholder="Instrucciones especiales, referencias, etc."
+                  className="resize-none border-gray-200"
+                  {...form.register("notes")}
+                />
+              </div>
 
-            <div className="flex justify-between gap-4 pt-6">
-              <Button 
-                type="button" 
-                variant="outline" 
-                onClick={onBack}
-                className="border-gray-200"
-              >
-                Regresar
-              </Button>
-              <Button 
-                type="submit" 
-                disabled={isSaving}
-                className="px-10 bg-violet-600 hover:bg-violet-700"
-              >
-                {isSaving ? "Guardando..." : "Agendar instalación"}
-              </Button>
-            </div>
-          </form>
+              <div className="flex justify-between gap-4 pt-6">
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  onClick={onBack}
+                  className="border-gray-200"
+                >
+                  Regresar
+                </Button>
+                <Button 
+                  type="submit" 
+                  disabled={isSaving}
+                  className="px-10 bg-violet-600 hover:bg-violet-700"
+                >
+                  {isSaving ? "Guardando..." : "Agendar instalación"}
+                </Button>
+              </div>
+            </form>
+          </Form>
         </CardContent>
       </Card>
     </div>
