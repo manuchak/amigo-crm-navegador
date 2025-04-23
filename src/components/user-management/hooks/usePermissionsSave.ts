@@ -1,5 +1,5 @@
 
-import { getAdminClient, getAuthenticatedClient, checkForOwnerRole } from '@/integrations/supabase/client';
+import { getAdminClient, getAuthenticatedClient, checkForOwnerRole, supabaseAdmin } from '@/integrations/supabase/client';
 import { RolePermission } from '../rolePermissions.constants';
 import { toast } from 'sonner';
 
