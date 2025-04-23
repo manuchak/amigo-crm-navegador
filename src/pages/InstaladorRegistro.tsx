@@ -1,11 +1,11 @@
-
 import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { UploadCloud } from "lucide-react";
+import { UploadCloud, User } from "lucide-react";
 import { WorkshopSection } from "@/components/instalacion-gps/installers/WorkshopSection";
 import { useInstaladorRegistroForm } from "@/hooks/useInstaladorRegistroForm";
+import { InstallerImagePreview } from "@/components/instalacion-gps/installers/InstallerImagePreview";
 
 export default function InstaladorRegistro() {
   const {
@@ -21,6 +21,8 @@ export default function InstaladorRegistro() {
     onSubmit,
     direccionPersonalFields,
     tallerDireccionFields,
+    handleUserPhotoChange,
+    userPhotoPreview,
   } = useInstaladorRegistroForm();
 
   return (
@@ -43,6 +45,23 @@ export default function InstaladorRegistro() {
               <div>
                 <label className="font-medium">Nombre completo *</label>
                 <Input {...register("nombre", { required: true })} autoFocus />
+              </div>
+              <div>
+                <label className="font-medium">Fotografía del instalador (opcional)</label>
+                <div className="flex items-center gap-4 mt-1">
+                  <label className="relative flex items-center gap-2 cursor-pointer px-3 py-2 border border-slate-200 rounded bg-white hover:bg-violet-50 transition font-medium">
+                    <User className="w-6 h-6 text-slate-400" />
+                    <span className="text-xs text-muted-foreground">Agregar foto</span>
+                    <Input
+                      type="file"
+                      accept="image/*"
+                      {...register("foto_instalador")}
+                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                      onChange={handleUserPhotoChange}
+                    />
+                  </label>
+                  <InstallerImagePreview url={userPhotoPreview} />
+                </div>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>

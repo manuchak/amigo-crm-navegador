@@ -36,6 +36,7 @@ export type FormValues = {
   taller_imagenes: FileList | null;
   certificaciones: string;
   comentarios: string;
+  foto_instalador?: FileList | null;
 };
 
 export function useInstaladorRegistroForm() {
@@ -69,12 +70,14 @@ export function useInstaladorRegistroForm() {
       taller_imagenes: null,
       certificaciones: "",
       comentarios: "",
+      foto_instalador: null,
     }
   });
   const taller = !!watch("taller");
   const [uploading, setUploading] = useState(false);
   const [selectedFeatures, setSelectedFeatures] = useState<string[]>([]);
   const [imagePreviews, setImagePreviews] = useState<string[]>([]);
+  const [userPhotoPreview, setUserPhotoPreview] = useState<string | null>(null);
   const navigate = useNavigate();
 
   const handleFeatureToggle = (feature: string) => {
@@ -90,9 +93,22 @@ export function useInstaladorRegistroForm() {
     setImagePreviews(Array.from(e.target.files).map(file => URL.createObjectURL(file)));
   };
 
+  const handleUserPhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files || e.target.files.length === 0) {
+      setUserPhotoPreview(null);
+      return;
+    }
+    const file = e.target.files[0];
+    setUserPhotoPreview(URL.createObjectURL(file));
+  };
+
   const cleanUpImages = () => {
     imagePreviews.forEach(url => URL.revokeObjectURL(url));
     setImagePreviews([]);
+    if (userPhotoPreview) {
+      URL.revokeObjectURL(userPhotoPreview);
+      setUserPhotoPreview(null);
+    }
   };
 
   const onSubmit = async (data: FormValues) => {
@@ -148,6 +164,21 @@ export function useInstaladorRegistroForm() {
         }
       }
 
+      let foto_instalador_url: string | null = null;
+      if (data.foto_instalador && data.foto_instalador.length > 0) {
+        const file = data.foto_instalador[0];
+        const cleanFileName = file.name.replace(/\s+/g, "_");
+        const filePath = `profiles/${Date.now()}-${cleanFileName}`;
+        const { error } = await supabase.storage.from("installers-profile").upload(filePath, file, { upsert: true });
+        if (error) {
+          toast.error("Hubo un problema al subir la fotografía del instalador.");
+          setUploading(false);
+          return;
+        }
+        foto_instalador_url =
+          `https://beefjsdgrdeiymzxwxru.supabase.co/storage/v1/object/public/installers-profile/${filePath}`;
+      }
+
       const address = {
         state: data.direccion_personal.state,
         city: data.direccion_personal.city,
@@ -200,6 +231,7 @@ export function useInstaladorRegistroForm() {
         taller_images: safeTallerImages,
         certificaciones: data.certificaciones?.trim() || null,
         comentarios: data.comentarios?.trim() || null,
+        foto_instalador: foto_instalador_url,
       };
 
       Object.entries(payload).forEach(([key, value]) => {
@@ -270,5 +302,7 @@ export function useInstaladorRegistroForm() {
     reset,
     direccionPersonalFields,
     tallerDireccionFields,
+    handleUserPhotoChange,
+    userPhotoPreview,
   };
 }
