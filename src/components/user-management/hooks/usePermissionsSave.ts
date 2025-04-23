@@ -12,7 +12,7 @@ export function usePermissionsSave() {
       console.log('Creating fresh admin client for permission saving...');
       const client = getAdminClient();
       
-      // Test connection with a simple, reliable request first
+      // Test connection with a simple, reliable database query instead of RPC
       console.log('Testing database connection before save operation...');
       const { data: testData, error: testError } = await client
         .from('role_permissions')
@@ -27,7 +27,7 @@ export function usePermissionsSave() {
       
       // STEP 2: Get current permissions for comparison
       console.log('Checking existing permissions...');
-      const { count: existingCount, error: checkError } = await client
+      const { count, error: checkError } = await client
         .from('role_permissions')
         .select('*', { count: 'exact', head: true });
         
@@ -36,7 +36,7 @@ export function usePermissionsSave() {
         throw new Error(`Error al verificar permisos existentes: ${checkError.message}`);
       }
       
-      const beforeCount = existingCount || 0;
+      const beforeCount = count || 0;
       console.log(`Current permissions count: ${beforeCount}`);
       
       // STEP 3: Prepare data for insertion

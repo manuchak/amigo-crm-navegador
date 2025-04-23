@@ -34,9 +34,8 @@ export function usePermissionsData() {
       console.log('Creating fresh admin client for permissions...');
       const adminClient = getAdminClient();
       
-      // Test connection with a simple, lightweight request first before proceeding
+      // Test connection with a simple, lightweight database query instead of RPC
       console.log('Testing initial database connection...');
-      // Use FROM to check connection instead of RPC which has strict typing
       const { data: testData, error: testError } = await adminClient
         .from('role_permissions')
         .select('count(*)', { count: 'exact', head: true });
