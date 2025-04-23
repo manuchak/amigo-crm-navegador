@@ -1,150 +1,31 @@
+
 import React from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { AlertTriangle } from "lucide-react";
-import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
-import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
-import { InstallationSummary } from "./appointment/InstallationSummary";
-import { DateTimeSelector } from "./appointment/DateTimeSelector";
-import { useForm } from "react-hook-form";
-import { format } from "date-fns";
-import { z } from "zod";
-import { zodResolver } from "@hookform/resolvers/zod";
 import { Form } from "@/components/ui/form";
 import { Textarea } from "@/components/ui/textarea";
-import { useAuth } from "@/context/AuthContext";
+import { InstallationSummary } from "./appointment/InstallationSummary";
+import { DateTimeSelector } from "./appointment/DateTimeSelector";
+import { AppointmentError } from "./appointment/AppointmentError";
+import { useGpsAppointment } from "./hooks/useGpsAppointment";
 
 type GpsAppointmentFormProps = {
   onBack: () => void;
-  onSchedule: (data: GpsAppointmentFormData) => void;
+  onSchedule: (data: any) => void;
   installData: any;
 };
 
-export type GpsAppointmentFormData = {
-  date: Date;
-  time: string;
-  timezone: string;
-  notes?: string;
-};
-
-const appointmentSchema = z.object({
-  date: z.date({
-    required_error: "La fecha es requerida",
-    invalid_type_error: "La fecha es inválida"
-  }).min(new Date(), "La fecha debe ser en el futuro"),
-  time: z.string().min(1, "Selecciona una hora"),
-  timezone: z.string().min(1, "Selecciona una zona horaria"),
-  notes: z.string().optional()
-});
-
-type AppointmentFormData = z.infer<typeof appointmentSchema>;
-
 export default function GpsAppointmentForm({ onBack, onSchedule, installData }: GpsAppointmentFormProps) {
-  const [isSaving, setIsSaving] = React.useState(false);
-  const [error, setError] = React.useState<string | null>(null);
-  const { toast } = useToast();
-  const { userData } = useAuth();
-
-  const form = useForm<AppointmentFormData>({
-    resolver: zodResolver(appointmentSchema),
-    defaultValues: {
-      date: null,
-      time: "",
-      timezone: "GMT-6 México",
-      notes: ""
-    }
-  });
-
-  const handleSubmit = async (formData: AppointmentFormData) => {
-    console.log("Submit attempt with form data:", formData);
-    setIsSaving(true);
-    setError(null);
-    
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session?.user?.id) {
-        throw new Error("Must be logged in to schedule installations");
-      }
-      
-      const formattedDate = format(formData.date, "yyyy-MM-dd");
-      
-      const installationData = {
-        date: formattedDate,
-        time: formData.time,
-        timezone: formData.timezone,
-        vehicles: installData.vehicles || [],
-        owner_name: installData.ownerName || "",
-        email: installData.email || "",
-        install_address: installData.installAddress || {},
-        installer_id: installData.installer_id || null,
-        notes: formData.notes || null,
-        user_id: session.user.id
-      };
-      
-      console.log("Sending installation data:", installationData);
-      
-      const { data, error: insertError } = await supabase
-        .from('gps_installations')
-        .insert(installationData)
-        .select();
-      
-      if (insertError) {
-        console.error("Supabase error:", insertError);
-        throw insertError;
-      }
-
-      console.log("Installation scheduled successfully:", data);
-
-      onSchedule({
-        date: formData.date,
-        time: formData.time,
-        timezone: formData.timezone,
-        notes: formData.notes
-      });
-      
-      toast({
-        title: "¡Éxito!",
-        description: "La cita se ha programado correctamente.",
-      });
-    } catch (error: any) {
-      console.error("Error scheduling installation:", error);
-      setError(`No se pudo programar la instalación: ${error.message || 'Error desconocido'}`);
-      
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "No se pudo programar la instalación. Por favor, inténtalo de nuevo.",
-      });
-    } finally {
-      setIsSaving(false);
-    }
-  };
+  const {
+    form,
+    handleSubmit,
+    isSaving,
+    error
+  } = useGpsAppointment(onSchedule, installData);
 
   if (!installData) {
-    return (
-      <div className="w-full max-w-4xl mx-auto space-y-6">
-        <Alert variant="destructive">
-          <AlertTriangle className="h-4 w-4" />
-          <AlertTitle>Error</AlertTitle>
-          <AlertDescription>
-            No se encontraron datos de instalación. Por favor regrese e ingrese la información necesaria.
-          </AlertDescription>
-        </Alert>
-        <div className="flex justify-center">
-          <Button onClick={onBack}>Regresar</Button>
-        </div>
-      </div>
-    );
+    return <AppointmentError onBack={onBack} noInstallData />;
   }
-
-  console.log("Form state:", {
-    isValid: form.formState.isValid,
-    isDirty: form.formState.isDirty,
-    errors: form.formState.errors,
-    values: form.getValues(),
-    userData: userData
-  });
 
   return (
     <div className="w-full max-w-4xl mx-auto space-y-6">
@@ -152,11 +33,13 @@ export default function GpsAppointmentForm({ onBack, onSchedule, installData }: 
 
       <Card className="bg-white/95 shadow-xl border-0">
         <CardHeader>
-          <CardTitle className="text-xl font-medium text-gray-800">Agendar cita de instalación</CardTitle>
+          <CardTitle className="text-xl font-medium text-gray-800">
+            Agendar cita de instalación
+          </CardTitle>
         </CardHeader>
         <CardContent>
           <Form {...form}>
-            <form className="space-y-6" onSubmit={form.handleSubmit(handleSubmit)}>
+            <form className="space-y-6" onSubmit={handleSubmit}>
               <DateTimeSelector
                 date={form.watch("date")}
                 time={form.watch("time")}
@@ -168,7 +51,9 @@ export default function GpsAppointmentForm({ onBack, onSchedule, installData }: 
               />
 
               <div className="space-y-2">
-                <label className="text-sm font-medium text-gray-700">Notas adicionales</label>
+                <label className="text-sm font-medium text-gray-700">
+                  Notas adicionales
+                </label>
                 <Textarea 
                   placeholder="Instrucciones especiales, referencias, etc."
                   className="resize-none border-gray-200"
@@ -176,13 +61,7 @@ export default function GpsAppointmentForm({ onBack, onSchedule, installData }: 
                 />
               </div>
 
-              {error && (
-                <Alert variant="destructive" className="mt-4">
-                  <AlertTriangle className="h-4 w-4" />
-                  <AlertTitle>Error</AlertTitle>
-                  <AlertDescription>{error}</AlertDescription>
-                </Alert>
-              )}
+              {error && <AppointmentError error={error} onBack={onBack} />}
 
               <div className="flex justify-between gap-4 pt-6">
                 <Button 
