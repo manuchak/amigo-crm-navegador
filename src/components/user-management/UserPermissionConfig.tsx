@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -11,6 +12,7 @@ import {
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from '@/components/ui/table';
+import { toast } from 'sonner';
 
 const UserPermissionConfig: React.FC = () => {
   const [selectedTab, setSelectedTab] = useState<'pages' | 'actions'>('pages');
@@ -21,6 +23,16 @@ const UserPermissionConfig: React.FC = () => {
     handlePermissionChange,
     handleSavePermissions,
   } = useRolePermissions();
+
+  const onSave = async () => {
+    try {
+      await handleSavePermissions();
+      toast.success('Permisos guardados correctamente');
+    } catch (error) {
+      console.error('Error saving permissions:', error);
+      toast.error('Error al guardar los permisos');
+    }
+  };
 
   if (loading) {
     return (
@@ -117,7 +129,7 @@ const UserPermissionConfig: React.FC = () => {
         </div>
         <div className="mt-6 flex justify-end">
           <Button 
-            onClick={handleSavePermissions} 
+            onClick={onSave} 
             disabled={saving}
           >
             {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}

@@ -23,6 +23,7 @@ const UserManagementPanel = () => {
     isEditDialogOpen, 
     isConfirmationOpen, 
     newRole,
+    setUsers,
     setSelectedUser, 
     setIsEditDialogOpen, 
     setIsConfirmationOpen, 
@@ -36,11 +37,18 @@ const UserManagementPanel = () => {
     if (!selectedUser || !newRole) return;
     
     try {
+      console.log(`Updating role for user ${selectedUser.uid} to ${newRole}`);
       await updateUserRole(selectedUser.uid, newRole);
       
       setIsEditDialogOpen(false);
       setIsConfirmationOpen(true);
-      await fetchUsers();
+      
+      // Update local state to show the change immediately
+      setUsers(prevUsers => prevUsers.map(user => 
+        user.uid === selectedUser.uid ? { ...user, role: newRole } : user
+      ));
+      
+      toast.success(`Rol actualizado a ${newRole} para ${selectedUser.displayName || selectedUser.email}`);
     } catch (error) {
       console.error('Error updating role:', error);
       toast.error('Error al actualizar el rol del usuario');
@@ -49,9 +57,15 @@ const UserManagementPanel = () => {
   
   const handleVerifyUser = async (user: UserData) => {
     try {
+      console.log(`Verifying email for user ${user.uid}`);
       await verifyEmail(user.uid);
-      await fetchUsers();
-      toast.success(`Email verificado para ${user.displayName}`);
+      
+      // Update local state to reflect the change
+      setUsers(prevUsers => prevUsers.map(u => 
+        u.uid === user.uid ? { ...u, emailVerified: true } : u
+      ));
+      
+      toast.success(`Email verificado para ${user.displayName || user.email}`);
     } catch (error) {
       console.error('Error verifying user email:', error);
       toast.error('Error al verificar el email del usuario');

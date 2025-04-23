@@ -28,9 +28,13 @@ export function useRolePermissions() {
   const loadPermissions = async () => {
     setLoading(true);
     try {
+      console.log('Loading role permissions from Supabase...');
       const { data: permissionsData, error } = await supabase
         .from('role_permissions')
         .select('*');
+
+      console.log('Permissions data from Supabase:', permissionsData);
+      console.log('Error from Supabase:', error);
 
       if (error) {
         console.error('Error loading permissions:', error);
@@ -90,8 +94,11 @@ export function useRolePermissions() {
   };
 
   const savePermissionsToDatabase = async (permsToSave: RolePermission[]) => {
+    console.log('Saving permissions to database:', permsToSave);
     const permissionsToInsert = [];
+    
     for (const rolePerm of permsToSave) {
+      // Add page permissions
       for (const pageId in rolePerm.pages) {
         permissionsToInsert.push({
           role: rolePerm.role,
@@ -100,6 +107,8 @@ export function useRolePermissions() {
           allowed: rolePerm.pages[pageId]
         });
       }
+      
+      // Add action permissions
       for (const actionId in rolePerm.actions) {
         permissionsToInsert.push({
           role: rolePerm.role,
@@ -109,26 +118,45 @@ export function useRolePermissions() {
         });
       }
     }
-    const { error: deleteError } = await supabase
-      .from('role_permissions')
-      .delete()
-      .neq('id', 0);
-    if (deleteError) {
-      console.error('Error deleting existing permissions:', deleteError);
-      throw new Error('Error al eliminar permisos existentes');
-    }
-    const { error: insertError } = await supabase
-      .from('role_permissions')
-      .insert(permissionsToInsert);
-    if (insertError) {
-      console.error('Error inserting permissions:', insertError);
-      throw new Error('Error al guardar nuevos permisos');
+
+    console.log('Permissions to insert:', permissionsToInsert);
+    
+    try {
+      // First delete existing permissions
+      const { error: deleteError } = await supabase
+        .from('role_permissions')
+        .delete()
+        .neq('id', 0);
+        
+      if (deleteError) {
+        console.error('Error deleting existing permissions:', deleteError);
+        throw new Error('Error al eliminar permisos existentes');
+      }
+      
+      // Then insert new permissions
+      for (let i = 0; i < permissionsToInsert.length; i += 10) {
+        const batch = permissionsToInsert.slice(i, i + 10);
+        const { error: insertError } = await supabase
+          .from('role_permissions')
+          .insert(batch);
+          
+        if (insertError) {
+          console.error('Error inserting permissions batch:', insertError);
+          throw new Error('Error al guardar nuevos permisos');
+        }
+      }
+      
+      console.log('Successfully saved all permissions to database');
+    } catch (error) {
+      console.error('Error in savePermissionsToDatabase:', error);
+      throw error;
     }
   };
 
   const handleSavePermissions = async () => {
     try {
       setSaving(true);
+      console.log('Saving permissions to database...');
       await savePermissionsToDatabase(permissions);
       toast.success('Configuración de permisos guardada correctamente');
     } catch (error) {

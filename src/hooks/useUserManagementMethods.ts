@@ -20,6 +20,7 @@ export const useUserManagementMethods = (
   const updateUserRoleMethod = async (uid: string, role: UserRole) => {
     setLoading(true);
     try {
+      console.log(`Updating role for ${uid} to ${role}`);
       // Update user role in local storage
       updateUserRole(uid, role);
       
