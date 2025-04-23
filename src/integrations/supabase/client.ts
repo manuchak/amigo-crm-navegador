@@ -42,22 +42,17 @@ export const checkForOwnerRole = (): boolean => {
 };
 
 /**
- * Gets a fresh instance of the admin client with service role
- * CORRECTED: Esta función ahora crea el cliente admin siguiendo
- * las mejores prácticas actualizadas de Supabase
+ * Creates and returns a fresh Supabase admin client with service role key
  */
 export const getAdminClient = () => {
-  // Validar credenciales
   if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
     console.error("Error crítico: Faltan credenciales de Supabase");
     throw new Error("Error de configuración: faltan credenciales de Supabase");
   }
 
   try {
-    console.log("Creando cliente admin con service role...");
-    
-    // Crear cliente con el formato recomendado para la versión actual
-    const adminClient = createClient<Database>(
+    // Crear un nuevo cliente con el service role key
+    return createClient<Database>(
       SUPABASE_URL,
       SUPABASE_SERVICE_ROLE_KEY,
       {
@@ -67,9 +62,6 @@ export const getAdminClient = () => {
         }
       }
     );
-    
-    console.log("Cliente admin creado correctamente");
-    return adminClient;
   } catch (error) {
     console.error("Error al crear cliente admin:", error);
     throw new Error("Error crítico al inicializar cliente de administración");

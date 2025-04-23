@@ -50,7 +50,12 @@ export const useGpsAppointment = (onSchedule: (data: AppointmentFormData) => voi
     try {
       // Verificar si el usuario tiene rol de propietario
       const isOwner = userData?.role === 'owner' || checkForOwnerRole();
-      console.log("¿Es usuario propietario?", isOwner, { userData, isOwnerFromStorage: checkForOwnerRole() });
+      console.log("¿Es usuario propietario?", isOwner, { 
+        userData, 
+        userDataRole: userData?.role,
+        isOwnerFromStorage: checkForOwnerRole(),
+        currentUser: !!currentUser
+      });
       
       // Formatear la fecha para inserción
       const formattedDate = format(formData.date, "yyyy-MM-dd");
@@ -72,22 +77,24 @@ export const useGpsAppointment = (onSchedule: (data: AppointmentFormData) => voi
       let response;
       
       if (isOwner) {
-        console.log("Usando flujo de propietario para la inserción");
+        console.log("=== FLUJO DE PROPIETARIO DETECTADO ===");
         
         try {
-          console.log("Obteniendo cliente admin fresco");
-          const adminClient = getAdminClient();
-          
           // Establecer ID de usuario para el propietario
-          installationData.user_id = currentUser?.uid || userData?.uid || 'owner-user';
+          installationData.user_id = currentUser?.uid || userData?.uid || 'owner-special';
           
-          console.log("Realizando inserción como propietario:", {
+          console.log("Datos preparados para inserción:", {
             userId: installationData.user_id,
             role: userData?.role,
-            adminClientExists: !!adminClient
+            date: installationData.date,
+            time: installationData.time
           });
           
-          // Inserción con cliente admin (ahora correcto)
+          // Crear un cliente admin fresco para la operación
+          const adminClient = getAdminClient();
+          console.log("Cliente admin obtenido correctamente");
+          
+          // Inserción directa con cliente admin
           response = await adminClient
             .from('gps_installations')
             .insert(installationData)
@@ -95,7 +102,7 @@ export const useGpsAppointment = (onSchedule: (data: AppointmentFormData) => voi
             
           console.log("Respuesta de inserción admin:", response);
         } catch (adminError: any) {
-          console.error("Error con cliente admin:", adminError);
+          console.error("Error detallado con cliente admin:", adminError);
           throw new Error(`Error con cliente admin: ${adminError.message || 'Error desconocido'}`);
         }
       } else {

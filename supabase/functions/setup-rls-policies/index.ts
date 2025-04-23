@@ -22,9 +22,9 @@ serve(async (req) => {
 
     // Check if policies already exist to avoid duplicate creation
     const { data: existingPolicies, error: policyCheckError } = await supabaseAdmin
-      .from('pg_policies')
-      .select('*')
-      .eq('tablename', 'gps_installations');
+      .rpc('exec_sql', {
+        sql: `SELECT * FROM pg_policies WHERE tablename = 'gps_installations'`
+      });
 
     if (policyCheckError) {
       console.error("Error checking existing policies:", policyCheckError);
@@ -32,25 +32,42 @@ serve(async (req) => {
     }
 
     // Check if our insert policy already exists
-    const insertPolicyExists = existingPolicies.some(policy => 
+    const insertPolicyExists = existingPolicies && existingPolicies.some(policy => 
       policy.policyname === "Enable insert access for authenticated users"
     );
 
     if (!insertPolicyExists) {
       // Create RLS policy for inserting into gps_installations
-      const { error: rqlError } = await supabaseAdmin.rpc('exec_sql', {
+      const { error: createPolicyError } = await supabaseAdmin.rpc('exec_sql', {
         sql: `
           CREATE POLICY "Enable insert access for authenticated users"
           ON public.gps_installations
           FOR INSERT
-          TO authenticated
           WITH CHECK (true);
         `
       });
 
-      if (rqlError) {
-        console.error("Error creating RLS policy:", rqlError);
+      if (createPolicyError) {
+        console.error("Error creating RLS policy:", createPolicyError);
         throw new Error("Failed to create RLS policy");
+      }
+    }
+    
+    // Check if RLS is enabled on the table
+    const { data: rlsStatus, error: rlsCheckError } = await supabaseAdmin.rpc('exec_sql', {
+      sql: `SELECT relrowsecurity FROM pg_class WHERE relname = 'gps_installations'`
+    });
+    
+    if (rlsCheckError) {
+      console.error("Error checking RLS status:", rlsCheckError);
+    } else if (rlsStatus && rlsStatus[0] && !rlsStatus[0].relrowsecurity) {
+      // Enable RLS on the table if not already enabled
+      const { error: enableRlsError } = await supabaseAdmin.rpc('exec_sql', {
+        sql: `ALTER TABLE public.gps_installations ENABLE ROW LEVEL SECURITY;`
+      });
+      
+      if (enableRlsError) {
+        console.error("Error enabling RLS:", enableRlsError);
       }
     }
 

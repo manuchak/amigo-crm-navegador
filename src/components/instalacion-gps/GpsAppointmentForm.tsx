@@ -37,7 +37,8 @@ export default function GpsAppointmentForm({ onBack, onSchedule, installData }: 
       userData, 
       isOwnerFromRole, 
       isOwnerFromStorage,
-      isOwnerCombined: isOwner 
+      isOwnerCombined: isOwner,
+      userDataRole: userData?.role
     });
     
     // Verificar datos en localStorage para diagnóstico
