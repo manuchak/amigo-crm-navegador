@@ -79,15 +79,10 @@ export const useGpsAppointment = (onSchedule: (data: AppointmentFormData) => voi
           // Crear un cliente admin completamente nuevo para esta operación
           const adminClient = getAdminClient();
           
-          // Verificar client headers para debugging
-          console.log("Admin client headers:", adminClient.headers);
-          
           // Configura el ID de usuario del propietario
           installationData.user_id = currentUser?.uid || userData?.uid || 'owner-user';
           
           console.log("Realizando inserción con cliente admin:", {
-            url: adminClient?.supabaseUrl,
-            hasAuth: !!adminClient?.headers?.Authorization,
             userId: installationData.user_id
           });
           

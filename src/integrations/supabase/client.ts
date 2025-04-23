@@ -67,15 +67,15 @@ export const getAdminClient = () => {
         auth: {
           autoRefreshToken: false,
           persistSession: false
+        },
+        global: {
+          headers: {
+            'apikey': SUPABASE_SERVICE_ROLE_KEY,
+            'Authorization': `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`
+          }
         }
       }
     );
-    
-    // Configuramos los headers manualmente para asegurar que se envían correctamente
-    adminClient.headers = {
-      'apikey': SUPABASE_SERVICE_ROLE_KEY,
-      'Authorization': `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`
-    };
     
     console.log("Admin client created successfully");
     return adminClient;
