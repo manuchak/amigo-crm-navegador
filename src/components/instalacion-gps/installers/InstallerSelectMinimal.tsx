@@ -2,7 +2,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ChevronDown, Plus, User, Star, MapPin, UserRound, Eye } from "lucide-react";
+import { ChevronDown, Plus, User, Star, MapPin, Eye, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import type { Tables } from "@/integrations/supabase/types";
@@ -78,7 +78,6 @@ export function InstallerSelectMinimal({ value, onChange, onRegisterNew, disable
           Sin calificación
         </span>
       </div>
-      {/* Se eliminó el campo RFC aquí para mayor simpleza */}
     </div>
   );
 
@@ -87,7 +86,7 @@ export function InstallerSelectMinimal({ value, onChange, onRegisterNew, disable
       <button
         type="button"
         className={cn(
-          "w-full text-left flex items-center gap-3 px-5 py-3 rounded-2xl bg-white/75 border border-violet-100 shadow transition-all ring-0 focus-visible:ring-2 focus-visible:ring-violet-300 glass focus:outline-none",
+          "w-full text-left flex items-center gap-3 px-5 py-3 rounded-2xl glass border border-violet-100 shadow transition-all ring-0 focus-visible:ring-2 focus-visible:ring-violet-300 bg-white/75 focus:outline-none",
           disabled && "opacity-60 pointer-events-none"
         )}
         onClick={() => setOpen(!open)}
@@ -110,19 +109,22 @@ export function InstallerSelectMinimal({ value, onChange, onRegisterNew, disable
       {open && (
         <div
           ref={popoverRef}
-          className="absolute left-0 z-40 mt-2 min-w-full rounded-2xl shadow-2xl glass backdrop-blur-[10px] border border-violet-100 bg-white/90 ring-1 ring-violet-50 overflow-hidden flex flex-col"
-          style={{ maxHeight: 350, width: "100%" }}
+          className={cn(
+            "absolute left-0 z-50 mt-2 rounded-2xl shadow-2xl border border-violet-100 bg-white backdrop-blur-2xl transition-all",
+            "flex flex-col min-w-full", // seguro que no se rompe el dropdown en responsivo
+          )}
+          style={{ maxHeight: 360, width: "100%" }}
         >
-          <div className="p-2 border-b border-slate-100 bg-white/90 sticky top-0">
+          <div className="p-2 border-b border-slate-100 bg-white sticky top-0 z-10">
             <input
               autoFocus
               placeholder="Buscar por nombre, RFC o teléfono…"
               value={search}
               onChange={e => setSearch(e.target.value)}
-              className="w-full text-base px-4 py-2 rounded-xl bg-white/70 border border-violet-50 focus:outline-none ring-0 focus:ring-2 focus:ring-violet-200"
+              className="w-full text-base px-4 py-2 rounded-xl bg-white border border-violet-50 focus:outline-none focus:ring-2 focus:ring-violet-200 transition"
             />
           </div>
-          <div className="flex flex-col gap-0.5 py-2 px-1 overflow-y-auto">
+          <div className="flex flex-col gap-0.5 py-2 px-1 overflow-y-auto scrollbar-none">
             {loading ? (
               <div className="text-base text-center py-10 text-slate-400 flex flex-col items-center justify-center gap-2">
                 <svg className="animate-spin text-violet-300" width="24" height="24" />
@@ -135,7 +137,7 @@ export function InstallerSelectMinimal({ value, onChange, onRegisterNew, disable
                 <div
                   key={inst.id}
                   className={cn(
-                    "w-full flex items-center hover:bg-violet-50/80 focus:bg-violet-100 rounded-xl transition group cursor-pointer px-4 py-2",
+                    "w-full flex items-center group transition px-4 py-2 rounded-xl cursor-pointer hover:bg-violet-50/90 focus:bg-violet-100",
                     value?.id === inst.id ? "bg-violet-100 ring-2 ring-violet-300" : ""
                   )}
                 >
@@ -167,7 +169,7 @@ export function InstallerSelectMinimal({ value, onChange, onRegisterNew, disable
               ))
             )}
           </div>
-          <div className="border-t border-slate-100 py-2 px-4 flex flex-row justify-between items-center sticky bottom-0 bg-white/95 rounded-b-xl mt-1">
+          <div className="border-t border-slate-100 py-2 px-4 flex flex-row justify-between items-center sticky bottom-0 bg-white rounded-b-xl mt-1 z-10">
             <Button
               size="sm"
               className="flex items-center gap-2 px-3 py-1.5 rounded-xl text-violet-700 font-semibold bg-violet-50 hover:bg-violet-100/90 transition"

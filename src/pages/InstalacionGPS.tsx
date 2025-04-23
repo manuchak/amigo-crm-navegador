@@ -1,3 +1,4 @@
+
 import React from "react";
 import { Card, CardContent, CardTitle, CardHeader } from "@/components/ui/card";
 import GpsInstallForm from "@/components/instalacion-gps/GpsInstallForm";
@@ -7,7 +8,7 @@ import { useNavigate } from "react-router-dom";
 import { InstallerSelectMinimal } from "@/components/instalacion-gps/installers/InstallerSelectMinimal";
 import InstallerRegisterForm from "@/components/instalacion-gps/installers/InstallerRegisterForm";
 import { Button } from "@/components/ui/button";
-import { Plus, MapPin, Star } from "lucide-react";
+import { Plus, MapPin, Star, X } from "lucide-react";
 
 const InstalacionGPS = () => {
   const [step, setStep] = React.useState<1 | 2>(1);
@@ -23,7 +24,16 @@ const InstalacionGPS = () => {
     if (!selectedInstaller) return null;
     const { nombre, direccion_personal, certificaciones } = selectedInstaller;
     return (
-      <Card className="w-full my-5 rounded-2xl glass border-0 shadow-md bg-white/90 animate-fade-in">
+      <Card className="w-full my-5 rounded-2xl glass border-0 shadow-md bg-white/90 animate-fade-in relative">
+        <Button
+          size="icon"
+          variant="ghost"
+          className="absolute top-2 right-2 z-10 text-slate-400 hover:bg-slate-100"
+          aria-label="Limpiar instalador seleccionado"
+          onClick={() => setSelectedInstaller(null)}
+        >
+          <X className="w-5 h-5" />
+        </Button>
         <CardContent className="flex items-center gap-4 py-5">
           <div className="flex flex-col min-w-0 flex-1">
             <div className="flex items-center gap-2 mb-2">
@@ -121,8 +131,6 @@ const InstalacionGPS = () => {
             )}
           </div>
 
-          {/* Tarjeta de instaladores registrados eliminada */}
-
           <Card className="w-full mt-12 bg-white/80 border-0 shadow-none">
             <CardContent className="py-8 flex flex-col items-center justify-center text-muted-foreground">
               🚧 <span>En próximas versiones: historial de instalaciones, integración con sistemas de gestión y seguimiento de dispositivos.</span>
@@ -135,3 +143,4 @@ const InstalacionGPS = () => {
 };
 
 export default InstalacionGPS;
+
