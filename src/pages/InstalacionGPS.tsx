@@ -10,6 +10,27 @@ import InstallerRegisterForm from "@/components/instalacion-gps/installers/Insta
 import { Button } from "@/components/ui/button";
 import { Plus, MapPin, Star, X } from "lucide-react";
 
+function getNiceAddress(addrRaw: string | null | undefined) {
+  if (!addrRaw) return null;
+  try {
+    if (typeof addrRaw === "object") return null;
+    const addr = JSON.parse(addrRaw);
+    const parts = [
+      [addr.street, addr.number].filter(Boolean).join(" "),
+      addr.colonia,
+      addr.city,
+      addr.state,
+      addr.postalCode ? `CP ${addr.postalCode}` : null,
+    ].filter(Boolean);
+    return parts.join(", ");
+  } catch (e) {
+    if (typeof addrRaw === "string" && addrRaw.length < 80 && !addrRaw.startsWith("{")) {
+      return addrRaw;
+    }
+    return null;
+  }
+}
+
 const InstalacionGPS = () => {
   const [step, setStep] = React.useState<1 | 2>(1);
   const [installData, setInstallData] = React.useState<any>(null);
@@ -19,16 +40,17 @@ const InstalacionGPS = () => {
   const [showInstallerRegister, setShowInstallerRegister] = React.useState(false);
   const [selectedInstaller, setSelectedInstaller] = React.useState<any>(null);
 
-  // Tarjeta integrando nombre, estado, dirección y calificación
+  // Tarjeta integrando nombre, estado, dirección y calificación con botón "Limpiar"
   const renderSelectedInstallerCard = () => {
     if (!selectedInstaller) return null;
     const { nombre, direccion_personal, certificaciones } = selectedInstaller;
+    const address = getNiceAddress(direccion_personal);
     return (
-      <Card className="w-full my-5 rounded-2xl glass border-0 shadow-md bg-white/90 animate-fade-in relative">
+      <Card className="w-full my-5 rounded-2xl border-0 shadow-md bg-white/95 animate-fade-in relative">
         <Button
           size="icon"
           variant="ghost"
-          className="absolute top-2 right-2 z-10 text-slate-400 hover:bg-slate-100"
+          className="absolute top-2 right-2 z-10 text-slate-400 hover:bg-slate-200 hover:text-slate-700 transition"
           aria-label="Limpiar instalador seleccionado"
           onClick={() => setSelectedInstaller(null)}
         >
@@ -36,7 +58,7 @@ const InstalacionGPS = () => {
         </Button>
         <CardContent className="flex items-center gap-4 py-5">
           <div className="flex flex-col min-w-0 flex-1">
-            <div className="flex items-center gap-2 mb-2">
+            <div className="flex items-center gap-2 mb-1">
               <span className="text-lg font-semibold text-primary">{nombre}</span>
               {certificaciones && (
                 <span className="ml-2 text-xs bg-violet-100 text-violet-700 px-2 py-0.5 rounded">
@@ -44,10 +66,10 @@ const InstalacionGPS = () => {
                 </span>
               )}
             </div>
-            {direccion_personal && (
+            {address && (
               <div className="flex items-center gap-2 text-sm text-slate-700 mb-1">
                 <MapPin className="w-4 h-4 text-violet-400" />
-                <span>{direccion_personal}</span>
+                <span className="truncate">{address}</span>
               </div>
             )}
             <div className="flex items-center gap-2 text-sm text-slate-500 mt-1">
@@ -78,10 +100,8 @@ const InstalacionGPS = () => {
             </div>
           </div>
 
-          {/* Tarjeta minimalista del instalador seleccionado */}
           {renderSelectedInstallerCard()}
 
-          {/* Registrar instalador, ahora muy integrada y centrada, arriba del form */}
           {showInstallerRegister && (
             <Card className="w-full max-w-lg mx-auto glass border-0 shadow-lg bg-white/90 transition-all animate-fade-in mb-8">
               <CardHeader className="pb-2 flex flex-row items-center gap-4">
@@ -143,4 +163,3 @@ const InstalacionGPS = () => {
 };
 
 export default InstalacionGPS;
-
