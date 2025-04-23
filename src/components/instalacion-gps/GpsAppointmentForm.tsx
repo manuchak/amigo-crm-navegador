@@ -1,3 +1,4 @@
+
 import React from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -26,9 +27,12 @@ type GpsAppointmentFormData = {
 };
 
 const appointmentSchema = z.object({
-  date: z.date().min(new Date(), "La fecha debe ser en el futuro"),
+  date: z.date({
+    required_error: "La fecha es requerida",
+    invalid_type_error: "La fecha es inválida"
+  }).min(new Date(), "La fecha debe ser en el futuro"),
   time: z.string().min(1, "Selecciona una hora"),
-  timezone: z.string(),
+  timezone: z.string().min(1, "Selecciona una zona horaria"),
   notes: z.string().optional()
 });
 
@@ -75,7 +79,13 @@ export default function GpsAppointmentForm({ onBack, onSchedule, installData }: 
         throw error;
       }
 
-      onSchedule(formData);
+      // Fix the type by ensuring date is not undefined when passing to onSchedule
+      onSchedule({
+        date: formData.date,  // This is now guaranteed to be a Date due to validation
+        time: formData.time,
+        timezone: formData.timezone,
+        notes: formData.notes
+      });
       
       toast({
         title: "¡Éxito!",
