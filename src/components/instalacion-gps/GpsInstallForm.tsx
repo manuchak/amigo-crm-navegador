@@ -155,38 +155,64 @@ export default function GpsInstallForm(props: GpsInstallFormProps) {
       installer.taller &&
       installer.taller_direccion
     ) {
-      const tallerDir = installer.taller_direccion || "";
-      const parseDir = (str: string) => {
-        const cpMatch = str.match(/CP\s?(\d{5})/i);
-        const postalCode = cpMatch ? cpMatch[1] : "";
-        let street = str;
-        const parts = str.split(",");
-        let state = "", city = "", colonia = "", number = "";
-        if (parts.length >= 2) {
-          street = parts[0]?.trim() || "";
-          city = parts.at(-2)?.trim() || "";
-          state = parts.at(-1)?.trim() || "";
-          if (parts.length >= 3) colonia = parts[1]?.trim() || "";
+      let tallerDirObj = null;
+      if (typeof installer.taller_direccion === "object" && installer.taller_direccion !== null) {
+        tallerDirObj = installer.taller_direccion;
+      } else if (typeof installer.taller_direccion === "string") {
+        try {
+          tallerDirObj = JSON.parse(installer.taller_direccion);
+        } catch {
+          tallerDirObj = null;
         }
-        const numMatch = street.match(/#(\d+)/);
-        if (numMatch) number = numMatch[1];
-        return {
-          street,
-          number,
-          colonia,
-          postalCode,
-          city,
-          state
-        };
-      };
+      }
 
-      const parsed = parseDir(tallerDir);
-      form.setValue("installAddress.street", parsed.street);
-      form.setValue("installAddress.number", parsed.number);
-      form.setValue("installAddress.colonia", parsed.colonia);
-      form.setValue("installAddress.postalCode", parsed.postalCode);
-      form.setValue("installAddress.city", parsed.city);
-      form.setValue("installAddress.state", parsed.state);
+      if (tallerDirObj && typeof tallerDirObj === "object") {
+        form.setValue("installAddress.street", tallerDirObj.street ?? "");
+        form.setValue("installAddress.number", tallerDirObj.number ?? "");
+        form.setValue("installAddress.colonia", tallerDirObj.colonia ?? "");
+        form.setValue("installAddress.postalCode", tallerDirObj.postalCode ?? "");
+        form.setValue("installAddress.city", tallerDirObj.city ?? "");
+        form.setValue("installAddress.state", tallerDirObj.state ?? "");
+      } else {
+        const parseDir = (str: string) => {
+          const cpMatch = str.match(/CP\s?(\d{5})/i);
+          const postalCode = cpMatch ? cpMatch[1] : "";
+
+          const parts = str.split(",").map(p => p.trim());
+          let street = "", number = "", colonia = "", city = "", state = "";
+
+          const numMatch = parts[0]?.match(/^(.*?)(?:\s*#\s*([0-9A-Za-z\-]+))?$/);
+          if (numMatch) {
+            street = numMatch[1]?.trim() || "";
+            number = numMatch[2]?.trim() || "";
+          }
+          colonia = parts[1] && !/CP/i.test(parts[1]) && !/\d{5}/.test(parts[1]) ? parts[1] : "";
+          if (parts.length >= 4) {
+            city = parts[2] || "";
+            state = parts[3] || "";
+          } else if (parts.length === 3) {
+            city = parts[1] || "";
+            state = parts[2] || "";
+          }
+
+          return {
+            street,
+            number,
+            colonia,
+            postalCode,
+            city,
+            state
+          };
+        };
+
+        const parsed = parseDir(installer.taller_direccion ?? "");
+        form.setValue("installAddress.street", parsed.street);
+        form.setValue("installAddress.number", parsed.number);
+        form.setValue("installAddress.colonia", parsed.colonia);
+        form.setValue("installAddress.postalCode", parsed.postalCode);
+        form.setValue("installAddress.city", parsed.city);
+        form.setValue("installAddress.state", parsed.state);
+      }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [form.watch("installInWorkshop"), installer]);
