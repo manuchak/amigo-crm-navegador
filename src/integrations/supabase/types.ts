@@ -143,6 +143,45 @@ export type Database = {
           },
         ]
       }
+      gps_installers: {
+        Row: {
+          certificaciones: string | null
+          comentarios: string | null
+          created_at: string
+          id: number
+          nombre: string
+          taller: boolean | null
+          taller_direccion: string | null
+          taller_images: Json | null
+          telefono: string | null
+          updated_at: string
+        }
+        Insert: {
+          certificaciones?: string | null
+          comentarios?: string | null
+          created_at?: string
+          id?: number
+          nombre: string
+          taller?: boolean | null
+          taller_direccion?: string | null
+          taller_images?: Json | null
+          telefono?: string | null
+          updated_at?: string
+        }
+        Update: {
+          certificaciones?: string | null
+          comentarios?: string | null
+          created_at?: string
+          id?: number
+          nombre?: string
+          taller?: boolean | null
+          taller_direccion?: string | null
+          taller_images?: Json | null
+          telefono?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       leads: {
         Row: {
           anovehiculo: string | null

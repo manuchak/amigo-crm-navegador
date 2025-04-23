@@ -3,9 +3,10 @@ import React, { useEffect, useState } from "react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import type { Tables } from "@/integrations/supabase/types";
 
 export default function InstallersList() {
-  const [installers, setInstallers] = useState<any[]>([]);
+  const [installers, setInstallers] = useState<Tables<"gps_installers">[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -43,7 +44,7 @@ export default function InstallersList() {
                       <>
                         <div className="mt-2 text-sm">Taller en: {inst.taller_direccion}</div>
                         <div className="flex gap-2 mt-1 overflow-auto">
-                          {Array.isArray(inst.taller_images) && inst.taller_images.map((img: string, i: number) => (
+                          {Array.isArray(inst.taller_images) && (inst.taller_images as string[]).map((img: string, i: number) => (
                             <img key={img+i} src={img} className="w-16 h-16 object-cover rounded border" alt="Taller" />
                           ))}
                         </div>

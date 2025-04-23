@@ -7,6 +7,7 @@ import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { UploadCloud } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import type { TablesInsert } from "@/integrations/supabase/types";
 
 // Requisitos mínimos para mostrar como checklist
 const requisitos = [
@@ -48,8 +49,8 @@ export default function InstallerRegisterForm({ onRegistered }: { onRegistered?:
           imagenUrls.push(`https://beefjsdgrdeiymzxwxru.supabase.co/storage/v1/object/public/installers/${filePath}`);
         }
       }
-      // Guarda el registro en la tabla "gps_installers"
-      const { error: dbError } = await supabase.from("gps_installers").insert({
+      // Guarda el registro en la tabla "gps_installers" usando la tipificación correcta
+      const installerPayload: TablesInsert<"gps_installers"> = {
         nombre: data.nombre,
         telefono: data.telefono,
         taller: !!data.taller,
@@ -57,7 +58,10 @@ export default function InstallerRegisterForm({ onRegistered }: { onRegistered?:
         taller_images: imagenUrls,
         certificaciones: data.certificaciones,
         comentarios: data.comentarios,
-      });
+      };
+      const { error: dbError } = await supabase
+        .from("gps_installers")
+        .insert(installerPayload);
       if (dbError) throw dbError;
       toast.success("Instalador registrado correctamente");
       reset();
