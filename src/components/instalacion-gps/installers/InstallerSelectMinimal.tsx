@@ -2,10 +2,11 @@
 import React, { useEffect, useRef, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ChevronDown, Plus, User, Star, MapPin } from "lucide-react";
+import { ChevronDown, Plus, User, Star, MapPin, UserRound } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import type { Tables } from "@/integrations/supabase/types";
+import InstallerProfileDialog from "./InstallerProfileDialog";
 
 type Installer = Tables<"gps_installers">;
 
@@ -21,6 +22,7 @@ export function InstallerSelectMinimal({ value, onChange, onRegisterNew, disable
   const [installers, setInstallers] = useState<Installer[]>([]);
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(false);
+  const [profileDialogInstaller, setProfileDialogInstaller] = useState<Installer | null>(null);
   const popoverRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -55,7 +57,7 @@ export function InstallerSelectMinimal({ value, onChange, onRegisterNew, disable
     || inst.rfc?.toLowerCase().includes(search.toLowerCase())
   );
 
-  // Para mostrar nombre, dirección y calificación en el dropdown
+  // Muestra nombre, dirección y calificación en el dropdown, y un botón perfil
   const renderInstallerLabel = (inst: Installer) => (
     <div className="flex flex-col items-start gap-0 min-w-0">
       <div className="flex items-center gap-1">
@@ -68,7 +70,6 @@ export function InstallerSelectMinimal({ value, onChange, onRegisterNew, disable
         {inst.direccion_personal && (
           <span className="flex items-center gap-1">
             <MapPin className="w-3 h-3 text-violet-300" />
-            {/* Solo dirección, ya que no existe campo estado */}
             {inst.direccion_personal}
           </span>
         )}
@@ -130,21 +131,38 @@ export function InstallerSelectMinimal({ value, onChange, onRegisterNew, disable
               <div className="text-center text-slate-400 text-sm py-8 select-none">No se encontraron instaladores.</div>
             ) : (
               filtered.slice(0, 7).map(inst => (
-                <button
-                  type="button"
+                <div
                   key={inst.id}
                   className={cn(
-                    "w-full px-4 py-2 flex items-center hover:bg-violet-50/80 focus:bg-violet-100 rounded-xl transition group cursor-pointer", 
+                    "w-full flex items-center hover:bg-violet-50/80 focus:bg-violet-100 rounded-xl transition group cursor-pointer px-4 py-2",
                     value?.id === inst.id ? "bg-violet-100 ring-2 ring-violet-300" : ""
                   )}
-                  onClick={() => {
-                    onChange(inst);
-                    setOpen(false);
-                  }}
                 >
-                  {renderInstallerLabel(inst)}
-                  <span className="ml-auto text-xs text-muted-foreground font-mono">{inst.rfc || inst.telefono}</span>
-                </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onChange(inst);
+                      setOpen(false);
+                    }}
+                    className="flex-1 flex items-center min-w-0 text-left focus:outline-none bg-transparent border-0"
+                  >
+                    {renderInstallerLabel(inst)}
+                  </button>
+                  <Button 
+                    type="button"
+                    size="icon"
+                    variant="ghost"
+                    className="ml-1 text-violet-400 hover:bg-violet-100 rounded-full p-1"
+                    tabIndex={0}
+                    onClick={e => {
+                      e.stopPropagation();
+                      setProfileDialogInstaller(inst);
+                    }}
+                    aria-label="Ver perfil"
+                  >
+                    <UserRound className="w-5 h-5" />
+                  </Button>
+                </div>
               ))
             )}
           </div>
@@ -176,6 +194,11 @@ export function InstallerSelectMinimal({ value, onChange, onRegisterNew, disable
           </div>
         </div>
       )}
+      <InstallerProfileDialog 
+        installer={profileDialogInstaller}
+        open={!!profileDialogInstaller}
+        onClose={() => setProfileDialogInstaller(null)}
+      />
     </div>
   );
 }
