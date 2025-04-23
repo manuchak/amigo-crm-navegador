@@ -12,6 +12,9 @@ import {
 import { getDisplayName, getInitialPermissions } from './rolePermissions.utils';
 import { UserRole } from '@/types/auth';
 
+// Export the constants for external usage
+export { availablePages, availableActions };
+
 export function useRolePermissions() {
   const [permissions, setPermissions] = useState<RolePermission[]>([]);
   const [loading, setLoading] = useState(true);
@@ -143,7 +146,5 @@ export function useRolePermissions() {
     saving,
     handlePermissionChange,
     handleSavePermissions,
-    availablePages,
-    availableActions
   };
 }
