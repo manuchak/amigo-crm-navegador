@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Button } from '@/components/ui/button';
-import { Loader2 } from 'lucide-react';
+import { Loader2, AlertTriangle } from 'lucide-react';
 import {
   useRolePermissions,
   availablePages,
@@ -13,6 +13,7 @@ import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from '@/components/ui/table';
 import { toast } from 'sonner';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 const UserPermissionConfig: React.FC = () => {
   const [selectedTab, setSelectedTab] = useState<'pages' | 'actions'>('pages');
@@ -27,10 +28,9 @@ const UserPermissionConfig: React.FC = () => {
   const onSave = async () => {
     try {
       await handleSavePermissions();
-      toast.success('Permisos guardados correctamente');
     } catch (error) {
       console.error('Error saving permissions:', error);
-      toast.error('Error al guardar los permisos');
+      // Error is handled inside handleSavePermissions
     }
   };
 

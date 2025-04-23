@@ -21,18 +21,49 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABL
 
 // Enhanced utility to ensure we always have a valid session for authenticated requests
 export const getAuthenticatedClient = async () => {
-  // Get the current session
-  const { data: { session } } = await supabase.auth.getSession();
-  
-  // If session exists, but token is expired, try to refresh it
-  if (session?.expires_at && session.expires_at < Math.floor(Date.now() / 1000)) {
-    const { data, error } = await supabase.auth.refreshSession();
-    if (error) {
-      console.error("Error refreshing session:", error);
+  try {
+    // Get the current session
+    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+    
+    if (sessionError) {
+      console.error("Error getting session:", sessionError);
+      throw sessionError;
     }
+    
+    // If no session exists, throw an error
+    if (!session) {
+      console.warn("No active session found");
+      // Instead of throwing, we'll return the client which will operate with anonymous privileges
+      return supabase;
+    }
+    
+    // If session exists, but token is expired, try to refresh it
+    if (session?.expires_at && session.expires_at < Math.floor(Date.now() / 1000)) {
+      console.log("Session token expired, refreshing...");
+      const { data, error } = await supabase.auth.refreshSession();
+      
+      if (error) {
+        console.error("Error refreshing session:", error);
+        throw error;
+      }
+      
+      if (!data.session) {
+        console.warn("Session refresh did not return a valid session");
+        // Return supabase client which will operate with anonymous privileges
+        return supabase;
+      }
+      
+      console.log("Session refreshed successfully");
+    } else if (session) {
+      console.log("Using existing valid session");
+    }
+    
+    return supabase;
+  } catch (error) {
+    console.error("Error in getAuthenticatedClient:", error);
+    // Return the regular client as a fallback, which will operate with anonymous privileges
+    return supabase;
   }
-  
-  return supabase;
 };
 
 // Create a separate client with the service role key for admin operations

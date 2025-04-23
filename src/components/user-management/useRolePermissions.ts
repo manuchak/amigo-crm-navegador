@@ -33,6 +33,15 @@ export function useRolePermissions() {
       // Get an authenticated client to ensure we have a valid session
       const authenticatedClient = await getAuthenticatedClient();
       
+      // Verificar si tenemos una sesión válida
+      const { data: { session } } = await authenticatedClient.auth.getSession();
+      if (!session) {
+        console.warn('No authenticated session found, using default permissions');
+        setPermissions(getInitialPermissions());
+        setLoading(false);
+        return;
+      }
+      
       const { data: permissionsData, error } = await authenticatedClient
         .from('role_permissions')
         .select('*');
@@ -54,6 +63,7 @@ export function useRolePermissions() {
         
         try {
           await savePermissionsToDatabase(defaultPermissions);
+          console.log('Default permissions saved to database');
         } catch (err) {
           console.error('Error saving default permissions:', err);
           toast.error('Error al guardar las configuraciones de permisos predeterminadas');
@@ -137,21 +147,30 @@ export function useRolePermissions() {
     console.log('Permissions to insert:', permissionsToInsert.length, 'records');
     
     try {
-      // Get an authenticated client
+      // Get an authenticated client with a fresh token
       const authenticatedClient = await getAuthenticatedClient();
       
-      // First delete existing permissions
+      // Verificar si tenemos una sesión válida
+      const { data: { session } } = await authenticatedClient.auth.getSession();
+      if (!session) {
+        console.error('No authenticated session found');
+        throw new Error('No se encontró una sesión autenticada. Por favor inicie sesión nuevamente.');
+      }
+      
+      // First delete existing permissions - use a different approach to avoid RLS issues
+      console.log('Deleting existing permissions...');
       const { error: deleteError } = await authenticatedClient
         .from('role_permissions')
         .delete()
-        .not('id', 'is', null); // This is safer than using .neq('id', 0)
+        .gt('id', 0); // This will match all records since id is always > 0
         
       if (deleteError) {
         console.error('Error deleting existing permissions:', deleteError);
-        throw new Error('Error al eliminar permisos existentes');
+        throw new Error('Error al eliminar permisos existentes: ' + deleteError.message);
       }
       
-      // Then insert new permissions in batches to avoid hitting request size limits
+      // Insert new permissions in batches to avoid request size limits
+      console.log('Inserting new permissions...');
       for (let i = 0; i < permissionsToInsert.length; i += 10) {
         const batch = permissionsToInsert.slice(i, i + 10);
         console.log(`Inserting batch ${i/10 + 1}/${Math.ceil(permissionsToInsert.length/10)}`, batch);
@@ -162,7 +181,7 @@ export function useRolePermissions() {
           
         if (insertError) {
           console.error('Error inserting permissions batch:', insertError);
-          throw new Error('Error al guardar nuevos permisos');
+          throw new Error('Error al guardar nuevos permisos: ' + insertError.message);
         }
       }
       
@@ -179,9 +198,9 @@ export function useRolePermissions() {
       console.log('Saving permissions to database...');
       await savePermissionsToDatabase(permissions);
       toast.success('Configuración de permisos guardada correctamente');
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error saving permissions:', error);
-      toast.error('Error al guardar la configuración de permisos');
+      toast.error('Error al guardar la configuración de permisos: ' + (error.message || 'Error desconocido'));
     } finally {
       setSaving(false);
     }
