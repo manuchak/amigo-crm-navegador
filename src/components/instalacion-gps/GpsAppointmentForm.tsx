@@ -1,5 +1,5 @@
 
-import React from "react";
+import React, { useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Form } from "@/components/ui/form";
@@ -22,8 +22,16 @@ export default function GpsAppointmentForm({ onBack, onSchedule, installData }: 
   const { currentUser, userData } = useAuth();
   const navigate = useNavigate();
   
-  // Check for owner role using multiple methods
+  // Check for owner role
   const isOwner = userData?.role === 'owner' || checkForOwnerRole();
+  
+  // Add debug logs for session state
+  useEffect(() => {
+    console.log("GpsAppointmentForm mounted");
+    console.log("Current user:", currentUser);
+    console.log("User data:", userData);
+    console.log("Owner role detected:", isOwner);
+  }, [currentUser, userData, isOwner]);
   
   const {
     form,
@@ -39,6 +47,7 @@ export default function GpsAppointmentForm({ onBack, onSchedule, installData }: 
 
   // If user is not logged in and not an owner, show auth error and provide a link to login
   if (!currentUser && !isOwner) {
+    console.log("Auth error: No current user and not owner");
     return (
       <AppointmentError 
         error="Debes iniciar sesión para agendar instalaciones" 
@@ -55,7 +64,7 @@ export default function GpsAppointmentForm({ onBack, onSchedule, installData }: 
       <Card className="bg-white/95 shadow-xl border-0">
         <CardHeader>
           <CardTitle className="text-xl font-medium text-gray-800">
-            Agendar cita de instalación
+            Agendar cita de instalación {isOwner && <span className="text-xs text-violet-600">(propietario)</span>}
           </CardTitle>
         </CardHeader>
         <CardContent>

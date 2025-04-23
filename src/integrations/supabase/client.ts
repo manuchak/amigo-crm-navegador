@@ -23,6 +23,7 @@ export const supabase = createClient<Database>(
 );
 
 // Admin client with service role for privileged operations using proper configuration
+// This client is initialized but the actual instance is created fresh when needed
 export const supabaseAdmin = createClient<Database>(
   SUPABASE_URL,
   SUPABASE_SERVICE_ROLE_KEY,
@@ -30,6 +31,13 @@ export const supabaseAdmin = createClient<Database>(
     auth: {
       autoRefreshToken: false,
       persistSession: false
+    },
+    global: {
+      headers: {
+        // Setting explicit Authorization header with the Bearer prefix and service role key
+        'Authorization': `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+        'apikey': SUPABASE_SERVICE_ROLE_KEY,
+      }
     }
   }
 );
@@ -66,7 +74,7 @@ export const getAdminClient = () => {
     }
 
     // Create a completely fresh client instance with explicit authorization headers
-    const adminClient = createClient<Database>(
+    return createClient<Database>(
       SUPABASE_URL,
       SUPABASE_SERVICE_ROLE_KEY,
       {
@@ -84,8 +92,6 @@ export const getAdminClient = () => {
         }
       }
     );
-    
-    return adminClient;
   } catch (error) {
     console.error("Critical error creating admin client:", error);
     throw new Error("Error crítico al inicializar cliente de administración");

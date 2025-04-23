@@ -4,7 +4,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useToast } from "@/hooks/use-toast";
-import { supabase, getAuthenticatedClient, checkForOwnerRole, supabaseAdmin } from "@/integrations/supabase/client";
+import { supabase, getAdminClient, checkForOwnerRole } from "@/integrations/supabase/client";
 import { format } from "date-fns";
 import { useAuth } from "@/context/AuthContext";
 
@@ -37,28 +37,10 @@ export const useGpsAppointment = (onSchedule: (data: AppointmentFormData) => voi
     }
   });
 
-  // Check authentication status on mount with special handling for owner role
+  // Clear any errors when component mounts
   useEffect(() => {
-    const checkAuthStatus = async () => {
-      // Clear any previous errors
-      setError(null);
-      
-      // First check for owner role (fast path)
-      const isOwner = userData?.role === 'owner' || checkForOwnerRole();
-      if (isOwner) {
-        console.log("Usuario con rol owner detectado - sin restricción de autenticación");
-        return;
-      }
-      
-      // For non-owners, verify session
-      const { data } = await supabase.auth.getSession();
-      if (!data.session && !isOwner) {
-        setError("Debes iniciar sesión para agendar instalaciones.");
-      }
-    };
-    
-    checkAuthStatus();
-  }, [userData]);
+    setError(null);
+  }, []);
 
   const handleSubmit = async (formData: AppointmentFormData) => {
     console.log("Submit attempt with form data:", formData);
@@ -66,8 +48,9 @@ export const useGpsAppointment = (onSchedule: (data: AppointmentFormData) => voi
     setError(null);
     
     try {
-      // First check for owner role (fast path)
+      // First check for owner role
       const isOwner = userData?.role === 'owner' || checkForOwnerRole();
+      console.log("Is owner role?", isOwner);
       
       // Format the date for insertion
       const formattedDate = format(formData.date, "yyyy-MM-dd");
@@ -83,45 +66,49 @@ export const useGpsAppointment = (onSchedule: (data: AppointmentFormData) => voi
         install_address: installData.installAddress || {},
         installer_id: installData.installer_id || null,
         notes: formData.notes || null,
-        user_id: isOwner 
-          ? (currentUser?.uid || userData?.uid || 'owner-user')
-          : null // Will be set later for non-owners
+        user_id: null // Will be set appropriately below
       };
 
-      // Choose the appropriate client based on user role
-      let client;
+      let response;
       
       if (isOwner) {
-        // For owners, use the admin client directly
-        client = supabaseAdmin;
-        console.log("Using supabaseAdmin client for owner role");
+        // For owners, create a completely fresh admin client for this operation
+        console.log("Using admin client for owner role");
+        const adminClient = getAdminClient();
+        
+        // Set owner user ID if available
+        installationData.user_id = currentUser?.uid || userData?.uid || 'owner-user';
+        
+        // Use admin client for database operation
+        response = await adminClient
+          .from('gps_installations')
+          .insert(installationData)
+          .select();
       } else {
-        // For regular users, get session and authenticated client
+        // For regular users, verify session first
         const { data: { session } } = await supabase.auth.getSession();
         
         if (!session?.user?.id) {
           throw new Error("Debes iniciar sesión para agendar instalaciones");
         }
         
-        // Set the user ID for non-owners
+        // Set the user ID for regular users
         installationData.user_id = session.user.id;
-        client = supabase;
+        
+        // Use regular client for database operation
+        response = await supabase
+          .from('gps_installations')
+          .insert(installationData)
+          .select();
       }
       
-      console.log("Sending installation data:", installationData);
-      
-      // Use the selected client for the database operation
-      const { data, error: insertError } = await client
-        .from('gps_installations')
-        .insert(installationData)
-        .select();
-      
-      if (insertError) {
-        console.error("Supabase error:", insertError);
-        throw insertError;
+      // Handle potential errors
+      if (response.error) {
+        console.error("Supabase error:", response.error);
+        throw response.error;
       }
 
-      console.log("Installation scheduled successfully:", data);
+      console.log("Installation scheduled successfully:", response.data);
       onSchedule(formData);
       
       toast({
@@ -130,9 +117,6 @@ export const useGpsAppointment = (onSchedule: (data: AppointmentFormData) => voi
       });
     } catch (error: any) {
       console.error("Error scheduling installation:", error);
-      
-      // Special handling for owner role - show more debug info
-      const isOwner = userData?.role === 'owner' || checkForOwnerRole();
       
       // Provide a more user-friendly error message
       let errorMessage = "No se pudo programar la instalación";
@@ -147,9 +131,9 @@ export const useGpsAppointment = (onSchedule: (data: AppointmentFormData) => voi
         errorMessage += `: ${error.message || 'Error desconocido'}`;
       }
       
-      if (isOwner) {
-        errorMessage += ` (Debug - Role: ${userData?.role}, Auth: ${!!currentUser})`;
-      }
+      // Show role information for debugging
+      const isOwner = userData?.role === 'owner' || checkForOwnerRole();
+      errorMessage += ` (Role: ${userData?.role || 'unknown'}, Auth: ${!!currentUser})`;
       
       setError(errorMessage);
       
