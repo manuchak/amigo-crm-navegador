@@ -87,7 +87,8 @@ export const getAdminClient = () => {
     'Authorization': `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`
   };
   
-  return supabaseAdmin.from('role_permissions').setHeaders(headers);
+  // Changed from setHeaders to headers method which is the correct API
+  return supabaseAdmin.from('role_permissions').headers(headers);
 };
 
 /**
