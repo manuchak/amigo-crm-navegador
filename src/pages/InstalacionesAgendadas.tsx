@@ -55,7 +55,7 @@ export default function InstalacionesAgendadas() {
         date: installation.date,
         time: installation.time,
         timezone: installation.timezone,
-        vehicles: installation.vehicles,
+        vehicles: installation.vehicles as Vehicle[],
         status: installation.status,
         owner_name: installation.owner_name,
         install_address: installation.install_address as Installation['install_address'],
