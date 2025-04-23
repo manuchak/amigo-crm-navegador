@@ -5,69 +5,84 @@ import { getAdminClient } from '@/integrations/supabase/client';
 
 export function usePermissionsSave() {
   const savePermissionsToDatabase = async (permsToSave: RolePermission[]) => {
-    console.log('Iniciando proceso de guardado de permisos');
+    console.log('Starting permission save process');
     
     try {
-      // Paso 1: Obtener un cliente admin fresco para cada operación
-      console.log('Creando cliente admin fresco para operación de permisos');
+      // STEP 1: Get fresh admin client and validate connection
+      console.log('Creating fresh admin client for permission saving...');
       const client = getAdminClient();
       
-      // Paso 2: Verificar que el cliente esté funcionando con una consulta simple
-      console.log('Validando conexión del cliente admin...');
-      const { data: connectionTest, error: connectionError } = await client
-        .from('role_permissions')
-        .select('count(*)', { count: 'exact', head: true });
-        
-      if (connectionError) {
-        console.error('Falló validación de cliente admin:', connectionError);
-        throw new Error(`Error de conexión con la base de datos: ${connectionError.message}`);
+      // Test connection with a simple, reliable request first
+      console.log('Testing database connection before save operation...');
+      const { data: testData, error: testError } = await client.rpc('version');
+      
+      if (testError) {
+        console.error('Connection test failed:', testError);
+        throw new Error(`Error de conexión con la base de datos: ${testError.message}`);
       }
       
-      console.log('Conexión del cliente admin validada con éxito');
+      console.log('Connection test successful');
       
-      // Paso 3: Preparar datos para inserción
+      // STEP 2: Get current permissions for comparison
+      console.log('Checking existing permissions...');
+      const { data: existingPerms, error: checkError } = await client
+        .from('role_permissions')
+        .select('count(*)', { head: true, count: 'exact' });
+        
+      if (checkError) {
+        console.error('Error checking existing permissions:', checkError);
+        throw new Error(`Error al verificar permisos existentes: ${checkError.message}`);
+      }
+      
+      const beforeCount = existingPerms?.count || 0;
+      console.log(`Current permissions count: ${beforeCount}`);
+      
+      // STEP 3: Prepare data for insertion
       const permissionsToInsert = preparePermissionsForInsert(permsToSave);
-      console.log('Total permisos a insertar:', permissionsToInsert.length);
+      console.log(`Prepared ${permissionsToInsert.length} permissions for insertion`);
       
-      // Paso 4: Eliminar permisos existentes con una estrategia más robusta
-      console.log('Eliminando permisos existentes...');
-      
-      // Primero obtenemos el conteo total para validar después
-      const { count: beforeCount, error: countError } = await client
-        .from('role_permissions')
-        .select('*', { count: 'exact', head: true });
+      // STEP 4: Delete existing permissions
+      if (beforeCount > 0) {
+        console.log('Removing existing permissions...');
         
-      if (countError) {
-        console.error('Error al obtener conteo de permisos:', countError);
-        throw new Error(`Error al verificar permisos existentes: ${countError.message}`);
+        // More reliable deletion approach
+        const { error: deleteError } = await client
+          .from('role_permissions')
+          .delete()
+          .not('id', 'is', null); // This targets all rows with non-null IDs
+          
+        if (deleteError) {
+          console.error('Error deleting existing permissions:', deleteError);
+          throw new Error(`Error al eliminar permisos existentes: ${deleteError.message}`);
+        }
+        
+        // Verify deletion
+        const { count: afterDeleteCount, error: verifyDeleteError } = await client
+          .from('role_permissions')
+          .select('*', { count: 'exact', head: true });
+          
+        if (verifyDeleteError) {
+          console.error('Error verifying deletion:', verifyDeleteError);
+        } else {
+          console.log(`After deletion: ${afterDeleteCount || 0} permissions remain`);
+          if ((afterDeleteCount || 0) > 0) {
+            console.warn('Not all permissions were deleted, proceeding anyway');
+          }
+        }
       }
       
-      console.log(`Conteo antes de eliminar: ${beforeCount || 0} permisos`);
+      // STEP 5: Insert new permissions in smaller batches for reliability
+      const BATCH_SIZE = 10; // Smaller batches to reduce likelihood of errors
+      console.log(`Inserting ${permissionsToInsert.length} permissions in batches of ${BATCH_SIZE}`);
       
-      // Ahora realizamos la eliminación con una consulta más específica
-      const { error: deleteError } = await client
-        .from('role_permissions')
-        .delete()
-        .gte('id', 0); // Esto asegura que apuntamos a todas las filas
-        
-      if (deleteError) {
-        console.error('Error al eliminar permisos existentes:', deleteError);
-        throw new Error(`Error al eliminar permisos existentes: ${deleteError.message}`);
-      }
-      
-      console.log('Permisos eliminados correctamente');
-      
-      // Paso 5: Insertar nuevos permisos en lotes para evitar limitaciones de tamaño de solicitud
-      const BATCH_SIZE = 20; // Un tamaño de lote más pequeño para mayor fiabilidad
-      console.log(`Insertando ${permissionsToInsert.length} permisos en lotes de ${BATCH_SIZE}`);
-      
-      let totalInserted = 0;
+      let successfulInserts = 0;
+      let totalBatches = Math.ceil(permissionsToInsert.length / BATCH_SIZE);
       
       for (let i = 0; i < permissionsToInsert.length; i += BATCH_SIZE) {
         const batch = permissionsToInsert.slice(i, i + BATCH_SIZE);
         const batchNumber = Math.floor(i / BATCH_SIZE) + 1;
         
-        console.log(`Insertando lote ${batchNumber} (${batch.length} items)`);
+        console.log(`Processing batch ${batchNumber}/${totalBatches} (${batch.length} items)`);
         
         const { error: insertError, data: insertedData } = await client
           .from('role_permissions')
@@ -75,43 +90,63 @@ export function usePermissionsSave() {
           .select();
           
         if (insertError) {
-          console.error(`Error al insertar lote ${batchNumber}:`, insertError);
+          console.error(`Error inserting batch ${batchNumber}:`, insertError);
           throw new Error(`Error al guardar permisos (lote ${batchNumber}): ${insertError.message}`);
         }
         
-        totalInserted += batch.length;
-        console.log(`Lote ${batchNumber} insertado correctamente - Progreso: ${totalInserted}/${permissionsToInsert.length}`);
+        successfulInserts += batch.length;
+        console.log(`Batch ${batchNumber} inserted successfully - Progress: ${successfulInserts}/${permissionsToInsert.length}`);
       }
       
-      // Paso 6: Verificación final para confirmar que todo se guardó correctamente
-      const { count: afterCount, error: finalCountError } = await client
+      // STEP 6: Final verification of insertion
+      const { count: finalCount, error: finalCountError } = await client
         .from('role_permissions')
         .select('*', { count: 'exact', head: true });
         
       if (finalCountError) {
-        console.error('Error en verificación final:', finalCountError);
+        console.error('Error in final verification:', finalCountError);
+        console.warn('Unable to verify final results, but insertion completed without errors');
       } else {
-        console.log(`Verificación final: ${afterCount} permisos en base de datos`);
-        if (afterCount !== permissionsToInsert.length) {
-          console.warn(`Advertencia: Discrepancia en número de permisos insertados (${permissionsToInsert.length} vs ${afterCount})`);
+        console.log(`Final verification: ${finalCount} permissions in database`);
+        
+        if (finalCount !== permissionsToInsert.length) {
+          console.warn(`Permission count mismatch: expected ${permissionsToInsert.length}, got ${finalCount}`);
+          
+          // Despite the mismatch, if we have most permissions, consider it a qualified success
+          if (finalCount && finalCount >= permissionsToInsert.length * 0.9) {
+            console.log('Most permissions were saved successfully');
+          } else {
+            console.error('Significant discrepancy in saved permissions');
+          }
+        } else {
+          console.log('All permissions saved with exact count match');
         }
       }
       
-      console.log('Todos los permisos guardados en la base de datos con éxito');
+      console.log('Permission save operation completed successfully');
       toast.success('Permisos guardados correctamente');
     } catch (error: any) {
-      console.error('Error crítico en savePermissionsToDatabase:', error);
+      console.error('Critical error in savePermissionsToDatabase:', error);
       
-      // Determinar si es un error de API key
+      // Better error classification
       const errorMessage = error.message || 'Error desconocido';
-      const isApiKeyError = errorMessage.includes('Invalid API key') || 
-                           errorMessage.includes('clave API') || 
-                           errorMessage.includes('JWT') ||
-                           errorMessage.includes('autenticación');
       
-      if (isApiKeyError) {
+      if (errorMessage.includes('Invalid API key') || 
+          errorMessage.includes('clave API') ||
+          errorMessage.includes('JWT') ||
+          errorMessage.includes('autenticación') ||
+          errorMessage.includes('Authentication')) {
+        
+        // Authentication-specific error messaging
         toast.error('Error de autenticación con la base de datos. Por favor intente nuevamente o contacte al administrador.');
+        console.error('Authentication error details:', error);
+      } else if (errorMessage.includes('network') || 
+                errorMessage.includes('timeout') || 
+                errorMessage.includes('conexión')) {
+        // Network-specific errors
+        toast.error('Error de conexión a la base de datos. Verifique su conexión a internet e intente nuevamente.');
       } else {
+        // General errors
         toast.error(`Error al guardar permisos: ${errorMessage}`);
       }
       

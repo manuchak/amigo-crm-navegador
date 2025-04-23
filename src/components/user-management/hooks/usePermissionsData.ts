@@ -21,7 +21,7 @@ export function usePermissionsData() {
     try {
       console.log('Loading role permissions, attempt:', retryCount + 1);
       
-      // Verificar el estado de propietario desde localStorage
+      // First, check if we're in owner mode - this affects how we proceed
       const currentOwnerStatus = checkForOwnerRole();
       console.log('Current owner status:', currentOwnerStatus ? '✅ Yes' : '❌ No');
       
@@ -30,23 +30,23 @@ export function usePermissionsData() {
         setIsOwner(currentOwnerStatus);
       }
       
-      // Obtenemos un cliente admin completamente nuevo en cada carga
-      // Esto evita problemas de caché de token o sesión
-      console.log('Obteniendo cliente admin para cargar permisos...');
+      // Use a fresh admin client for every operation
+      console.log('Creating fresh admin client for permissions...');
       const adminClient = getAdminClient();
       
-      // Primera prueba de conexión básica (sin datos) para validar el cliente
-      const { error: connectionError } = await adminClient.from('role_permissions')
-        .select('count(*)', { count: 'exact', head: true });
+      // Test connection with a simple, lightweight request first before proceeding
+      console.log('Testing initial database connection...');
+      const { data: testData, error: testError } = await adminClient.rpc('version');
       
-      if (connectionError) {
-        console.error('Error en prueba de conexión:', connectionError);
-        throw new Error(`Error de conexión inicial: ${connectionError.message}`);
+      if (testError) {
+        console.error('Initial connection test failed:', testError);
+        throw new Error(`Error de conexión inicial: ${testError.message}`);
       }
       
-      console.log('Conexión de prueba exitosa, procediendo a consultar permisos');
-
-      // Consulta real de datos de permisos con el cliente validado
+      console.log('Connection test successful:', testData ? 'Connected' : 'No data');
+      
+      // Now proceed to get the actual permissions
+      console.log('Fetching permissions data...');
       const { data: permissionsData, error: queryError } = await adminClient
         .from('role_permissions')
         .select('*');
@@ -56,38 +56,43 @@ export function usePermissionsData() {
         throw new Error(`Error al cargar permisos: ${queryError.message}`);
       }
       
-      console.log('Datos de permisos obtenidos:', permissionsData?.length || 0, 'registros');
+      console.log('Permission data received:', permissionsData?.length || 0, 'records');
       
-      // Manejar el caso donde no se encuentran permisos
+      // Handle case where no permissions found
       if (!permissionsData || permissionsData.length === 0) {
-        console.log('No se encontraron permisos, creando valores predeterminados');
+        console.log('No permissions found, creating default values');
         const defaultPermissions = getInitialPermissions();
         setPermissions(defaultPermissions);
       } else {
-        console.log('Procesando datos de permisos existentes');
+        console.log('Processing existing permissions data');
         const loadedPermissions = processPermissionsData(permissionsData);
         setPermissions(loadedPermissions);
       }
       
       setError(null);
     } catch (err: any) {
-      console.error('Error crítico en loadPermissions:', err);
+      console.error('Critical error in loadPermissions:', err);
       
-      // Comprobación específica de errores relacionados con la API key
+      // Check for specific API key errors
       const errorMessage = err.message || 'Error desconocido';
       const isApiKeyError = errorMessage.includes('Invalid API key') || 
                            errorMessage.includes('clave API') || 
                            errorMessage.includes('JWT') ||
-                           errorMessage.includes('autenticación');
+                           errorMessage.includes('autenticación') ||
+                           errorMessage.includes('Authentication');
       
       if (isApiKeyError) {
         setError('Error de autenticación con la base de datos. Por favor intente nuevamente.');
+        
+        // Additional debugging for authentication errors
+        console.error('Authentication error details:', err);
+        console.log('Current owner status:', checkForOwnerRole() ? 'Owner' : 'Not owner');
       } else {
         setError(errorMessage);
       }
       
-      // Usar permisos predeterminados como respaldo en caso de error
-      console.log('Cargando permisos predeterminados como respaldo');
+      // Always load default permissions as fallback
+      console.log('Loading default permissions as fallback');
       const defaultPermissions = getInitialPermissions();
       setPermissions(defaultPermissions);
       

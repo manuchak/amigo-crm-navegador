@@ -65,7 +65,7 @@ export const getAdminClient = () => {
     }
 
     // Create a completely fresh client instance with explicit authorization headers
-    // This approach ensures we bypass any token-related issues
+    // Critical fix: Use explicit headers in global config to bypass token issues
     const adminClient = createClient<Database>(
       SUPABASE_URL,
       SUPABASE_SERVICE_ROLE_KEY,
@@ -76,9 +76,10 @@ export const getAdminClient = () => {
         },
         global: {
           headers: {
-            // Setting explicit Authorization header with service role key
-            // This is the key fix to ensure we're always using the right credentials
-            Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`
+            // Setting explicit Authorization header with the Bearer prefix and service role key
+            // This ensures we're always using the correct authentication method
+            'Authorization': `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+            'apikey': SUPABASE_SERVICE_ROLE_KEY
           }
         }
       }
