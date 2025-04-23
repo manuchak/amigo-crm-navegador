@@ -17,9 +17,9 @@ import Unauthorized from "./pages/Unauthorized";
 import UserManagement from "./pages/UserManagement";
 import AuthGuard from "./components/auth/AuthGuard";
 import Landing from "./pages/Landing";
-// Import the page with the updated name
 import AtencionAlAfiliado from "./pages/Support";
 import InstalacionGPS from "./pages/InstalacionGPS";
+import InstalacionGPSInstallers from "./pages/InstalacionGPSInstallers";
 
 const queryClient = new QueryClient();
 
@@ -32,7 +32,6 @@ const App = () => {
             <LeadsProvider>
               <Toaster />
               <Sonner />
-              {/* Only show navbar on non-landing pages */}
               <Routes>
                 <Route path="/custodios" element={<Landing />} />
                 <Route path="*" element={<AppWithNavbar />} />
@@ -45,62 +44,63 @@ const App = () => {
   );
 };
 
-// Component that wraps routes that need the navbar
 const AppWithNavbar = () => {
   return (
     <>
       <Navbar />
       <Routes>
-        {/* Public routes */}
         <Route path="/" element={<Index />} />
         <Route path="/login" element={<Login />} />
         <Route path="/unauthorized" element={<Unauthorized />} />
-        
-        {/* Protected routes */}
+
         <Route path="/dashboard" element={
           <AuthGuard>
             <Dashboard />
           </AuthGuard>
         } />
-        
+
         <Route path="/leads" element={
           <AuthGuard allowedRoles={['atención_afiliado', 'admin', 'owner']}>
             <Leads />
           </AuthGuard>
         } />
-        
+
         <Route path="/requerimientos" element={
           <AuthGuard allowedRoles={['supply', 'supply_admin', 'admin', 'owner']}>
             <Requerimientos />
           </AuthGuard>
         } />
 
-        {/* Nueva ruta Instalación GPS */}
+        <Route path="/instalacion-gps/instaladores" element={
+          <AuthGuard allowedRoles={['admin', 'owner']}>
+            <InstalacionGPSInstallers />
+          </AuthGuard>
+        } />
+
         <Route path="/instalacion-gps" element={
           <AuthGuard>
             <InstalacionGPS />
           </AuthGuard>
         } />
-        
-        {/* Update the route name */}
+
         <Route path="/support" element={
           <AuthGuard>
             <AtencionAlAfiliado />
           </AuthGuard>
         } />
-        
+
         <Route path="/admin-config" element={
           <AuthGuard allowedRoles={['admin', 'owner']}>
             <AdminConfig />
           </AuthGuard>
         } />
-        
+
         <Route path="/user-management" element={
           <AuthGuard allowedRoles={['admin', 'owner']}>
             <UserManagement />
           </AuthGuard>
         } />
-        
+
         <Route path="*" element={<NotFound />} />
       </Routes>
     </>
