@@ -9,6 +9,7 @@ import { MapPin, CalendarIcon, Clock, AlertTriangle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
 type GpsAppointmentFormProps = {
   onBack: () => void;
@@ -46,6 +47,7 @@ export default function GpsAppointmentForm({ onBack, onSchedule, installData }: 
   const [time, setTime] = React.useState("");
   const [timezone, setTimezone] = React.useState("GMT-6 México");
   const [notes, setNotes] = React.useState("");
+  const [isSaving, setIsSaving] = React.useState(false);
   const { toast } = useToast();
 
   const handleDateSelect = (selectedDate: Date | undefined) => {
@@ -76,7 +78,60 @@ export default function GpsAppointmentForm({ onBack, onSchedule, installData }: 
     "GMT-8 Tijuana"
   ];
 
-  const disabled = !date || !time;
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!date || !time) return;
+    
+    setIsSaving(true);
+    
+    try {
+      // Formatear la fecha para la base de datos (YYYY-MM-DD)
+      const formattedDate = format(date, "yyyy-MM-dd");
+      
+      // Preparar datos para la inserción en la base de datos
+      const installationData = {
+        date: formattedDate,
+        time,
+        timezone,
+        vehicles: installData.vehicles,
+        owner_name: installData.ownerName,
+        email: installData.email,
+        install_address: installData.installAddress,
+        installer_id: installData.installer_id,
+        notes: notes || null
+      };
+      
+      console.log("Guardando datos de instalación:", installationData);
+      
+      // Guardar en Supabase
+      const { data, error } = await supabase
+        .from('gps_installations')
+        .insert(installationData)
+        .select();
+      
+      if (error) {
+        console.error("Error guardando instalación:", error);
+        throw error;
+      }
+      
+      console.log("Instalación guardada exitosamente:", data);
+      
+      // Llamar al callback con los datos del formulario
+      onSchedule({ date, time, timezone, notes });
+    } catch (error) {
+      console.error("Error al programar la instalación:", error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "No se pudo programar la instalación. Por favor, inténtalo de nuevo.",
+      });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const disabled = !date || !time || isSaving;
 
   // Format vehicle features for display
   const formatFeatures = (vehicle: any) => {
@@ -167,12 +222,7 @@ export default function GpsAppointmentForm({ onBack, onSchedule, installData }: 
         <CardContent>
           <form
             className="space-y-6"
-            onSubmit={e => {
-              e.preventDefault();
-              if (!disabled) {
-                onSchedule({ date, time, timezone, notes });
-              }
-            }}
+            onSubmit={handleSubmit}
           >
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-2">
@@ -253,7 +303,7 @@ export default function GpsAppointmentForm({ onBack, onSchedule, installData }: 
                 disabled={disabled} 
                 className="px-10 bg-violet-600 hover:bg-violet-700"
               >
-                Agendar instalación
+                {isSaving ? "Guardando..." : "Agendar instalación"}
               </Button>
             </div>
           </form>

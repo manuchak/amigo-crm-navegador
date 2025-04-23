@@ -37,18 +37,22 @@ type Vehicle = {
   model: string;
   year: number;
   color: string;
+  vehiclePlate?: string;
+  type?: string;
 };
 
 export default function InstalacionesAgendadas() {
   const { data: installations, isLoading, error } = useQuery({
     queryKey: ['installations'],
     queryFn: async () => {
+      // Imprimir un registro para depuración
+      console.log("Consultando instalaciones agendadas...");
+      
       const { data, error } = await supabase
         .from('gps_installations')
         .select(`
           *,
-          installer_id,
-          installer:gps_installers(nombre, telefono)
+          installer:installer_id(nombre, telefono)
         `)
         .order('date', { ascending: true });
 
@@ -56,6 +60,8 @@ export default function InstalacionesAgendadas() {
         console.error("Error fetching installations:", error);
         throw error;
       }
+      
+      console.log("Datos recibidos de instalaciones:", data);
       
       if (!data || data.length === 0) {
         return [];
@@ -75,6 +81,11 @@ export default function InstalacionesAgendadas() {
       }));
     }
   });
+
+  // Añadir un log para depuración
+  React.useEffect(() => {
+    console.log("Instalaciones disponibles:", installations);
+  }, [installations]);
 
   if (isLoading) {
     return (
@@ -164,7 +175,19 @@ export default function InstalacionesAgendadas() {
                             }
                           </TableCell>
                           <TableCell>
-                            {inst.vehicles ? `${inst.vehicles.length} vehículo(s)` : '0 vehículos'}
+                            {inst.vehicles ? (
+                              <div>
+                                <div>{inst.vehicles.length} vehículo(s)</div>
+                                <div className="text-xs text-muted-foreground">
+                                  {inst.vehicles.map((v, idx) => (
+                                    <span key={idx}>
+                                      {v.brand} {v.model} {v.vehiclePlate ? `(${v.vehiclePlate})` : ''}
+                                      {idx < inst.vehicles.length - 1 ? ', ' : ''}
+                                    </span>
+                                  ))}
+                                </div>
+                              </div>
+                            ) : '0 vehículos'}
                           </TableCell>
                         </TableRow>
                       ))}
