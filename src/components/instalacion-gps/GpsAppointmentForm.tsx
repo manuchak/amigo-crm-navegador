@@ -65,7 +65,10 @@ export default function GpsAppointmentForm({ onBack, onSchedule, installData }: 
                 date={form.watch("date")}
                 time={form.watch("time")}
                 timezone={form.watch("timezone")}
-                onDateSelect={(selectedDate) => form.setValue("date", selectedDate || null, { shouldValidate: true })}
+                onDateSelect={(selectedDate) => {
+                  console.log("Date selected:", selectedDate);
+                  form.setValue("date", selectedDate || null, { shouldValidate: true });
+                }}
                 onTimeSelect={(time) => form.setValue("time", time, { shouldValidate: true })}
                 onTimezoneSelect={(timezone) => form.setValue("timezone", timezone, { shouldValidate: true })}
                 errors={form.formState.errors}
