@@ -19,7 +19,7 @@ const InstalacionGPS = () => {
   const [showInstallerRegister, setShowInstallerRegister] = React.useState(false);
   const [selectedInstaller, setSelectedInstaller] = React.useState<any>(null);
 
-  // Extraer datos para la "mini tarjeta"
+  // Tarjeta integrando nombre, estado, dirección y calificación
   const renderSelectedInstallerCard = () => {
     if (!selectedInstaller) return null;
     const { nombre, direccion_personal, estado, certificaciones } = selectedInstaller;
@@ -35,16 +35,16 @@ const InstalacionGPS = () => {
                 </span>
               )}
             </div>
-            {direccion_personal && (
-              <div className="flex items-center gap-2 text-sm text-slate-700 mb-1">
-                <MapPin className="w-4 h-4 text-violet-400" />
-                <span>{direccion_personal}</span>
-              </div>
-            )}
             {estado && (
               <div className="flex items-center gap-2 text-sm text-slate-500 mb-1">
-                <span className="font-medium">Estado:</span>
+                <MapPin className="w-4 h-4 text-violet-400" />
                 <span>{estado}</span>
+              </div>
+            )}
+            {direccion_personal && (
+              <div className="flex items-center gap-2 text-sm text-slate-700 mb-1">
+                <span className="font-medium">Dirección:</span>
+                <span>{direccion_personal}</span>
               </div>
             )}
             <div className="flex items-center gap-2 text-sm text-slate-500 mt-1">
@@ -78,7 +78,7 @@ const InstalacionGPS = () => {
           {/* Tarjeta minimalista del instalador seleccionado */}
           {renderSelectedInstallerCard()}
 
-          {/* Registrar instalador, ahora MUY INTEGRADA Y CENTRADA, arriba del form */}
+          {/* Registrar instalador, ahora muy integrada y centrada, arriba del form */}
           {showInstallerRegister && (
             <Card className="w-full max-w-lg mx-auto glass border-0 shadow-lg bg-white/90 transition-all animate-fade-in mb-8">
               <CardHeader className="pb-2 flex flex-row items-center gap-4">
@@ -128,7 +128,7 @@ const InstalacionGPS = () => {
             )}
           </div>
 
-          {/* ¡Eliminada la tarjeta de instaladores registrados! */}
+          {/* Tarjeta de instaladores registrados eliminada */}
 
           <Card className="w-full mt-12 bg-white/80 border-0 shadow-none">
             <CardContent className="py-8 flex flex-col items-center justify-center text-muted-foreground">

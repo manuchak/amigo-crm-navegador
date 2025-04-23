@@ -2,7 +2,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ChevronDown, Plus, User, Loader2 } from "lucide-react";
+import { ChevronDown, Plus, User, Star, MapPin } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import type { Tables } from "@/integrations/supabase/types";
@@ -55,7 +55,30 @@ export function InstallerSelectMinimal({ value, onChange, onRegisterNew, disable
     || inst.rfc?.toLowerCase().includes(search.toLowerCase())
   );
 
-  // Minimal Apple-inspired style: soft, flat, very rounded, glassy
+  // Siempre muestra calificación como "Sin calificación"
+  const renderInstallerLabel = (inst: Installer) => (
+    <div className="flex flex-col items-start gap-0 min-w-0">
+      <div className="flex items-center gap-1">
+        <span className="font-semibold text-primary">{inst.nombre}</span>
+        {inst.certificaciones && (
+          <Badge variant="purple" className="ml-1">{inst.certificaciones}</Badge>
+        )}
+      </div>
+      <div className="flex items-center gap-2 text-xs text-slate-600 mt-0.5">
+        {inst.estado && (
+          <span className="flex items-center gap-1">
+            <MapPin className="w-3 h-3 text-violet-300" />
+            {inst.estado}
+          </span>
+        )}
+        <span className="flex items-center gap-1 ml-2">
+          <Star className="w-3 h-3 text-yellow-400" />
+          Sin calificación
+        </span>
+      </div>
+    </div>
+  );
+
   return (
     <div className="relative w-full mt-0.5">
       <button
@@ -69,13 +92,10 @@ export function InstallerSelectMinimal({ value, onChange, onRegisterNew, disable
         aria-label="Selecciona un instalador"
       >
         {value ? (
-          <span className="flex items-center gap-2">
-            <User className="w-5 h-5 text-violet-500" />
-            <span className="font-medium text-primary">{value.nombre}</span>
-            {value.certificaciones && (
-              <Badge variant="purple" className="ml-2">{value.certificaciones}</Badge>
-            )}
-          </span>
+          <>
+            <User className="w-5 h-5 text-violet-500 flex-shrink-0" />
+            <div className="flex-1 min-w-0">{renderInstallerLabel(value)}</div>
+          </>
         ) : (
           <span className="text-slate-400 font-semibold flex items-center gap-2">
             <User className="w-5 h-5 opacity-50" />
@@ -102,7 +122,7 @@ export function InstallerSelectMinimal({ value, onChange, onRegisterNew, disable
           <div className="flex flex-col gap-0.5 py-2 px-1 overflow-y-auto">
             {loading ? (
               <div className="text-base text-center py-10 text-slate-400 flex flex-col items-center justify-center gap-2">
-                <Loader2 className="animate-spin text-violet-300" />
+                <svg className="animate-spin text-violet-300" width="24" height="24" />
                 Cargando…
               </div>
             ) : filtered.length === 0 ? (
@@ -121,11 +141,8 @@ export function InstallerSelectMinimal({ value, onChange, onRegisterNew, disable
                     setOpen(false);
                   }}
                 >
-                  <span className="flex-1 font-semibold text-violet-800 flex items-center gap-2">
-                    {inst.nombre}
-                    {inst.certificaciones && <Badge variant="purple">{inst.certificaciones}</Badge>}
-                  </span>
-                  <span className="text-xs text-muted-foreground font-mono">{inst.rfc || inst.telefono}</span>
+                  {renderInstallerLabel(inst)}
+                  <span className="ml-auto text-xs text-muted-foreground font-mono">{inst.rfc || inst.telefono}</span>
                 </button>
               ))
             )}
