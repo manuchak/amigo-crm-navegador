@@ -1,5 +1,5 @@
 
-import React, { useEffect } from "react";
+import React from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Form } from "@/components/ui/form";
@@ -8,11 +8,7 @@ import { InstallationSummary } from "./appointment/InstallationSummary";
 import { DateTimeSelector } from "./appointment/DateTimeSelector";
 import { AppointmentError } from "./appointment/AppointmentError";
 import { useGpsAppointment } from "./hooks/useGpsAppointment";
-import { useAuth } from "@/context/AuthContext";
 import { useNavigate } from "react-router-dom";
-import { checkForOwnerRole } from "@/integrations/supabase/client";
-import { AlertTriangle } from "lucide-react";
-import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 
 type GpsAppointmentFormProps = {
   onBack: () => void;
@@ -21,35 +17,13 @@ type GpsAppointmentFormProps = {
 };
 
 export default function GpsAppointmentForm({ onBack, onSchedule, installData }: GpsAppointmentFormProps) {
-  const { currentUser, userData } = useAuth();
   const navigate = useNavigate();
   
-  // Verificación mejorada para detectar el rol de propietario
-  const isOwnerFromRole = userData?.role === 'owner';
-  const isOwnerFromStorage = checkForOwnerRole();
-  const isOwner = isOwnerFromRole || isOwnerFromStorage;
-  
-  // Logging más detallado para depuración
-  useEffect(() => {
-    console.log("=== DEBUG: GpsAppointmentForm montado ===");
-    console.log("Estado de autenticación:", { 
-      currentUser, 
-      userData, 
-      isOwnerFromRole, 
-      isOwnerFromStorage,
-      isOwnerCombined: isOwner,
-      userDataRole: userData?.role
-    });
-    
-    // Verificar datos en localStorage para diagnóstico
-    try {
-      const localStorageUser = localStorage.getItem('current_user');
-      console.log("Datos de usuario en localStorage:", localStorageUser ? JSON.parse(localStorageUser) : null);
-    } catch (e) {
-      console.error("Error al leer localStorage:", e);
-    }
-  }, [currentUser, userData, isOwner, isOwnerFromRole, isOwnerFromStorage]);
-  
+  // No hay datos de instalación
+  if (!installData) {
+    return <AppointmentError onBack={onBack} noInstallData />;
+  }
+
   const {
     form,
     handleSubmit,
@@ -57,37 +31,9 @@ export default function GpsAppointmentForm({ onBack, onSchedule, installData }: 
     error
   } = useGpsAppointment(onSchedule, installData);
 
-  // No hay datos de instalación
-  if (!installData) {
-    return <AppointmentError onBack={onBack} noInstallData />;
-  }
-
-  // Usuario no autenticado y no es propietario
-  if (!currentUser && !isOwner) {
-    console.log("Redirigiendo a login: No hay usuario autenticado y no es propietario");
-    return (
-      <AppointmentError 
-        error="Debes iniciar sesión para agendar instalaciones" 
-        onBack={() => navigate('/login')} 
-        showLoginButton 
-      />
-    );
-  }
-
   return (
     <div className="w-full max-w-4xl mx-auto space-y-6">
       <InstallationSummary installData={installData} />
-
-      {isOwner && (
-        <Alert className="bg-amber-50 border-amber-200">
-          <AlertTriangle className="h-4 w-4 text-amber-600" />
-          <AlertTitle className="text-amber-700">Modo propietario activo</AlertTitle>
-          <AlertDescription className="text-amber-600">
-            Estás operando con privilegios de propietario 
-            ({isOwnerFromRole ? "role" : ""}{isOwnerFromRole && isOwnerFromStorage ? "+" : ""}{isOwnerFromStorage ? "storage" : ""}).
-          </AlertDescription>
-        </Alert>
-      )}
 
       <Card className="bg-white/95 shadow-xl border-0">
         <CardHeader>
