@@ -15,10 +15,6 @@ const useUserManagement = ({ getAllUsers }: UseUserManagementProps) => {
   const [isConfirmationOpen, setIsConfirmationOpen] = useState(false);
   const [newRole, setNewRole] = useState<any>('unverified');
   
-  useEffect(() => {
-    fetchUsers();
-  }, []);
-  
   const fetchUsers = async () => {
     try {
       setLoading(true);

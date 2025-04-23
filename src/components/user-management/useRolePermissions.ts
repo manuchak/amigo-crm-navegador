@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { supabase, getAuthenticatedClient } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import {
   availablePages,
@@ -29,37 +29,52 @@ export function useRolePermissions() {
     setLoading(true);
     try {
       console.log('Loading role permissions from Supabase...');
-      const { data: permissionsData, error } = await supabase
+      
+      // Get an authenticated client to ensure we have a valid session
+      const authenticatedClient = await getAuthenticatedClient();
+      
+      const { data: permissionsData, error } = await authenticatedClient
         .from('role_permissions')
         .select('*');
 
       console.log('Permissions data from Supabase:', permissionsData);
-      console.log('Error from Supabase:', error);
-
+      
       if (error) {
         console.error('Error loading permissions:', error);
         toast.error('Error al cargar las configuraciones de permisos');
+        // Initialize with default permissions but don't save them yet
         setPermissions(getInitialPermissions());
+        setLoading(false);
         return;
       }
+      
       if (!permissionsData || permissionsData.length === 0) {
         const defaultPermissions = getInitialPermissions();
         setPermissions(defaultPermissions);
-        await savePermissionsToDatabase(defaultPermissions);
+        
+        try {
+          await savePermissionsToDatabase(defaultPermissions);
+        } catch (err) {
+          console.error('Error saving default permissions:', err);
+          toast.error('Error al guardar las configuraciones de permisos predeterminadas');
+        }
       } else {
         const loadedPermissions: RolePermission[] = [];
         for (const role of ROLES) {
           const rolePerms = permissionsData.filter((p: any) => p.role === role);
           const pages: Record<string, boolean> = {};
           const actions: Record<string, boolean> = {};
+          
           availablePages.forEach(page => {
             const pagePermRecord = rolePerms.find((p: any) => p.permission_type === 'page' && p.permission_id === page.id);
             pages[page.id] = !!pagePermRecord && pagePermRecord.allowed;
           });
+          
           availableActions.forEach(action => {
             const actionPermRecord = rolePerms.find((p: any) => p.permission_type === 'action' && p.permission_id === action.id);
             actions[action.id] = !!actionPermRecord && actionPermRecord.allowed;
           });
+          
           loadedPermissions.push({
             role,
             pages,
@@ -119,24 +134,29 @@ export function useRolePermissions() {
       }
     }
 
-    console.log('Permissions to insert:', permissionsToInsert);
+    console.log('Permissions to insert:', permissionsToInsert.length, 'records');
     
     try {
+      // Get an authenticated client
+      const authenticatedClient = await getAuthenticatedClient();
+      
       // First delete existing permissions
-      const { error: deleteError } = await supabase
+      const { error: deleteError } = await authenticatedClient
         .from('role_permissions')
         .delete()
-        .neq('id', 0);
+        .not('id', 'is', null); // This is safer than using .neq('id', 0)
         
       if (deleteError) {
         console.error('Error deleting existing permissions:', deleteError);
         throw new Error('Error al eliminar permisos existentes');
       }
       
-      // Then insert new permissions
+      // Then insert new permissions in batches to avoid hitting request size limits
       for (let i = 0; i < permissionsToInsert.length; i += 10) {
         const batch = permissionsToInsert.slice(i, i + 10);
-        const { error: insertError } = await supabase
+        console.log(`Inserting batch ${i/10 + 1}/${Math.ceil(permissionsToInsert.length/10)}`, batch);
+        
+        const { error: insertError } = await authenticatedClient
           .from('role_permissions')
           .insert(batch);
           

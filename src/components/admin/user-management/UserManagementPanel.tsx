@@ -33,6 +33,13 @@ const UserManagementPanel = () => {
     handleEditClick
   } = useUserManagement({ getAllUsers });
   
+  useEffect(() => {
+    // Initial fetch of users when component mounts
+    if (!users.length && !loading) {
+      fetchUsers();
+    }
+  }, []);
+  
   const handleUpdateRole = async () => {
     if (!selectedUser || !newRole) return;
     
