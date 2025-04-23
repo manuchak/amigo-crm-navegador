@@ -12,6 +12,8 @@ import { useForm } from "react-hook-form";
 import { format } from "date-fns";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { Textarea } from "@/components/ui/textarea";
+import { FormField, FormItem, FormLabel, FormControl, FormMessage } from "@/components/ui/form";
 
 type GpsAppointmentFormProps = {
   onBack: () => void;
@@ -79,9 +81,9 @@ export default function GpsAppointmentForm({ onBack, onSchedule, installData }: 
         throw error;
       }
 
-      // Fix the type by ensuring date is not undefined when passing to onSchedule
+      // Aseguramos que todos los datos requeridos están presentes
       onSchedule({
-        date: formData.date,  // This is now guaranteed to be a Date due to validation
+        date: formData.date, // Garantizado por la validación
         time: formData.time,
         timezone: formData.timezone,
         notes: formData.notes
@@ -102,6 +104,14 @@ export default function GpsAppointmentForm({ onBack, onSchedule, installData }: 
       setIsSaving(false);
     }
   };
+
+  // Debugging para ver el estado de validación
+  console.log("Form state:", {
+    isValid: form.formState.isValid,
+    isDirty: form.formState.isDirty,
+    errors: form.formState.errors,
+    values: form.getValues()
+  });
 
   if (!installData) {
     return (
@@ -134,10 +144,28 @@ export default function GpsAppointmentForm({ onBack, onSchedule, installData }: 
               date={form.watch("date")}
               time={form.watch("time")}
               timezone={form.watch("timezone")}
-              onDateSelect={(selectedDate) => form.setValue("date", selectedDate || null)}
-              onTimeSelect={(time) => form.setValue("time", time)}
-              onTimezoneSelect={(timezone) => form.setValue("timezone", timezone)}
+              onDateSelect={(selectedDate) => form.setValue("date", selectedDate || null, { shouldValidate: true })}
+              onTimeSelect={(time) => form.setValue("time", time, { shouldValidate: true })}
+              onTimezoneSelect={(timezone) => form.setValue("timezone", timezone, { shouldValidate: true })}
               errors={form.formState.errors}
+            />
+
+            <FormField
+              control={form.control}
+              name="notes"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="text-sm font-medium text-gray-700">Notas adicionales</FormLabel>
+                  <FormControl>
+                    <Textarea 
+                      placeholder="Instrucciones especiales, referencias, etc."
+                      className="resize-none border-gray-200"
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
             />
 
             <div className="flex justify-between gap-4 pt-6">
@@ -151,7 +179,7 @@ export default function GpsAppointmentForm({ onBack, onSchedule, installData }: 
               </Button>
               <Button 
                 type="submit" 
-                disabled={!form.formState.isValid || isSaving}
+                disabled={isSaving}
                 className="px-10 bg-violet-600 hover:bg-violet-700"
               >
                 {isSaving ? "Guardando..." : "Agendar instalación"}

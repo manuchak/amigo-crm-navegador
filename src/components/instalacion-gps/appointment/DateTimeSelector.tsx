@@ -7,6 +7,7 @@ import { CalendarIcon, Clock } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { FieldErrors } from "react-hook-form";
+import { es } from "date-fns/locale";
 
 type DateTimeSelectorProps = {
   date: Date | null;
@@ -91,7 +92,7 @@ export function DateTimeSelector({
               )}
             >
               <CalendarIcon className="mr-2 h-4 w-4" />
-              {date ? format(date, "PPP") : "Selecciona una fecha"}
+              {date ? format(date, "PPP", { locale: es }) : "Selecciona una fecha"}
             </Button>
           </PopoverTrigger>
           <PopoverContent className="w-auto p-0" align="start">
@@ -101,6 +102,7 @@ export function DateTimeSelector({
               onSelect={handleDateSelect}
               disabled={(date) => isBefore(date, startOfToday())}
               initialFocus
+              locale={es}
               className={cn("p-3 pointer-events-auto")}
             />
           </PopoverContent>
@@ -121,7 +123,7 @@ export function DateTimeSelector({
               className={cn(
                 "rounded-lg border-gray-200",
                 time === opt && "bg-violet-600 hover:bg-violet-700 text-white",
-                errors?.time && "border-red-500"
+                errors?.time && !time && "border-red-500"
               )}
               onClick={() => onTimeSelect(opt)}
             >
@@ -145,6 +147,7 @@ export function DateTimeSelector({
           value={timezone}
           onChange={e => onTimezoneSelect(e.target.value)}
         >
+          <option value="">Seleccionar zona horaria</option>
           {TIMEZONE_OPTIONS.map(zone => (
             <option key={zone} value={zone}>{zone}</option>
           ))}
