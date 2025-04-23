@@ -7,6 +7,8 @@ import { useAuth } from "@/context/AuthContext";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { FilePlus } from "lucide-react";
+import { InstallerSelectMinimal } from "@/components/instalacion-gps/installers/InstallerSelectMinimal";
+import InstallerRegisterForm from "@/components/instalacion-gps/installers/InstallerRegisterForm";
 
 const InstalacionGPS = () => {
   const [step, setStep] = React.useState<1 | 2>(1);
@@ -14,6 +16,8 @@ const InstalacionGPS = () => {
   const { userData } = useAuth();
   const isAdmin = userData?.role === "admin" || userData?.role === "owner";
   const navigate = useNavigate();
+  const [showInstallerRegister, setShowInstallerRegister] = React.useState(false);
+  const [selectedInstaller, setSelectedInstaller] = React.useState(null);
 
   const steps = [
     { label: "Formulario de instalación", completed: step > 1 },
@@ -24,68 +28,57 @@ const InstalacionGPS = () => {
     <div className="min-h-screen flex flex-col pt-20 px-2 animate-fade-in bg-[linear-gradient(110deg,#F1F0FB_40%,#E5DEFF_100%)]">
       <main className="flex-1 container mx-auto py-10">
         <div className="max-w-3xl mx-auto flex flex-col items-center w-full">
-          <div className="flex w-full justify-center gap-4 mb-8">
-            {steps.map((s, i) => (
-              <div
-                key={i}
-                className={`flex flex-col items-center flex-1 ${step === i + 1 ? "text-violet-700" : "text-gray-400"}`}
-              >
-                <div className={`h-2 w-full rounded bg-gradient-to-r ${step > i ? "from-violet-400 to-emerald-400" : "from-gray-300 to-gray-200"}`}></div>
-                <span className="text-sm mt-1 font-medium">{s.label}</span>
+
+          <div className="w-full mb-8">
+            <h1 className="font-playfair text-3xl md:text-4xl font-semibold text-primary/80 text-center mb-3">
+              Nueva Instalación de GPS
+            </h1>
+            <div className="w-full flex flex-row items-center mb-7 gap-6">
+              <div className="w-full max-w-lg mx-auto">
+                <InstallerSelectMinimal
+                  value={selectedInstaller}
+                  onChange={setSelectedInstaller}
+                  onRegisterNew={() => setShowInstallerRegister(true)}
+                />
+                {showInstallerRegister && (
+                  <div className="mt-4 bg-white/75 glass p-2 rounded-xl shadow-lg animate-fade-in">
+                    <InstallerRegisterForm
+                      onRegistered={() => {
+                        setShowInstallerRegister(false);
+                        setSelectedInstaller(null);
+                      }}
+                    />
+                  </div>
+                )}
               </div>
-            ))}
+            </div>
           </div>
 
-          {step === 1 && (
-            <GpsInstallForm
-              onNext={(data) => {
-                setInstallData(data);
-                setStep(2);
-              }}
-            />
-          )}
-          {step === 2 && (
-            <GpsAppointmentForm
-              onBack={() => setStep(1)}
-              onSchedule={(appt) => {
-                setInstallData({ ...installData, appointment: appt });
-                alert("¡Cita agendada exitosamente!");
-                setStep(1);
-              }}
-            />
-          )}
+          <div className="flex flex-col gap-8 w-full">
+            {step === 1 && (
+              <GpsInstallForm
+                installer={selectedInstaller}
+                onNext={(data) => {
+                  setInstallData(data);
+                  setStep(2);
+                }}
+              />
+            )}
+            {step === 2 && (
+              <GpsAppointmentForm
+                onBack={() => setStep(1)}
+                onSchedule={(appt) => {
+                  setInstallData({ ...installData, appointment: appt });
+                  alert("¡Cita agendada exitosamente!");
+                  setStep(1);
+                }}
+              />
+            )}
+          </div>
 
           <div className="w-full flex justify-center mt-12">
-            <Card
-              className="w-full md:w-2/3 shadow-lg bg-white/90 border-violet-100 flex flex-row items-center p-6 hover:shadow-2xl hover:scale-[1.03] transition-all cursor-pointer gap-4"
-              onClick={() => navigate("/instalacion-gps/registro-instalador")}
-              tabIndex={0}
-              role="button"
-              aria-label="Ir a registro de instalador"
-              onKeyPress={e => { if (e.key === "Enter") navigate("/instalacion-gps/registro-instalador"); }}
-            >
-              <div className="flex items-center justify-center rounded-full bg-violet-200 p-3 mr-4">
-                <FilePlus size={36} className="text-violet-700" />
-              </div>
-              <div>
-                <CardTitle className="text-xl font-semibold mb-1">
-                  ¿Quieres registrar un nuevo instalador?
-                </CardTitle>
-                <div className="text-md text-muted-foreground mb-2">
-                  Registra instaladores de forma integral, añadiendo dirección, contactos, certificaciones y fotos de taller.
-                </div>
-                <Button
-                  variant="default"
-                  className="mt-2"
-                  onClick={e => {
-                    e.stopPropagation();
-                    navigate("/instalacion-gps/registro-instalador");
-                  }}
-                >
-                  Ir al Registro de Instalador
-                </Button>
-              </div>
-            </Card>
+            {/* Moved 'Registrar instalador' card into compact selector UI above.
+            This section removed for less clutter */}
           </div>
 
           {isAdmin && (
