@@ -55,6 +55,7 @@ export function DateTimeSelector({
   const { toast } = useToast();
 
   const handleDateSelect = (selectedDate: Date | undefined) => {
+    console.log("Date selected:", selectedDate);
     onDateSelect(selectedDate);
 
     if (selectedDate) {
@@ -147,7 +148,6 @@ export function DateTimeSelector({
           value={timezone}
           onChange={e => onTimezoneSelect(e.target.value)}
         >
-          <option value="">Seleccionar zona horaria</option>
           {TIMEZONE_OPTIONS.map(zone => (
             <option key={zone} value={zone}>{zone}</option>
           ))}

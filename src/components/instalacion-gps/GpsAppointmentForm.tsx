@@ -21,8 +21,8 @@ type GpsAppointmentFormProps = {
   installData: any;
 };
 
-type GpsAppointmentFormData = {
-  date: Date | null;
+export type GpsAppointmentFormData = {
+  date: Date;
   time: string;
   timezone: string;
   notes?: string;
@@ -55,6 +55,7 @@ export default function GpsAppointmentForm({ onBack, onSchedule, installData }: 
   });
 
   const handleSubmit = async (formData: AppointmentFormData) => {
+    console.log("Submit attempt with form data:", formData);
     setIsSaving(true);
     
     try {
@@ -75,17 +76,17 @@ export default function GpsAppointmentForm({ onBack, onSchedule, installData }: 
         date: formattedDate,
         time: formData.time,
         timezone: formData.timezone,
-        vehicles: installData.vehicles,
-        owner_name: installData.ownerName,
-        email: installData.email,
-        install_address: installData.installAddress,
-        installer_id: installData.installer_id,
+        vehicles: installData.vehicles || [],
+        owner_name: installData.ownerName || "",
+        email: installData.email || "",
+        install_address: installData.installAddress || {},
+        installer_id: installData.installer_id || null,
         notes: formData.notes || null
       };
       
       console.log("Sending installation data:", installationData);
       
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('gps_installations')
         .insert(installationData)
         .select();
@@ -95,7 +96,9 @@ export default function GpsAppointmentForm({ onBack, onSchedule, installData }: 
         throw error;
       }
 
-      // Make sure all required data is available in the callback
+      console.log("Installation scheduled successfully:", data);
+
+      // Callback with the appointment data
       onSchedule({
         date: formData.date,
         time: formData.time,
@@ -119,14 +122,6 @@ export default function GpsAppointmentForm({ onBack, onSchedule, installData }: 
     }
   };
 
-  // Debugging
-  console.log("Form state:", {
-    isValid: form.formState.isValid,
-    isDirty: form.formState.isDirty,
-    errors: form.formState.errors,
-    values: form.getValues()
-  });
-
   if (!installData) {
     return (
       <div className="w-full max-w-4xl mx-auto space-y-6">
@@ -143,6 +138,14 @@ export default function GpsAppointmentForm({ onBack, onSchedule, installData }: 
       </div>
     );
   }
+
+  // Display form state in console for debugging
+  console.log("Form state:", {
+    isValid: form.formState.isValid,
+    isDirty: form.formState.isDirty,
+    errors: form.formState.errors,
+    values: form.getValues()
+  });
 
   return (
     <div className="w-full max-w-4xl mx-auto space-y-6">
