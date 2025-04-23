@@ -16,11 +16,21 @@ export const workshopFeatures = [
   { label: "Documentación visible y vigente", value: "documentacion_visible" },
 ];
 
+export type AddressFields = {
+  state: string;
+  city: string;
+  colonia?: string;
+  street: string;
+  number: string;
+  postalCode: string;
+  references?: string;
+};
+
 export type FormValues = {
   nombre: string;
   telefono: string;
   email: string;
-  direccion_personal: string;
+  direccion_personal: AddressFields;
   rfc: string;
   taller: boolean;
   taller_direccion: string;
@@ -37,7 +47,15 @@ export function useInstaladorRegistroForm() {
       nombre: "",
       telefono: "",
       email: "",
-      direccion_personal: "",
+      direccion_personal: {
+        state: "",
+        city: "",
+        colonia: "",
+        street: "",
+        number: "",
+        postalCode: "",
+        references: "",
+      },
       rfc: "",
       taller: false,
       taller_direccion: "",
@@ -75,7 +93,13 @@ export function useInstaladorRegistroForm() {
       setUploading(true);
 
       // Validation: required fields before submit
-      if (!data.nombre || !data.telefono || !data.email || !data.rfc || !data.direccion_personal) {
+      if (!data.nombre || !data.telefono || !data.email || !data.rfc ||
+        !data.direccion_personal?.state ||
+        !data.direccion_personal?.city ||
+        !data.direccion_personal?.street ||
+        !data.direccion_personal?.number ||
+        !data.direccion_personal?.postalCode
+      ) {
         toast.error("Por favor, llena todos los campos obligatorios marcados con *");
         setUploading(false);
         return;
@@ -116,13 +140,21 @@ export function useInstaladorRegistroForm() {
       const safeTallerImages = taller ? imagenUrls : [];
 
       // Use clean values for nullable/optional fields,
-      // and ensure 'taller_features' is always an array for NOT NULL column
+      // direccion_personal de forma compatible al GPSForm
       const payload = {
         nombre: data.nombre,
         telefono: data.telefono,
         email: data.email,
         rfc: data.rfc,
-        direccion_personal: data.direccion_personal,
+        direccion_personal: {
+          state: data.direccion_personal.state,
+          city: data.direccion_personal.city,
+          colonia: data.direccion_personal.colonia || "",
+          street: data.direccion_personal.street,
+          number: data.direccion_personal.number,
+          postalCode: data.direccion_personal.postalCode,
+          references: data.direccion_personal.references || ""
+        },
         taller: !!taller,
         taller_direccion: taller ? data.taller_direccion : null,
         taller_features: safeTallerFeatures,
@@ -166,6 +198,17 @@ export function useInstaladorRegistroForm() {
     }
   };
 
+  // Para exponer campos individuales opcionalmente en el form padre
+  const direccionPersonalFields = {
+    state: register("direccion_personal.state", { required: true }),
+    city: register("direccion_personal.city", { required: true }),
+    colonia: register("direccion_personal.colonia"),
+    street: register("direccion_personal.street", { required: true }),
+    number: register("direccion_personal.number", { required: true }),
+    postalCode: register("direccion_personal.postalCode", { required: true }),
+    references: register("direccion_personal.references"),
+  };
+
   return {
     register,
     handleSubmit,
@@ -180,5 +223,6 @@ export function useInstaladorRegistroForm() {
     onSubmit,
     setSelectedFeatures,
     reset,
+    direccionPersonalFields
   };
 }
