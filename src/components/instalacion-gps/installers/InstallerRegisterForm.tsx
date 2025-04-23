@@ -1,5 +1,5 @@
-
-import React, { useState } from "react";
+import React from "react";
+import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
@@ -34,7 +34,11 @@ type FormValues = {
   comentarios: string;
 };
 
-export default function InstallerRegisterForm({ onRegistered }: { onRegistered?: () => void }) {
+type InstallerRegisterFormProps = {
+  onRegistered?: (installer?: Tables<"gps_installers"> | null) => void;
+};
+
+export default function InstallerRegisterForm({ onRegistered }: InstallerRegisterFormProps) {
   const { register, handleSubmit, watch, reset, formState: { isSubmitting } } = useForm<FormValues>();
   const taller = watch("taller");
   const [uploading, setUploading] = useState(false);

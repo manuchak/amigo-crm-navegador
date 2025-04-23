@@ -10,6 +10,7 @@ import InstallerRegisterForm from "@/components/instalacion-gps/installers/Insta
 import { Button } from "@/components/ui/button";
 import { Plus, MapPin, Star, X, Calendar } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import type { Tables } from "@/integrations/supabase/types";
 
 function getNiceAddress(addrRaw: string | null | undefined) {
   if (!addrRaw) return null;
@@ -39,7 +40,7 @@ const InstalacionGPS = () => {
   const isAdmin = userData?.role === "admin" || userData?.role === "owner";
   const navigate = useNavigate();
   const [showInstallerRegister, setShowInstallerRegister] = React.useState(false);
-  const [selectedInstaller, setSelectedInstaller] = React.useState<any>(null);
+  const [selectedInstaller, setSelectedInstaller] = React.useState<Tables<"gps_installers"> | null>(null);
   const { toast } = useToast();
 
   const renderSelectedInstallerCard = () => {
@@ -123,9 +124,11 @@ const InstalacionGPS = () => {
                 </CardHeader>
                 <CardContent className="pt-0">
                   <InstallerRegisterForm
-                    onRegistered={() => {
+                    onRegistered={(newInstaller) => {
                       setShowInstallerRegister(false);
-                      setSelectedInstaller(null);
+                      if (newInstaller) {
+                        setSelectedInstaller(newInstaller);
+                      }
                     }}
                   />
                 </CardContent>
@@ -136,6 +139,7 @@ const InstalacionGPS = () => {
               {step === 1 && (
                 <GpsInstallForm
                   installer={selectedInstaller}
+                  onInstallerSelect={(installer) => setSelectedInstaller(installer)}
                   onNext={(data) => {
                     const finalData = {
                       ...data,
@@ -160,6 +164,7 @@ const InstalacionGPS = () => {
                     });
                     setTimeout(() => {
                       setInstallData(null);
+                      setSelectedInstaller(null);
                       setStep(1);
                     }, 2000);
                   }}

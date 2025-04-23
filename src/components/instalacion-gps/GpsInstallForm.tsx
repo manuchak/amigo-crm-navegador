@@ -15,6 +15,7 @@ import AddressSection from "./address/AddressSection";
 import InstallerWorkshopField from "./address/InstallerWorkshopField";
 import { useAuth } from "@/context/AuthContext";
 import { InstallerSelectMinimal } from "./installers/InstallerSelectMinimal";
+import type { Tables } from "@/integrations/supabase/types";
 
 const GPS_FEATURE_OPTIONS = [
   { label: "Seguimiento en tiempo real", value: "realtime_tracking" },
@@ -74,7 +75,7 @@ const gpsInstallSchema = z.object({
     references: z.string().optional(),
     coordinates: z.string().optional(),
   }),
-  email: z.string().email("Correo electrónico inválido").optional(),
+  email: z.string().email("Correo electrónico inválido").optional().or(z.literal("")),
   installInWorkshop: z.boolean().optional(),
   vehicles: z.array(vehicleSchema).min(1),
   installerId: z.number().optional()
@@ -82,7 +83,8 @@ const gpsInstallSchema = z.object({
 
 type GpsInstallFormProps = {
   onNext: (data: z.infer<typeof gpsInstallSchema>) => void;
-  installer?: any;
+  installer?: Tables<"gps_installers"> | null;
+  onInstallerSelect?: (installer: Tables<"gps_installers"> | null) => void;
 };
 
 async function geocodeAddress(addressObj: any) {
@@ -102,7 +104,7 @@ async function geocodeAddress(addressObj: any) {
 }
 
 export default function GpsInstallForm(props: GpsInstallFormProps) {
-  const { installer, onNext } = props;
+  const { installer, onNext, onInstallerSelect } = props;
   const { brands, fetchModelsByBrand, loading: loadingBrands } = useCarData();
   const { userData } = useAuth();
 
@@ -268,6 +270,8 @@ export default function GpsInstallForm(props: GpsInstallFormProps) {
   React.useEffect(() => {
     if (installer?.id) {
       form.setValue("installerId", installer.id);
+    } else {
+      form.setValue("installerId", undefined);
     }
   }, [installer, form]);
 
@@ -367,6 +371,9 @@ export default function GpsInstallForm(props: GpsInstallFormProps) {
               <InstallerSelectMinimal 
                 value={installer}
                 onChange={(selectedInstaller) => {
+                  if (onInstallerSelect) {
+                    onInstallerSelect(selectedInstaller);
+                  }
                   form.setValue("installerId", selectedInstaller?.id);
                 }}
                 onRegisterNew={() => {}}
