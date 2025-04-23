@@ -1,3 +1,4 @@
+
 import React from "react";
 import { useForm, useFieldArray } from "react-hook-form";
 import { z } from "zod";
@@ -82,6 +83,24 @@ type GpsInstallFormProps = {
   installer?: any;
 };
 
+async function geocodeAddress(addressObj: any) {
+  // Solo si todos los campos mínimos están presentes
+  if (!addressObj || !addressObj.street || !addressObj.city || !addressObj.state) return null;
+  const address = `${addressObj.street} ${addressObj.number || ""}, ${addressObj.colonia ? addressObj.colonia + "," : ""} ${addressObj.city}, ${addressObj.state}, México${addressObj.postalCode ? " " + addressObj.postalCode : ""}`;
+  const resp = await fetch(
+    `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(
+      address
+    )}.json?access_token=pk.eyJ1IjoiZGV0ZWN0YXNlYyIsImEiOiJjbTlzdjg3ZmkwNGVoMmpwcGg3MWMwNXlhIn0.zIQ8khHoZsJt8bL4jXf35Q&country=MX&language=es`
+  );
+  const data = await resp.json();
+  if (data && data.features && data.features[0] && data.features[0].center) {
+    // Mapbox da [lng,lat]
+    const [lng, lat] = data.features[0].center;
+    return `${lat},${lng}`;
+  }
+  return null;
+}
+
 export default function GpsInstallForm(props: GpsInstallFormProps) {
   const { installer, onNext } = props;
   const { brands, fetchModelsByBrand, loading: loadingBrands } = useCarData();
@@ -129,6 +148,29 @@ export default function GpsInstallForm(props: GpsInstallFormProps) {
   const [dashcamCameraCountArr, setDashcamCameraCountArr] = React.useState<{ [idx: number]: number }>({});
   const [dashcamCameraLocationsArr, setDashcamCameraLocationsArr] = React.useState<{ [idx: number]: string[] }>({});
 
+  // --- Sincronización de mapa y dirección: geocodificar al cambiar la dirección ---
+  React.useEffect(() => {
+    const sub = form.watch(async (value, { name }) => {
+      // Si cambia cualquier campo de dirección relevante
+      if (
+        name &&
+        name.startsWith("installAddress.") &&
+        ["installAddress.street","installAddress.number","installAddress.colonia","installAddress.city","installAddress.state","installAddress.postalCode"].some(p => name === p)
+      ) {
+        const addr = form.getValues("installAddress");
+        // Solo geocodificar si hay mínimo requerido
+        if (addr.street && addr.city && addr.state) {
+          const coords = await geocodeAddress(addr);
+          if (coords) {
+            form.setValue("installAddress.coordinates", coords, { shouldDirty: true });
+          }
+        }
+      }
+    });
+    return () => sub.unsubscribe?.();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [form]);
+
   React.useEffect(() => {
     fields.forEach((field, idx) => {
       const brandValue = form.getValues(`vehicles.${idx}.brand`);
@@ -147,6 +189,7 @@ export default function GpsInstallForm(props: GpsInstallFormProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fields.length, brands]);
 
+  // --- Ajuste: Compatibilidad y parseo correcto de dirección de taller ---
   React.useEffect(() => {
     const val = form.watch("installInWorkshop");
     if (
@@ -173,6 +216,12 @@ export default function GpsInstallForm(props: GpsInstallFormProps) {
         form.setValue("installAddress.postalCode", tallerDirObj.postalCode ?? "");
         form.setValue("installAddress.city", tallerDirObj.city ?? "");
         form.setValue("installAddress.state", tallerDirObj.state ?? "");
+        // Actualizar pin en mapa acorde (solo si hay datos clave)
+        if (tallerDirObj.street && tallerDirObj.city && tallerDirObj.state) {
+          geocodeAddress(tallerDirObj).then(coords => {
+            if (coords) form.setValue("installAddress.coordinates", coords, { shouldDirty: true });
+          });
+        }
       } else {
         const parseDir = (str: string) => {
           const cpMatch = str.match(/CP\s?(\d{5})/i);
@@ -212,13 +261,19 @@ export default function GpsInstallForm(props: GpsInstallFormProps) {
         form.setValue("installAddress.postalCode", parsed.postalCode);
         form.setValue("installAddress.city", parsed.city);
         form.setValue("installAddress.state", parsed.state);
+        if (parsed.street && parsed.city && parsed.state) {
+          geocodeAddress(parsed).then(coords => {
+            if (coords) form.setValue("installAddress.coordinates", coords, { shouldDirty: true });
+          });
+        }
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [form.watch("installInWorkshop"), installer]);
 
+  // Limpiar dirección, referencia y coordenadas al quitar "instalar en taller"
   React.useEffect(() => {
-    const subscription = form.watch((value, { name, type }) => {
+    const subscription = form.watch((value, { name }) => {
       if (name === "installInWorkshop" && value.installInWorkshop === false) {
         form.setValue("installAddress.street", "");
         form.setValue("installAddress.number", "");
@@ -318,3 +373,6 @@ export default function GpsInstallForm(props: GpsInstallFormProps) {
     </div>
   );
 }
+
+// NOTA: Este archivo ya es extenso (~320 líneas). Recomendado refactorizarlo pronto si se agregan nuevas funcionalidades.
+

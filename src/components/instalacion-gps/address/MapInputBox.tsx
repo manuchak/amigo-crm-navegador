@@ -17,7 +17,7 @@ async function reverseGeocode(lat: number, lng: number): Promise<string> {
       return data.features[0].place_name;
     }
   } catch (err) {}
-  return `${lat.toFixed(5)}, ${lng.toFixed(5)}`;
+  return `(${lat.toFixed(5)}, ${lng.toFixed(5)})`;
 }
 
 export default function MapInputBox({ control, name = "installAddress.coordinates" }: { control: any; name?: string }) {
@@ -70,6 +70,7 @@ function MapBox({
 }) {
   const [tooltipAddr, setTooltipAddr] = useState<string>("");
 
+  // Sincroniza el pin cuando coordinates cambia externamente
   useEffect(() => {
     if (!mapContainer.current) return;
     if (typeof window === "undefined") return;
@@ -98,7 +99,7 @@ function MapBox({
       markerRef.current.remove();
     }
 
-    // Marcar y actualizar en drag
+    // Marcar y actualizar en drag/movimiento
     const marker = new mapboxgl.Marker({ draggable: true }).setLngLat(lngLat).addTo(map);
     markerRef.current = marker;
 
@@ -110,8 +111,9 @@ function MapBox({
 
     marker.setPopup(popup).togglePopup();
 
+    // Mostrar dirección actual en tooltip
     reverseGeocode(lngLat[1], lngLat[0]).then(txt => {
-      popup.setText(txt);
+      popup.setText(txt ?? "Dirección no encontrada");
       setTooltipAddr(txt);
     });
 
@@ -119,7 +121,7 @@ function MapBox({
       const newLngLat = marker.getLngLat();
       onChange(`${newLngLat.lat},${newLngLat.lng}`);
       reverseGeocode(newLngLat.lat, newLngLat.lng).then(txt => {
-        popup.setText(txt);
+        popup.setText(txt ?? "Dirección no encontrada");
         setTooltipAddr(txt);
       });
     });
@@ -128,27 +130,30 @@ function MapBox({
       marker.setLngLat(e.lngLat);
       onChange(`${e.lngLat.lat},${e.lngLat.lng}`);
       reverseGeocode(e.lngLat.lat, e.lngLat.lng).then(txt => {
-        popup.setText(txt);
+        popup.setText(txt ?? "Dirección no encontrada");
         setTooltipAddr(txt);
       });
     });
 
-    // Refrescar popup si coordinates cambian desde afuera
+    // Actualiza el popup si las coordinates se cambian externamente
     if (coordinates && coordinates.includes(",")) {
       const [lat, lng] = coordinates.split(",").map(Number);
       reverseGeocode(lat, lng).then(txt => {
-        popup.setText(txt);
+        popup.setText(txt ?? "Dirección no encontrada");
         setTooltipAddr(txt);
       });
+    } else {
+      popup.setText("Ubicación no definida");
     }
 
     // Limpieza
     return () => {
       map.remove();
     };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mapContainer, coordinates]);
 
+  // Usamos el popup, pero si quieres el tooltip interno adicional, deberías renderizarlo aquí.
   return null;
 }
 
