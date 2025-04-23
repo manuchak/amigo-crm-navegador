@@ -10,7 +10,7 @@ const SUPABASE_SERVICE_ROLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3Mi
 // Import the supabase client like this:
 // import { supabase } from "@/integrations/supabase/client";
 
-// Configuración común para todos los clientes
+// Common configuration for all clients
 const commonOptions = {
   auth: {
     persistSession: true,
@@ -64,12 +64,12 @@ export const checkForOwnerRole = (): boolean => {
 };
 
 /**
- * Gets a direct instance of supabaseAdmin client for service role operations
+ * Gets a direct reference to the supabaseAdmin client for service role operations
  * (primarily for owner users)
  */
 export const getAdminClient = () => {
-  // Corrección: Devolver la instancia de supabaseAdmin.from() directamente
-  return supabaseAdmin.from('role_permissions');
+  // Return the admin client directly
+  return supabaseAdmin;
 };
 
 /**

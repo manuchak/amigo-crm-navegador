@@ -1,5 +1,5 @@
 
-import { getAdminClient, getAuthenticatedClient, checkForOwnerRole, supabaseAdmin } from '@/integrations/supabase/client';
+import { supabaseAdmin, getAuthenticatedClient, checkForOwnerRole } from '@/integrations/supabase/client';
 import { RolePermission } from '../rolePermissions.constants';
 import { toast } from 'sonner';
 
@@ -29,7 +29,7 @@ export function usePermissionsSave() {
       
       if (currentOwnerStatus) {
         try {
-          // Corrección: Usar la instancia correcta del cliente de supabase
+          // Using direct supabaseAdmin reference
           const { error: deleteError } = await supabaseAdmin
             .from('role_permissions')
             .delete()

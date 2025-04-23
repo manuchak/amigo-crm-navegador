@@ -28,10 +28,11 @@ const UserPermissionConfig: React.FC = () => {
     reloadPermissions,
   } = useRolePermissions();
 
-  // Log owner status when it changes
+  // Log owner status and permissions when they change
   useEffect(() => {
     console.log('UserPermissionConfig owner status:', isOwner ? '✅ Yes' : '❌ No');
-  }, [isOwner]);
+    console.log('Current permissions state:', permissions);
+  }, [isOwner, permissions]);
 
   const onSave = async () => {
     try {
@@ -43,6 +44,7 @@ const UserPermissionConfig: React.FC = () => {
   };
 
   const onRetry = () => {
+    console.log('Manual retry triggered');
     reloadPermissions();
     toast.info('Recargando configuración de permisos...');
   };
@@ -108,6 +110,15 @@ const UserPermissionConfig: React.FC = () => {
             </div>
           </Alert>
         )}
+
+        {/* Show message if no permissions loaded */}
+        {!loading && !error && (!permissions || permissions.length === 0) && (
+          <Alert className="mb-4">
+            <AlertDescription>
+              No se encontraron configuraciones de permisos. Haga clic en "Recargar" para intentar nuevamente.
+            </AlertDescription>
+          </Alert>
+        )}
         
         <div className="mb-4 flex space-x-2">
           <Button 
@@ -123,79 +134,95 @@ const UserPermissionConfig: React.FC = () => {
             Acciones Permitidas
           </Button>
         </div>
-        <div className="overflow-x-auto">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="w-[200px]">Rol</TableHead>
-                {selectedTab === 'pages' ? (
-                  availablePages.map(page => (
-                    <TableHead key={page.id} className="text-center" title={page.description}>
-                      {page.name}
-                    </TableHead>
-                  ))
-                ) : (
-                  availableActions.map(action => (
-                    <TableHead key={action.id} className="text-center" title={action.description}>
-                      {action.name}
-                    </TableHead>
-                  ))
-                )}
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {permissions.map((rolePermission, roleIndex) => (
-                <TableRow key={rolePermission.role}>
-                  <TableCell className="font-medium">
-                    <div className="flex items-center gap-2">
-                      {rolePermission.role === 'owner' && (
-                        <Shield className="h-4 w-4 text-amber-500" />
-                      )}
-                      {rolePermission.displayName}
-                    </div>
-                  </TableCell>
+        
+        {permissions && permissions.length > 0 ? (
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="w-[200px]">Rol</TableHead>
                   {selectedTab === 'pages' ? (
                     availablePages.map(page => (
-                      <TableCell key={page.id} className="text-center">
-                        <div className="flex items-center justify-center">
-                          <Checkbox
-                            id={`${rolePermission.role}-${page.id}`}
-                            checked={rolePermission.pages[page.id]}
-                            onCheckedChange={(checked) => 
-                              handlePermissionChange(roleIndex, 'pages', page.id, checked as boolean)
-                            }
-                            disabled={rolePermission.role === 'owner'}
-                            className={rolePermission.role === 'owner' ? "opacity-60" : ""}
-                          />
-                        </div>
-                      </TableCell>
+                      <TableHead key={page.id} className="text-center" title={page.description}>
+                        {page.name}
+                      </TableHead>
                     ))
                   ) : (
                     availableActions.map(action => (
-                      <TableCell key={action.id} className="text-center">
-                        <div className="flex items-center justify-center">
-                          <Checkbox
-                            id={`${rolePermission.role}-${action.id}`}
-                            checked={rolePermission.actions[action.id]}
-                            onCheckedChange={(checked) => 
-                              handlePermissionChange(roleIndex, 'actions', action.id, checked as boolean)
-                            }
-                            disabled={rolePermission.role === 'owner'}
-                            className={rolePermission.role === 'owner' ? "opacity-60" : ""}
-                          />
-                        </div>
-                      </TableCell>
+                      <TableHead key={action.id} className="text-center" title={action.description}>
+                        {action.name}
+                      </TableHead>
                     ))
                   )}
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </div>
+              </TableHeader>
+              <TableBody>
+                {permissions.map((rolePermission, roleIndex) => (
+                  <TableRow key={rolePermission.role}>
+                    <TableCell className="font-medium">
+                      <div className="flex items-center gap-2">
+                        {rolePermission.role === 'owner' && (
+                          <Shield className="h-4 w-4 text-amber-500" />
+                        )}
+                        {rolePermission.displayName}
+                      </div>
+                    </TableCell>
+                    {selectedTab === 'pages' ? (
+                      availablePages.map(page => (
+                        <TableCell key={page.id} className="text-center">
+                          <div className="flex items-center justify-center">
+                            <Checkbox
+                              id={`${rolePermission.role}-${page.id}`}
+                              checked={rolePermission.pages[page.id]}
+                              onCheckedChange={(checked) => 
+                                handlePermissionChange(roleIndex, 'pages', page.id, checked as boolean)
+                              }
+                              disabled={rolePermission.role === 'owner'}
+                              className={rolePermission.role === 'owner' ? "opacity-60" : ""}
+                            />
+                          </div>
+                        </TableCell>
+                      ))
+                    ) : (
+                      availableActions.map(action => (
+                        <TableCell key={action.id} className="text-center">
+                          <div className="flex items-center justify-center">
+                            <Checkbox
+                              id={`${rolePermission.role}-${action.id}`}
+                              checked={rolePermission.actions[action.id]}
+                              onCheckedChange={(checked) => 
+                                handlePermissionChange(roleIndex, 'actions', action.id, checked as boolean)
+                              }
+                              disabled={rolePermission.role === 'owner'}
+                              className={rolePermission.role === 'owner' ? "opacity-60" : ""}
+                            />
+                          </div>
+                        </TableCell>
+                      ))
+                    )}
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        ) : (
+          <div className="py-8 text-center">
+            <p className="text-muted-foreground">No hay configuración de permisos disponible.</p>
+            <Button 
+              variant="outline"
+              onClick={onRetry}
+              className="mt-4"
+            >
+              <RefreshCw className="h-4 w-4 mr-2" />
+              Cargar configuración de permisos
+            </Button>
+          </div>
+        )}
+        
         <div className="mt-6 flex justify-end">
           <Button 
             onClick={onSave} 
-            disabled={saving || !!error}
+            disabled={saving || !!error || !permissions || permissions.length === 0}
             className={isOwner ? "bg-green-600 hover:bg-green-700" : ""}
           >
             {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}

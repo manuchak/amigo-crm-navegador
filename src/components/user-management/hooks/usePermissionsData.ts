@@ -1,6 +1,6 @@
 
 import { useCallback } from 'react';
-import { getAdminClient, getAuthenticatedClient, supabaseAdmin, checkForOwnerRole } from '@/integrations/supabase/client';
+import { getAuthenticatedClient, supabaseAdmin, checkForOwnerRole } from '@/integrations/supabase/client';
 import { RolePermission } from '../rolePermissions.constants';
 import { getInitialPermissions } from '../rolePermissions.utils';
 import { toast } from 'sonner';
@@ -33,10 +33,11 @@ export function usePermissionsData() {
         setIsOwner(currentOwnerStatus);
       }
       
+      // Try to fetch permissions - first with admin client if owner
       if (currentOwnerStatus) {
         try {
           console.log('Attempting to fetch permissions with admin client for owner');
-          // Corrección: Usa directamente el cliente administrador
+          
           const { data, error } = await supabaseAdmin
             .from('role_permissions')
             .select('*');
@@ -50,14 +51,17 @@ export function usePermissionsData() {
           console.log('Admin client query successful, records:', permissionsData?.length);
         } catch (adminError) {
           console.error('Error using admin client:', adminError);
+          // Continue to try standard client as fallback
         }
       }
       
+      // If admin client didn't work or user is not an owner, try standard client
       if (!permissionsData) {
         try {
           console.log('Attempting to fetch permissions with standard client');
           const client = await getAuthenticatedClient();
           
+          // Test query to make sure connection works
           const testQuery = await client
             .from('role_permissions')
             .select('count(*)', { count: 'exact', head: true });
@@ -86,6 +90,7 @@ export function usePermissionsData() {
         }
       }
       
+      // Handle the case when no permissions are found or create defaults
       if (!permissionsData || permissionsData.length === 0) {
         console.log('No permissions found, creating defaults');
         const defaultPermissions = getInitialPermissions();
@@ -112,6 +117,8 @@ export function usePermissionsData() {
       
       if (err.message?.includes('JWT')) {
         toast.error('Tu sesión ha expirado. Por favor inicia sesión nuevamente.');
+      } else {
+        toast.error(`Error al cargar permisos: ${err.message || 'Error desconocido'}`);
       }
     } finally {
       setLoading(false);
