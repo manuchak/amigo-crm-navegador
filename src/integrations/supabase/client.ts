@@ -54,9 +54,7 @@ export const checkForOwnerRole = (): boolean => {
 
 /**
  * Gets a completely fresh instance of the admin client with service role key
- * to avoid any session or auth token conflicts.
- * This function now implements a more reliable approach to ensure 
- * the admin client is always valid and properly configured.
+ * This is critical for permissions management to ensure auth tokens are valid
  */
 export const getAdminClient = () => {
   try {
@@ -66,7 +64,8 @@ export const getAdminClient = () => {
       throw new Error("Error de configuración: faltan credenciales de Supabase");
     }
 
-    // Create a completely fresh instance with explicit settings
+    // Create a completely fresh client instance with explicit authorization headers
+    // This approach ensures we bypass any token-related issues
     const adminClient = createClient<Database>(
       SUPABASE_URL,
       SUPABASE_SERVICE_ROLE_KEY,
@@ -75,9 +74,10 @@ export const getAdminClient = () => {
           autoRefreshToken: false,
           persistSession: false
         },
-        // Explicitly set global headers to ensure the service role key is used
         global: {
           headers: {
+            // Setting explicit Authorization header with service role key
+            // This is the key fix to ensure we're always using the right credentials
             Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`
           }
         }
