@@ -233,6 +233,19 @@ export default function GpsInstallForm(props: GpsInstallFormProps) {
                   </FormItem>
                 )}
               />
+              <FormField
+                control={form.control}
+                name="installAddress.phone"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Teléfono de contacto</FormLabel>
+                    <FormControl>
+                      <Input placeholder="10 dígitos" maxLength={10} {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
               <InstallerWorkshopField control={form.control} />
               <AddressSection control={form.control} />
               <VehiclesFieldArray

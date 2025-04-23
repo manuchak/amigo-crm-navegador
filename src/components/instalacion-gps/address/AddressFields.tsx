@@ -7,18 +7,27 @@ import StreetInput from "./StreetInput";
 import NumberInput from "./NumberInput";
 import PostalCodeInput from "./PostalCodeInput";
 
+/**
+ * AddressFields ahora muestra dos bloques de líneas de dirección, para mimetizar
+ * la visualización del dropdown y separar claramente:
+ *  Línea 1: Calle y número
+ *  Línea 2: Colonia, ciudad, estado, CP
+ */
 export default function AddressFields({ control }: { control: any }) {
-  // Cambiamos el orden para que siga el flujo más esperado para direcciones mexicanas
   return (
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-      {/* Primer fila: Estado, Ciudad, Colonia */}
-      <StateInput control={control} />
-      <CityInput control={control} />
-      <ColoniaInput control={control} />
-      {/* Segunda fila: Calle, Número, Código Postal */}
-      <StreetInput control={control} />
-      <NumberInput control={control} />
-      <PostalCodeInput control={control} />
+    <div className="flex flex-col gap-0.5">
+      {/* Primera línea: Calle y número */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+        <StreetInput control={control} />
+        <NumberInput control={control} />
+      </div>
+      {/* Segunda línea: Colonia, ciudad, estado, CP */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+        <ColoniaInput control={control} />
+        <CityInput control={control} />
+        <StateInput control={control} />
+        <PostalCodeInput control={control} />
+      </div>
     </div>
   );
 }
