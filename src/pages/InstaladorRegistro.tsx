@@ -1,114 +1,25 @@
 
-import React, { useState } from "react";
+import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { toast } from "sonner";
 import { UploadCloud } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
-import { useForm } from "react-hook-form";
-import { useNavigate } from "react-router-dom";
-
-const workshopFeatures = [
-  { label: "Área techada y delimitada para instalaciones", value: "area_techada" },
-  { label: "Suministro de agua y energía eléctrica", value: "agua_energia" },
-  { label: "Iluminación y ventilación adecuadas", value: "iluminacion_ventilacion" },
-  { label: "Herramientas y equipo especializados", value: "herramientas_equipo" },
-  { label: "Zona de recepción segura para vehículos", value: "zona_recepcion" },
-  { label: "Limpieza, señalización y espacios de maniobra", value: "limpieza_senalizacion" },
-  { label: "Infraestructura eléctrica para herramientas", value: "infraestructura_electrica" },
-  { label: "Documentación visible y vigente", value: "documentacion_visible" },
-];
-
-type FormValues = {
-  nombre: string;
-  telefono: string;
-  email: string;
-  direccion_personal: string;
-  rfc: string;
-  taller: boolean;
-  taller_direccion: string;
-  taller_features: string[];
-  taller_imagenes: FileList | null;
-  certificaciones: string;
-  comentarios: string;
-};
+import { WorkshopSection } from "@/components/instalacion-gps/installers/WorkshopSection";
+import { useInstaladorRegistroForm } from "@/hooks/useInstaladorRegistroForm";
 
 export default function InstaladorRegistro() {
-  const { register, handleSubmit, watch, reset, formState: { isSubmitting } } = useForm<FormValues>();
-  const taller = watch("taller");
-  const [uploading, setUploading] = useState(false);
-  const [selectedFeatures, setSelectedFeatures] = useState<string[]>([]);
-  const [imagePreviews, setImagePreviews] = useState<string[]>([]);
-  const navigate = useNavigate();
-
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (!e.target.files) return;
-    setImagePreviews(Array.from(e.target.files).map(file => URL.createObjectURL(file)));
-  };
-
-  const handleFeatureToggle = (feature: string) => {
-    setSelectedFeatures(arr =>
-      arr.includes(feature)
-        ? arr.filter(f => f !== feature)
-        : [...arr, feature]
-    );
-  };
-
-  const cleanUpImages = () => {
-    imagePreviews.forEach(url => URL.revokeObjectURL(url));
-    setImagePreviews([]);
-  };
-
-  const onSubmit = async (data: FormValues) => {
-    try {
-      setUploading(true);
-      let imagenUrls: string[] = [];
-      if (taller && data.taller_imagenes?.length) {
-        const files = Array.from(data.taller_imagenes);
-        for (let file of files) {
-          const filePath = `talleres/${Date.now()}-${file.name.replace(/\s+/g, "_")}`;
-          const { error } = await supabase.storage.from("installers").upload(filePath, file);
-          if (error) {
-            if (error.message?.toLowerCase().includes("bucket")) {
-              throw new Error("No se encontró el bucket para imágenes. Contacta al administrador.");
-            }
-            throw error;
-          }
-          imagenUrls.push(`https://beefjsdgrdeiymzxwxru.supabase.co/storage/v1/object/public/installers/${filePath}`);
-        }
-      }
-      // Payload INCLUYENDO el campo email
-      const payload = {
-        nombre: data.nombre,
-        telefono: data.telefono,
-        email: data.email,
-        direccion_personal: data.direccion_personal,
-        rfc: data.rfc,
-        taller: taller ? true : false,
-        taller_direccion: taller ? data.taller_direccion : null,
-        taller_features: taller ? selectedFeatures : [],
-        taller_images: imagenUrls,
-        certificaciones: data.certificaciones,
-        comentarios: data.comentarios,
-      };
-
-      const { error: dbError } = await supabase.from("gps_installers").insert(payload);
-      if (dbError) throw dbError;
-      toast.success("Instalador registrado correctamente");
-      reset();
-      setSelectedFeatures([]);
-      cleanUpImages();
-      navigate("/instalacion-gps/instaladores");
-    } catch (e: any) {
-      let friendly = typeof e?.message === "string" && e.message.includes("bucket")
-        ? "Ocurrió un problema interno con el almacenamiento de imágenes. Por favor, contacta a soporte."
-        : e?.message || "Error desconocido";
-      toast.error("Error al registrar instalador: " + friendly);
-    } finally {
-      setUploading(false);
-    }
-  };
+  const {
+    register,
+    handleSubmit,
+    isSubmitting,
+    uploading,
+    taller,
+    selectedFeatures,
+    handleFeatureToggle,
+    handleImageChange,
+    imagePreviews,
+    onSubmit,
+  } = useInstaladorRegistroForm();
 
   return (
     <div className="min-h-screen flex flex-col justify-center px-2 py-10 bg-gradient-to-br from-violet-50 to-violet-200">
@@ -146,7 +57,6 @@ export default function InstaladorRegistro() {
                 <label className="font-medium">Dirección personal *</label>
                 <Input {...register("direccion_personal", { required: true })} />
               </div>
-
               <div>
                 <label className="flex items-center gap-2 font-medium">
                   <input type="checkbox" {...register("taller")} />
@@ -154,51 +64,14 @@ export default function InstaladorRegistro() {
                 </label>
               </div>
 
-              {taller && (
-                <div className="space-y-4 bg-violet-50 p-4 rounded-lg border border-violet-200">
-                  <div>
-                    <label className="font-medium">Dirección del taller *</label>
-                    <Input {...register("taller_direccion", { required: taller })} />
-                  </div>
-                  <div>
-                    <label className="block font-medium mb-2">Características del taller *</label>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                      {workshopFeatures.map(f => (
-                        <label key={f.value} className="flex items-center gap-2 text-sm">
-                          <input
-                            type="checkbox"
-                            checked={selectedFeatures.includes(f.value)}
-                            onChange={() => handleFeatureToggle(f.value)}
-                          />
-                          <span>{f.label}</span>
-                        </label>
-                      ))}
-                    </div>
-                  </div>
-                  <div>
-                    <label className="block font-medium mb-2">Imágenes del taller (puede cargar varias)</label>
-                    <Input
-                      {...register("taller_imagenes")}
-                      multiple
-                      type="file"
-                      accept="image/*"
-                      onChange={handleImageChange}
-                    />
-                    {imagePreviews.length > 0 && (
-                      <div className="flex gap-2 mt-2 overflow-x-auto pb-2">
-                        {imagePreviews.map((url, i) => (
-                          <img
-                            key={url}
-                            src={url}
-                            className="w-20 h-20 object-cover rounded border"
-                            alt={`Vista previa taller ${i + 1}`}
-                          />
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              )}
+              <WorkshopSection
+                taller={taller}
+                register={register}
+                selectedFeatures={selectedFeatures}
+                handleFeatureToggle={handleFeatureToggle}
+                handleImageChange={handleImageChange}
+                imagePreviews={imagePreviews}
+              />
 
               <div>
                 <label className="font-medium">Certificaciones relevantes</label>
