@@ -22,26 +22,6 @@ export const supabase = createClient<Database>(
   }
 );
 
-// Admin client with service role for privileged operations using proper configuration
-// This client is initialized but the actual instance is created fresh when needed
-export const supabaseAdmin = createClient<Database>(
-  SUPABASE_URL,
-  SUPABASE_SERVICE_ROLE_KEY,
-  {
-    auth: {
-      autoRefreshToken: false,
-      persistSession: false
-    },
-    global: {
-      headers: {
-        // Setting explicit Authorization header with the Bearer prefix and service role key
-        'Authorization': `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
-        'apikey': SUPABASE_SERVICE_ROLE_KEY,
-      }
-    }
-  }
-);
-
 /**
  * Check if the current user has owner role from localStorage
  * to allow special permissions handling
@@ -64,39 +44,49 @@ export const checkForOwnerRole = (): boolean => {
 /**
  * Gets a completely fresh instance of the admin client with service role key
  * and ensures correct headers are set for authentication
+ * 
+ * IMPORTANTE: Esta función ha sido revisada para garantizar que las credenciales
+ * se configuran correctamente para el cliente de administrador
  */
 export const getAdminClient = () => {
-  try {
-    // Validate required configuration
-    if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
-      console.error("Missing required Supabase configuration");
-      throw new Error("Error de configuración: faltan credenciales de Supabase");
-    }
+  // Validar que tenemos las credenciales necesarias
+  if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
+    console.error("Missing required Supabase configuration");
+    throw new Error("Error de configuración: faltan credenciales de Supabase");
+  }
 
-    // Create a completely fresh client instance with explicit authorization headers
-    return createClient<Database>(
+  // Crear un cliente completamente nuevo con encabezados de autorización explícitos
+  // Usamos el formato recomendado por la documentación de Supabase para service_role
+  try {
+    console.log("Creating admin client with service role...");
+    
+    const adminClient = createClient<Database>(
       SUPABASE_URL,
       SUPABASE_SERVICE_ROLE_KEY,
       {
         auth: {
           autoRefreshToken: false,
           persistSession: false
-        },
-        global: {
-          headers: {
-            // Setting explicit Authorization header with the Bearer prefix and service role key
-            'Authorization': `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
-            'apikey': SUPABASE_SERVICE_ROLE_KEY,
-            'Content-Type': 'application/json'
-          }
         }
       }
     );
+    
+    // Configuramos los headers manualmente para asegurar que se envían correctamente
+    adminClient.headers = {
+      'apikey': SUPABASE_SERVICE_ROLE_KEY,
+      'Authorization': `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`
+    };
+    
+    console.log("Admin client created successfully");
+    return adminClient;
   } catch (error) {
-    console.error("Critical error creating admin client:", error);
+    console.error("Failed to create admin client:", error);
     throw new Error("Error crítico al inicializar cliente de administración");
   }
 };
+
+// Exportación de supabaseAdmin mantenida por compatibilidad
+export const supabaseAdmin = getAdminClient();
 
 /**
  * Enhanced function to ensure we always have a valid client for API operations

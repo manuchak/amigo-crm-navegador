@@ -48,7 +48,7 @@ export const useGpsAppointment = (onSchedule: (data: AppointmentFormData) => voi
     setError(null);
     
     try {
-      // First check for owner role
+      // Check for owner role
       const isOwner = userData?.role === 'owner' || checkForOwnerRole();
       console.log("Is owner role?", isOwner);
       
@@ -72,43 +72,62 @@ export const useGpsAppointment = (onSchedule: (data: AppointmentFormData) => voi
       let response;
       
       if (isOwner) {
-        // For owners, create a completely fresh admin client for this operation
-        console.log("Using admin client for owner role");
-        const adminClient = getAdminClient();
+        // Debug logs para detectar problemas en la creación del cliente
+        console.log("Usando cliente de administrador para rol de propietario");
         
-        // Set owner user ID if available
-        installationData.user_id = currentUser?.uid || userData?.uid || 'owner-user';
-        
-        // Use admin client for database operation
-        response = await adminClient
-          .from('gps_installations')
-          .insert(installationData)
-          .select();
+        try {
+          // Crear un cliente admin completamente nuevo para esta operación
+          const adminClient = getAdminClient();
+          
+          // Verificar client headers para debugging
+          console.log("Admin client headers:", adminClient.headers);
+          
+          // Configura el ID de usuario del propietario
+          installationData.user_id = currentUser?.uid || userData?.uid || 'owner-user';
+          
+          console.log("Realizando inserción con cliente admin:", {
+            url: adminClient?.supabaseUrl,
+            hasAuth: !!adminClient?.headers?.Authorization,
+            userId: installationData.user_id
+          });
+          
+          // Usar cliente admin para operación de base de datos
+          response = await adminClient
+            .from('gps_installations')
+            .insert(installationData)
+            .select();
+            
+          console.log("Admin client response:", response);
+        } catch (adminError) {
+          console.error("Error using admin client:", adminError);
+          throw new Error(`Error con cliente admin: ${adminError.message || 'Error desconocido'}`);
+        }
       } else {
-        // For regular users, verify session first
+        // Para usuarios regulares, verificar sesión primero
         const { data: { session } } = await supabase.auth.getSession();
         
         if (!session?.user?.id) {
           throw new Error("Debes iniciar sesión para agendar instalaciones");
         }
         
-        // Set the user ID for regular users
+        // Establecer el ID de usuario para usuarios regulares
         installationData.user_id = session.user.id;
+        console.log("Usuario regular:", installationData.user_id);
         
-        // Use regular client for database operation
+        // Usar cliente regular para operación de base de datos
         response = await supabase
           .from('gps_installations')
           .insert(installationData)
           .select();
       }
       
-      // Handle potential errors
-      if (response.error) {
+      // Verificar errores potenciales
+      if (response?.error) {
         console.error("Supabase error:", response.error);
         throw response.error;
       }
 
-      console.log("Installation scheduled successfully:", response.data);
+      console.log("Installation scheduled successfully:", response?.data);
       onSchedule(formData);
       
       toast({
@@ -118,20 +137,22 @@ export const useGpsAppointment = (onSchedule: (data: AppointmentFormData) => voi
     } catch (error: any) {
       console.error("Error scheduling installation:", error);
       
-      // Provide a more user-friendly error message
+      // Proporcionar un mensaje de error más amigable para el usuario
       let errorMessage = "No se pudo programar la instalación";
       
-      if (error.message.includes("logged in")) {
+      if (error.message?.includes("logged in") || error.message?.includes("iniciar")) {
         errorMessage += ": Necesitas iniciar sesión para agendar una instalación";
-      } else if (error.message.includes("permission denied")) {
+      } else if (error.message?.includes("permission denied")) {
         errorMessage += ": No tienes permisos para realizar esta acción";
-      } else if (error.message.includes("Invalid API key")) {
+      } else if (error.message?.includes("Invalid API key")) {
         errorMessage += ": Error de configuración con la API de Supabase";
+      } else if (error.message?.includes("admin")) {
+        errorMessage += `: Error con el cliente de administrador: ${error.message || 'Error desconocido'}`;
       } else {
         errorMessage += `: ${error.message || 'Error desconocido'}`;
       }
       
-      // Show role information for debugging
+      // Mostrar información de rol para depuración
       const isOwner = userData?.role === 'owner' || checkForOwnerRole();
       errorMessage += ` (Role: ${userData?.role || 'unknown'}, Auth: ${!!currentUser})`;
       

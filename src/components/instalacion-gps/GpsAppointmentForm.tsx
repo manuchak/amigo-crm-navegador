@@ -22,16 +22,28 @@ export default function GpsAppointmentForm({ onBack, onSchedule, installData }: 
   const { currentUser, userData } = useAuth();
   const navigate = useNavigate();
   
-  // Check for owner role
-  const isOwner = userData?.role === 'owner' || checkForOwnerRole();
+  // Verificación mejorada de rol de propietario
+  const isOwnerFromRole = userData?.role === 'owner';
+  const isOwnerFromStorage = checkForOwnerRole();
+  const isOwner = isOwnerFromRole || isOwnerFromStorage;
   
-  // Add debug logs for session state
+  // Agregar logs de depuración para el estado de la sesión
   useEffect(() => {
-    console.log("GpsAppointmentForm mounted");
-    console.log("Current user:", currentUser);
-    console.log("User data:", userData);
-    console.log("Owner role detected:", isOwner);
-  }, [currentUser, userData, isOwner]);
+    console.log("GpsAppointmentForm montado");
+    console.log("Usuario actual:", currentUser);
+    console.log("Datos de usuario:", userData);
+    console.log("Rol de propietario desde userData:", isOwnerFromRole);
+    console.log("Rol de propietario desde localStorage:", isOwnerFromStorage);
+    console.log("Es propietario (combinado):", isOwner);
+    
+    // Verificar localStorage directamente para depuración
+    try {
+      const localStorageUser = localStorage.getItem('current_user');
+      console.log("Usuario en localStorage:", localStorageUser ? JSON.parse(localStorageUser) : null);
+    } catch (e) {
+      console.error("Error al acceder a localStorage:", e);
+    }
+  }, [currentUser, userData, isOwner, isOwnerFromRole, isOwnerFromStorage]);
   
   const {
     form,
@@ -40,14 +52,14 @@ export default function GpsAppointmentForm({ onBack, onSchedule, installData }: 
     error
   } = useGpsAppointment(onSchedule, installData);
 
-  // If no install data is provided, show the error component
+  // Si no se proporcionan datos de instalación, mostrar el componente de error
   if (!installData) {
     return <AppointmentError onBack={onBack} noInstallData />;
   }
 
-  // If user is not logged in and not an owner, show auth error and provide a link to login
+  // Si el usuario no está autenticado y no es propietario, mostrar error de autenticación
   if (!currentUser && !isOwner) {
-    console.log("Auth error: No current user and not owner");
+    console.log("Error de autenticación: No hay usuario actual y no es propietario");
     return (
       <AppointmentError 
         error="Debes iniciar sesión para agendar instalaciones" 
@@ -64,7 +76,11 @@ export default function GpsAppointmentForm({ onBack, onSchedule, installData }: 
       <Card className="bg-white/95 shadow-xl border-0">
         <CardHeader>
           <CardTitle className="text-xl font-medium text-gray-800">
-            Agendar cita de instalación {isOwner && <span className="text-xs text-violet-600">(propietario)</span>}
+            Agendar cita de instalación {isOwner && (
+              <span className="text-xs text-violet-600">
+                (propietario{isOwnerFromRole ? "-role" : ""}{isOwnerFromStorage ? "-storage" : ""})
+              </span>
+            )}
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -75,7 +91,7 @@ export default function GpsAppointmentForm({ onBack, onSchedule, installData }: 
                 time={form.watch("time")}
                 timezone={form.watch("timezone")}
                 onDateSelect={(selectedDate) => {
-                  console.log("Date selected:", selectedDate);
+                  console.log("Fecha seleccionada:", selectedDate);
                   form.setValue("date", selectedDate || null, { shouldValidate: true });
                 }}
                 onTimeSelect={(time) => form.setValue("time", time, { shouldValidate: true })}
