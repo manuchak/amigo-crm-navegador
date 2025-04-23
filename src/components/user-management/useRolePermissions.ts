@@ -19,6 +19,7 @@ export function useRolePermissions() {
   const [permissions, setPermissions] = useState<RolePermission[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     loadPermissions();
@@ -27,6 +28,7 @@ export function useRolePermissions() {
 
   const loadPermissions = async () => {
     setLoading(true);
+    setError(null);
     try {
       console.log('Loading role permissions from Supabase...');
       
@@ -50,6 +52,7 @@ export function useRolePermissions() {
       
       if (error) {
         console.error('Error loading permissions:', error);
+        setError('Error al cargar las configuraciones de permisos');
         toast.error('Error al cargar las configuraciones de permisos');
         // Initialize with default permissions but don't save them yet
         setPermissions(getInitialPermissions());
@@ -66,6 +69,7 @@ export function useRolePermissions() {
           console.log('Default permissions saved to database');
         } catch (err) {
           console.error('Error saving default permissions:', err);
+          setError('Error al guardar las configuraciones de permisos predeterminadas');
           toast.error('Error al guardar las configuraciones de permisos predeterminadas');
         }
       } else {
@@ -96,6 +100,7 @@ export function useRolePermissions() {
       }
     } catch (err) {
       console.error('Error in loadPermissions:', err);
+      setError(err instanceof Error ? err.message : 'Error al cargar los permisos');
       toast.error('Error al cargar los permisos');
       setPermissions(getInitialPermissions());
     } finally {
@@ -195,11 +200,13 @@ export function useRolePermissions() {
   const handleSavePermissions = async () => {
     try {
       setSaving(true);
+      setError(null);
       console.log('Saving permissions to database...');
       await savePermissionsToDatabase(permissions);
       toast.success('Configuración de permisos guardada correctamente');
     } catch (error: any) {
       console.error('Error saving permissions:', error);
+      setError(error.message || 'Error al guardar la configuración de permisos');
       toast.error('Error al guardar la configuración de permisos: ' + (error.message || 'Error desconocido'));
     } finally {
       setSaving(false);
@@ -211,6 +218,7 @@ export function useRolePermissions() {
     setPermissions,
     loading,
     saving,
+    error,
     handlePermissionChange,
     handleSavePermissions,
   };
