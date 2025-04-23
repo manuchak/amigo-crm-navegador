@@ -147,6 +147,7 @@ export type Database = {
         Row: {
           created_at: string
           date: string
+          email: string | null
           id: string
           install_address: Json
           installer_id: number
@@ -161,6 +162,7 @@ export type Database = {
         Insert: {
           created_at?: string
           date: string
+          email?: string | null
           id?: string
           install_address: Json
           installer_id: number
@@ -175,6 +177,7 @@ export type Database = {
         Update: {
           created_at?: string
           date?: string
+          email?: string | null
           id?: string
           install_address?: Json
           installer_id?: number

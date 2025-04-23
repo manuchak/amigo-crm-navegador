@@ -1,4 +1,3 @@
-
 import React from "react";
 import { useForm, useFieldArray } from "react-hook-form";
 import { z } from "zod";
@@ -15,6 +14,7 @@ import VehiclesFieldArray from "./VehiclesFieldArray";
 import AddressSection from "./address/AddressSection";
 import InstallerWorkshopField from "./address/InstallerWorkshopField";
 import { useAuth } from "@/context/AuthContext";
+import { InstallerSelectMinimal } from "./installers/InstallerSelectMinimal";
 
 const GPS_FEATURE_OPTIONS = [
   { label: "Seguimiento en tiempo real", value: "realtime_tracking" },
@@ -74,6 +74,7 @@ const gpsInstallSchema = z.object({
     references: z.string().optional(),
     coordinates: z.string().optional(),
   }),
+  email: z.string().email("Correo electrónico inválido").optional(),
   installInWorkshop: z.boolean().optional(),
   vehicles: z.array(vehicleSchema).min(1)
 });
@@ -110,6 +111,7 @@ export default function GpsInstallForm(props: GpsInstallFormProps) {
     resolver: zodResolver(gpsInstallSchema),
     defaultValues: {
       ownerName: "",
+      email: "",
       installAddress: {
         state: "",
         city: "",
@@ -331,19 +333,50 @@ export default function GpsInstallForm(props: GpsInstallFormProps) {
                   </FormItem>
                 )}
               />
-              <FormField
-                control={form.control}
-                name="installAddress.phone"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Teléfono de contacto</FormLabel>
-                    <FormControl>
-                      <Input placeholder="10 dígitos" maxLength={10} {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
+              
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="installAddress.phone"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Teléfono de contacto</FormLabel>
+                      <FormControl>
+                        <Input placeholder="10 dígitos" maxLength={10} {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={form.control}
+                  name="email"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Correo electrónico</FormLabel>
+                      <FormControl>
+                        <Input 
+                          type="email" 
+                          placeholder="ejemplo@correo.com" 
+                          {...field} 
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+              <InstallerSelectMinimal 
+                value={installer}
+                onChange={(selectedInstaller) => {
+                  form.setValue("installer", selectedInstaller);
+                }}
+                onRegisterNew={() => {}}
+                disabled={false}
               />
+
               <InstallerWorkshopField control={form.control} />
               <AddressSection control={form.control} />
               <VehiclesFieldArray
@@ -375,4 +408,3 @@ export default function GpsInstallForm(props: GpsInstallFormProps) {
 }
 
 // NOTA: Este archivo ya es extenso (~320 líneas). Recomendado refactorizarlo pronto si se agregan nuevas funcionalidades.
-
