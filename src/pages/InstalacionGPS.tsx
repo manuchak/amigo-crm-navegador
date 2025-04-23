@@ -3,14 +3,18 @@ import React from "react";
 import { Card, CardContent, CardTitle, CardHeader } from "@/components/ui/card";
 import GpsInstallForm from "@/components/instalacion-gps/GpsInstallForm";
 import GpsAppointmentForm from "@/components/instalacion-gps/GpsAppointmentForm";
-import { InstallerRegisterForm, InstallersList } from "@/components/instalacion-gps/installers";
+import { InstallersList } from "@/components/instalacion-gps/installers";
 import { useAuth } from "@/context/AuthContext";
+import { Button } from "@/components/ui/button";
+import { useNavigate } from "react-router-dom";
+import { FilePlus } from "lucide-react";
 
 const InstalacionGPS = () => {
   const [step, setStep] = React.useState<1 | 2>(1);
   const [installData, setInstallData] = React.useState<any>(null);
   const { userData } = useAuth();
   const isAdmin = userData?.role === "admin" || userData?.role === "owner";
+  const navigate = useNavigate();
 
   // Journey visual indicator (very simple for now)
   const steps = [
@@ -54,12 +58,34 @@ const InstalacionGPS = () => {
             />
           )}
 
-          {isAdmin && (
-            <div className="w-full flex flex-col md:flex-row gap-6 justify-between mt-12">
-              {/* Panel de gestión de instaladores */}
-              <div className="md:w-1/2 w-full">
-                <InstallerRegisterForm />
+          {/* NUEVO: Card/banner para registrar instalador */}
+          <div className="w-full flex flex-col md:flex-row gap-6 justify-between mt-12">
+            <Card className="w-full md:w-1/2 mx-auto shadow-lg bg-white/90 border-violet-100 flex flex-row items-center p-4 hover:shadow-xl transition hover:scale-[1.02] cursor-pointer"
+              onClick={() => navigate("/instalacion-gps/registro-instalador")}>
+              <div className="flex items-center justify-center rounded-full bg-violet-200 mr-4 p-2">
+                <FilePlus size={32} className="text-violet-700" />
               </div>
+              <div>
+                <CardTitle className="text-lg font-semibold mb-1">¿Quieres registrar un nuevo instalador?</CardTitle>
+                <div className="text-sm text-muted-foreground mb-2">
+                  Regístralo de forma integral, añade taller, fotos y todos los datos de contacto.
+                </div>
+                <Button
+                  variant="default"
+                  onClick={e => {
+                    e.stopPropagation();
+                    navigate("/instalacion-gps/registro-instalador");
+                  }}
+                >
+                  Registrar Instalador
+                </Button>
+              </div>
+            </Card>
+          </div>
+
+          {isAdmin && (
+            <div className="w-full flex flex-col md:flex-row gap-6 justify-between mt-8">
+              {/* Panel de gestión de instaladores SOLO: Listado */}
               <div className="md:w-1/2 w-full">
                 <InstallersList />
               </div>
