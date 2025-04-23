@@ -143,6 +143,59 @@ export type Database = {
           },
         ]
       }
+      gps_installations: {
+        Row: {
+          created_at: string
+          date: string
+          id: string
+          install_address: Json
+          installer_id: number
+          notes: string | null
+          owner_name: string
+          status: string | null
+          time: string
+          timezone: string
+          updated_at: string
+          vehicles: Json
+        }
+        Insert: {
+          created_at?: string
+          date: string
+          id?: string
+          install_address: Json
+          installer_id: number
+          notes?: string | null
+          owner_name: string
+          status?: string | null
+          time: string
+          timezone?: string
+          updated_at?: string
+          vehicles: Json
+        }
+        Update: {
+          created_at?: string
+          date?: string
+          id?: string
+          install_address?: Json
+          installer_id?: number
+          notes?: string | null
+          owner_name?: string
+          status?: string | null
+          time?: string
+          timezone?: string
+          updated_at?: string
+          vehicles?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "gps_installations_installer_id_fkey"
+            columns: ["installer_id"]
+            isOneToOne: false
+            referencedRelation: "gps_installers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       gps_installers: {
         Row: {
           certificaciones: string | null
