@@ -12,6 +12,7 @@ interface InstallerProfileDialogProps {
   onClose: () => void;
 }
 
+// InfoRow simple para cualquier campo con icono y label.
 const InfoRow = ({
   icon: Icon,
   label,
@@ -27,12 +28,45 @@ const InfoRow = ({
     <div className={`flex items-center gap-2 text-slate-700 text-sm ${className}`}>
       <Icon className="w-4 h-4 text-violet-400" />
       {label && <span className="font-medium">{label}:</span>}
-      <span className={label ? "ml-1" : ""}>{value}</span>
+      <span className={label ? "ml-1" : ""}>{String(value)}</span>
     </div>
   ) : null;
 
+const FieldGroup = ({
+  title,
+  children,
+}: {
+  title: string;
+  children: React.ReactNode;
+}) => (
+  <div className="mb-3 mt-3">
+    <div className="text-xs text-muted-foreground uppercase mb-1 font-semibold tracking-wider">
+      {title}
+    </div>
+    <div className="space-y-2">{children}</div>
+  </div>
+);
+
 const InstallerProfileDialog: React.FC<InstallerProfileDialogProps> = ({ installer, open, onClose }) => {
   if (!installer) return null;
+
+  // Desestructuramos todas las posibles variables relevantes del registro
+  const {
+    nombre,
+    direccion_personal,
+    telefono,
+    email,
+    rfc,
+    certificaciones,
+    comentarios,
+    taller,
+    taller_direccion,
+    taller_features,
+    taller_images,
+    created_at,
+    updated_at,
+    id,
+  } = installer;
 
   return (
     <Dialog open={open} onOpenChange={open => { if (!open) onClose(); }}>
@@ -40,58 +74,45 @@ const InstallerProfileDialog: React.FC<InstallerProfileDialogProps> = ({ install
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-primary text-xl">
             <UserRound className="w-6 h-6" />
-            {installer.nombre}
+            {nombre}
           </DialogTitle>
           <DialogDescription>Detalle del perfil del instalador</DialogDescription>
         </DialogHeader>
-        <div className="space-y-3 mt-3">
-          <InfoRow icon={MapPin} label="Dirección personal" value={installer.direccion_personal || "Sin dirección"} />
-          
-          <InfoRow icon={Phone} label="Teléfono" value={installer.telefono || "Sin teléfono"} />
-          <InfoRow icon={Mail} label="Email" value={installer.email || "Sin email"} />
-          <InfoRow icon={FileText} label="RFC" value={installer.rfc || "Sin RFC"} />
-
-          {/* Certificaciones y comentarios */}
-          <InfoRow
-            icon={CheckCircle2}
-            label="Certificaciones"
-            value={installer.certificaciones || "Ninguna"}
-          />
-          {installer.comentarios && (
-            <div className="text-slate-500 text-sm mt-2 border-t pt-3">
-              <span className="font-semibold">Comentarios:</span>
-              <span className="ml-2">{installer.comentarios}</span>
+        <div className="space-y-3 mt-2">
+          <FieldGroup title="Información principal">
+            <InfoRow icon={UserRound} label="Nombre" value={nombre} />
+            <InfoRow icon={MapPin} label="Dirección personal" value={direccion_personal || "Sin dirección"} />
+            <InfoRow icon={Phone} label="Teléfono" value={telefono || "Sin teléfono"} />
+            <InfoRow icon={Mail} label="Email" value={email || "Sin email"} />
+            <InfoRow icon={FileText} label="RFC" value={rfc || "Sin RFC"} />
+            <InfoRow icon={CheckCircle2} label="Certificaciones" value={certificaciones || "Ninguna"} />
+            <InfoRow icon={FileText} label="ID" value={id} />
+            <InfoRow icon={Star} label="Calificación" value="Sin calificación" />
+            <InfoRow icon={CheckCircle2} label="Taller propio" value={taller ? "Sí" : "No"} />
+          </FieldGroup>
+          <FieldGroup title="Comentarios">
+            <div className="text-slate-500 text-sm">
+              {comentarios || "Sin comentarios"}
             </div>
-          )}
-
-          {/* Taller info */}
-          {installer.taller ? (
-            <div className="border-t pt-3 mt-2 space-y-2">
-              <div className="flex items-center gap-2 text-slate-800 font-medium">
-                <Building2 className="w-4 h-4 text-sky-400" />
-                Instalador con taller propio
-              </div>
-              <InfoRow
-                icon={MapPin}
-                label="Dirección del taller"
-                value={installer.taller_direccion || "Sin dirección de taller"}
-                className="pl-5"
-              />
-              {Array.isArray(installer.taller_features) && installer.taller_features.length > 0 && (
-                <div className="pl-5 flex flex-col gap-1">
-                  <span className="font-medium text-xs text-muted-foreground">Características del taller:</span>
+          </FieldGroup>
+          {taller && (
+            <FieldGroup title="Taller">
+              <InfoRow icon={Building2} label="Dirección taller" value={taller_direccion || "Sin dirección de taller"} />
+              {Array.isArray(taller_features) && taller_features.length > 0 && (
+                <div className="pl-1 flex flex-col gap-1">
+                  <span className="font-medium text-xs text-muted-foreground">Características:</span>
                   <ul className="ml-1 text-xs text-slate-700 list-disc pl-4">
-                    {installer.taller_features.map((f: any, idx: number) => (
+                    {taller_features.map((f: any, idx: number) => (
                       <li key={idx}>{String(f)}</li>
                     ))}
                   </ul>
                 </div>
               )}
-              {Array.isArray(installer.taller_images) && installer.taller_images.length > 0 && (
-                <div className="pl-5">
+              {Array.isArray(taller_images) && taller_images.length > 0 && (
+                <div>
                   <span className="font-medium text-xs text-muted-foreground">Fotos:</span>
                   <div className="flex flex-wrap gap-2 mt-1">
-                    {installer.taller_images.map((img: string, i: number) => (
+                    {taller_images.map((img: string, i: number) => (
                       <img
                         key={i}
                         src={img}
@@ -102,25 +123,12 @@ const InstallerProfileDialog: React.FC<InstallerProfileDialogProps> = ({ install
                   </div>
                 </div>
               )}
-            </div>
-          ) : (
-            <div className="flex items-center gap-2 text-slate-500 text-xs">
-              <Building2 className="w-4 h-4 text-slate-300" /> Sin taller propio
-            </div>
+            </FieldGroup>
           )}
-
-          {/* Meta info */}
-          <div className="flex items-center gap-2 text-xs text-slate-400 pt-2 border-t">
-            <span>Creado: {installer.created_at && new Date(installer.created_at).toLocaleDateString()}</span>
-            <span>|</span>
-            <span>Actualizado: {installer.updated_at && new Date(installer.updated_at).toLocaleDateString()}</span>
-          </div>
-
-          {/* Calificación */}
-          <div className="flex items-center gap-2 text-slate-500 text-sm">
-            <Star className="w-4 h-4 text-yellow-400" />
-            <span>Sin calificación</span>
-          </div>
+          <FieldGroup title="Metadatos">
+            <InfoRow icon={FileText} label="Creado" value={created_at ? new Date(created_at).toLocaleDateString() : "-"} />
+            <InfoRow icon={FileText} label="Actualizado" value={updated_at ? new Date(updated_at).toLocaleDateString() : "-"} />
+          </FieldGroup>
         </div>
       </DialogContent>
     </Dialog>

@@ -2,7 +2,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { ChevronDown, Plus, User, Star, MapPin, UserRound } from "lucide-react";
+import { ChevronDown, Plus, User, Star, MapPin, UserRound, Eye } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import type { Tables } from "@/integrations/supabase/types";
@@ -78,6 +78,7 @@ export function InstallerSelectMinimal({ value, onChange, onRegisterNew, disable
           Sin calificación
         </span>
       </div>
+      {/* Se eliminó el campo RFC aquí para mayor simpleza */}
     </div>
   );
 
@@ -160,7 +161,7 @@ export function InstallerSelectMinimal({ value, onChange, onRegisterNew, disable
                     }}
                     aria-label="Ver perfil"
                   >
-                    <UserRound className="w-5 h-5" />
+                    <Eye className="w-4 h-4" />
                   </Button>
                 </div>
               ))
@@ -202,3 +203,5 @@ export function InstallerSelectMinimal({ value, onChange, onRegisterNew, disable
     </div>
   );
 }
+
+// El archivo tiene más de 200 líneas, sugerimos refactorizar a componentes pequeños tras este cambio.
