@@ -4,7 +4,7 @@ import { FormField, FormItem, FormLabel, FormControl, FormMessage } from "@/comp
 import { Input } from "@/components/ui/input";
 
 export default function PhoneInputMx({ control, name = "installAddress.phone" }: { control: any; name?: string }) {
-  // Prefijado a +52, el usuario solo puede poner el resto
+  // Prefijado a +52, el usuario solo puede poner el resto (10 dígitos)
   return (
     <FormField
       control={control}

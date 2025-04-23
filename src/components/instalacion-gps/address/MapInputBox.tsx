@@ -4,7 +4,7 @@ import { FormField, FormItem, FormLabel, FormControl, FormMessage } from "@/comp
 import mapboxgl from "mapbox-gl";
 import "mapbox-gl/dist/mapbox-gl.css";
 
-// Token proporcionado
+// Utiliza el token provisto por el usuario
 const MAPBOX_TOKEN = "pk.eyJ1IjoiZGV0ZWN0YXNlYyIsImEiOiJjbTlzdjg3ZmkwNGVoMmpwcGg3MWMwNXlhIn0.zIQ8khHoZsJt8bL4jXf35Q";
 
 export default function MapInputBox({ control, name = "installAddress.coordinates" }: { control: any; name?: string }) {
@@ -31,7 +31,6 @@ export default function MapInputBox({ control, name = "installAddress.coordinate
             Elige la ubicación en el mapa, o mueve el pin a la posición correcta.
           </div>
           <FormMessage />
-          {/** Montaje del mapa solamente si está el contenedor */}
           <MapBox
             mapContainer={mapContainer}
             markerRef={markerRef}
@@ -61,7 +60,7 @@ function MapBox({
     if (typeof window === "undefined") return;
     mapboxgl.accessToken = MAPBOX_TOKEN;
 
-    // Default: México
+    // Default: México centro
     const defaultLngLat: [number, number] = [-99.1332, 19.4326];
 
     // Parse prev value if any
