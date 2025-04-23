@@ -43,9 +43,8 @@ export const checkForOwnerRole = (): boolean => {
 
 /**
  * Gets a fresh instance of the admin client with service role
- * 
- * NOTA: Refactorizado para usar createClient correctamente con la estructura
- * recomendada para la versión más reciente de Supabase JS
+ * CORRECTED: Esta función ahora crea el cliente admin siguiendo
+ * las mejores prácticas actualizadas de Supabase
  */
 export const getAdminClient = () => {
   // Validar credenciales
@@ -57,23 +56,20 @@ export const getAdminClient = () => {
   try {
     console.log("Creando cliente admin con service role...");
     
-    // Crear cliente con opciones globales según la documentación oficial
-    return createClient<Database>(
+    // Crear cliente con el formato recomendado para la versión actual
+    const adminClient = createClient<Database>(
       SUPABASE_URL,
       SUPABASE_SERVICE_ROLE_KEY,
       {
         auth: {
           autoRefreshToken: false,
           persistSession: false
-        },
-        global: {
-          headers: {
-            'apikey': SUPABASE_SERVICE_ROLE_KEY,
-            'Authorization': `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`
-          }
         }
       }
     );
+    
+    console.log("Cliente admin creado correctamente");
+    return adminClient;
   } catch (error) {
     console.error("Error al crear cliente admin:", error);
     throw new Error("Error crítico al inicializar cliente de administración");

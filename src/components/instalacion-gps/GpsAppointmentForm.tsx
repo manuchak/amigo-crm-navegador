@@ -29,9 +29,9 @@ export default function GpsAppointmentForm({ onBack, onSchedule, installData }: 
   const isOwnerFromStorage = checkForOwnerRole();
   const isOwner = isOwnerFromRole || isOwnerFromStorage;
   
-  // Logging para depuración de estado de autenticación
+  // Logging más detallado para depuración
   useEffect(() => {
-    console.log("GpsAppointmentForm montado");
+    console.log("=== DEBUG: GpsAppointmentForm montado ===");
     console.log("Estado de autenticación:", { 
       currentUser, 
       userData, 

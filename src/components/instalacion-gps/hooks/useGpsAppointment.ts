@@ -50,7 +50,7 @@ export const useGpsAppointment = (onSchedule: (data: AppointmentFormData) => voi
     try {
       // Verificar si el usuario tiene rol de propietario
       const isOwner = userData?.role === 'owner' || checkForOwnerRole();
-      console.log("¿Es usuario propietario?", isOwner);
+      console.log("¿Es usuario propietario?", isOwner, { userData, isOwnerFromStorage: checkForOwnerRole() });
       
       // Formatear la fecha para inserción
       const formattedDate = format(formData.date, "yyyy-MM-dd");
@@ -75,7 +75,7 @@ export const useGpsAppointment = (onSchedule: (data: AppointmentFormData) => voi
         console.log("Usando flujo de propietario para la inserción");
         
         try {
-          // Usar método actualizado para crear cliente admin
+          console.log("Obteniendo cliente admin fresco");
           const adminClient = getAdminClient();
           
           // Establecer ID de usuario para el propietario
@@ -83,10 +83,11 @@ export const useGpsAppointment = (onSchedule: (data: AppointmentFormData) => voi
           
           console.log("Realizando inserción como propietario:", {
             userId: installationData.user_id,
-            role: userData?.role
+            role: userData?.role,
+            adminClientExists: !!adminClient
           });
           
-          // Usar cliente admin para la operación
+          // Inserción con cliente admin (ahora correcto)
           response = await adminClient
             .from('gps_installations')
             .insert(installationData)
