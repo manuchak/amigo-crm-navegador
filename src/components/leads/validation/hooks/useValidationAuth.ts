@@ -1,15 +1,17 @@
 
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
-import { supabase } from '@/integrations/supabase/client';
+import { supabase, checkForOwnerRole } from '@/integrations/supabase/client';
 import { UserRole } from '@/types/auth';
 
 /**
  * Hook to manage validation authentication states and checks
+ * with improved security handling
  */
 export const useValidationAuth = () => {
   const [error, setError] = useState<string | null>(null);
   const { currentUser, userData } = useAuth();
+  const [hasValidPermission, setHasValidPermission] = useState(false);
 
   // Verify authentication with special handling for owner role
   useEffect(() => {
@@ -25,35 +27,58 @@ export const useValidationAuth = () => {
           throw new Error('Error al verificar la sesión: ' + sessionError.message);
         }
         
+        // Check if the user is owner - owners should have all permissions
+        const isOwner = userData?.role === 'owner' as UserRole || checkForOwnerRole();
+        
+        if (isOwner) {
+          console.log('Usuario con rol owner - acceso total concedido');
+          setHasValidPermission(true);
+          return;
+        }
+        
+        // If not owner, verify if session exists
         if (!sessionData?.session) {
-          // Special case for owner role - allow operation despite missing session
-          if (userData?.role === 'owner' as UserRole) {
-            console.log('Usuario con rol owner - acceso concedido a pesar de sesión faltante');
-            return; // Exit early, don't throw error for owners
-          }
-          
           throw new Error('No se detectó una sesión activa. Por favor inicie sesión nuevamente.');
         }
         
         // Check if we have a user
-        if (!currentUser && userData?.role !== 'owner' as UserRole) {
+        if (!currentUser && !isOwner) {
           throw new Error('No se detectó un usuario activo. Por favor inicie sesión nuevamente.');
         }
         
-        // Check if user is owner - owners should have all permissions
-        if (userData?.role === 'owner' as UserRole) {
-          console.log('Usuario con rol owner - acceso total concedido');
-          // No error for owners - they should have all permissions
+        // If user has validated role, check specific permissions
+        if (userData && userData.role) {
+          try {
+            // Verify role-based permission for validation page
+            const { data, error: permError } = await supabase
+              .from('role_permissions')
+              .select('allowed')
+              .eq('role', userData.role)
+              .eq('permission_type', 'page')
+              .eq('permission_id', 'validation')
+              .maybeSingle();
+              
+            if (permError) {
+              console.error('Error checking page permissions:', permError);
+            } else {
+              // Set permission flag based on result
+              setHasValidPermission(!!data?.allowed);
+            }
+          } catch (permCheckErr) {
+            console.error('Error in permission validation:', permCheckErr);
+          }
         }
       } catch (err: any) {
         // Special case for owner role - always grant access regardless of errors
-        if (userData?.role === 'owner' as UserRole) {
+        if (userData?.role === 'owner' as UserRole || checkForOwnerRole()) {
           console.log('Error de autenticación pero usuario es propietario - acceso concedido');
+          setHasValidPermission(true);
           return; // Exit early, don't set error for owners
         }
         
         console.error('Authentication error:', err);
         setError(err.message || 'Error de autenticación. Por favor inicie sesión nuevamente.');
+        setHasValidPermission(false);
       }
     };
     
@@ -62,28 +87,29 @@ export const useValidationAuth = () => {
 
   // Check authentication status with special handling for owners
   const checkAuthStatus = (): boolean => {
-    if (!currentUser && userData?.role !== 'owner' as UserRole) {
+    // Special handling for owners - they should always have access
+    const isOwner = userData?.role === 'owner' as UserRole || checkForOwnerRole();
+    if (isOwner) {
+      console.log('Usuario con rol propietario - acceso total concedido');
+      return true;
+    }
+    
+    if (!currentUser && !isOwner) {
       const errorMessage = 'Sesión no válida. Por favor inicie sesión nuevamente.';
       setError(errorMessage);
       return false;
     }
     
-    // Special handling for owners - they should always have access
-    if (userData?.role === 'owner' as UserRole) {
-      console.log('Usuario con rol propietario - acceso total concedido');
-      return true;
-    }
-    
-    if (!userData && userData?.role !== 'owner' as UserRole) {
+    if (!userData && !isOwner) {
       const errorMessage = 'No se pudieron obtener los datos de usuario. Por favor inicie sesión nuevamente.';
       setError(errorMessage);
       return false;
     }
     
-    return true;
+    return hasValidPermission;
   };
 
-  const isOwner = userData?.role === 'owner' as UserRole;
+  const isOwner = userData?.role === 'owner' as UserRole || checkForOwnerRole();
 
   return {
     error,
@@ -91,6 +117,7 @@ export const useValidationAuth = () => {
     currentUser,
     userData,
     isOwner,
-    checkAuthStatus
+    checkAuthStatus,
+    hasValidPermission
   };
 };
