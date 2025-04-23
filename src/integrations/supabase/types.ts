@@ -157,6 +157,7 @@ export type Database = {
           time: string
           timezone: string
           updated_at: string
+          user_id: string | null
           vehicles: Json
         }
         Insert: {
@@ -172,6 +173,7 @@ export type Database = {
           time: string
           timezone?: string
           updated_at?: string
+          user_id?: string | null
           vehicles: Json
         }
         Update: {
@@ -187,6 +189,7 @@ export type Database = {
           time?: string
           timezone?: string
           updated_at?: string
+          user_id?: string | null
           vehicles?: Json
         }
         Relationships: [

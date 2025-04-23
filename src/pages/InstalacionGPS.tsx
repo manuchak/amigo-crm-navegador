@@ -1,3 +1,4 @@
+
 import React, { useEffect } from "react";
 import { Card, CardContent, CardTitle, CardHeader } from "@/components/ui/card";
 import GpsInstallForm from "@/components/instalacion-gps/GpsInstallForm";
@@ -47,11 +48,13 @@ const InstalacionGPS = () => {
   useEffect(() => {
     const setupRlsPolicies = async () => {
       try {
+        const { data: { session } } = await supabase.auth.getSession();
+        
         const response = await fetch("https://beefjsdgrdeiymzxwxru.supabase.co/functions/v1/setup-rls-policies", {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${supabase.auth.session()?.access_token || ''}`
+            'Authorization': `Bearer ${session?.access_token || ''}`
           }
         });
         

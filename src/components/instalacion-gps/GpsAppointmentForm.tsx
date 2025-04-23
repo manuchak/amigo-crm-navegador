@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -63,15 +62,9 @@ export default function GpsAppointmentForm({ onBack, onSchedule, installData }: 
     setError(null);
     
     try {
-      // Ensure that all required fields are present before proceeding
-      if (!formData.date || !formData.time || !formData.timezone) {
-        toast({
-          variant: "destructive",
-          title: "Error de validación",
-          description: "Por favor completa todos los campos requeridos.",
-        });
-        setIsSaving(false);
-        return;
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.user?.id) {
+        throw new Error("Must be logged in to schedule installations");
       }
       
       const formattedDate = format(formData.date, "yyyy-MM-dd");
@@ -86,27 +79,23 @@ export default function GpsAppointmentForm({ onBack, onSchedule, installData }: 
         install_address: installData.installAddress || {},
         installer_id: installData.installer_id || null,
         notes: formData.notes || null,
-        // Add user_id to associate the installation with the current user
-        user_id: userData?.id || null
+        user_id: session.user.id
       };
       
       console.log("Sending installation data:", installationData);
       
-      // Use the authenticated client for insert operations
-      const { data, error } = await supabase
+      const { data, error: insertError } = await supabase
         .from('gps_installations')
         .insert(installationData)
         .select();
       
-      if (error) {
-        console.error("Supabase error:", error);
-        setError(`No se pudo programar la instalación: ${error.message}`);
-        throw error;
+      if (insertError) {
+        console.error("Supabase error:", insertError);
+        throw insertError;
       }
 
       console.log("Installation scheduled successfully:", data);
 
-      // Callback with the appointment data
       onSchedule({
         date: formData.date,
         time: formData.time,
@@ -119,7 +108,7 @@ export default function GpsAppointmentForm({ onBack, onSchedule, installData }: 
         description: "La cita se ha programado correctamente.",
       });
     } catch (error: any) {
-      console.error("Error al programar la instalación:", error);
+      console.error("Error scheduling installation:", error);
       setError(`No se pudo programar la instalación: ${error.message || 'Error desconocido'}`);
       
       toast({
@@ -149,7 +138,6 @@ export default function GpsAppointmentForm({ onBack, onSchedule, installData }: 
     );
   }
 
-  // Display form state in console for debugging
   console.log("Form state:", {
     isValid: form.formState.isValid,
     isDirty: form.formState.isDirty,
