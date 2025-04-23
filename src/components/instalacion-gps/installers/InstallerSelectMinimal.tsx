@@ -55,7 +55,7 @@ export function InstallerSelectMinimal({ value, onChange, onRegisterNew, disable
     || inst.rfc?.toLowerCase().includes(search.toLowerCase())
   );
 
-  // Siempre muestra calificación como "Sin calificación"
+  // Para mostrar nombre, dirección y calificación en el dropdown
   const renderInstallerLabel = (inst: Installer) => (
     <div className="flex flex-col items-start gap-0 min-w-0">
       <div className="flex items-center gap-1">
@@ -65,10 +65,11 @@ export function InstallerSelectMinimal({ value, onChange, onRegisterNew, disable
         )}
       </div>
       <div className="flex items-center gap-2 text-xs text-slate-600 mt-0.5">
-        {inst.estado && (
+        {inst.direccion_personal && (
           <span className="flex items-center gap-1">
             <MapPin className="w-3 h-3 text-violet-300" />
-            {inst.estado}
+            {/* Solo dirección, ya que no existe campo estado */}
+            {inst.direccion_personal}
           </span>
         )}
         <span className="flex items-center gap-1 ml-2">

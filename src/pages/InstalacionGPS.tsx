@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Card, CardContent, CardTitle, CardHeader } from "@/components/ui/card";
 import GpsInstallForm from "@/components/instalacion-gps/GpsInstallForm";
@@ -22,7 +21,7 @@ const InstalacionGPS = () => {
   // Tarjeta integrando nombre, estado, dirección y calificación
   const renderSelectedInstallerCard = () => {
     if (!selectedInstaller) return null;
-    const { nombre, direccion_personal, estado, certificaciones } = selectedInstaller;
+    const { nombre, direccion_personal, certificaciones } = selectedInstaller;
     return (
       <Card className="w-full my-5 rounded-2xl glass border-0 shadow-md bg-white/90 animate-fade-in">
         <CardContent className="flex items-center gap-4 py-5">
@@ -35,15 +34,9 @@ const InstalacionGPS = () => {
                 </span>
               )}
             </div>
-            {estado && (
-              <div className="flex items-center gap-2 text-sm text-slate-500 mb-1">
-                <MapPin className="w-4 h-4 text-violet-400" />
-                <span>{estado}</span>
-              </div>
-            )}
             {direccion_personal && (
               <div className="flex items-center gap-2 text-sm text-slate-700 mb-1">
-                <span className="font-medium">Dirección:</span>
+                <MapPin className="w-4 h-4 text-violet-400" />
                 <span>{direccion_personal}</span>
               </div>
             )}
