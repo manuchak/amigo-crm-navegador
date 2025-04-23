@@ -19,7 +19,7 @@ const commonOptions = {
   }
 };
 
-// Create client with explicit auth configuration
+// Create standard client with explicit auth configuration
 export const supabase = createClient<Database>(
   SUPABASE_URL, 
   SUPABASE_PUBLISHABLE_KEY,
@@ -42,7 +42,6 @@ export const supabaseAdmin = createClient<Database>(
   SUPABASE_URL,
   SUPABASE_SERVICE_ROLE_KEY,
   {
-    ...commonOptions,
     auth: {
       autoRefreshToken: false,
       persistSession: false
@@ -74,6 +73,21 @@ export const checkForOwnerRole = (): boolean => {
     console.error("Error checking for owner role:", e);
     return false;
   }
+};
+
+/**
+ * Gets a direct instance of supabaseAdmin client with properly set headers
+ * for service role operations (primarily for owner users)
+ */
+export const getAdminClient = () => {
+  // Ensure headers are set correctly every time
+  const headers = {
+    'Content-Type': 'application/json',
+    'apikey': SUPABASE_SERVICE_ROLE_KEY,
+    'Authorization': `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`
+  };
+  
+  return supabaseAdmin.from('role_permissions').setHeaders(headers);
 };
 
 /**
