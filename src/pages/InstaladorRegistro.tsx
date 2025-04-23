@@ -27,13 +27,16 @@ export default function InstaladorRegistro() {
         <Card className="bg-white/90 shadow-xl">
           <CardHeader>
             <CardTitle className="text-xl">Registro de Instalador de GPS</CardTitle>
-            <div className="text-xs text-muted-foreground mt-1">Por favor, rellena todos los datos requeridos. Los campos marcados con * son obligatorios.</div>
+            <div className="text-xs text-muted-foreground mt-1">
+              Por favor, rellena todos los datos requeridos. Los campos marcados con * son obligatorios.
+            </div>
           </CardHeader>
           <CardContent>
             <form
               onSubmit={handleSubmit(onSubmit)}
               className="grid grid-cols-1 gap-6"
               autoComplete="off"
+              noValidate
             >
               <div>
                 <label className="font-medium">Nombre completo *</label>
@@ -83,7 +86,9 @@ export default function InstaladorRegistro() {
               </div>
               <Button className="mt-3 w-full" type="submit" disabled={isSubmitting || uploading}>
                 {uploading || isSubmitting ? (
-                  <span className="flex items-center gap-2"><UploadCloud className="animate-bounce" />Enviando…</span>
+                  <span className="flex items-center gap-2">
+                    <UploadCloud className="animate-bounce" />Enviando…
+                  </span>
                 ) : "Registrar Instalador"}
               </Button>
             </form>

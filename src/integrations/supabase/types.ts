@@ -152,6 +152,7 @@ export type Database = {
           email: string | null
           id: number
           nombre: string
+          rfc: string | null
           taller: boolean | null
           taller_direccion: string | null
           taller_images: Json | null
@@ -166,6 +167,7 @@ export type Database = {
           email?: string | null
           id?: number
           nombre: string
+          rfc?: string | null
           taller?: boolean | null
           taller_direccion?: string | null
           taller_images?: Json | null
@@ -180,6 +182,7 @@ export type Database = {
           email?: string | null
           id?: number
           nombre?: string
+          rfc?: string | null
           taller?: boolean | null
           taller_direccion?: string | null
           taller_images?: Json | null

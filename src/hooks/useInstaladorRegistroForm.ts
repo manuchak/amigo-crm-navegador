@@ -19,20 +19,34 @@ export const workshopFeatures = [
 export type FormValues = {
   nombre: string;
   telefono: string;
-  email: string; // ahora usada en el insert
+  email: string;
   direccion_personal: string;
   rfc: string;
   taller: boolean;
   taller_direccion: string;
-  taller_features: string[];
   taller_imagenes: FileList | null;
   certificaciones: string;
   comentarios: string;
 };
 
 export function useInstaladorRegistroForm() {
-  const { register, handleSubmit, watch, reset, formState: { isSubmitting } } = useForm<FormValues>();
-  const taller = watch("taller");
+  const { register, handleSubmit, watch, reset, formState: { isSubmitting } } = useForm<FormValues>({
+    mode: "onSubmit",
+    reValidateMode: "onChange",
+    defaultValues: {
+      nombre: "",
+      telefono: "",
+      email: "",
+      direccion_personal: "",
+      rfc: "",
+      taller: false,
+      taller_direccion: "",
+      taller_imagenes: null,
+      certificaciones: "",
+      comentarios: "",
+    }
+  });
+  const taller = !!watch("taller");
   const [uploading, setUploading] = useState(false);
   const [selectedFeatures, setSelectedFeatures] = useState<string[]>([]);
   const [imagePreviews, setImagePreviews] = useState<string[]>([]);
@@ -59,8 +73,25 @@ export function useInstaladorRegistroForm() {
   const onSubmit = async (data: FormValues) => {
     try {
       setUploading(true);
+
+      // Validation: required fields before submit
+      if (!data.nombre || !data.telefono || !data.email || !data.rfc || !data.direccion_personal) {
+        toast.error("Por favor, llena todos los campos obligatorios marcados con *");
+        return;
+      }
+      if (taller) {
+        if (!data.taller_direccion) {
+          toast.error("La dirección del taller es obligatoria.");
+          return;
+        }
+        if (selectedFeatures.length === 0) {
+          toast.error("Selecciona al menos una característica del taller.");
+          return;
+        }
+      }
+
       let imagenUrls: string[] = [];
-      if (taller && data.taller_imagenes?.length) {
+      if (taller && data.taller_imagenes && data.taller_imagenes.length) {
         const files = Array.from(data.taller_imagenes);
         for (let file of files) {
           const filePath = `talleres/${Date.now()}-${file.name.replace(/\s+/g, "_")}`;
@@ -71,25 +102,39 @@ export function useInstaladorRegistroForm() {
             }
             throw error;
           }
-          imagenUrls.push(`https://beefjsdgrdeiymzxwxru.supabase.co/storage/v1/object/public/installers/${filePath}`);
+          imagenUrls.push(
+            `https://beefjsdgrdeiymzxwxru.supabase.co/storage/v1/object/public/installers/${filePath}`
+          );
         }
       }
+
+      // Use clean values for nullable/optional fields
       const payload = {
         nombre: data.nombre,
         telefono: data.telefono,
         email: data.email,
-        direccion_personal: data.direccion_personal,
         rfc: data.rfc,
-        taller: taller ? true : false,
+        direccion_personal: data.direccion_personal,
+        taller: !!taller,
         taller_direccion: taller ? data.taller_direccion : null,
         taller_features: taller ? selectedFeatures : [],
-        taller_images: imagenUrls,
-        certificaciones: data.certificaciones,
-        comentarios: data.comentarios,
+        taller_images: taller ? imagenUrls : [],
+        certificaciones: data.certificaciones || null,
+        comentarios: data.comentarios || null,
       };
 
+      // Clean up empty strings to null for optional fields, match column names
+      Object.entries(payload).forEach(([key, value]) => {
+        if (typeof value === "string" && value.trim() === "") {
+          // @ts-ignore
+          payload[key] = null;
+        }
+      });
+
+      // Insert into gps_installers
       const { error: dbError } = await supabase.from("gps_installers").insert(payload);
       if (dbError) throw dbError;
+
       toast.success("Instalador registrado correctamente");
       reset();
       setSelectedFeatures([]);
