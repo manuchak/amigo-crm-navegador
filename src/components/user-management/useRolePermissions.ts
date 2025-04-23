@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { UserRole } from '@/types/auth';
 import { supabase } from '@/integrations/supabase/client';
@@ -33,6 +32,9 @@ export const availableActions: PageAccess[] = [
   { id: 'verify_users', name: 'Verificar usuarios', description: 'Puede verificar usuarios' },
   { id: 'validate_prospects', name: 'Validar prospectos', description: 'Puede validar prospectos' },
   { id: 'create_leads', name: 'Crear leads', description: 'Puede crear nuevos leads' },
+  { id: 'registrar_instalador', name: 'Registrar instalador', description: 'Registrar instaladores de GPS' },
+  { id: 'ver_instaladores', name: 'Ver instaladores', description: 'Ver, listar y monitorear instaladores' },
+  { id: 'evaluar_instalacion', name: 'Evaluar instalación', description: 'Evaluar la instalación realizada' },
 ];
 
 const getDisplayName = (role: UserRole): string => {
@@ -54,7 +56,6 @@ export function useRolePermissions() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
-  // Inicializa permisos por defecto según el rol
   const getInitialPermissions = (): RolePermission[] => {
     const roles: UserRole[] = [
       'supply', 
@@ -90,7 +91,6 @@ export function useRolePermissions() {
     });
   };
 
-  // Cargar permisos desde supabase al montar
   useEffect(() => {
     loadPermissions();
     // eslint-disable-next-line

@@ -16,6 +16,8 @@ import DashcamFeatures from "./DashcamFeatures";
 import { Checkbox } from "@/components/ui/checkbox";
 import VehiclesFieldArray from "./VehiclesFieldArray";
 import AddressSection from "./address/AddressSection";
+import { InstallerRegisterForm, InstallersList } from "./installers";
+import { useAuth } from "@/context/AuthContext";
 
 const GPS_FEATURE_OPTIONS = [
   { label: "Seguimiento en tiempo real", value: "realtime_tracking" },
@@ -83,8 +85,10 @@ type GpsInstallFormProps = {
   onNext: (data: z.infer<typeof gpsInstallSchema>) => void;
 };
 
-export default function GpsInstallForm({ onNext }: GpsInstallFormProps) {
+export default function GpsInstallForm(props: any) {
   const { brands, fetchModelsByBrand, loading: loadingBrands } = useCarData();
+  const { userData } = useAuth();
+  const isAdmin = userData?.role === "admin" || userData?.role === "owner";
 
   const form = useForm<z.infer<typeof gpsInstallSchema>>({
     resolver: zodResolver(gpsInstallSchema),
@@ -158,59 +162,67 @@ export default function GpsInstallForm({ onNext }: GpsInstallFormProps) {
       }
       return veh;
     });
-    onNext({ ...data, vehicles: enrichedVehicles });
+    props.onNext({ ...data, vehicles: enrichedVehicles });
   };
 
   return (
-    <Card className="w-full max-w-2xl mx-auto shadow-xl my-4">
-      <CardHeader>
-        <div className="flex items-center space-x-3">
-          <div className="bg-gradient-to-br from-green-400 to-green-700 rounded-full p-2">
-            <Car className="text-white w-6 h-6" />
-          </div>
-          <CardTitle>Datos de la Instalación del GPS</CardTitle>
-        </div>
-      </CardHeader>
-      <CardContent>
-        <Form {...form}>
-          <form className="space-y-5" onSubmit={form.handleSubmit(handleNext)} autoComplete="off">
-            <FormField
-              control={form.control}
-              name="ownerName"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Nombre Cliente / Custodio</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Nombre completo" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <AddressSection control={form.control} />
-            <VehiclesFieldArray
-              form={form}
-              brands={brands}
-              loadingBrands={loadingBrands}
-              fetchModelsByBrand={fetchModelsByBrand}
-              modelsArray={modelsArray}
-              setModelsArray={setModelsArray}
-              brandIds={brandIds}
-              setBrandIds={setBrandIds}
-              dashcamFeaturesArr={dashcamFeaturesArr}
-              setDashcamFeaturesArr={setDashcamFeaturesArr}
-              dashcamCameraCountArr={dashcamCameraCountArr}
-              setDashcamCameraCountArr={setDashcamCameraCountArr}
-              dashcamCameraLocationsArr={dashcamCameraLocationsArr}
-              setDashcamCameraLocationsArr={setDashcamCameraLocationsArr}
-              GPS_FEATURE_OPTIONS={GPS_FEATURE_OPTIONS}
-            />
-            <div className="flex justify-end gap-3 mt-4">
-              <Button type="submit" className="px-10">Siguiente</Button>
+    <div>
+      <Card className="w-full max-w-2xl mx-auto shadow-xl my-4">
+        <CardHeader>
+          <div className="flex items-center space-x-3">
+            <div className="bg-gradient-to-br from-green-400 to-green-700 rounded-full p-2">
+              <Car className="text-white w-6 h-6" />
             </div>
-          </form>
-        </Form>
-      </CardContent>
-    </Card>
+            <CardTitle>Datos de la Instalación del GPS</CardTitle>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <Form {...form}>
+            <form className="space-y-5" onSubmit={form.handleSubmit(handleNext)} autoComplete="off">
+              <FormField
+                control={form.control}
+                name="ownerName"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Nombre Cliente / Custodio</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Nombre completo" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <AddressSection control={form.control} />
+              <VehiclesFieldArray
+                form={form}
+                brands={brands}
+                loadingBrands={loadingBrands}
+                fetchModelsByBrand={fetchModelsByBrand}
+                modelsArray={modelsArray}
+                setModelsArray={setModelsArray}
+                brandIds={brandIds}
+                setBrandIds={setBrandIds}
+                dashcamFeaturesArr={dashcamFeaturesArr}
+                setDashcamFeaturesArr={setDashcamFeaturesArr}
+                dashcamCameraCountArr={dashcamCameraCountArr}
+                setDashcamCameraCountArr={setDashcamCameraCountArr}
+                dashcamCameraLocationsArr={dashcamCameraLocationsArr}
+                setDashcamCameraLocationsArr={setDashcamCameraLocationsArr}
+                GPS_FEATURE_OPTIONS={GPS_FEATURE_OPTIONS}
+              />
+              <div className="flex justify-end gap-3 mt-4">
+                <Button type="submit" className="px-10">Siguiente</Button>
+              </div>
+            </form>
+          </Form>
+        </CardContent>
+      </Card>
+      {isAdmin && (
+        <section className="mt-8">
+          <InstallerRegisterForm onRegistered={() => {}} />
+          <InstallersList />
+        </section>
+      )}
+    </div>
   );
 }
