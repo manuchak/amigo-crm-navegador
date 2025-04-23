@@ -148,6 +148,7 @@ export type Database = {
           certificaciones: string | null
           comentarios: string | null
           created_at: string
+          direccion_personal: string | null
           id: number
           nombre: string
           taller: boolean | null
@@ -160,6 +161,7 @@ export type Database = {
           certificaciones?: string | null
           comentarios?: string | null
           created_at?: string
+          direccion_personal?: string | null
           id?: number
           nombre: string
           taller?: boolean | null
@@ -172,6 +174,7 @@ export type Database = {
           certificaciones?: string | null
           comentarios?: string | null
           created_at?: string
+          direccion_personal?: string | null
           id?: number
           nombre?: string
           taller?: boolean | null

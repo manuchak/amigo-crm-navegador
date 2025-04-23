@@ -56,6 +56,12 @@ export default function InstaladorRegistro() {
     );
   };
 
+  // Limpiar previews locales y selection extra al resetear
+  const cleanUpImages = () => {
+    imagePreviews.forEach(url => URL.revokeObjectURL(url));
+    setImagePreviews([]);
+  };
+
   const onSubmit = async (data: FormValues) => {
     try {
       setUploading(true);
@@ -65,7 +71,12 @@ export default function InstaladorRegistro() {
         for (let file of files) {
           const filePath = `talleres/${Date.now()}-${file.name.replace(/\s+/g, "_")}`;
           const { error } = await supabase.storage.from("installers").upload(filePath, file);
-          if (error) throw error;
+          if (error) {
+            if (error.message?.toLowerCase().includes("bucket")) {
+              throw new Error("No se encontró el bucket para imágenes. Contacta al administrador.");
+            }
+            throw error;
+          }
           imagenUrls.push(`https://beefjsdgrdeiymzxwxru.supabase.co/storage/v1/object/public/installers/${filePath}`);
         }
       }
@@ -89,10 +100,13 @@ export default function InstaladorRegistro() {
       toast.success("Instalador registrado correctamente");
       reset();
       setSelectedFeatures([]);
-      setImagePreviews([]);
+      cleanUpImages();
       navigate("/instalacion-gps/instaladores");
     } catch (e: any) {
-      toast.error("Error al registrar instalador: " + (e.message || ""));
+      let friendly = typeof e?.message === "string" && e.message.includes("bucket")
+        ? "Ocurrió un problema interno con el almacenamiento de imágenes. Por favor, contacta a soporte."
+        : e?.message || "Error desconocido";
+      toast.error("Error al registrar instalador: " + friendly);
     } finally {
       setUploading(false);
     }
