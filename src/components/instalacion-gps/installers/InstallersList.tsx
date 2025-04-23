@@ -1,13 +1,23 @@
-
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import type { Tables } from "@/integrations/supabase/types";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, ChevronRight, MapPin, Phone, Mail, CheckCircle, Building } from "lucide-react";
+import { Loader2, ChevronRight, Phone, Mail, MapPin, Building, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 function getNiceAddress(addrRaw: string | null | undefined) {
   if (!addrRaw) return null;
@@ -34,6 +44,7 @@ export default function InstallersList() {
   const [installers, setInstallers] = useState<Tables<"gps_installers">[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
+  const [deleting, setDeleting] = useState(false);
   
   useEffect(() => {
     fetchInstallers();
@@ -54,6 +65,26 @@ export default function InstallersList() {
     setLoading(false);
   };
 
+  const handleDeleteInstaller = async (id: number) => {
+    try {
+      setDeleting(true);
+      const { error } = await supabase
+        .from("gps_installers")
+        .delete()
+        .eq("id", id);
+
+      if (error) throw error;
+
+      setInstallers(installers.filter(inst => inst.id !== id));
+      toast.success("Instalador eliminado exitosamente");
+    } catch (error) {
+      console.error("Error deleting installer:", error);
+      toast.error("No se pudo eliminar el instalador");
+    } finally {
+      setDeleting(false);
+    }
+  };
+
   const filteredInstallers = installers.filter(inst => {
     if (!searchTerm) return true;
     const searchLower = searchTerm.toLowerCase();
@@ -66,7 +97,6 @@ export default function InstallersList() {
     );
   });
 
-  // For mapping workshop features to readable labels
   const featureDict: Record<string, string> = {
     area_techada: "Área techada",
     agua_energia: "Agua/Energía",
@@ -123,7 +153,7 @@ export default function InstallersList() {
                 <div
                   key={inst.id || inst.nombre}
                   tabIndex={0}
-                  className="group p-4 hover:bg-slate-50 transition-all focus:bg-slate-50 cursor-pointer"
+                  className="group p-4 hover:bg-slate-50 transition-all focus:bg-slate-50"
                 >
                   <div className="flex gap-4">
                     <div className="flex-shrink-0">
@@ -167,6 +197,42 @@ export default function InstallersList() {
                               {inst.certificaciones}
                             </Badge>
                           )}
+                          
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button 
+                                variant="ghost" 
+                                size="icon"
+                                className="rounded-full text-red-500 hover:text-red-600 hover:bg-red-50"
+                              >
+                                <Trash2 className="h-5 w-5" />
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  Esta acción no se puede deshacer. Esto eliminará permanentemente el registro
+                                  del instalador {inst.nombre} y toda su información asociada.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                <AlertDialogAction
+                                  onClick={() => handleDeleteInstaller(inst.id)}
+                                  className="bg-red-500 hover:bg-red-600 text-white"
+                                  disabled={deleting}
+                                >
+                                  {deleting ? (
+                                    <Loader2 className="h-4 w-4 animate-spin" />
+                                  ) : (
+                                    "Eliminar"
+                                  )}
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
+                          
                           <Button variant="ghost" size="icon" className="rounded-full">
                             <ChevronRight className="h-5 w-5 text-slate-400" />
                           </Button>
