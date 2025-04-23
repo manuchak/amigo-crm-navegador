@@ -1,6 +1,6 @@
 
 import { useCallback } from 'react';
-import { getAdminClient, supabaseAdmin, checkForOwnerRole } from '@/integrations/supabase/client';
+import { getAdminClient, checkForOwnerRole } from '@/integrations/supabase/client';
 import { RolePermission } from '../rolePermissions.constants';
 import { getInitialPermissions } from '../rolePermissions.utils';
 import { toast } from 'sonner';
@@ -32,25 +32,40 @@ export function usePermissionsData() {
 
       let permissionsData = null;
 
-      // Always try to use the admin client first for consistent permissions access
+      // Always use a fresh admin client for consistent permissions access
       try {
-        console.log('Loading permissions with admin client');
+        console.log('Loading permissions with fresh admin client');
         
-        // Get a fresh admin client instance to avoid stale connection issues
+        // Get a fresh admin client instance to avoid any stale connection issues
         const adminClient = getAdminClient();
         
+        // Test connection first
+        const { data: testData, error: testError } = await adminClient
+          .from('role_permissions')
+          .select('count(*)');
+          
+        if (testError) {
+          console.error('Admin client connection test failed:', testError);
+          throw new Error(`Error de conexión con la base de datos: ${testError.message}`);
+        }
+          
+        console.log('Connection test successful, proceeding with query');
+        
+        // Proceed with actual data query
         const { data, error } = await adminClient
           .from('role_permissions')
           .select('*');
         
         if (error) {
           console.error('Admin client query failed:', error);
+          throw new Error(`Error al cargar permisos: ${error.message}`);
         } else {
           permissionsData = data;
           console.log('Admin client query successful, records:', permissionsData?.length);
         }
-      } catch (adminError) {
+      } catch (adminError: any) {
         console.error('Error with admin client:', adminError);
+        throw new Error(adminError.message || 'Error al acceder a la base de datos');
       }
 
       // Handle the case where no permissions are found

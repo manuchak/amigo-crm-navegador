@@ -1,7 +1,7 @@
 
-import { supabase, supabaseAdmin, getAuthenticatedClient, checkForOwnerRole } from '@/integrations/supabase/client';
-import { RolePermission } from '../rolePermissions.constants';
 import { toast } from 'sonner';
+import { RolePermission } from '../rolePermissions.constants';
+import { getAdminClient } from '@/integrations/supabase/client';
 
 export function usePermissionsSave() {
   const savePermissionsToDatabase = async (permsToSave: RolePermission[]) => {
@@ -11,29 +11,31 @@ export function usePermissionsSave() {
     console.log('Total permissions to insert:', permissionsToInsert.length);
     
     try {
-      // Always use admin client directly for reliability
-      console.log('Using admin client for permissions operations');
-      const client = supabaseAdmin;
+      // Always use a fresh admin client for permissions operations
+      console.log('Creating fresh admin client for permissions operations');
+      const client = getAdminClient();
       
-      console.log('Deleting existing permissions...');
-      
-      // First check if we can connect properly
-      const { data: testData, error: testError } = await client
+      // Test client connection first
+      console.log('Testing database connection...');
+      const { data: connectionTest, error: connectionError } = await client
         .from('role_permissions')
-        .select('count(*)');
+        .select('count(*)')
+        .limit(1);
       
-      if (testError) {
-        console.error('Error testing connection:', testError);
-        throw new Error(`Error de conexión con la base de datos: ${testError.message}`);
+      if (connectionError) {
+        console.error('Error testing admin client connection:', connectionError);
+        throw new Error(`Error de conexión con la base de datos: ${connectionError.message}`);
       }
       
-      console.log('Connection test successful, proceeding with delete');
+      console.log('Connection test successful:', connectionTest);
+      console.log('Proceeding with permission update...');
       
-      // Delete existing permissions using a more reliable query
+      // Delete existing permissions using a reliable method
+      console.log('Deleting existing permissions...');
       const { error: deleteError } = await client
         .from('role_permissions')
         .delete()
-        .neq('id', -1); // This will delete all rows since no ID would be -1
+        .gt('id', 0); // This is safer than using 'neq' with a negative value
       
       if (deleteError) {
         console.error('Error deleting existing permissions:', deleteError);

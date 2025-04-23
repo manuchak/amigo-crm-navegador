@@ -54,20 +54,34 @@ export const checkForOwnerRole = (): boolean => {
 };
 
 /**
- * Gets a direct reference to the supabaseAdmin client for service role operations
+ * Gets a completely fresh instance of the admin client with service role key
+ * to avoid any session or auth token conflicts
  */
 export const getAdminClient = () => {
-  // Ensure we're returning a fresh instance with the service role key
-  return createClient<Database>(
-    SUPABASE_URL,
-    SUPABASE_SERVICE_ROLE_KEY,
-    {
-      auth: {
-        autoRefreshToken: false,
-        persistSession: false
+  try {
+    // Create a completely fresh instance with all new settings
+    const client = createClient<Database>(
+      SUPABASE_URL,
+      SUPABASE_SERVICE_ROLE_KEY,
+      {
+        auth: {
+          autoRefreshToken: false,
+          persistSession: false
+        }
       }
+    );
+    
+    // Verify the client was created correctly
+    if (!client) {
+      console.error("Failed to create admin client");
+      throw new Error("Error al crear cliente de administración");
     }
-  );
+    
+    return client;
+  } catch (error) {
+    console.error("Error creating admin client:", error);
+    throw new Error("Error al inicializar cliente de administración");
+  }
 };
 
 /**
@@ -78,7 +92,7 @@ export const getAuthenticatedClient = async () => {
   const isOwner = checkForOwnerRole();
   
   if (isOwner) {
-    console.log("✅ Owner role detected - using admin client");
+    console.log("✅ Owner role detected - using fresh admin client");
     return getAdminClient();
   }
 
@@ -110,7 +124,7 @@ export const getAuthenticatedClient = async () => {
     
     // Always fallback to admin client for owners even if there are errors
     if (checkForOwnerRole()) {
-      console.log("Error occurred but owner detected - using admin client");
+      console.log("Error occurred but owner detected - using fresh admin client");
       return getAdminClient();
     }
     
