@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Button } from '@/components/ui/button';
-import { Loader2, AlertTriangle } from 'lucide-react';
+import { Loader2, AlertTriangle, ShieldCheck } from 'lucide-react';
 import {
   useRolePermissions,
   availablePages,
@@ -22,6 +22,7 @@ const UserPermissionConfig: React.FC = () => {
     loading,
     saving,
     error,
+    isOwner,
     handlePermissionChange,
     handleSavePermissions,
   } = useRolePermissions();
@@ -51,7 +52,17 @@ const UserPermissionConfig: React.FC = () => {
   return (
     <Card className="shadow-md mt-8">
       <CardHeader>
-        <CardTitle className="text-xl">Configuración de Permisos por Rol</CardTitle>
+        <div className="flex justify-between items-center">
+          <CardTitle className="text-xl">Configuración de Permisos por Rol</CardTitle>
+          {isOwner && (
+            <Alert variant="default" className="max-w-fit p-1 px-3 bg-green-50 border-green-200">
+              <div className="flex items-center gap-2">
+                <ShieldCheck className="h-4 w-4 text-green-500" />
+                <AlertDescription className="text-green-700 text-sm">Modo Propietario: acceso total</AlertDescription>
+              </div>
+            </Alert>
+          )}
+        </div>
       </CardHeader>
       <CardContent>
         {error && (
@@ -139,9 +150,10 @@ const UserPermissionConfig: React.FC = () => {
           <Button 
             onClick={onSave} 
             disabled={saving}
+            className={isOwner ? "bg-green-600 hover:bg-green-700" : ""}
           >
             {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            {saving ? 'Guardando...' : 'Guardar Configuración'}
+            {saving ? 'Guardando...' : isOwner ? 'Guardar con Privilegios de Propietario' : 'Guardar Configuración'}
           </Button>
         </div>
       </CardContent>
