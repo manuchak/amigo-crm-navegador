@@ -1,12 +1,9 @@
 
 import React, { useState } from 'react';
-import { Card } from "@/components/ui/card";
-import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { DateRange } from "react-day-picker";
 import { CustodioPerformanceDashboard } from "@/components/performance/CustodioPerformanceDashboard";
 import { PerformanceHeader } from "@/components/performance/PerformanceHeader";
 import { PerformanceFilter } from "@/components/performance/PerformanceFilter";
-import { DateRange } from "react-day-picker";
 
 export default function Performance() {
   const [dateRange, setDateRange] = useState<DateRange>({
@@ -14,11 +11,19 @@ export default function Performance() {
     to: new Date(),
   });
 
+  const handleDateRangeChange = (range: DateRange | undefined) => {
+    if (range) {
+      setDateRange(range);
+    }
+  };
+
   return (
     <div className="container mx-auto space-y-8 py-8 px-4 md:px-6">
       <PerformanceHeader />
-      <PerformanceFilter dateRange={dateRange} setDateRange={setDateRange} />
-      <CustodioPerformanceDashboard dateRange={dateRange} />
+      <PerformanceFilter dateRange={dateRange} setDateRange={handleDateRangeChange} />
+      <div className="mt-8">
+        <CustodioPerformanceDashboard dateRange={dateRange} />
+      </div>
     </div>
   );
 }
