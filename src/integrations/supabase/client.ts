@@ -20,16 +20,35 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABL
 });
 
 /**
+ * Check if the current user has owner role from localStorage
+ * to allow special permissions handling
+ */
+export const checkForOwnerRole = (): boolean => {
+  try {
+    if (typeof window === 'undefined') return false;
+    
+    const currentUserStr = localStorage.getItem('current_user');
+    if (!currentUserStr) return false;
+    
+    const userData = JSON.parse(currentUserStr);
+    return userData && userData.role === 'owner';
+  } catch (e) {
+    console.error("Error checking for owner role:", e);
+    return false;
+  }
+};
+
+/**
  * Enhanced function to ensure we always have a valid session
  * with special handling for owner role users
  */
 export const getAuthenticatedClient = async () => {
   try {
-    // Check if user data exists in localStorage (for owner role)
-    const isOwnerFallbackEnabled = await checkForOwnerFallback();
-    if (isOwnerFallbackEnabled) {
-      console.log("Owner role detected, using service role client for operation");
-      // For owner users, use the service role client to avoid authentication issues
+    // Check if user is owner first for faster resolution
+    const isOwner = checkForOwnerRole();
+    
+    if (isOwner) {
+      console.log("✅ Owner role detected, using service role client");
       return supabaseAdmin;
     }
     
@@ -48,28 +67,16 @@ export const getAuthenticatedClient = async () => {
       // Try refreshing the session
       const { data, error: refreshError } = await supabase.auth.refreshSession();
       
-      if (refreshError) {
+      if (refreshError || !data.session) {
         console.error("Session refresh error:", refreshError);
         
-        // Check again for owner fallback after refresh failure
-        if (await checkForOwnerFallback()) {
-          console.log("Owner fallback activated after failed refresh");
+        // Final check for owner role as fallback
+        if (checkForOwnerRole()) {
+          console.log("Owner fallback activated after refresh failure");
           return supabaseAdmin;
         }
         
         throw new Error("La sesión expiró y no se pudo refrescar. Por favor inicie sesión nuevamente.");
-      }
-      
-      if (!data.session) {
-        console.warn("Session refresh did not return a valid session");
-        
-        // Check for owner fallback after no session returned
-        if (await checkForOwnerFallback()) {
-          console.log("Owner fallback activated after no session from refresh");
-          return supabaseAdmin;
-        }
-        
-        throw new Error("No se pudo restaurar la sesión. Por favor inicie sesión nuevamente.");
       }
       
       console.log("Session refreshed successfully");
@@ -82,39 +89,12 @@ export const getAuthenticatedClient = async () => {
     console.error("Error in getAuthenticatedClient:", error);
     
     // Final check for owner fallback
-    if (await checkForOwnerFallback()) {
+    if (checkForOwnerRole()) {
       console.log("Owner fallback activated in error handler");
       return supabaseAdmin;
     }
     
     throw error;
-  }
-};
-
-/**
- * Helper function to check if the current user has owner role
- * and should be allowed to bypass normal authentication
- */
-const checkForOwnerFallback = async (): Promise<boolean> => {
-  try {
-    // Check user data in localStorage
-    const currentUserStr = localStorage.getItem('current_user');
-    if (!currentUserStr) return false;
-    
-    try {
-      const userData = JSON.parse(currentUserStr);
-      if (userData && userData.role === 'owner') {
-        console.log("Owner role detected in local storage");
-        return true;
-      }
-    } catch (e) {
-      console.error("Error parsing user data:", e);
-    }
-    
-    return false;
-  } catch (e) {
-    console.error("Error checking for owner fallback:", e);
-    return false;
   }
 };
 

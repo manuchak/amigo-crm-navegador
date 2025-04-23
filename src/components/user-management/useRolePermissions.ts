@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from 'react';
-import { supabase, getAuthenticatedClient, supabaseAdmin } from '@/integrations/supabase/client';
+import { supabase, getAuthenticatedClient, supabaseAdmin, checkForOwnerRole } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import {
   availablePages,
@@ -21,27 +21,19 @@ export function useRolePermissions() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isOwner, setIsOwner] = useState<boolean>(false);
+  const [retryCount, setRetryCount] = useState(0);
 
   useEffect(() => {
     checkOwnerStatus();
     loadPermissions();
     // eslint-disable-next-line
-  }, []);
+  }, [retryCount]);
 
   // Check if current user is owner for special handling
   const checkOwnerStatus = () => {
-    try {
-      const currentUserStr = localStorage.getItem('current_user');
-      if (currentUserStr) {
-        const userData = JSON.parse(currentUserStr);
-        if (userData && userData.role === 'owner') {
-          console.log('Current user has owner role - enabling special permissions');
-          setIsOwner(true);
-        }
-      }
-    } catch (err) {
-      console.error('Error checking owner status:', err);
-    }
+    const isOwnerUser = checkForOwnerRole();
+    setIsOwner(isOwnerUser);
+    console.log('Owner check result:', isOwnerUser ? '✅ Yes' : '❌ No');
   };
 
   const loadPermissions = async () => {
@@ -50,40 +42,51 @@ export function useRolePermissions() {
     try {
       console.log('Loading role permissions from Supabase...');
       
+      // Decide which client to use based on owner status
+      let client;
+      
       try {
-        // Decide which client to use based on owner status
-        const client = isOwner ? supabaseAdmin : await getAuthenticatedClient();
-        console.log('Authentication successful, using client to fetch permissions');
+        if (isOwner) {
+          console.log('Using admin client for owner user');
+          client = supabaseAdmin;
+        } else {
+          client = await getAuthenticatedClient();
+        }
+        
+        console.log('Authentication successful, fetching permissions');
         
         // Fetch permissions
         const { data: permissionsData, error } = await client
           .from('role_permissions')
           .select('*');
 
-        console.log('Permissions data from Supabase:', permissionsData);
-        
         if (error) {
           console.error('Error loading permissions:', error);
-          setError('Error al cargar las configuraciones de permisos');
-          toast.error('Error al cargar las configuraciones de permisos');
           
-          // Initialize with default permissions but don't save them yet
-          setPermissions(getInitialPermissions());
-          setLoading(false);
-          return;
+          // Check if it's an authentication error and we need to retry with admin client
+          if (error.code === 'PGRST301' || error.message.includes('JWT') || error.message.includes('auth')) {
+            if (isOwner && retryCount < 1) {
+              console.log('Authentication error detected for owner, will retry with admin client');
+              setRetryCount(prev => prev + 1);
+              return;
+            }
+          }
+          
+          throw new Error('Error al cargar las configuraciones de permisos: ' + error.message);
         }
+        
+        console.log('Permissions data loaded:', permissionsData?.length || 0, 'records');
         
         if (!permissionsData || permissionsData.length === 0) {
           const defaultPermissions = getInitialPermissions();
           setPermissions(defaultPermissions);
           
           try {
-            await savePermissionsToDatabase(defaultPermissions);
+            await savePermissionsToDatabase(defaultPermissions, client);
             console.log('Default permissions saved to database');
           } catch (err) {
             console.error('Error saving default permissions:', err);
-            setError('Error al guardar las configuraciones de permisos predeterminadas');
-            toast.error('Error al guardar las configuraciones de permisos predeterminadas');
+            throw new Error('Error al guardar las configuraciones de permisos predeterminadas');
           }
         } else {
           const loadedPermissions: RolePermission[] = [];
@@ -109,58 +112,23 @@ export function useRolePermissions() {
               displayName: getDisplayName(role)
             });
           }
+          console.log('Permissions loaded and processed successfully');
           setPermissions(loadedPermissions);
         }
       } catch (authError: any) {
         console.error('Authentication error in loadPermissions:', authError);
         
-        if (isOwner) {
-          console.log('Owner role detected, attempting to use admin client');
-          try {
-            const { data: permissionsData, error } = await supabaseAdmin
-              .from('role_permissions')
-              .select('*');
-              
-            if (!error && permissionsData) {
-              console.log('Successfully loaded permissions using admin client');
-              // Process permissions data as before
-              const loadedPermissions: RolePermission[] = [];
-              for (const role of ROLES) {
-                const rolePerms = permissionsData.filter((p: any) => p.role === role);
-                const pages: Record<string, boolean> = {};
-                const actions: Record<string, boolean> = {};
-                
-                availablePages.forEach(page => {
-                  const pagePermRecord = rolePerms.find((p: any) => p.permission_type === 'page' && p.permission_id === page.id);
-                  pages[page.id] = !!pagePermRecord && pagePermRecord.allowed;
-                });
-                
-                availableActions.forEach(action => {
-                  const actionPermRecord = rolePerms.find((p: any) => p.permission_type === 'action' && p.permission_id === action.id);
-                  actions[action.id] = !!actionPermRecord && actionPermRecord.allowed;
-                });
-                
-                loadedPermissions.push({
-                  role,
-                  pages,
-                  actions,
-                  displayName: getDisplayName(role)
-                });
-              }
-              setPermissions(loadedPermissions);
-              return;
-            }
-          } catch (adminError) {
-            console.error('Error using admin client fallback:', adminError);
-          }
+        // If we're owner or already retried with normal client, try admin client as last resort
+        if ((isOwner || retryCount > 0) && retryCount < 2) {
+          console.log('Using admin client as fallback, retry:', retryCount + 1);
+          setRetryCount(prev => prev + 1);
+          return;
         }
         
-        setError(authError.message || 'Error de autenticación');
-        toast.error('Error de autenticación: ' + (authError.message || 'Error desconocido'));
-        setPermissions(getInitialPermissions());
+        throw authError;
       }
     } catch (err: any) {
-      console.error('Error in loadPermissions:', err);
+      console.error('Final error in loadPermissions:', err);
       setError(err.message || 'Error al cargar los permisos');
       toast.error('Error al cargar los permisos: ' + (err.message || 'Error desconocido'));
       setPermissions(getInitialPermissions());
@@ -184,7 +152,7 @@ export function useRolePermissions() {
     setPermissions(newPermissions);
   };
 
-  const savePermissionsToDatabase = async (permsToSave: RolePermission[]) => {
+  const savePermissionsToDatabase = async (permsToSave: RolePermission[], client: any) => {
     console.log('Saving permissions to database:', permsToSave);
     const permissionsToInsert = [];
     
@@ -210,30 +178,26 @@ export function useRolePermissions() {
       }
     }
 
-    console.log('Permissions to insert:', permissionsToInsert.length, 'records');
+    console.log('Total permissions to insert:', permissionsToInsert.length);
     
     try {
-      // Decide which client to use based on owner status
-      const client = isOwner ? supabaseAdmin : await getAuthenticatedClient();
-      console.log(`Using ${isOwner ? 'admin' : 'authenticated'} client for saving permissions`);
-      
-      // First use a more reliable delete query
+      // First use a more reliable delete query 
       console.log('Deleting existing permissions...');
       const { error: deleteError } = await client
         .from('role_permissions')
         .delete()
-        .filter('id', 'gt', 0); // This filter is more reliable than neq
+        .gte('id', 0); // This ensures we match all records
         
       if (deleteError) {
         console.error('Error deleting existing permissions:', deleteError);
         throw new Error('Error al eliminar permisos existentes: ' + deleteError.message);
       }
       
-      // Insertar nuevos permisos en lotes para evitar límites de tamaño de solicitud
-      console.log('Inserting new permissions...');
-      for (let i = 0; i < permissionsToInsert.length; i += 10) {
-        const batch = permissionsToInsert.slice(i, i + 10);
-        console.log(`Inserting batch ${Math.floor(i/10) + 1}/${Math.ceil(permissionsToInsert.length/10)}`, batch);
+      // Insert new permissions in batches to avoid request size limits
+      console.log('Inserting new permissions in batches...');
+      const BATCH_SIZE = 20;
+      for (let i = 0; i < permissionsToInsert.length; i += BATCH_SIZE) {
+        const batch = permissionsToInsert.slice(i, i + BATCH_SIZE);
         
         const { error: insertError } = await client
           .from('role_permissions')
@@ -245,7 +209,7 @@ export function useRolePermissions() {
         }
       }
       
-      console.log('Successfully saved all permissions to database');
+      console.log('All permissions saved to database successfully');
     } catch (error: any) {
       console.error('Error in savePermissionsToDatabase:', error);
       throw error;
@@ -256,56 +220,68 @@ export function useRolePermissions() {
     try {
       setSaving(true);
       setError(null);
-      console.log('Saving permissions to database...');
+      console.log('Starting save permissions operation...');
       
+      // For consistency, recheck owner status before attempting save
+      const currentIsOwner = checkForOwnerRole();
+      if (currentIsOwner !== isOwner) {
+        setIsOwner(currentIsOwner);
+      }
+      
+      // Select appropriate client based on role
+      let client;
       try {
-        if (isOwner) {
-          console.log('User is owner, using admin client for direct access');
-          
-          // Use the admin client directly for owners
-          await savePermissionsWithClient(supabaseAdmin);
+        if (currentIsOwner) {
+          console.log('Owner detected, using admin client for save operation');
+          client = supabaseAdmin;
         } else {
-          // For regular users, try normal authenticated flow first
-          try {
-            const authenticatedClient = await getAuthenticatedClient();
-            await savePermissionsWithClient(authenticatedClient);
-          } catch (authError: any) {
-            console.error('Authentication error during save:', authError);
-            setError('Error de autenticación: ' + authError.message);
-            toast.error('Error de autenticación: ' + authError.message);
+          console.log('Non-owner user, getting authenticated client');
+          client = await getAuthenticatedClient();
+        }
+        
+        // Verify client is ready before proceeding
+        const testResult = await client.from('role_permissions').select('count(*)', { count: 'exact', head: true });
+        console.log('Client connection test:', testResult.error ? 'Failed' : 'Successful');
+        
+        if (testResult.error) {
+          // If normal client fails and user is owner, fall back to admin
+          if (currentIsOwner) {
+            console.log('Test connection failed, forcing admin client');
+            client = supabaseAdmin;
+          } else {
+            throw new Error('No se pudo conectar al servidor: ' + testResult.error.message);
           }
         }
-      } catch (saveError: any) {
-        console.error('Error saving permissions:', saveError);
         
-        // If we're not already using admin client for an owner, try one last fallback
-        if (isOwner && saveError.message && !saveError.message.includes('already attempted owner fallback')) {
+        await savePermissionsToDatabase(permissions, client);
+        toast.success('Configuración de permisos guardada correctamente');
+        console.log('Permissions saved successfully');
+        
+      } catch (saveError: any) {
+        console.error('Error during save operation:', saveError);
+        
+        // If save failed and we haven't tried admin yet but user is owner, try one more time
+        if (currentIsOwner && saveError.message.includes('auth')) {
           try {
-            console.log('Final fallback attempt using admin client after error');
-            saveError.message += ' (already attempted owner fallback)'; // Prevent infinite recursion
-            await savePermissionsWithClient(supabaseAdmin);
+            console.log('Final attempt using direct admin client');
+            await savePermissionsToDatabase(permissions, supabaseAdmin);
+            toast.success('Configuración de permisos guardada correctamente (modo administrador)');
             return;
           } catch (finalError: any) {
-            console.error('Final fallback error:', finalError);
+            console.error('Final save attempt failed:', finalError);
             throw finalError;
           }
-        } else {
-          throw saveError;
         }
+        
+        throw saveError;
       }
     } catch (error: any) {
-      console.error('Error in handleSavePermissions:', error);
+      console.error('Handle save permissions error:', error);
       setError(error.message || 'Error al guardar la configuración de permisos');
       toast.error('Error al guardar la configuración de permisos: ' + (error.message || 'Error desconocido'));
     } finally {
       setSaving(false);
     }
-  };
-  
-  const savePermissionsWithClient = async (client: any) => {
-    await savePermissionsToDatabase(permissions);
-    toast.success('Configuración de permisos guardada correctamente');
-    console.log('Permissions saved successfully');
   };
 
   return {
