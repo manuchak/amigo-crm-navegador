@@ -1,11 +1,12 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase, getAuthenticatedClient } from "@/integrations/supabase/client";
 import { format } from "date-fns";
+import { useAuth } from "@/context/AuthContext";
 
 const appointmentSchema = z.object({
   date: z.date({
@@ -23,7 +24,9 @@ export const useGpsAppointment = (onSchedule: (data: AppointmentFormData) => voi
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
+  const { userData, currentUser } = useAuth();
 
+  // Create the form with validation
   const form = useForm<AppointmentFormData>({
     resolver: zodResolver(appointmentSchema),
     defaultValues: {
@@ -34,19 +37,37 @@ export const useGpsAppointment = (onSchedule: (data: AppointmentFormData) => voi
     }
   });
 
+  // Check authentication status on mount
+  useEffect(() => {
+    const checkAuthStatus = async () => {
+      const { data } = await supabase.auth.getSession();
+      if (!data.session) {
+        setError("Debes iniciar sesión para agendar instalaciones.");
+      }
+    };
+    
+    checkAuthStatus();
+  }, []);
+
   const handleSubmit = async (formData: AppointmentFormData) => {
     console.log("Submit attempt with form data:", formData);
     setIsSaving(true);
     setError(null);
     
     try {
-      const { data: { session } } = await supabase.auth.getSession();
+      // Make sure we have an authenticated client with a fresh session
+      const client = await getAuthenticatedClient();
+      
+      // Get current session to double-check we're authenticated
+      const { data: { session } } = await client.auth.getSession();
+      
       if (!session?.user?.id) {
-        throw new Error("Must be logged in to schedule installations");
+        throw new Error("Debes iniciar sesión para agendar instalaciones");
       }
       
       const formattedDate = format(formData.date, "yyyy-MM-dd");
       
+      // Use the user ID from the current session
       const installationData = {
         date: formattedDate,
         time: formData.time,
@@ -62,7 +83,8 @@ export const useGpsAppointment = (onSchedule: (data: AppointmentFormData) => voi
       
       console.log("Sending installation data:", installationData);
       
-      const { data, error: insertError } = await supabase
+      // Use the authenticated client for the database operation
+      const { data, error: insertError } = await client
         .from('gps_installations')
         .insert(installationData)
         .select();
@@ -81,7 +103,19 @@ export const useGpsAppointment = (onSchedule: (data: AppointmentFormData) => voi
       });
     } catch (error: any) {
       console.error("Error scheduling installation:", error);
-      setError(`No se pudo programar la instalación: ${error.message || 'Error desconocido'}`);
+      
+      // Provide a more user-friendly error message
+      let errorMessage = "No se pudo programar la instalación";
+      
+      if (error.message.includes("logged in")) {
+        errorMessage += ": Necesitas iniciar sesión para agendar una instalación";
+      } else if (error.message.includes("permission denied")) {
+        errorMessage += ": No tienes permisos para realizar esta acción";
+      } else {
+        errorMessage += `: ${error.message || 'Error desconocido'}`;
+      }
+      
+      setError(errorMessage);
       
       toast({
         variant: "destructive",

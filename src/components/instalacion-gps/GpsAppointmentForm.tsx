@@ -8,6 +8,8 @@ import { InstallationSummary } from "./appointment/InstallationSummary";
 import { DateTimeSelector } from "./appointment/DateTimeSelector";
 import { AppointmentError } from "./appointment/AppointmentError";
 import { useGpsAppointment } from "./hooks/useGpsAppointment";
+import { useAuth } from "@/context/AuthContext";
+import { useNavigate } from "react-router-dom";
 
 type GpsAppointmentFormProps = {
   onBack: () => void;
@@ -16,6 +18,9 @@ type GpsAppointmentFormProps = {
 };
 
 export default function GpsAppointmentForm({ onBack, onSchedule, installData }: GpsAppointmentFormProps) {
+  const { currentUser } = useAuth();
+  const navigate = useNavigate();
+  
   const {
     form,
     handleSubmit,
@@ -23,8 +28,20 @@ export default function GpsAppointmentForm({ onBack, onSchedule, installData }: 
     error
   } = useGpsAppointment(onSchedule, installData);
 
+  // If no install data is provided, show the error component
   if (!installData) {
     return <AppointmentError onBack={onBack} noInstallData />;
+  }
+
+  // If user is not logged in, show auth error and provide a link to login
+  if (!currentUser) {
+    return (
+      <AppointmentError 
+        error="Debes iniciar sesión para agendar instalaciones" 
+        onBack={() => navigate('/login')} 
+        showLoginButton 
+      />
+    );
   }
 
   return (
