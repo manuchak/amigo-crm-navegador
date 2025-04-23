@@ -1,5 +1,5 @@
 
-import { findUserByEmail, setAsVerifiedOwner, createUser } from './localAuthStorage';
+import { findUserByEmail, setAsVerifiedOwner, createUser } from './auth';
 import { toast } from 'sonner';
 
 // This function can be called to set a specific user as verified owner

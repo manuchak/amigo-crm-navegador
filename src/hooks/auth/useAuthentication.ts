@@ -1,7 +1,7 @@
 
 import { UserData } from '@/types/auth';
 import { toast } from 'sonner';
-import { createUser, loginUser, findUserByEmail, setAsVerifiedOwner } from '@/utils/localAuthStorage';
+import { createUser, loginUser, findUserByEmail, setAsVerifiedOwner } from '@/utils/auth';
 import { SPECIAL_USERS } from './constants';
 
 export const useAuthentication = (

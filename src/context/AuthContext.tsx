@@ -5,7 +5,7 @@ import { toast } from 'sonner';
 import { useAuthState } from '@/hooks/useAuthState';
 import { useAuthMethods } from '@/hooks/auth';
 import { useUserManagementMethods } from '@/hooks/useUserManagementMethods';
-import { getCurrentUser } from '@/utils/localAuthStorage';
+import { getCurrentUser } from '@/utils/auth';
 
 // Create the context with a default value
 const AuthContext = createContext<AuthContextProps>({

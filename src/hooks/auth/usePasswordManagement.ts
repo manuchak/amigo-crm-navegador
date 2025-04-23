@@ -1,7 +1,7 @@
 
 import { toast } from 'sonner';
 import { UserData } from '@/types/auth';
-import { resetPassword as resetPasswordLocal } from '@/utils/localAuthStorage';
+import { resetPassword as resetPasswordLocal } from '@/utils/auth';
 import { handleAuthError } from './utils';
 
 export const usePasswordManagement = (

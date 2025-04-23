@@ -6,7 +6,7 @@ import {
   createUser, 
   loginUser, 
   resetPassword as resetPasswordLocal
-} from '@/utils/localAuthStorage';
+} from '@/utils/auth';
 
 export const useEmailPasswordAuth = (
   setUserData: React.Dispatch<React.SetStateAction<UserData | null>>

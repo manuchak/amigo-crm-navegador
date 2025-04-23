@@ -10,7 +10,7 @@ import {
   verifyUserEmail,
   findUserByEmail,
   setAsVerifiedOwner
-} from '@/utils/localAuthStorage';
+} from '@/utils/auth';
 
 export const useUserManagement = (
   setUserData: React.Dispatch<React.SetStateAction<UserData | null>>

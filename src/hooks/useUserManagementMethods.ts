@@ -9,7 +9,7 @@ import {
   getAllUsers,
   verifyUserEmail,
   setAsVerifiedOwner
-} from '@/utils/localAuthStorage';
+} from '@/utils/auth';
 
 export const useUserManagementMethods = (
   setUserData: React.Dispatch<React.SetStateAction<UserData | null>>,
