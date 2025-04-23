@@ -1,19 +1,17 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Button } from '@/components/ui/button';
 import { Loader2 } from 'lucide-react';
-import { 
-  useRolePermissions, 
-  availablePages, 
-  availableActions 
+import {
+  useRolePermissions,
+  availablePages,
+  availableActions,
 } from './useRolePermissions';
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from '@/components/ui/table';
 
-// Usar el nuevo hook para la lógica de permisos
 const UserPermissionConfig: React.FC = () => {
   const [selectedTab, setSelectedTab] = useState<'pages' | 'actions'>('pages');
   const {

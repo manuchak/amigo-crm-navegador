@@ -1,95 +1,21 @@
+
 import { useState, useEffect } from 'react';
-import { UserRole } from '@/types/auth';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-
-export interface PageAccess {
-  id: string;
-  name: string;
-  description: string;
-}
-export interface RolePermission {
-  role: UserRole;
-  pages: Record<string, boolean>;
-  actions: Record<string, boolean>;
-  displayName: string;
-}
-
-export const availablePages: PageAccess[] = [
-  { id: 'dashboard', name: 'Dashboard', description: 'Página principal' },
-  { id: 'leads', name: 'Leads', description: 'Gestión de leads' },
-  { id: 'prospects', name: 'Prospectos', description: 'Gestión de prospectos' },
-  { id: 'validation', name: 'Validación', description: 'Validación de prospectos' },
-  { id: 'user_management', name: 'Usuarios', description: 'Gestión de usuarios' },
-  { id: 'requerimientos', name: 'Requerimientos', description: 'Gestión de requerimientos' },
-  { id: 'call_center', name: 'Call Center', description: 'Centro de llamadas' },
-  { id: 'support', name: 'Soporte', description: 'Tickets de soporte' },
-];
-
-export const availableActions: PageAccess[] = [
-  { id: 'create_users', name: 'Crear usuarios', description: 'Puede crear nuevos usuarios' },
-  { id: 'edit_roles', name: 'Editar roles', description: 'Puede cambiar roles de usuarios' },
-  { id: 'verify_users', name: 'Verificar usuarios', description: 'Puede verificar usuarios' },
-  { id: 'validate_prospects', name: 'Validar prospectos', description: 'Puede validar prospectos' },
-  { id: 'create_leads', name: 'Crear leads', description: 'Puede crear nuevos leads' },
-  { id: 'registrar_instalador', name: 'Registrar instalador', description: 'Registrar instaladores de GPS' },
-  { id: 'ver_instaladores', name: 'Ver instaladores', description: 'Ver, listar y monitorear instaladores' },
-  { id: 'evaluar_instalacion', name: 'Evaluar instalación', description: 'Evaluar la instalación realizada' },
-];
-
-const getDisplayName = (role: UserRole): string => {
-  const displayNames: Record<UserRole, string> = {
-    'unverified': 'No verificado',
-    'pending': 'Pendiente',
-    'supply': 'Supply',
-    'supply_admin': 'Supply Admin',
-    'atención_afiliado': 'Atención al Afiliado',
-    'afiliados': 'Afiliados',
-    'admin': 'Administrador',
-    'owner': 'Propietario'
-  };
-  return displayNames[role] || role;
-};
+import {
+  availablePages,
+  availableActions,
+  RolePermission,
+  PageAccess,
+  ROLES
+} from './rolePermissions.constants';
+import { getDisplayName, getInitialPermissions } from './rolePermissions.utils';
+import { UserRole } from '@/types/auth';
 
 export function useRolePermissions() {
   const [permissions, setPermissions] = useState<RolePermission[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-
-  const getInitialPermissions = (): RolePermission[] => {
-    const roles: UserRole[] = [
-      'supply', 
-      'supply_admin', 
-      'atención_afiliado', 
-      'afiliados',
-      'admin', 
-      'owner'
-    ];
-    return roles.map(role => {
-      const isAdmin = role === 'admin' || role === 'owner';
-      const isSupplyAdmin = role === 'supply_admin';
-      const pages: Record<string, boolean> = {};
-      const actions: Record<string, boolean> = {};
-      availablePages.forEach(page => {
-        pages[page.id] = isAdmin;
-        if (isSupplyAdmin) {
-          pages[page.id] = ['dashboard', 'prospects', 'validation'].includes(page.id);
-        }
-      });
-      availableActions.forEach(action => {
-        actions[action.id] = isAdmin;
-        if (isSupplyAdmin) {
-          actions[action.id] = ['validate_prospects'].includes(action.id);
-        }
-      });
-      return { 
-        role, 
-        pages, 
-        actions,
-        displayName: getDisplayName(role)
-      };
-    });
-  };
 
   useEffect(() => {
     loadPermissions();
@@ -115,24 +41,16 @@ export function useRolePermissions() {
         await savePermissionsToDatabase(defaultPermissions);
       } else {
         const loadedPermissions: RolePermission[] = [];
-        const roles: UserRole[] = [
-          'supply', 
-          'supply_admin', 
-          'atención_afiliado', 
-          'afiliados',
-          'admin', 
-          'owner'
-        ];
-        for (const role of roles) {
-          const rolePerms = permissionsData.filter(p => p.role === role);
+        for (const role of ROLES) {
+          const rolePerms = permissionsData.filter((p: any) => p.role === role);
           const pages: Record<string, boolean> = {};
           const actions: Record<string, boolean> = {};
           availablePages.forEach(page => {
-            const pagePermRecord = rolePerms.find(p => p.permission_type === 'page' && p.permission_id === page.id);
+            const pagePermRecord = rolePerms.find((p: any) => p.permission_type === 'page' && p.permission_id === page.id);
             pages[page.id] = !!pagePermRecord && pagePermRecord.allowed;
           });
           availableActions.forEach(action => {
-            const actionPermRecord = rolePerms.find(p => p.permission_type === 'action' && p.permission_id === action.id);
+            const actionPermRecord = rolePerms.find((p: any) => p.permission_type === 'action' && p.permission_id === action.id);
             actions[action.id] = !!actionPermRecord && actionPermRecord.allowed;
           });
           loadedPermissions.push({
