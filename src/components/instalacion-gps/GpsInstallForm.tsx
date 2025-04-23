@@ -217,6 +217,23 @@ export default function GpsInstallForm(props: GpsInstallFormProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [form.watch("installInWorkshop"), installer]);
 
+  React.useEffect(() => {
+    const subscription = form.watch((value, { name, type }) => {
+      if (name === "installInWorkshop" && value.installInWorkshop === false) {
+        form.setValue("installAddress.street", "");
+        form.setValue("installAddress.number", "");
+        form.setValue("installAddress.colonia", "");
+        form.setValue("installAddress.postalCode", "");
+        form.setValue("installAddress.city", "");
+        form.setValue("installAddress.state", "");
+        form.setValue("installAddress.references", "");
+        form.setValue("installAddress.coordinates", "");
+      }
+    });
+    return () => subscription.unsubscribe?.();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [form]);
+
   const handleNext = (data: z.infer<typeof gpsInstallSchema>) => {
     const enrichedVehicles = data.vehicles.map((veh, idx) => {
       if (veh.type === "dashcam") {
