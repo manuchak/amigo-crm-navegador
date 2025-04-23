@@ -20,20 +20,42 @@ export const getInitialPermissions = (): RolePermission[] => {
   return ROLES.map(role => {
     const isAdmin = role === 'admin' || role === 'owner';
     const isSupplyAdmin = role === 'supply_admin';
+    
     const pages: Record<string, boolean> = {};
     const actions: Record<string, boolean> = {};
+    
     availablePages.forEach(page => {
-      pages[page.id] = isAdmin;
+      // Supply admin permissions for specific pages
       if (isSupplyAdmin) {
-        pages[page.id] = ['dashboard', 'prospects', 'validation'].includes(page.id);
+        pages[page.id] = [
+          'dashboard',
+          'leads',
+          'prospects',
+          'validation',
+          'requerimientos',
+          'call_center'
+        ].includes(page.id);
+      } else {
+        // Default admin permissions
+        pages[page.id] = isAdmin;
       }
     });
+
     availableActions.forEach(action => {
-      actions[action.id] = isAdmin;
+      // Supply admin permissions for actions
       if (isSupplyAdmin) {
-        actions[action.id] = ['validate_prospects'].includes(action.id);
+        actions[action.id] = [
+          'create_leads',
+          'validate_prospects',
+          'ver_instaladores',
+          'evaluar_instalacion'
+        ].includes(action.id);
+      } else {
+        // Default admin permissions
+        actions[action.id] = isAdmin;
       }
     });
+
     return { 
       role, 
       pages, 
