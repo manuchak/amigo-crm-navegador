@@ -1,152 +1,34 @@
 
 import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { UploadCloud, User } from "lucide-react";
-import { WorkshopSection } from "@/components/instalacion-gps/installers/WorkshopSection";
-import { useInstaladorRegistroForm } from "@/hooks/useInstaladorRegistroForm";
-import { InstallerImagePreview } from "@/components/instalacion-gps/installers/InstallerImagePreview";
+import GpsNavMenu from "@/components/instalacion-gps/GpsNavMenu";
+import { InstallerRegisterForm } from "@/components/instalacion-gps/installers";
 
 export default function InstaladorRegistro() {
-  const {
-    register,
-    handleSubmit,
-    isSubmitting,
-    uploading,
-    taller,
-    selectedFeatures,
-    handleFeatureToggle,
-    handleImageChange,
-    imagePreviews,
-    onSubmit,
-    direccionPersonalFields,
-    tallerDireccionFields,
-    handleUserPhotoChange,
-    userPhotoPreview,
-  } = useInstaladorRegistroForm();
-
   return (
-    <div className="min-h-screen flex flex-col justify-center px-2 py-10 bg-gradient-to-br from-violet-50 to-violet-200">
-      <main className="w-full max-w-2xl mx-auto">
-        <Card className="bg-white/90 shadow-xl">
-          <CardHeader>
-            <CardTitle className="text-xl">Registro de Instalador de GPS</CardTitle>
-            <div className="text-xs text-muted-foreground mt-1">
-              Por favor, rellena todos los datos requeridos. Los campos marcados con * son obligatorios.
-            </div>
-          </CardHeader>
-          <CardContent>
-            <form
-              onSubmit={handleSubmit(onSubmit)}
-              className="grid grid-cols-1 gap-6"
-              autoComplete="off"
-              noValidate
-            >
-              <div>
-                <label className="font-medium">Nombre completo *</label>
-                <Input {...register("nombre", { required: true })} autoFocus />
-              </div>
-              <div>
-                <label className="font-medium">Fotografía del instalador (opcional)</label>
-                <div className="flex items-center gap-4 mt-1">
-                  <label className="relative flex items-center gap-2 cursor-pointer px-3 py-2 border border-slate-200 rounded bg-white hover:bg-violet-50 transition font-medium">
-                    <User className="w-6 h-6 text-slate-400" />
-                    <span className="text-xs text-muted-foreground">Agregar foto</span>
-                    <Input
-                      type="file"
-                      accept="image/*"
-                      {...register("foto_instalador")}
-                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                      onChange={handleUserPhotoChange}
-                    />
-                  </label>
-                  <InstallerImagePreview url={userPhotoPreview} />
-                </div>
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="font-medium">Teléfono *</label>
-                  <Input {...register("telefono", { required: true })} type="tel" />
-                </div>
-                <div>
-                  <label className="font-medium">Correo electrónico *</label>
-                  <Input {...register("email", { required: true })} type="email" />
-                </div>
-              </div>
-              <div>
-                <label className="font-medium">RFC para facturación *</label>
-                <Input {...register("rfc", { required: true })} />
-              </div>
-              <div>
-                <label className="font-medium">Dirección personal *</label>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                  <div>
-                    <label className="text-xs">Estado *</label>
-                    <Input {...direccionPersonalFields.state} placeholder="Ej: Jalisco" />
-                  </div>
-                  <div>
-                    <label className="text-xs">Ciudad *</label>
-                    <Input {...direccionPersonalFields.city} placeholder="Ej: Guadalajara" />
-                  </div>
-                  <div>
-                    <label className="text-xs">Colonia</label>
-                    <Input {...direccionPersonalFields.colonia} placeholder="Colonia/Barrio/Fraccionamiento" />
-                  </div>
-                  <div>
-                    <label className="text-xs">Calle *</label>
-                    <Input {...direccionPersonalFields.street} placeholder="Ej: Av. Vallarta" />
-                  </div>
-                  <div>
-                    <label className="text-xs">Número *</label>
-                    <Input {...direccionPersonalFields.number} placeholder="Ej: 123" />
-                  </div>
-                  <div>
-                    <label className="text-xs">Código Postal *</label>
-                    <Input {...direccionPersonalFields.postalCode} placeholder="Ej: 44100" />
-                  </div>
-                </div>
-                <div className="mt-2">
-                  <label className="text-xs">Referencias</label>
-                  <Input {...direccionPersonalFields.references} placeholder="Entre calles o señas" />
-                </div>
-              </div>
-              <div>
-                <label className="flex items-center gap-2 font-medium">
-                  <input type="checkbox" {...register("taller")} />
-                  ¿El instalador tiene taller propio?
-                </label>
-              </div>
+    <>
+      <GpsNavMenu />
+      <div className="min-h-screen flex flex-col pt-20 px-2 bg-[linear-gradient(110deg,#F1F0FB_40%,#E5DEFF_100%)]">
+        <main className="container mx-auto py-10">
+          <div className="max-w-3xl mx-auto w-full">
+            <h1 className="text-3xl font-semibold text-slate-800 font-playfair mb-8">
+              Registro de Instalador
+            </h1>
 
-              <WorkshopSection
-                taller={taller}
-                register={register}
-                selectedFeatures={selectedFeatures}
-                handleFeatureToggle={handleFeatureToggle}
-                handleImageChange={handleImageChange}
-                imagePreviews={imagePreviews}
-                tallerDireccionFields={tallerDireccionFields}
-              />
-
-              <div>
-                <label className="font-medium">Certificaciones relevantes</label>
-                <Input {...register("certificaciones")} />
-              </div>
-              <div>
-                <label className="font-medium">Comentarios (opcional)</label>
-                <Input {...register("comentarios")} />
-              </div>
-              <Button className="mt-3 w-full" type="submit" disabled={isSubmitting || uploading}>
-                {uploading || isSubmitting ? (
-                  <span className="flex items-center gap-2">
-                    <UploadCloud className="animate-bounce" />Enviando…
-                  </span>
-                ) : "Registrar Instalador"}
-              </Button>
-            </form>
-          </CardContent>
-        </Card>
-      </main>
-    </div>
+            <Card className="bg-white/90 shadow-xl border-0">
+              <CardHeader>
+                <CardTitle className="text-xl">Información del Instalador</CardTitle>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Por favor, rellena todos los datos requeridos. Los campos marcados con * son obligatorios.
+                </p>
+              </CardHeader>
+              <CardContent>
+                <InstallerRegisterForm />
+              </CardContent>
+            </Card>
+          </div>
+        </main>
+      </div>
+    </>
   );
 }
