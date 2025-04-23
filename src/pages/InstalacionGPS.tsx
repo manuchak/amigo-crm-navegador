@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Card, CardContent, CardTitle, CardHeader } from "@/components/ui/card";
 import GpsInstallForm from "@/components/instalacion-gps/GpsInstallForm";
@@ -16,7 +15,6 @@ const InstalacionGPS = () => {
   const isAdmin = userData?.role === "admin" || userData?.role === "owner";
   const navigate = useNavigate();
 
-  // Journey visual indicator (very simple for now)
   const steps = [
     { label: "Formulario de instalación", completed: step > 1 },
     { label: "Agendar cita", completed: false },
@@ -50,7 +48,6 @@ const InstalacionGPS = () => {
             <GpsAppointmentForm
               onBack={() => setStep(1)}
               onSchedule={(appt) => {
-                // Aquí debería guardarse la info en backend
                 setInstallData({ ...installData, appointment: appt });
                 alert("¡Cita agendada exitosamente!");
                 setStep(1);
@@ -58,26 +55,34 @@ const InstalacionGPS = () => {
             />
           )}
 
-          {/* NUEVO: Card/banner para registrar instalador */}
-          <div className="w-full flex flex-col md:flex-row gap-6 justify-between mt-12">
-            <Card className="w-full md:w-1/2 mx-auto shadow-lg bg-white/90 border-violet-100 flex flex-row items-center p-4 hover:shadow-xl transition hover:scale-[1.02] cursor-pointer"
-              onClick={() => navigate("/instalacion-gps/registro-instalador")}>
-              <div className="flex items-center justify-center rounded-full bg-violet-200 mr-4 p-2">
-                <FilePlus size={32} className="text-violet-700" />
+          <div className="w-full flex justify-center mt-12">
+            <Card
+              className="w-full md:w-2/3 shadow-lg bg-white/90 border-violet-100 flex flex-row items-center p-6 hover:shadow-2xl hover:scale-[1.03] transition-all cursor-pointer gap-4"
+              onClick={() => navigate("/instalacion-gps/registro-instalador")}
+              tabIndex={0}
+              role="button"
+              aria-label="Ir a registro de instalador"
+              onKeyPress={e => { if (e.key === "Enter") navigate("/instalacion-gps/registro-instalador"); }}
+            >
+              <div className="flex items-center justify-center rounded-full bg-violet-200 p-3 mr-4">
+                <FilePlus size={36} className="text-violet-700" />
               </div>
               <div>
-                <CardTitle className="text-lg font-semibold mb-1">¿Quieres registrar un nuevo instalador?</CardTitle>
-                <div className="text-sm text-muted-foreground mb-2">
-                  Regístralo de forma integral, añade taller, fotos y todos los datos de contacto.
+                <CardTitle className="text-xl font-semibold mb-1">
+                  ¿Quieres registrar un nuevo instalador?
+                </CardTitle>
+                <div className="text-md text-muted-foreground mb-2">
+                  Registra instaladores de forma integral, añadiendo dirección, contactos, certificaciones y fotos de taller.
                 </div>
                 <Button
                   variant="default"
+                  className="mt-2"
                   onClick={e => {
                     e.stopPropagation();
                     navigate("/instalacion-gps/registro-instalador");
                   }}
                 >
-                  Registrar Instalador
+                  Ir al Registro de Instalador
                 </Button>
               </div>
             </Card>
@@ -85,14 +90,12 @@ const InstalacionGPS = () => {
 
           {isAdmin && (
             <div className="w-full flex flex-col md:flex-row gap-6 justify-between mt-8">
-              {/* Panel de gestión de instaladores SOLO: Listado */}
               <div className="md:w-1/2 w-full">
                 <InstallersList />
               </div>
             </div>
           )}
 
-          {/* Message for next integration */}
           <Card className="w-full mt-8 bg-white/75 border-0 shadow-none">
             <CardContent className="py-8 flex flex-col items-center justify-center text-muted-foreground">
               🚧 <span>En próximas versiones: historial de instalaciones, integración con sistemas de gestión y seguimiento de dispositivos.</span>
