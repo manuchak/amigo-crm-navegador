@@ -50,6 +50,7 @@ const Navbar = () => {
     
     if (currentUser && userData) {
       items.push({ name: 'Dashboard', path: '/dashboard' });
+      items.push({ name: 'Performance', path: '/performance' });
       
       if (['atención_afiliado', 'admin', 'owner'].includes(userData.role)) {
         items.push({ name: 'Leads', path: '/leads' });
