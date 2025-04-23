@@ -137,7 +137,11 @@ const InstalacionGPS = () => {
                 <GpsInstallForm
                   installer={selectedInstaller}
                   onNext={(data) => {
-                    setInstallData(data);
+                    const finalData = {
+                      ...data,
+                      installer_id: selectedInstaller?.id || data.installerId
+                    };
+                    setInstallData(finalData);
                     setStep(2);
                   }}
                 />

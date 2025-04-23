@@ -76,7 +76,8 @@ const gpsInstallSchema = z.object({
   }),
   email: z.string().email("Correo electrónico inválido").optional(),
   installInWorkshop: z.boolean().optional(),
-  vehicles: z.array(vehicleSchema).min(1)
+  vehicles: z.array(vehicleSchema).min(1),
+  installerId: z.number().optional()
 });
 
 type GpsInstallFormProps = {
@@ -85,7 +86,6 @@ type GpsInstallFormProps = {
 };
 
 async function geocodeAddress(addressObj: any) {
-  // Solo si todos los campos mínimos están presentes
   if (!addressObj || !addressObj.street || !addressObj.city || !addressObj.state) return null;
   const address = `${addressObj.street} ${addressObj.number || ""}, ${addressObj.colonia ? addressObj.colonia + "," : ""} ${addressObj.city}, ${addressObj.state}, México${addressObj.postalCode ? " " + addressObj.postalCode : ""}`;
   const resp = await fetch(
@@ -95,7 +95,6 @@ async function geocodeAddress(addressObj: any) {
   );
   const data = await resp.json();
   if (data && data.features && data.features[0] && data.features[0].center) {
-    // Mapbox da [lng,lat]
     const [lng, lat] = data.features[0].center;
     return `${lat},${lng}`;
   }
@@ -134,7 +133,8 @@ export default function GpsInstallForm(props: GpsInstallFormProps) {
           gpsFeatures: [],
           notes: ""
         }
-      ]
+      ],
+      installerId: installer?.id
     }
   });
 
@@ -150,17 +150,14 @@ export default function GpsInstallForm(props: GpsInstallFormProps) {
   const [dashcamCameraCountArr, setDashcamCameraCountArr] = React.useState<{ [idx: number]: number }>({});
   const [dashcamCameraLocationsArr, setDashcamCameraLocationsArr] = React.useState<{ [idx: number]: string[] }>({});
 
-  // --- Sincronización de mapa y dirección: geocodificar al cambiar la dirección ---
   React.useEffect(() => {
     const sub = form.watch(async (value, { name }) => {
-      // Si cambia cualquier campo de dirección relevante
       if (
         name &&
         name.startsWith("installAddress.") &&
         ["installAddress.street","installAddress.number","installAddress.colonia","installAddress.city","installAddress.state","installAddress.postalCode"].some(p => name === p)
       ) {
         const addr = form.getValues("installAddress");
-        // Solo geocodificar si hay mínimo requerido
         if (addr.street && addr.city && addr.state) {
           const coords = await geocodeAddress(addr);
           if (coords) {
@@ -170,7 +167,6 @@ export default function GpsInstallForm(props: GpsInstallFormProps) {
       }
     });
     return () => sub.unsubscribe?.();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [form]);
 
   React.useEffect(() => {
@@ -188,10 +184,8 @@ export default function GpsInstallForm(props: GpsInstallFormProps) {
         });
       }
     });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fields.length, brands]);
 
-  // --- Ajuste: Compatibilidad y parseo correcto de dirección de taller ---
   React.useEffect(() => {
     const val = form.watch("installInWorkshop");
     if (
@@ -218,7 +212,6 @@ export default function GpsInstallForm(props: GpsInstallFormProps) {
         form.setValue("installAddress.postalCode", tallerDirObj.postalCode ?? "");
         form.setValue("installAddress.city", tallerDirObj.city ?? "");
         form.setValue("installAddress.state", tallerDirObj.state ?? "");
-        // Actualizar pin en mapa acorde (solo si hay datos clave)
         if (tallerDirObj.street && tallerDirObj.city && tallerDirObj.state) {
           geocodeAddress(tallerDirObj).then(coords => {
             if (coords) form.setValue("installAddress.coordinates", coords, { shouldDirty: true });
@@ -270,10 +263,14 @@ export default function GpsInstallForm(props: GpsInstallFormProps) {
         }
       }
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [form.watch("installInWorkshop"), installer]);
 
-  // Limpiar dirección, referencia y coordenadas al quitar "instalar en taller"
+  React.useEffect(() => {
+    if (installer?.id) {
+      form.setValue("installerId", installer.id);
+    }
+  }, [installer, form]);
+
   React.useEffect(() => {
     const subscription = form.watch((value, { name }) => {
       if (name === "installInWorkshop" && value.installInWorkshop === false) {
@@ -288,7 +285,6 @@ export default function GpsInstallForm(props: GpsInstallFormProps) {
       }
     });
     return () => subscription.unsubscribe?.();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [form]);
 
   const handleNext = (data: z.infer<typeof gpsInstallSchema>) => {
@@ -371,7 +367,7 @@ export default function GpsInstallForm(props: GpsInstallFormProps) {
               <InstallerSelectMinimal 
                 value={installer}
                 onChange={(selectedInstaller) => {
-                  form.setValue("installer", selectedInstaller);
+                  form.setValue("installerId", selectedInstaller?.id);
                 }}
                 onRegisterNew={() => {}}
                 disabled={false}
@@ -406,5 +402,3 @@ export default function GpsInstallForm(props: GpsInstallFormProps) {
     </div>
   );
 }
-
-// NOTA: Este archivo ya es extenso (~320 líneas). Recomendado refactorizarlo pronto si se agregan nuevas funcionalidades.
