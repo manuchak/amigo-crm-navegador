@@ -32,76 +32,76 @@ export function useRolePermissions() {
     try {
       console.log('Loading role permissions from Supabase...');
       
-      // Get an authenticated client to ensure we have a valid session
-      const authenticatedClient = await getAuthenticatedClient();
-      
-      // Verificar si tenemos una sesión válida
-      const { data: { session } } = await authenticatedClient.auth.getSession();
-      if (!session) {
-        console.warn('No authenticated session found, using default permissions');
-        setPermissions(getInitialPermissions());
-        setLoading(false);
-        return;
-      }
-      
-      const { data: permissionsData, error } = await authenticatedClient
-        .from('role_permissions')
-        .select('*');
-
-      console.log('Permissions data from Supabase:', permissionsData);
-      
-      if (error) {
-        console.error('Error loading permissions:', error);
-        setError('Error al cargar las configuraciones de permisos');
-        toast.error('Error al cargar las configuraciones de permisos');
-        // Initialize with default permissions but don't save them yet
-        setPermissions(getInitialPermissions());
-        setLoading(false);
-        return;
-      }
-      
-      if (!permissionsData || permissionsData.length === 0) {
-        const defaultPermissions = getInitialPermissions();
-        setPermissions(defaultPermissions);
+      try {
+        // Get an authenticated client to ensure we have a valid session
+        const authenticatedClient = await getAuthenticatedClient();
+        console.log('Session authentication successful');
         
-        try {
-          await savePermissionsToDatabase(defaultPermissions);
-          console.log('Default permissions saved to database');
-        } catch (err) {
-          console.error('Error saving default permissions:', err);
-          setError('Error al guardar las configuraciones de permisos predeterminadas');
-          toast.error('Error al guardar las configuraciones de permisos predeterminadas');
+        // Obtenemos los permisos
+        const { data: permissionsData, error } = await authenticatedClient
+          .from('role_permissions')
+          .select('*');
+
+        console.log('Permissions data from Supabase:', permissionsData);
+        
+        if (error) {
+          console.error('Error loading permissions:', error);
+          setError('Error al cargar las configuraciones de permisos');
+          toast.error('Error al cargar las configuraciones de permisos');
+          // Initialize with default permissions but don't save them yet
+          setPermissions(getInitialPermissions());
+          setLoading(false);
+          return;
         }
-      } else {
-        const loadedPermissions: RolePermission[] = [];
-        for (const role of ROLES) {
-          const rolePerms = permissionsData.filter((p: any) => p.role === role);
-          const pages: Record<string, boolean> = {};
-          const actions: Record<string, boolean> = {};
+        
+        if (!permissionsData || permissionsData.length === 0) {
+          const defaultPermissions = getInitialPermissions();
+          setPermissions(defaultPermissions);
           
-          availablePages.forEach(page => {
-            const pagePermRecord = rolePerms.find((p: any) => p.permission_type === 'page' && p.permission_id === page.id);
-            pages[page.id] = !!pagePermRecord && pagePermRecord.allowed;
-          });
-          
-          availableActions.forEach(action => {
-            const actionPermRecord = rolePerms.find((p: any) => p.permission_type === 'action' && p.permission_id === action.id);
-            actions[action.id] = !!actionPermRecord && actionPermRecord.allowed;
-          });
-          
-          loadedPermissions.push({
-            role,
-            pages,
-            actions,
-            displayName: getDisplayName(role)
-          });
+          try {
+            await savePermissionsToDatabase(defaultPermissions);
+            console.log('Default permissions saved to database');
+          } catch (err) {
+            console.error('Error saving default permissions:', err);
+            setError('Error al guardar las configuraciones de permisos predeterminadas');
+            toast.error('Error al guardar las configuraciones de permisos predeterminadas');
+          }
+        } else {
+          const loadedPermissions: RolePermission[] = [];
+          for (const role of ROLES) {
+            const rolePerms = permissionsData.filter((p: any) => p.role === role);
+            const pages: Record<string, boolean> = {};
+            const actions: Record<string, boolean> = {};
+            
+            availablePages.forEach(page => {
+              const pagePermRecord = rolePerms.find((p: any) => p.permission_type === 'page' && p.permission_id === page.id);
+              pages[page.id] = !!pagePermRecord && pagePermRecord.allowed;
+            });
+            
+            availableActions.forEach(action => {
+              const actionPermRecord = rolePerms.find((p: any) => p.permission_type === 'action' && p.permission_id === action.id);
+              actions[action.id] = !!actionPermRecord && actionPermRecord.allowed;
+            });
+            
+            loadedPermissions.push({
+              role,
+              pages,
+              actions,
+              displayName: getDisplayName(role)
+            });
+          }
+          setPermissions(loadedPermissions);
         }
-        setPermissions(loadedPermissions);
+      } catch (authError: any) {
+        console.error('Authentication error in loadPermissions:', authError);
+        setError(authError.message || 'Error de autenticación');
+        toast.error('Error de autenticación: ' + (authError.message || 'Error desconocido'));
+        setPermissions(getInitialPermissions());
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error('Error in loadPermissions:', err);
-      setError(err instanceof Error ? err.message : 'Error al cargar los permisos');
-      toast.error('Error al cargar los permisos');
+      setError(err.message || 'Error al cargar los permisos');
+      toast.error('Error al cargar los permisos: ' + (err.message || 'Error desconocido'));
       setPermissions(getInitialPermissions());
     } finally {
       setLoading(false);
@@ -152,33 +152,28 @@ export function useRolePermissions() {
     console.log('Permissions to insert:', permissionsToInsert.length, 'records');
     
     try {
-      // Get an authenticated client with a fresh token
+      // Verificar explícitamente que tenemos una sesión válida antes de continuar
       const authenticatedClient = await getAuthenticatedClient();
       
-      // Verificar si tenemos una sesión válida
-      const { data: { session } } = await authenticatedClient.auth.getSession();
-      if (!session) {
-        console.error('No authenticated session found');
-        throw new Error('No se encontró una sesión autenticada. Por favor inicie sesión nuevamente.');
-      }
-      
-      // First delete existing permissions - use a different approach to avoid RLS issues
+      // Primero, eliminar todos los registros existentes usando una expresión WHERE más clara
       console.log('Deleting existing permissions...');
+      
+      // Primera estrategia: eliminar todos los registros sin filtro
       const { error: deleteError } = await authenticatedClient
         .from('role_permissions')
         .delete()
-        .gt('id', 0); // This will match all records since id is always > 0
+        .neq('id', -1);  // Esto eliminará todos los registros (id nunca es -1)
         
       if (deleteError) {
         console.error('Error deleting existing permissions:', deleteError);
         throw new Error('Error al eliminar permisos existentes: ' + deleteError.message);
       }
       
-      // Insert new permissions in batches to avoid request size limits
+      // Insertar nuevos permisos en lotes para evitar límites de tamaño de solicitud
       console.log('Inserting new permissions...');
       for (let i = 0; i < permissionsToInsert.length; i += 10) {
         const batch = permissionsToInsert.slice(i, i + 10);
-        console.log(`Inserting batch ${i/10 + 1}/${Math.ceil(permissionsToInsert.length/10)}`, batch);
+        console.log(`Inserting batch ${Math.floor(i/10) + 1}/${Math.ceil(permissionsToInsert.length/10)}`, batch);
         
         const { error: insertError } = await authenticatedClient
           .from('role_permissions')
@@ -191,7 +186,7 @@ export function useRolePermissions() {
       }
       
       console.log('Successfully saved all permissions to database');
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error in savePermissionsToDatabase:', error);
       throw error;
     }
@@ -202,10 +197,34 @@ export function useRolePermissions() {
       setSaving(true);
       setError(null);
       console.log('Saving permissions to database...');
-      await savePermissionsToDatabase(permissions);
-      toast.success('Configuración de permisos guardada correctamente');
+      
+      try {
+        await savePermissionsToDatabase(permissions);
+        toast.success('Configuración de permisos guardada correctamente');
+      } catch (saveError: any) {
+        console.error('Error saving permissions:', saveError);
+        
+        // Si el error parece ser de autenticación, intentar refrescar la sesión y reintentar
+        if (saveError.message && saveError.message.includes('autenticada')) {
+          console.log('Error de autenticación detectado, intentando refrescar sesión...');
+          
+          try {
+            // Forzar refresco de sesión
+            await supabase.auth.refreshSession();
+            // Reintentar guardado
+            await savePermissionsToDatabase(permissions);
+            toast.success('Configuración de permisos guardada correctamente');
+            return;
+          } catch (retryError: any) {
+            console.error('Error en segundo intento:', retryError);
+            throw retryError;
+          }
+        } else {
+          throw saveError;
+        }
+      }
     } catch (error: any) {
-      console.error('Error saving permissions:', error);
+      console.error('Error en handleSavePermissions:', error);
       setError(error.message || 'Error al guardar la configuración de permisos');
       toast.error('Error al guardar la configuración de permisos: ' + (error.message || 'Error desconocido'));
     } finally {

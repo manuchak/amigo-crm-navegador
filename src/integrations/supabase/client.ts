@@ -19,79 +19,56 @@ export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABL
   }
 });
 
-// Enhanced utility to ensure we always have a valid session for authenticated requests
+// Mejorada función para asegurar que siempre tengamos una sesión válida
 export const getAuthenticatedClient = async () => {
   try {
-    // CHANGED: First check localStorage for JWT token directly
-    const localStorageKey = `sb-${SUPABASE_URL.split('//')[1].split('.')[0]}-auth-token`;
-    const localSession = localStorage.getItem(localStorageKey);
-    const hasLocalStorage = localSession && JSON.parse(localSession)?.access_token;
-    
-    if (!hasLocalStorage) {
-      console.warn("No session found in localStorage");
-    } else {
-      console.log("Found session token in localStorage");
-    }
-    
-    // Get the current session using Supabase method
+    // Primero, intentar obtener la sesión directamente
     const { data: { session }, error: sessionError } = await supabase.auth.getSession();
     
     if (sessionError) {
-      console.error("Error getting session:", sessionError);
-      throw sessionError;
+      console.error("Error al obtener la sesión:", sessionError);
+      throw new Error("Error al verificar la sesión: " + sessionError.message);
     }
     
-    // If no session exists, throw an error
-    if (!session) {
-      console.warn("No active session found via supabase.auth.getSession()");
+    // Si no hay sesión o está por expirar, intentar refrescarla
+    if (!session || (session.expires_at && session.expires_at < Math.floor(Date.now() / 1000) - 60)) {
+      console.log("Sesión no encontrada o por expirar, intentando refrescar...");
       
-      if (hasLocalStorage) {
-        // Try refreshing the session
-        console.log("Attempting to refresh session...");
-        const { data, error } = await supabase.auth.refreshSession();
+      // Obtener token desde localStorage como respaldo
+      const localStorageKey = `sb-${SUPABASE_URL.split('//')[1].split('.')[0]}-auth-token`;
+      const hasLocalStorageToken = localStorage.getItem(localStorageKey) !== null;
+      
+      if (hasLocalStorageToken) {
+        console.log("Encontrado token en localStorage, intentando refrescar sesión...");
+        const { data, error: refreshError } = await supabase.auth.refreshSession();
         
-        if (error || !data.session) {
-          console.error("Error refreshing session:", error);
-          throw new Error("No se encontró una sesión autenticada. Por favor inicie sesión nuevamente.");
-        } else {
-          console.log("Session refreshed successfully");
-          return supabase;
+        if (refreshError) {
+          console.error("Error al refrescar la sesión:", refreshError);
+          localStorage.removeItem(localStorageKey); // Eliminar token inválido
+          throw new Error("La sesión expiró y no se pudo refrescar. Por favor inicie sesión nuevamente.");
         }
+        
+        if (!data.session) {
+          console.warn("Refresco de sesión no retornó una sesión válida");
+          throw new Error("No se pudo restaurar la sesión. Por favor inicie sesión nuevamente.");
+        }
+        
+        console.log("Sesión refrescada con éxito");
+        return supabase;
       } else {
-        // No local storage and no session from getSession - truly not logged in
         throw new Error("No se encontró una sesión autenticada. Por favor inicie sesión nuevamente.");
       }
     }
     
-    // If session exists, but token is expired, try to refresh it
-    if (session?.expires_at && session.expires_at < Math.floor(Date.now() / 1000) - 10) { // Add buffer
-      console.log("Session token expired, refreshing...");
-      const { data, error } = await supabase.auth.refreshSession();
-      
-      if (error) {
-        console.error("Error refreshing session:", error);
-        throw error;
-      }
-      
-      if (!data.session) {
-        console.warn("Session refresh did not return a valid session");
-        throw new Error("No se encontró una sesión autenticada. Por favor inicie sesión nuevamente.");
-      }
-      
-      console.log("Session refreshed successfully");
-    } else if (session) {
-      console.log("Using existing valid session");
-    }
-    
+    console.log("Usando sesión válida existente");
     return supabase;
   } catch (error) {
-    console.error("Error in getAuthenticatedClient:", error);
-    // Throw error instead of returning unauthenticated client
+    console.error("Error en getAuthenticatedClient:", error);
     throw error;
   }
 };
 
-// Create a separate client with the service role key for admin operations
+// Cliente con service role para operaciones administrativas
 export const supabaseAdmin = createClient<Database>(
   SUPABASE_URL,
   SUPABASE_SERVICE_ROLE_KEY,
