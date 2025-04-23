@@ -3,11 +3,6 @@ import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
-  ChartContainer,
-  ChartTooltip,
-  ChartTooltipContent
-} from "@/components/ui/chart";
-import {
   BarChart,
   Bar,
   PieChart,
@@ -43,12 +38,6 @@ export function RevenueAnalytics({ data, isLoading }: RevenueAnalyticsProps) {
       maximumFractionDigits: 0
     }).format(value);
   };
-  
-  const chartConfig = {
-    revenue: {
-      // Configuration for chart colors, etc.
-    }
-  };
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -63,42 +52,34 @@ export function RevenueAnalytics({ data, isLoading }: RevenueAnalyticsProps) {
             <Skeleton className="h-[300px] w-full" />
           ) : (
             <div className="h-[300px]">
-              <ChartContainer
-                config={chartConfig.revenue}
-                className="h-full"
-              >
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart 
-                    data={data?.byMonth} 
-                    margin={{ top: 5, right: 5, left: 5, bottom: 20 }}
-                  >
-                    <CartesianGrid strokeDasharray="3 3" opacity={0.2} />
-                    <XAxis 
-                      dataKey="month" 
-                      tick={{ fontSize: 12 }}
-                      angle={-45}
-                      textAnchor="end"
-                      height={60}
-                    />
-                    <YAxis 
-                      tickFormatter={(value) => `$${value/1000}k`}
-                      tick={{ fontSize: 12 }}
-                    />
-                    <ChartTooltip 
-                      formatter={(value: number) => [formatCurrency(value), "Ingresos"]}
-                      content={(props) => (
-                        <ChartTooltipContent {...props} />
-                      )}
-                    />
-                    <Bar 
-                      dataKey="revenue" 
-                      name="Ingresos" 
-                      fill="#8B5CF6" 
-                      radius={[4, 4, 0, 0]}
-                    />
-                  </BarChart>
-                </ResponsiveContainer>
-              </ChartContainer>
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart 
+                  data={data?.byMonth} 
+                  margin={{ top: 5, right: 5, left: 5, bottom: 20 }}
+                >
+                  <CartesianGrid strokeDasharray="3 3" opacity={0.2} />
+                  <XAxis 
+                    dataKey="month" 
+                    tick={{ fontSize: 12 }}
+                    angle={-45}
+                    textAnchor="end"
+                    height={60}
+                  />
+                  <YAxis 
+                    tickFormatter={(value) => `$${value/1000}k`}
+                    tick={{ fontSize: 12 }}
+                  />
+                  <Tooltip 
+                    formatter={(value: number) => [formatCurrency(value), "Ingresos"]}
+                  />
+                  <Bar 
+                    dataKey="revenue" 
+                    name="Ingresos" 
+                    fill="#8B5CF6" 
+                    radius={[4, 4, 0, 0]}
+                  />
+                </BarChart>
+              </ResponsiveContainer>
             </div>
           )}
         </CardContent>
@@ -115,37 +96,29 @@ export function RevenueAnalytics({ data, isLoading }: RevenueAnalyticsProps) {
             <Skeleton className="h-[300px] w-full" />
           ) : (
             <div className="h-[300px]">
-              <ChartContainer
-                config={chartConfig.revenue}
-                className="h-full"
-              >
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart margin={{ top: 5, right: 5, left: 5, bottom: 5 }}>
-                    <ChartTooltip 
-                      formatter={(value: number) => [formatCurrency(value), "Ingresos"]}
-                      content={(props) => (
-                        <ChartTooltipContent {...props} />
-                      )}
-                    />
-                    <Pie
-                      data={data?.byService}
-                      cx="50%"
-                      cy="50%"
-                      labelLine={false}
-                      outerRadius={80}
-                      fill="#8884d8"
-                      dataKey="revenue"
-                      nameKey="service"
-                      label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                    >
-                      {data?.byService.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                      ))}
-                    </Pie>
-                    <Legend layout="vertical" verticalAlign="bottom" align="center" />
-                  </PieChart>
-                </ResponsiveContainer>
-              </ChartContainer>
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart margin={{ top: 5, right: 5, left: 5, bottom: 5 }}>
+                  <Tooltip 
+                    formatter={(value: number) => [formatCurrency(value), "Ingresos"]}
+                  />
+                  <Pie
+                    data={data?.byService}
+                    cx="50%"
+                    cy="50%"
+                    labelLine={false}
+                    outerRadius={80}
+                    fill="#8884d8"
+                    dataKey="revenue"
+                    nameKey="service"
+                    label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                  >
+                    {data?.byService.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                    ))}
+                  </Pie>
+                  <Legend layout="vertical" verticalAlign="bottom" align="center" />
+                </PieChart>
+              </ResponsiveContainer>
             </div>
           )}
           

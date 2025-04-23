@@ -11,7 +11,7 @@ import { es } from "date-fns/locale";
 
 interface PerformanceFilterProps {
   dateRange: DateRange;
-  setDateRange: (range: DateRange) => void;
+  setDateRange: React.Dispatch<React.SetStateAction<DateRange>>;
 }
 
 export function PerformanceFilter({ dateRange, setDateRange }: PerformanceFilterProps) {

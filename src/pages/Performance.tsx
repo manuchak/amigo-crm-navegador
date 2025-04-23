@@ -6,12 +6,10 @@ import { supabase } from "@/integrations/supabase/client";
 import { CustodioPerformanceDashboard } from "@/components/performance/CustodioPerformanceDashboard";
 import { PerformanceHeader } from "@/components/performance/PerformanceHeader";
 import { PerformanceFilter } from "@/components/performance/PerformanceFilter";
+import { DateRange } from "react-day-picker";
 
 export default function Performance() {
-  const [dateRange, setDateRange] = useState<{
-    from: Date | undefined;
-    to: Date | undefined;
-  }>({
+  const [dateRange, setDateRange] = useState<DateRange>({
     from: new Date(new Date().setDate(new Date().getDate() - 30)),
     to: new Date(),
   });

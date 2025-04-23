@@ -3,13 +3,6 @@ import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
-  ChartContainer,
-  ChartTooltip,
-  ChartTooltipContent
-} from "@/components/ui/chart";
-import {
-  LineChart,
-  Line,
   AreaChart,
   Area,
   XAxis,
@@ -33,12 +26,6 @@ interface RetentionMetricsProps {
 }
 
 export function RetentionMetrics({ data, isLoading }: RetentionMetricsProps) {
-  const chartConfig = {
-    retention: {
-      // Configuration for chart colors, etc.
-    }
-  };
-
   const RetentionCard = ({
     title,
     value,
@@ -96,51 +83,43 @@ export function RetentionMetrics({ data, isLoading }: RetentionMetricsProps) {
             <Skeleton className="h-[300px] w-full" />
           ) : (
             <div className="h-[300px]">
-              <ChartContainer
-                config={chartConfig.retention}
-                className="h-full"
-              >
-                <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart
-                    data={data?.retentionByMonth}
-                    margin={{ top: 5, right: 5, left: 5, bottom: 20 }}
-                  >
-                    <defs>
-                      <linearGradient id="colorRate" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#8B5CF6" stopOpacity={0.8} />
-                        <stop offset="95%" stopColor="#8B5CF6" stopOpacity={0} />
-                      </linearGradient>
-                    </defs>
-                    <CartesianGrid strokeDasharray="3 3" opacity={0.2} />
-                    <XAxis
-                      dataKey="month"
-                      tick={{ fontSize: 12 }}
-                      angle={-45}
-                      textAnchor="end"
-                      height={60}
-                    />
-                    <YAxis
-                      domain={[0, 100]}
-                      tickFormatter={(value) => `${value}%`}
-                      tick={{ fontSize: 12 }}
-                    />
-                    <ChartTooltip
-                      formatter={(value: number) => [`${value}%`, "Retención"]}
-                      content={(props) => (
-                        <ChartTooltipContent {...props} />
-                      )}
-                    />
-                    <Area
-                      type="monotone"
-                      dataKey="rate"
-                      name="Retención"
-                      stroke="#8B5CF6"
-                      fillOpacity={1}
-                      fill="url(#colorRate)"
-                    />
-                  </AreaChart>
-                </ResponsiveContainer>
-              </ChartContainer>
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart
+                  data={data?.retentionByMonth}
+                  margin={{ top: 5, right: 5, left: 5, bottom: 20 }}
+                >
+                  <defs>
+                    <linearGradient id="colorRate" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#8B5CF6" stopOpacity={0.8} />
+                      <stop offset="95%" stopColor="#8B5CF6" stopOpacity={0} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" opacity={0.2} />
+                  <XAxis
+                    dataKey="month"
+                    tick={{ fontSize: 12 }}
+                    angle={-45}
+                    textAnchor="end"
+                    height={60}
+                  />
+                  <YAxis
+                    domain={[0, 100]}
+                    tickFormatter={(value) => `${value}%`}
+                    tick={{ fontSize: 12 }}
+                  />
+                  <Tooltip
+                    formatter={(value: number) => [`${value}%`, "Retención"]}
+                  />
+                  <Area
+                    type="monotone"
+                    dataKey="rate"
+                    name="Retención"
+                    stroke="#8B5CF6"
+                    fillOpacity={1}
+                    fill="url(#colorRate)"
+                  />
+                </AreaChart>
+              </ResponsiveContainer>
             </div>
           )}
         </CardContent>

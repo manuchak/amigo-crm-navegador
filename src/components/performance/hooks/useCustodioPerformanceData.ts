@@ -156,7 +156,7 @@ export function useCustodioPerformanceData(dateRange: DateRange) {
           };
         }).reverse();
         
-        // Sample custodio data
+        // Generate sample custodios data with the corrected status type
         const custodios = Array.from({ length: 20 }, (_, i) => ({
           id: i + 1,
           name: `Custodio ${i + 1}`,
@@ -167,7 +167,7 @@ export function useCustodioPerformanceData(dateRange: DateRange) {
           responseTime: 2 + Math.random() * 4,
           earnings: Math.floor(5000 + Math.random() * 15000),
           ltv: Math.floor(25000 + Math.random() * 100000),
-          status: Math.random() > 0.2 ? 'active' : (Math.random() > 0.5 ? 'inactive' : 'pending')
+          status: Math.random() > 0.2 ? 'active' : (Math.random() > 0.5 ? 'inactive' : 'pending') as 'active' | 'inactive' | 'pending'
         }));
         
         // Sample revenue data
