@@ -1,3 +1,4 @@
+
 import React from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -12,7 +13,7 @@ type Installation = {
   date: string;
   time: string;
   timezone: string;
-  vehicles: any[];
+  vehicles: Vehicle[];
   status: string | null;
   owner_name: string;
   install_address: {
@@ -26,6 +27,13 @@ type Installation = {
     nombre: string;
     telefono: string;
   };
+};
+
+type Vehicle = {
+  brand: string;
+  model: string;
+  year: number;
+  color: string;
 };
 
 export default function InstalacionesAgendadas() {
@@ -63,10 +71,6 @@ export default function InstalacionesAgendadas() {
       </div>
     );
   }
-
-  const formatAddress = (address: Installation['installAddress']) => {
-    return `${address.street} ${address.number}, ${address.colonia}, ${address.city}, ${address.state}`;
-  };
 
   return (
     <>
