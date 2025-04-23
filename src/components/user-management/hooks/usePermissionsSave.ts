@@ -4,83 +4,37 @@ import { RolePermission } from '../rolePermissions.constants';
 import { toast } from 'sonner';
 
 export function usePermissionsSave() {
-  const savePermissionsToDatabase = async (permsToSave: RolePermission[], customClient = null) => {
+  const savePermissionsToDatabase = async (permsToSave: RolePermission[]) => {
     console.log('Saving permissions to database');
     const permissionsToInsert = preparePermissionsForInsert(permsToSave);
 
     console.log('Total permissions to insert:', permissionsToInsert.length);
     
     try {
-      let client = customClient;
-      const currentOwnerStatus = checkForOwnerRole();
-      
-      if (!client) {
-        if (currentOwnerStatus) {
-          console.log('Using admin client for owner');
-          client = supabaseAdmin;
-        } else {
-          console.log('Getting authenticated client');
-          client = await getAuthenticatedClient();
-        }
-      }
+      // Determine which client to use based on owner status
+      const isOwner = checkForOwnerRole();
+      const client = isOwner ? supabaseAdmin : await getAuthenticatedClient();
       
       console.log('Deleting existing permissions...');
-      let deleteSuccess = false;
       
-      // Intento de eliminación de permisos existentes con manejo de errores mejorado
-      try {
-        if (currentOwnerStatus) {
-          console.log('Intentando eliminar con cliente admin...');
-          const { error: deleteError } = await supabaseAdmin
-            .from('role_permissions')
-            .delete()
-            .gte('id', 0); // Cambiado de .gt a .gte para incluir ID 0 si existe
-          
-          if (deleteError) {
-            console.error('Admin client delete failed:', deleteError);
-            throw deleteError;
-          } else {
-            deleteSuccess = true;
-            console.log('Admin client delete successful');
-          }
-        }
-      } catch (adminError) {
-        console.error('Error with admin client delete:', adminError);
+      // Delete existing permissions first
+      const { error: deleteError } = await client
+        .from('role_permissions')
+        .delete()
+        .filter('id', 'gte', 0);
+      
+      if (deleteError) {
+        console.error('Error deleting existing permissions:', deleteError);
+        throw new Error(`Error al eliminar permisos existentes: ${deleteError.message}`);
       }
       
-      if (!deleteSuccess) {
-        console.log('Using standard client for delete operation');
-        try {
-          const standardClient = await getAuthenticatedClient();
-          const { error: deleteError } = await standardClient
-            .from('role_permissions')
-            .delete()
-            .gte('id', 0); // Cambiado de .gt a .gte
-          
-          if (deleteError) {
-            console.error('Standard client delete failed:', deleteError);
-            throw deleteError;
-          } else {
-            deleteSuccess = true;
-            console.log('Standard client delete successful');
-          }
-        } catch (deleteError) {
-          console.error('All delete attempts failed:', deleteError);
-          throw new Error(`Error al eliminar permisos existentes: ${deleteError.message || 'Error desconocido'}`);
-        }
-      }
-      
-      // Si llegamos aquí es porque la eliminación fue exitosa
       console.log('Inserting new permissions in batches...');
       const BATCH_SIZE = 20;
-      const client_to_use = currentOwnerStatus 
-        ? supabaseAdmin 
-        : await getAuthenticatedClient();
       
       for (let i = 0; i < permissionsToInsert.length; i += BATCH_SIZE) {
         const batch = permissionsToInsert.slice(i, i + BATCH_SIZE);
         
-        const { error: insertError } = await client_to_use
+        const { error: insertError } = await client
           .from('role_permissions')
           .insert(batch);
           
@@ -96,6 +50,7 @@ export function usePermissionsSave() {
       toast.success('Permisos guardados correctamente');
     } catch (error: any) {
       console.error('Error in savePermissionsToDatabase:', error);
+      toast.error(`Error al guardar permisos: ${error.message || 'Error desconocido'}`);
       throw error;
     }
   };

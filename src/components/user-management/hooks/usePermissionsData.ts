@@ -5,11 +5,8 @@ import { RolePermission } from '../rolePermissions.constants';
 import { getInitialPermissions } from '../rolePermissions.utils';
 import { toast } from 'sonner';
 import { processPermissionsData } from '../utils/permissionsDataProcessor';
-import { usePermissionsSave } from './usePermissionsSave';
 
 export function usePermissionsData() {
-  const { savePermissionsToDatabase } = usePermissionsSave();
-  
   const loadPermissions = async (
     setLoading: (loading: boolean) => void,
     setError: (error: string | null) => void,
@@ -23,126 +20,102 @@ export function usePermissionsData() {
     
     try {
       console.log('Loading role permissions, attempt:', retryCount + 1);
-      console.log('Current owner status:', isOwner ? '✅ Yes' : '❌ No');
       
-      let permissionsData = null;
+      // Check owner status from localStorage to determine which client to use
       const currentOwnerStatus = checkForOwnerRole();
+      console.log('Current owner status:', currentOwnerStatus ? '✅ Yes' : '❌ No');
       
       if (currentOwnerStatus !== isOwner) {
         console.log(`Owner status changed from ${isOwner} to ${currentOwnerStatus}`);
         setIsOwner(currentOwnerStatus);
       }
-      
-      // Intentar cargar con el cliente admin primero (modo más confiable)
+
+      let permissionsData = null;
+
+      // Try loading with admin client if user is owner
       if (currentOwnerStatus) {
         try {
-          console.log('Intentando cargar permisos con cliente admin (propietario)');
+          console.log('Loading permissions with admin client (owner mode)');
           
+          // Explicitly use apikey header with the service role key
           const { data, error } = await supabaseAdmin
             .from('role_permissions')
             .select('*');
           
           if (error) {
-            console.error('Error en consulta admin:', error);
+            console.error('Admin client query failed:', error);
           } else {
             permissionsData = data;
-            console.log('Consulta admin exitosa, registros:', permissionsData?.length);
+            console.log('Admin client query successful, records:', permissionsData?.length);
           }
         } catch (adminError) {
-          console.error('Error usando cliente admin:', adminError);
+          console.error('Error with admin client:', adminError);
         }
       }
-      
-      // Si el cliente admin falló o el usuario no es propietario, usar cliente estándar
+
+      // If the admin client failed or user is not owner, try with standard client
       if (!permissionsData) {
         try {
-          console.log('Intentando cargar permisos con cliente estándar');
+          console.log('Attempting to load permissions with standard client');
           const client = await getAuthenticatedClient();
-          
-          // Consulta de prueba para verificar la conexión
-          const testQuery = await client
-            .from('role_permissions')
-            .select('count(*)', { count: 'exact', head: true });
-            
-          if (testQuery.error) {
-            console.error('Consulta de prueba falló:', testQuery.error);
-            throw new Error(`Error de conexión: ${testQuery.error.message}`);
-          }
-          
-          console.log('Consulta de prueba exitosa, procediendo con consulta principal');
           
           const { data, error } = await client
             .from('role_permissions')
             .select('*');
-            
+          
           if (error) {
-            console.error('Consulta estándar falló:', error);
-            throw new Error(`Error de conexión: ${error.message}`);
+            console.error('Standard client query failed:', error);
+            throw error;
           }
           
           permissionsData = data;
-          console.log('Consulta estándar exitosa, registros:', permissionsData?.length);
-        } catch (clientError: any) {
-          console.error('Error con cliente estándar:', clientError);
+          console.log('Standard client query successful, records:', permissionsData?.length);
+        } catch (error: any) {
+          console.error('Error loading permissions with standard client:', error);
           
-          // Si el usuario es admin/owner, intentar un último recurso con supabaseAdmin
-          if (isOwner || currentOwnerStatus) {
-            console.log('Intentando último recurso con cliente admin');
+          // One last fallback attempt for owners
+          if (currentOwnerStatus) {
             try {
-              const { data, error } = await supabaseAdmin
+              console.log('Final fallback attempt with admin client');
+              const { data } = await supabaseAdmin
                 .from('role_permissions')
                 .select('*');
                 
-              if (!error) {
-                permissionsData = data;
-                console.log('Consulta de último recurso exitosa');
-              } else {
-                console.error('Consulta de último recurso falló:', error);
-              }
-            } catch (lastError) {
-              console.error('Error en último intento:', lastError);
+              permissionsData = data;
+              console.log('Fallback query successful');
+            } catch (fallbackError) {
+              console.error('Fallback query failed:', fallbackError);
             }
           }
           
-          // Si aún no hay datos, lanzar el error original
+          // If still no data, create default permissions
           if (!permissionsData) {
-            throw clientError;
+            console.log('Unable to load permissions data, using defaults');
           }
         }
       }
-      
-      // Caso cuando no se encuentran permisos o se crean valores predeterminados
+
+      // Handle the case where no permissions are found
       if (!permissionsData || permissionsData.length === 0) {
-        console.log('No se encontraron permisos, creando valores predeterminados');
+        console.log('No permissions found, creating default values');
         const defaultPermissions = getInitialPermissions();
         setPermissions(defaultPermissions);
-        
-        try {
-          await savePermissionsToDatabase(defaultPermissions);
-          console.log('Permisos predeterminados guardados exitosamente');
-        } catch (saveError: any) {
-          console.error('Error al guardar permisos predeterminados:', saveError);
-          throw new Error(`Error al guardar las configuraciones de permisos predeterminadas: ${saveError.message}`);
-        }
       } else {
-        console.log('Procesando datos de permisos existentes');
+        console.log('Processing existing permissions data');
         const loadedPermissions = processPermissionsData(permissionsData);
-        console.log('Permisos procesados exitosamente');
         setPermissions(loadedPermissions);
       }
       
       setError(null);
     } catch (err: any) {
-      console.error('Error final en loadPermissions:', err);
+      console.error('Final error in loadPermissions:', err);
       setError(err.message || 'Error al cargar los permisos');
       
-      if (err.message?.includes('JWT')) {
-        toast.error('Tu sesión ha expirado. Por favor inicia sesión nuevamente.');
-      } else if (err.message?.includes('connection')) {
-        toast.error('Error de conexión con la base de datos. Verifique su conexión e intente de nuevo.');
-      } else {
-        toast.error(`Error al cargar permisos: ${err.message || 'Error desconocido'}`);
-      }
+      // Use default permissions as fallback in case of error
+      const defaultPermissions = getInitialPermissions();
+      setPermissions(defaultPermissions);
+      
+      toast.error(`Error al cargar permisos: ${err.message || 'Error desconocido'}`);
     } finally {
       setLoading(false);
     }

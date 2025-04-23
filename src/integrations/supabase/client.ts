@@ -7,29 +7,22 @@ const SUPABASE_URL = "https://beefjsdgrdeiymzxwxru.supabase.co";
 const SUPABASE_PUBLISHABLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJlZWZqc2RncmRlaXltenh3eHJ1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDI5MzI1OTQsImV4cCI6MjA1ODUwODU5NH0.knvlRdFYtN2bl3t3I4O8v3dU_MWKDDuaBZkvukdU87w";
 const SUPABASE_SERVICE_ROLE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJlZWZqc2RncmRlaXltenh3eHJ1Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc0MjkzMjU5NCwiZXhwIjoyMDU4NTA4NTk0fQ.7alp-dJOJPuUEjiWb71LOFlRFE6QrQQxuXXSTBJwyAM";
 
-// Common configuration for all clients
-const commonOptions = {
-  auth: {
-    persistSession: true,
-    autoRefreshToken: true,
-    detectSessionInUrl: true
-  }
-};
-
-// Create standard client with explicit auth configuration
+// Create standard client for authenticated users
 export const supabase = createClient<Database>(
   SUPABASE_URL, 
   SUPABASE_PUBLISHABLE_KEY,
   {
-    ...commonOptions,
     auth: {
-      ...commonOptions.auth,
+      persistSession: true,
+      autoRefreshToken: true,
+      detectSessionInUrl: true,
       storage: typeof window !== 'undefined' ? window.localStorage : undefined
     }
   }
 );
 
 // Admin client with service role for privileged operations
+// IMPORTANT: We're not using auth options that could conflict with the normal client
 export const supabaseAdmin = createClient<Database>(
   SUPABASE_URL,
   SUPABASE_SERVICE_ROLE_KEY,
@@ -62,15 +55,13 @@ export const checkForOwnerRole = (): boolean => {
 
 /**
  * Gets a direct reference to the supabaseAdmin client for service role operations
- * (primarily for owner users)
  */
 export const getAdminClient = () => {
   return supabaseAdmin;
 };
 
 /**
- * Enhanced function to ensure we always have a valid client for API operations,
- * with special handling for owner role users who will use the service role client
+ * Enhanced function to ensure we always have a valid client for API operations
  */
 export const getAuthenticatedClient = async () => {
   // First check if user is owner (faster path)
@@ -100,27 +91,6 @@ export const getAuthenticatedClient = async () => {
       }
       
       throw new Error("No hay sesión activa. Por favor inicie sesión nuevamente.");
-    }
-    
-    // Check if session is about to expire (within next 60 seconds) and refresh if needed
-    if (session.expires_at && session.expires_at < Math.floor(Date.now() / 1000) + 60) {
-      console.log("Session expiring soon, refreshing...");
-      
-      const { data, error: refreshError } = await supabase.auth.refreshSession();
-      
-      if (refreshError || !data.session) {
-        console.error("Session refresh error:", refreshError);
-        
-        // Last chance fallback for owners
-        if (checkForOwnerRole()) {
-          console.log("Session refresh failed but owner detected - using admin client");
-          return supabaseAdmin;
-        }
-        
-        throw new Error("La sesión expiró y no se pudo refrescar. Por favor inicie sesión nuevamente.");
-      }
-      
-      console.log("Session refreshed successfully");
     }
     
     console.log("Using authenticated client with valid session");

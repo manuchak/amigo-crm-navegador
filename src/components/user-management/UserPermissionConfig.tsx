@@ -34,7 +34,7 @@ const UserPermissionConfig: React.FC = () => {
     console.log('UserPermissionConfig owner status:', isOwner ? '✅ Yes' : '❌ No');
     console.log('Current permissions state:', permissions);
     
-    // Verificar estado de propietario en el montaje del componente
+    // Check owner status when component mounts
     const ownerStatus = checkForOwnerRole();
     console.log('Owner status from localStorage:', ownerStatus ? '✅ Yes' : '❌ No');
   }, [isOwner, permissions]);
