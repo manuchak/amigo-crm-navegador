@@ -4,7 +4,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useToast } from "@/hooks/use-toast";
-import { supabase, getAuthenticatedClient } from "@/integrations/supabase/client";
+import { supabase, getAuthenticatedClient, checkForOwnerRole } from "@/integrations/supabase/client";
 import { format } from "date-fns";
 import { useAuth } from "@/context/AuthContext";
 
@@ -37,17 +37,28 @@ export const useGpsAppointment = (onSchedule: (data: AppointmentFormData) => voi
     }
   });
 
-  // Check authentication status on mount
+  // Check authentication status on mount with special handling for owner role
   useEffect(() => {
     const checkAuthStatus = async () => {
+      // Clear any previous errors
+      setError(null);
+      
+      // First check for owner role (fast path)
+      const isOwner = userData?.role === 'owner' || checkForOwnerRole();
+      if (isOwner) {
+        console.log("Usuario con rol owner detectado - sin restricción de autenticación");
+        return;
+      }
+      
+      // For non-owners, verify session
       const { data } = await supabase.auth.getSession();
-      if (!data.session) {
+      if (!data.session && !isOwner) {
         setError("Debes iniciar sesión para agendar instalaciones.");
       }
     };
     
     checkAuthStatus();
-  }, []);
+  }, [userData]);
 
   const handleSubmit = async (formData: AppointmentFormData) => {
     console.log("Submit attempt with form data:", formData);
@@ -55,19 +66,33 @@ export const useGpsAppointment = (onSchedule: (data: AppointmentFormData) => voi
     setError(null);
     
     try {
-      // Make sure we have an authenticated client with a fresh session
+      // First check for owner role (fast path)
+      const isOwner = userData?.role === 'owner' || checkForOwnerRole();
+      
+      // Get an authenticated client - if owner, this will return admin client
       const client = await getAuthenticatedClient();
       
-      // Get current session to double-check we're authenticated
-      const { data: { session } } = await client.auth.getSession();
-      
-      if (!session?.user?.id) {
-        throw new Error("Debes iniciar sesión para agendar instalaciones");
+      // Only verify session for non-owners
+      if (!isOwner) {
+        // Double-check session to ensure authentication
+        const { data: { session } } = await client.auth.getSession();
+        
+        if (!session?.user?.id) {
+          throw new Error("Debes iniciar sesión para agendar instalaciones");
+        }
       }
       
       const formattedDate = format(formData.date, "yyyy-MM-dd");
       
-      // Use the user ID from the current session
+      // Use the user ID from the session or a default for owners without session
+      const userId = isOwner 
+        ? (currentUser?.uid || userData?.uid || 'owner-user')
+        : (await client.auth.getSession()).data.session?.user.id;
+      
+      if (!userId) {
+        throw new Error("No se pudo identificar al usuario");
+      }
+      
       const installationData = {
         date: formattedDate,
         time: formData.time,
@@ -78,7 +103,7 @@ export const useGpsAppointment = (onSchedule: (data: AppointmentFormData) => voi
         install_address: installData.installAddress || {},
         installer_id: installData.installer_id || null,
         notes: formData.notes || null,
-        user_id: session.user.id
+        user_id: userId
       };
       
       console.log("Sending installation data:", installationData);
@@ -104,6 +129,9 @@ export const useGpsAppointment = (onSchedule: (data: AppointmentFormData) => voi
     } catch (error: any) {
       console.error("Error scheduling installation:", error);
       
+      // Special handling for owner role - show more debug info
+      const isOwner = userData?.role === 'owner' || checkForOwnerRole();
+      
       // Provide a more user-friendly error message
       let errorMessage = "No se pudo programar la instalación";
       
@@ -113,6 +141,10 @@ export const useGpsAppointment = (onSchedule: (data: AppointmentFormData) => voi
         errorMessage += ": No tienes permisos para realizar esta acción";
       } else {
         errorMessage += `: ${error.message || 'Error desconocido'}`;
+      }
+      
+      if (isOwner) {
+        errorMessage += ` (Debug - Role: ${userData?.role}, Auth: ${!!currentUser})`;
       }
       
       setError(errorMessage);

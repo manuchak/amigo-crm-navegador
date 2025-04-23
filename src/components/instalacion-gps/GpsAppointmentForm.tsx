@@ -10,6 +10,7 @@ import { AppointmentError } from "./appointment/AppointmentError";
 import { useGpsAppointment } from "./hooks/useGpsAppointment";
 import { useAuth } from "@/context/AuthContext";
 import { useNavigate } from "react-router-dom";
+import { checkForOwnerRole } from "@/integrations/supabase/client";
 
 type GpsAppointmentFormProps = {
   onBack: () => void;
@@ -18,8 +19,11 @@ type GpsAppointmentFormProps = {
 };
 
 export default function GpsAppointmentForm({ onBack, onSchedule, installData }: GpsAppointmentFormProps) {
-  const { currentUser } = useAuth();
+  const { currentUser, userData } = useAuth();
   const navigate = useNavigate();
+  
+  // Check for owner role using multiple methods
+  const isOwner = userData?.role === 'owner' || checkForOwnerRole();
   
   const {
     form,
@@ -33,8 +37,8 @@ export default function GpsAppointmentForm({ onBack, onSchedule, installData }: 
     return <AppointmentError onBack={onBack} noInstallData />;
   }
 
-  // If user is not logged in, show auth error and provide a link to login
-  if (!currentUser) {
+  // If user is not logged in and not an owner, show auth error and provide a link to login
+  if (!currentUser && !isOwner) {
     return (
       <AppointmentError 
         error="Debes iniciar sesión para agendar instalaciones" 
