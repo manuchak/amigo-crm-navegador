@@ -48,14 +48,14 @@ export const useGpsAppointment = (onSchedule: (data: AppointmentFormData) => voi
     setError(null);
     
     try {
-      // Check for owner role
+      // Verificar si el usuario tiene rol de propietario
       const isOwner = userData?.role === 'owner' || checkForOwnerRole();
-      console.log("Is owner role?", isOwner);
+      console.log("¿Es usuario propietario?", isOwner);
       
-      // Format the date for insertion
+      // Formatear la fecha para inserción
       const formattedDate = format(formData.date, "yyyy-MM-dd");
       
-      // Prepare the installation data
+      // Preparar los datos de instalación
       const installationData = {
         date: formattedDate,
         time: formData.time,
@@ -66,63 +66,64 @@ export const useGpsAppointment = (onSchedule: (data: AppointmentFormData) => voi
         install_address: installData.installAddress || {},
         installer_id: installData.installer_id || null,
         notes: formData.notes || null,
-        user_id: null // Will be set appropriately below
+        user_id: null // Se configurará apropiadamente a continuación
       };
 
       let response;
       
       if (isOwner) {
-        // Debug logs para detectar problemas en la creación del cliente
-        console.log("Usando cliente de administrador para rol de propietario");
+        console.log("Usando flujo de propietario para la inserción");
         
         try {
-          // Crear un cliente admin completamente nuevo para esta operación
+          // Usar método actualizado para crear cliente admin
           const adminClient = getAdminClient();
           
-          // Configura el ID de usuario del propietario
+          // Establecer ID de usuario para el propietario
           installationData.user_id = currentUser?.uid || userData?.uid || 'owner-user';
           
-          console.log("Realizando inserción con cliente admin:", {
-            userId: installationData.user_id
+          console.log("Realizando inserción como propietario:", {
+            userId: installationData.user_id,
+            role: userData?.role
           });
           
-          // Usar cliente admin para operación de base de datos
+          // Usar cliente admin para la operación
           response = await adminClient
             .from('gps_installations')
             .insert(installationData)
             .select();
             
-          console.log("Admin client response:", response);
-        } catch (adminError) {
-          console.error("Error using admin client:", adminError);
+          console.log("Respuesta de inserción admin:", response);
+        } catch (adminError: any) {
+          console.error("Error con cliente admin:", adminError);
           throw new Error(`Error con cliente admin: ${adminError.message || 'Error desconocido'}`);
         }
       } else {
-        // Para usuarios regulares, verificar sesión primero
+        // Para usuarios regulares
+        console.log("Usando flujo de usuario regular para inserción");
+        
         const { data: { session } } = await supabase.auth.getSession();
         
         if (!session?.user?.id) {
           throw new Error("Debes iniciar sesión para agendar instalaciones");
         }
         
-        // Establecer el ID de usuario para usuarios regulares
+        // Establecer ID de usuario para usuarios regulares
         installationData.user_id = session.user.id;
-        console.log("Usuario regular:", installationData.user_id);
         
-        // Usar cliente regular para operación de base de datos
+        // Usar cliente estándar para la operación
         response = await supabase
           .from('gps_installations')
           .insert(installationData)
           .select();
       }
       
-      // Verificar errores potenciales
+      // Verificar errores en la respuesta
       if (response?.error) {
-        console.error("Supabase error:", response.error);
+        console.error("Error de Supabase:", response.error);
         throw response.error;
       }
 
-      console.log("Installation scheduled successfully:", response?.data);
+      console.log("Instalación agendada exitosamente:", response?.data);
       onSchedule(formData);
       
       toast({
@@ -130,9 +131,9 @@ export const useGpsAppointment = (onSchedule: (data: AppointmentFormData) => voi
         description: "La cita se ha programado correctamente.",
       });
     } catch (error: any) {
-      console.error("Error scheduling installation:", error);
+      console.error("Error al agendar instalación:", error);
       
-      // Proporcionar un mensaje de error más amigable para el usuario
+      // Proporcionar mensaje de error amigable
       let errorMessage = "No se pudo programar la instalación";
       
       if (error.message?.includes("logged in") || error.message?.includes("iniciar")) {
@@ -147,7 +148,7 @@ export const useGpsAppointment = (onSchedule: (data: AppointmentFormData) => voi
         errorMessage += `: ${error.message || 'Error desconocido'}`;
       }
       
-      // Mostrar información de rol para depuración
+      // Incluir información de rol para depuración
       const isOwner = userData?.role === 'owner' || checkForOwnerRole();
       errorMessage += ` (Role: ${userData?.role || 'unknown'}, Auth: ${!!currentUser})`;
       

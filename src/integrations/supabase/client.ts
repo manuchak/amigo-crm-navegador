@@ -42,25 +42,23 @@ export const checkForOwnerRole = (): boolean => {
 };
 
 /**
- * Gets a completely fresh instance of the admin client with service role key
- * and ensures correct headers are set for authentication
+ * Gets a fresh instance of the admin client with service role
  * 
- * IMPORTANTE: Esta función ha sido revisada para garantizar que las credenciales
- * se configuran correctamente para el cliente de administrador
+ * NOTA: Refactorizado para usar createClient correctamente con la estructura
+ * recomendada para la versión más reciente de Supabase JS
  */
 export const getAdminClient = () => {
-  // Validar que tenemos las credenciales necesarias
+  // Validar credenciales
   if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
-    console.error("Missing required Supabase configuration");
+    console.error("Error crítico: Faltan credenciales de Supabase");
     throw new Error("Error de configuración: faltan credenciales de Supabase");
   }
 
-  // Crear un cliente completamente nuevo con encabezados de autorización explícitos
-  // Usamos el formato recomendado por la documentación de Supabase para service_role
   try {
-    console.log("Creating admin client with service role...");
+    console.log("Creando cliente admin con service role...");
     
-    const adminClient = createClient<Database>(
+    // Crear cliente con opciones globales según la documentación oficial
+    return createClient<Database>(
       SUPABASE_URL,
       SUPABASE_SERVICE_ROLE_KEY,
       {
@@ -76,16 +74,13 @@ export const getAdminClient = () => {
         }
       }
     );
-    
-    console.log("Admin client created successfully");
-    return adminClient;
   } catch (error) {
-    console.error("Failed to create admin client:", error);
+    console.error("Error al crear cliente admin:", error);
     throw new Error("Error crítico al inicializar cliente de administración");
   }
 };
 
-// Exportación de supabaseAdmin mantenida por compatibilidad
+// Para compatibilidad con código existente
 export const supabaseAdmin = getAdminClient();
 
 /**

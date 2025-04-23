@@ -11,6 +11,8 @@ import { useGpsAppointment } from "./hooks/useGpsAppointment";
 import { useAuth } from "@/context/AuthContext";
 import { useNavigate } from "react-router-dom";
 import { checkForOwnerRole } from "@/integrations/supabase/client";
+import { AlertTriangle } from "lucide-react";
+import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 
 type GpsAppointmentFormProps = {
   onBack: () => void;
@@ -22,26 +24,28 @@ export default function GpsAppointmentForm({ onBack, onSchedule, installData }: 
   const { currentUser, userData } = useAuth();
   const navigate = useNavigate();
   
-  // Verificación mejorada de rol de propietario
+  // Verificación mejorada para detectar el rol de propietario
   const isOwnerFromRole = userData?.role === 'owner';
   const isOwnerFromStorage = checkForOwnerRole();
   const isOwner = isOwnerFromRole || isOwnerFromStorage;
   
-  // Agregar logs de depuración para el estado de la sesión
+  // Logging para depuración de estado de autenticación
   useEffect(() => {
     console.log("GpsAppointmentForm montado");
-    console.log("Usuario actual:", currentUser);
-    console.log("Datos de usuario:", userData);
-    console.log("Rol de propietario desde userData:", isOwnerFromRole);
-    console.log("Rol de propietario desde localStorage:", isOwnerFromStorage);
-    console.log("Es propietario (combinado):", isOwner);
+    console.log("Estado de autenticación:", { 
+      currentUser, 
+      userData, 
+      isOwnerFromRole, 
+      isOwnerFromStorage,
+      isOwnerCombined: isOwner 
+    });
     
-    // Verificar localStorage directamente para depuración
+    // Verificar datos en localStorage para diagnóstico
     try {
       const localStorageUser = localStorage.getItem('current_user');
-      console.log("Usuario en localStorage:", localStorageUser ? JSON.parse(localStorageUser) : null);
+      console.log("Datos de usuario en localStorage:", localStorageUser ? JSON.parse(localStorageUser) : null);
     } catch (e) {
-      console.error("Error al acceder a localStorage:", e);
+      console.error("Error al leer localStorage:", e);
     }
   }, [currentUser, userData, isOwner, isOwnerFromRole, isOwnerFromStorage]);
   
@@ -52,14 +56,14 @@ export default function GpsAppointmentForm({ onBack, onSchedule, installData }: 
     error
   } = useGpsAppointment(onSchedule, installData);
 
-  // Si no se proporcionan datos de instalación, mostrar el componente de error
+  // No hay datos de instalación
   if (!installData) {
     return <AppointmentError onBack={onBack} noInstallData />;
   }
 
-  // Si el usuario no está autenticado y no es propietario, mostrar error de autenticación
+  // Usuario no autenticado y no es propietario
   if (!currentUser && !isOwner) {
-    console.log("Error de autenticación: No hay usuario actual y no es propietario");
+    console.log("Redirigiendo a login: No hay usuario autenticado y no es propietario");
     return (
       <AppointmentError 
         error="Debes iniciar sesión para agendar instalaciones" 
@@ -73,14 +77,21 @@ export default function GpsAppointmentForm({ onBack, onSchedule, installData }: 
     <div className="w-full max-w-4xl mx-auto space-y-6">
       <InstallationSummary installData={installData} />
 
+      {isOwner && (
+        <Alert className="bg-amber-50 border-amber-200">
+          <AlertTriangle className="h-4 w-4 text-amber-600" />
+          <AlertTitle className="text-amber-700">Modo propietario activo</AlertTitle>
+          <AlertDescription className="text-amber-600">
+            Estás operando con privilegios de propietario 
+            ({isOwnerFromRole ? "role" : ""}{isOwnerFromRole && isOwnerFromStorage ? "+" : ""}{isOwnerFromStorage ? "storage" : ""}).
+          </AlertDescription>
+        </Alert>
+      )}
+
       <Card className="bg-white/95 shadow-xl border-0">
         <CardHeader>
           <CardTitle className="text-xl font-medium text-gray-800">
-            Agendar cita de instalación {isOwner && (
-              <span className="text-xs text-violet-600">
-                (propietario{isOwnerFromRole ? "-role" : ""}{isOwnerFromStorage ? "-storage" : ""})
-              </span>
-            )}
+            Agendar cita de instalación
           </CardTitle>
         </CardHeader>
         <CardContent>
