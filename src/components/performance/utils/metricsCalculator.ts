@@ -1,8 +1,8 @@
-
 import { CustodioData, PerformanceMetric } from "../types/performance.types";
+import { DateRange } from "react-day-picker";
 
-export function calculateSummaryMetrics(custodios: CustodioData[]): PerformanceMetric[] {
-  const activeCustodios = custodios.filter(c => c.status === 'active').length;
+export function calculateSummaryMetrics(custodios: CustodioData[], dateRange: DateRange): PerformanceMetric[] {
+  const activeCustodios = new Set(custodios.map(c => c.name)).size;
   const totalEarnings = custodios.reduce((sum, c) => sum + c.earnings, 0);
   const avgResponseTime = custodios.reduce((sum, c) => sum + c.responseTime, 0) / custodios.length;
   const retentionRate = (activeCustodios / custodios.length) * 100;
@@ -10,11 +10,11 @@ export function calculateSummaryMetrics(custodios: CustodioData[]): PerformanceM
   return [
     {
       label: 'Total Custodios',
-      value: custodios.length,
+      value: activeCustodios,
       change: 12,
       changeLabel: 'vs. mes anterior',
       changeType: 'increase',
-      description: 'Custodios activos en el período'
+      description: 'Custodios únicos en el período'
     },
     { 
       label: 'Validaciones',

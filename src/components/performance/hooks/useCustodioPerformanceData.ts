@@ -10,7 +10,7 @@ export function useCustodioPerformanceData(dateRange: DateRange) {
     queryKey: ['custodio-performance-data', dateRange],
     queryFn: async (): Promise<CustodioPerformanceData> => {
       const jsonData = await fetchExcelData();
-      return processExcelData(jsonData);
+      return processExcelData(jsonData, dateRange);
     },
     staleTime: 1000 * 60 * 5, // 5 minutes
   });

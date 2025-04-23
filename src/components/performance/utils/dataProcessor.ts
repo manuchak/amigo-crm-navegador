@@ -1,5 +1,6 @@
 
-import { CustodioPerformanceData } from "../types/performance.types";
+import { CustodioPerformanceData, CustodioData } from "../types/performance.types";
+import { DateRange } from "react-day-picker";
 import { 
   calculateSummaryMetrics, 
   generatePerformanceTrends, 
@@ -7,11 +8,19 @@ import {
   generateMonthlyRetention 
 } from "./metricsCalculator";
 
-export function processExcelData(jsonData: any[]): CustodioPerformanceData {
+export function processExcelData(jsonData: any[], dateRange: DateRange): CustodioPerformanceData {
   try {
-    const custodios = jsonData.map((row, index) => ({
+    // Filter data by date range if dates are provided
+    const filteredData = dateRange?.from && dateRange?.to
+      ? jsonData.filter(row => {
+          const appointmentDate = new Date(row.FechaCita);
+          return appointmentDate >= dateRange.from! && appointmentDate <= dateRange.to!;
+        })
+      : jsonData;
+
+    const custodios = filteredData.map((row, index) => ({
       id: index + 1,
-      name: row.Nombre || `Custodio ${index + 1}`,
+      name: row.NombreCustodio || `Custodio ${index + 1}`,
       activeMonths: parseInt(row.MesesActivo) || Math.floor(1 + Math.random() * 24),
       completedJobs: parseInt(row.TrabajosCompletados) || Math.floor(10 + Math.random() * 200),
       averageRating: parseFloat(row.CalificacionPromedio) || (3.5 + Math.random() * 1.5),
@@ -22,7 +31,7 @@ export function processExcelData(jsonData: any[]): CustodioPerformanceData {
       status: (row.Estado || Math.random() > 0.2 ? 'active' : (Math.random() > 0.5 ? 'inactive' : 'pending')) as 'active' | 'inactive' | 'pending'
     }));
 
-    const summaryMetrics = calculateSummaryMetrics(custodios);
+    const summaryMetrics = calculateSummaryMetrics(custodios, dateRange);
     const performanceByDay = generatePerformanceTrends();
     const monthlyRevenue = generateMonthlyRevenue();
     const totalRevenue = custodios.reduce((sum, c) => sum + c.earnings, 0);
