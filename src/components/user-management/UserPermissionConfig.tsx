@@ -14,6 +14,7 @@ import {
 } from '@/components/ui/table';
 import { toast } from 'sonner';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { checkForOwnerRole } from '@/integrations/supabase/client';
 
 const UserPermissionConfig: React.FC = () => {
   const [selectedTab, setSelectedTab] = useState<'pages' | 'actions'>('pages');
@@ -32,6 +33,10 @@ const UserPermissionConfig: React.FC = () => {
   useEffect(() => {
     console.log('UserPermissionConfig owner status:', isOwner ? '✅ Yes' : '❌ No');
     console.log('Current permissions state:', permissions);
+    
+    // Verificar estado de propietario en el montaje del componente
+    const ownerStatus = checkForOwnerRole();
+    console.log('Owner status from localStorage:', ownerStatus ? '✅ Yes' : '❌ No');
   }, [isOwner, permissions]);
 
   const onSave = async () => {
@@ -115,7 +120,7 @@ const UserPermissionConfig: React.FC = () => {
         {!loading && !error && (!permissions || permissions.length === 0) && (
           <Alert className="mb-4">
             <AlertDescription>
-              No se encontraron configuraciones de permisos. Haga clic en "Recargar" para intentar nuevamente.
+              No se encontraron configuraciones de permisos. Haga clic en "Recargar" para intentar nuevamente o "Cargar configuración de permisos" para inicializar con valores predeterminados.
             </AlertDescription>
           </Alert>
         )}

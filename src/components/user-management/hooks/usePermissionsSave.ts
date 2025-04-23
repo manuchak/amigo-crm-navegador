@@ -27,13 +27,14 @@ export function usePermissionsSave() {
       console.log('Deleting existing permissions...');
       let deleteSuccess = false;
       
-      if (currentOwnerStatus) {
-        try {
-          // Using direct supabaseAdmin reference
+      // Intento de eliminación de permisos existentes con manejo de errores mejorado
+      try {
+        if (currentOwnerStatus) {
+          console.log('Intentando eliminar con cliente admin...');
           const { error: deleteError } = await supabaseAdmin
             .from('role_permissions')
             .delete()
-            .gt('id', 0);
+            .gte('id', 0); // Cambiado de .gt a .gte para incluir ID 0 si existe
           
           if (deleteError) {
             console.error('Admin client delete failed:', deleteError);
@@ -42,25 +43,34 @@ export function usePermissionsSave() {
             deleteSuccess = true;
             console.log('Admin client delete successful');
           }
-        } catch (adminError) {
-          console.error('Error with admin client delete:', adminError);
         }
+      } catch (adminError) {
+        console.error('Error with admin client delete:', adminError);
       }
       
       if (!deleteSuccess) {
         console.log('Using standard client for delete operation');
-        const standardClient = await getAuthenticatedClient();
-        const { error: deleteError } = await standardClient
-          .from('role_permissions')
-          .delete()
-          .gt('id', 0);
-        
-        if (deleteError) {
-          console.error('Standard client delete failed:', deleteError);
-          throw deleteError;
+        try {
+          const standardClient = await getAuthenticatedClient();
+          const { error: deleteError } = await standardClient
+            .from('role_permissions')
+            .delete()
+            .gte('id', 0); // Cambiado de .gt a .gte
+          
+          if (deleteError) {
+            console.error('Standard client delete failed:', deleteError);
+            throw deleteError;
+          } else {
+            deleteSuccess = true;
+            console.log('Standard client delete successful');
+          }
+        } catch (deleteError) {
+          console.error('All delete attempts failed:', deleteError);
+          throw new Error(`Error al eliminar permisos existentes: ${deleteError.message || 'Error desconocido'}`);
         }
       }
       
+      // Si llegamos aquí es porque la eliminación fue exitosa
       console.log('Inserting new permissions in batches...');
       const BATCH_SIZE = 20;
       const client_to_use = currentOwnerStatus 
