@@ -15,6 +15,7 @@ import { useCarData } from "@/hooks/useCarData";
 import DashcamFeatures from "./DashcamFeatures";
 import { Checkbox } from "@/components/ui/checkbox";
 import VehiclesFieldArray from "./VehiclesFieldArray";
+import AddressSection from "./address/AddressSection";
 
 const GPS_FEATURE_OPTIONS = [
   { label: "Seguimiento en tiempo real", value: "realtime_tracking" },
@@ -63,6 +64,18 @@ const vehicleSchema = z.object({
 
 const gpsInstallSchema = z.object({
   ownerName: z.string().min(2, "Campo requerido"),
+  installAddress: z.object({
+    state: z.string().min(2, "Campo requerido"),
+    city: z.string().min(2, "Campo requerido"),
+    colonia: z.string().optional(),
+    street: z.string().min(2, "Campo requerido"),
+    number: z.string().min(1, "Campo requerido"),
+    postalCode: z.string().min(5, "Campo requerido"),
+    phone: z.string().min(10, "Campo requerido"),
+    references: z.string().optional(),
+    coordinates: z.string().optional(),
+  }),
+  installInWorkshop: z.boolean().optional(),
   vehicles: z.array(vehicleSchema).min(1)
 });
 
@@ -77,6 +90,18 @@ export default function GpsInstallForm({ onNext }: GpsInstallFormProps) {
     resolver: zodResolver(gpsInstallSchema),
     defaultValues: {
       ownerName: "",
+      installAddress: {
+        state: "",
+        city: "",
+        colonia: "",
+        street: "",
+        number: "",
+        postalCode: "",
+        phone: "",
+        references: "",
+        coordinates: ""
+      },
+      installInWorkshop: false,
       vehicles: [
         {
           vehiclePlate: "",
@@ -162,6 +187,7 @@ export default function GpsInstallForm({ onNext }: GpsInstallFormProps) {
                 </FormItem>
               )}
             />
+            <AddressSection control={form.control} />
             <VehiclesFieldArray
               form={form}
               brands={brands}
