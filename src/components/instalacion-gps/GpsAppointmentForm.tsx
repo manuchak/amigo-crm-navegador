@@ -8,7 +8,7 @@ import { format, isWeekend, isBefore, startOfToday } from "date-fns";
 import { MapPin, CalendarIcon, Clock, AlertTriangle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
-import { useToast } from "@/hooks/use-toast"; // Import the toast hook
+import { useToast } from "@/hooks/use-toast";
 
 type GpsAppointmentFormProps = {
   onBack: () => void;
@@ -46,7 +46,7 @@ export default function GpsAppointmentForm({ onBack, onSchedule, installData }: 
   const [time, setTime] = React.useState("");
   const [timezone, setTimezone] = React.useState("GMT-6 México");
   const [notes, setNotes] = React.useState("");
-  const { toast } = useToast(); // Use the toast hook
+  const { toast } = useToast();
 
   const handleDateSelect = (selectedDate: Date | undefined) => {
     if (!selectedDate) return;
@@ -54,7 +54,7 @@ export default function GpsAppointmentForm({ onBack, onSchedule, installData }: 
 
     if (isWeekend(selectedDate)) {
       toast({
-        variant: "warning",
+        variant: "default", // Changed from "warning"
         title: "Fin de semana seleccionado",
         description: "Ten en cuenta que este día es fin de semana. Confirma disponibilidad.",
       });
@@ -62,7 +62,7 @@ export default function GpsAppointmentForm({ onBack, onSchedule, installData }: 
 
     if (isHoliday(selectedDate)) {
       toast({
-        variant: "warning",
+        variant: "default", // Changed from "warning"
         title: "Día festivo seleccionado",
         description: "Has seleccionado un día festivo. Por favor verifica disponibilidad.",
       });

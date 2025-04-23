@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Card, CardContent, CardTitle, CardHeader } from "@/components/ui/card";
 import GpsInstallForm from "@/components/instalacion-gps/GpsInstallForm";
@@ -42,7 +41,6 @@ const InstalacionGPS = () => {
   const [selectedInstaller, setSelectedInstaller] = React.useState<any>(null);
   const { toast } = useToast();
 
-  // Tarjeta integrando nombre, estado, dirección y calificación con botón "Limpiar"
   const renderSelectedInstallerCard = () => {
     if (!selectedInstaller) return null;
     const { nombre, direccion_personal, certificaciones } = selectedInstaller;
@@ -149,11 +147,10 @@ const InstalacionGPS = () => {
                   const completeData = { ...installData, appointment: appt };
                   setInstallData(completeData);
                   toast({
+                    variant: "default",
                     title: "¡Excelente!",
                     description: "Cita agendada exitosamente.",
-                    variant: "success"
                   });
-                  // Reset form after successful appointment
                   setTimeout(() => {
                     setInstallData(null);
                     setStep(1);
