@@ -149,6 +149,7 @@ export type Database = {
           comentarios: string | null
           created_at: string
           direccion_personal: string | null
+          email: string | null
           id: number
           nombre: string
           taller: boolean | null
@@ -162,6 +163,7 @@ export type Database = {
           comentarios?: string | null
           created_at?: string
           direccion_personal?: string | null
+          email?: string | null
           id?: number
           nombre: string
           taller?: boolean | null
@@ -175,6 +177,7 @@ export type Database = {
           comentarios?: string | null
           created_at?: string
           direccion_personal?: string | null
+          email?: string | null
           id?: number
           nombre?: string
           taller?: boolean | null

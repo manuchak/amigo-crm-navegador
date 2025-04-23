@@ -23,7 +23,7 @@ const workshopFeatures = [
 type FormValues = {
   nombre: string;
   telefono: string;
-  email: string; // sigue siendo parte del formulario, pero no se usará en el insert
+  email: string;
   direccion_personal: string;
   rfc: string;
   taller: boolean;
@@ -42,7 +42,6 @@ export default function InstaladorRegistro() {
   const [imagePreviews, setImagePreviews] = useState<string[]>([]);
   const navigate = useNavigate();
 
-  // Mejora UX: ver previsualización de imágenes seleccionadas (no subidas aún)
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files) return;
     setImagePreviews(Array.from(e.target.files).map(file => URL.createObjectURL(file)));
@@ -56,7 +55,6 @@ export default function InstaladorRegistro() {
     );
   };
 
-  // Limpiar previews locales y selection extra al resetear
   const cleanUpImages = () => {
     imagePreviews.forEach(url => URL.revokeObjectURL(url));
     setImagePreviews([]);
@@ -80,10 +78,11 @@ export default function InstaladorRegistro() {
           imagenUrls.push(`https://beefjsdgrdeiymzxwxru.supabase.co/storage/v1/object/public/installers/${filePath}`);
         }
       }
-      // Payload SIN el campo email, para que coincida con la estructura válida
+      // Payload INCLUYENDO el campo email
       const payload = {
         nombre: data.nombre,
         telefono: data.telefono,
+        email: data.email,
         direccion_personal: data.direccion_personal,
         rfc: data.rfc,
         taller: taller ? true : false,
