@@ -5,6 +5,7 @@ import { useAuth } from '@/context/SupabaseAuthContext';
 import { Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { supabase } from '@/integrations/supabase/client';
+import { UserRole } from '@/types/auth'; // Import the UserRole type
 
 interface AuthGuardProps {
   children: React.ReactNode;
