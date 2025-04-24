@@ -4,7 +4,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { useAuth } from '@/context/AuthContext';
-import { UserManagementPanel } from '@/components/admin/user-management';
+import UserManagementPanel from '@/components/admin/UserManagementPanel';
 import { VapiConfigPanel } from '@/components/call-center/vapi-config';
 import { VapiWebhookDebugger } from '@/components/call-center/webhook-debugger';
 import { Settings, Users, Phone, Webhook } from 'lucide-react';

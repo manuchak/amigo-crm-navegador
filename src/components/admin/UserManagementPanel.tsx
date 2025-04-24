@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Loader2 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
@@ -33,12 +33,11 @@ const UserManagementPanel = () => {
     handleEditClick
   } = useUserManagement({ getAllUsers });
   
-  // Initial fetch of users when component mounts
+  // Initial fetch of users when component mounts, with empty dependency array to avoid infinite loops
   useEffect(() => {
-    if (!users.length && !loading) {
-      fetchUsers();
-    }
-  }, [users.length, loading, fetchUsers]);
+    fetchUsers();
+    // This effect should only run once when the component mounts
+  }, []);
   
   const handleUpdateRole = async () => {
     if (!selectedUser || !newRole) return;
