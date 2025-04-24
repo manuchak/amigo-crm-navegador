@@ -43,59 +43,82 @@ export async function importServiciosData(file: File) {
       description: "Por favor espere mientras procesamos el archivo..." 
     });
 
-    const response = await supabase.functions.invoke('import-servicios-data', {
-      body: formData
-    });
-
-    // Check if the response has data 
-    if (!response || !response.data) {
-      console.error("Error importing servicios data: No response data returned", response);
-      toast.error("Error de comunicación con el servidor", {
-        description: "No se recibió respuesta del servidor. Intente nuevamente."
+    // Convert to regular fetch for better error handling
+    const response = await fetch(
+      `https://beefjsdgrdeiymzxwxru.supabase.co/functions/v1/import-servicios-data`,
+      {
+        method: 'POST',
+        body: formData,
+        headers: {
+          'Authorization': `Bearer ${supabase.auth.session()?.access_token || ''}`,
+          'apikey': supabase.supabaseKey
+        }
+      }
+    );
+    
+    // Handle HTTP errors
+    if (!response.ok) {
+      let errorMessage = `Error del servidor: ${response.status}`;
+      
+      try {
+        const errorData = await response.json();
+        if (errorData && errorData.message) {
+          errorMessage = errorData.message;
+        }
+      } catch (parseError) {
+        // JSON parsing failed, use default error message
+      }
+      
+      console.error("Error importing servicios data:", errorMessage);
+      toast.error("Error al importar datos", {
+        description: errorMessage
       });
       
       return { 
         success: false, 
-        message: "Error de comunicación con el servidor" 
+        message: errorMessage 
       };
     }
 
-    if (!response.data.success) {
-      console.error("Error importing servicios data:", response.data);
+    // Parse successful response
+    const responseData = await response.json();
+    
+    if (!responseData.success) {
+      console.error("Error importing servicios data:", responseData);
       
       // If there are specific validation errors, display them
-      if (response.data.errors && response.data.errors.length > 0) {
-        const errorMessages = response.data.errors.map((err) => 
+      if (responseData.errors && responseData.errors.length > 0) {
+        const errorMessages = responseData.errors.map((err) => 
           `Fila ${err.row}: ${err.message}`
         ).join('\n');
         
         toast.error("Errores en el archivo Excel", {
           description: errorMessages.length > 100 
-            ? `${errorMessages.substring(0, 100)}... (${response.data.errors.length} errores en total)`
+            ? `${errorMessages.substring(0, 100)}... (${responseData.errors.length} errores en total)`
             : errorMessages,
           duration: 5000
         });
 
         // Log full details to console for debugging
-        console.table(response.data.errors);
+        console.table(responseData.errors);
       } else {
         toast.error("Error al importar datos", {
-          description: response.data.message || "Revise el formato del archivo"
+          description: responseData.message || "Revise el formato del archivo"
         });
       }
       
-      return { success: false, errors: response.data.errors, message: response.data.message };
+      return { success: false, errors: responseData.errors, message: responseData.message };
     }
 
     toast.success("Datos importados exitosamente", {
-      description: response.data.message
+      description: responseData.message
     });
     
-    return { success: true, message: response.data.message };
+    return { success: true, message: responseData.message };
   } catch (error) {
     console.error("Error importing servicios data:", error);
     toast.error("Error al importar servicios", {
-      description: error instanceof Error ? error.message : "Error desconocido"
+      description: error instanceof Error ? error.message : "Error de comunicación con el servidor"
     });
     
     return { success: false, error };

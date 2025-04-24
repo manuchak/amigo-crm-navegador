@@ -8,19 +8,34 @@ const corsHeaders = {
 }
 
 Deno.serve(async (req) => {
+  // Handle CORS preflight request
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
   }
 
   try {
+    console.log("Starting import process")
     // Fetch Excel data from the uploaded file
     const formData = await req.formData()
     const file = formData.get('file')
     
     if (!file || !(file instanceof File)) {
-      throw new Error('No se cargó ningún archivo')
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          message: 'No se cargó ningún archivo'
+        }),
+        { 
+          headers: { 
+            ...corsHeaders,
+            'Content-Type': 'application/json' 
+          },
+          status: 400 
+        }
+      )
     }
 
+    console.log(`Processing file: ${file.name}, size: ${file.size} bytes`)
     const arrayBuffer = await file.arrayBuffer()
     
     // Parse Excel data
@@ -29,10 +44,22 @@ Deno.serve(async (req) => {
     const jsonData = XLSX.utils.sheet_to_json(worksheet)
 
     if (jsonData.length === 0) {
-      throw new Error('El archivo Excel no contiene datos')
+      return new Response(
+        JSON.stringify({ 
+          success: false,
+          message: 'El archivo Excel no contiene datos'
+        }),
+        { 
+          headers: { 
+            ...corsHeaders,
+            'Content-Type': 'application/json' 
+          },
+          status: 400
+        }
+      )
     }
 
-    console.log(`Parseando ${jsonData.length} filas del archivo Excel`)
+    console.log(`Parsing ${jsonData.length} rows from Excel file`)
 
     // Initialize Supabase client
     const supabaseClient = createClient(
@@ -40,9 +67,10 @@ Deno.serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     )
 
-    // Validate and transform data
-    const errors = []
-    const transformedData = []
+    // Split data processing into smaller batches to avoid timeouts
+    const batchSize = 100;
+    const errors = [];
+    const transformedData = [];
     const tableColumns = [
       'proveedor', 'fecha_hora_cita', 'km_teorico', 'cantidad_transportes', 
       'fecha_hora_asignacion', 'armado', 'hora_presentacion', 'tiempo_retraso', 
@@ -61,49 +89,54 @@ Deno.serve(async (req) => {
       'nombre_armado', 'telefono_armado'
     ]
     
+    // Define numerical and date fields for validation
+    const numericFields = [
+      'km_teorico', 'cantidad_transportes', 'km_recorridos', 
+      'km_extras', 'costo_custodio', 'casetas', 'cobro_cliente'
+    ]
+    
+    const dateFields = [
+      'fecha_hora_cita', 'fecha_hora_asignacion', 
+      'fecha_contratacion', 'fecha_primer_servicio'
+    ]
+
+    // Process each row from Excel
+    console.log("Validating and transforming data")
     for (let i = 0; i < jsonData.length; i++) {
-      const row = jsonData[i]
       try {
-        // Only validate numeric fields if they have a value
-        const numericFields = ['km_teorico', 'cantidad_transportes', 'km_recorridos', 
-                             'km_extras', 'costo_custodio', 'casetas', 'cobro_cliente']
-        
-        for (const field of numericFields) {
-          if (row[field] !== undefined && row[field] !== null && row[field] !== '') {
-            const numValue = parseFloat(row[field])
-            if (isNaN(numValue)) {
-              throw new Error(`El valor '${row[field]}' en la columna '${field}' no es un número válido`)
-            }
-          }
-        }
-
-        // Only validate date fields if they have a value
-        const dateFields = ['fecha_hora_cita', 'fecha_hora_asignacion', 
-                          'fecha_contratacion', 'fecha_primer_servicio']
-        
-        for (const field of dateFields) {
-          if (row[field] !== undefined && row[field] !== null && row[field] !== '') {
-            const dateValue = new Date(row[field])
-            if (isNaN(dateValue.getTime())) {
-              throw new Error(`El valor '${row[field]}' en la columna '${field}' no es una fecha válida`)
-            }
-          }
-        }
-
-        // Transform to match database schema
+        const row = jsonData[i]
         const transformedRow = {}
+        
+        // Transform each column to match database schema
         tableColumns.forEach(column => {
-          if (row[column] !== undefined && row[column] !== null && row[column] !== '') {
-            // Specific field conversions
-            if (numericFields.includes(column)) {
-              transformedRow[column] = parseFloat(row[column])
-            } else if (dateFields.includes(column)) {
-              transformedRow[column] = new Date(row[column])
-            } else if (column === 'armado' && typeof row[column] === 'string') {
-              transformedRow[column] = row[column].toLowerCase() === 'si' || row[column] === true
-            } else {
-              transformedRow[column] = row[column]
+          // Skip empty/undefined fields
+          if (row[column] === undefined || row[column] === null || row[column] === '') {
+            return // Skip this field
+          }
+          
+          // Handle numeric fields
+          if (numericFields.includes(column)) {
+            const numValue = parseFloat(row[column])
+            if (isNaN(numValue)) {
+              throw new Error(`El valor '${row[column]}' en la columna '${column}' no es un número válido`)
             }
+            transformedRow[column] = numValue
+          } 
+          // Handle date fields
+          else if (dateFields.includes(column)) {
+            const dateValue = new Date(row[column])
+            if (isNaN(dateValue.getTime())) {
+              throw new Error(`El valor '${row[column]}' en la columna '${column}' no es una fecha válida`)
+            }
+            transformedRow[column] = dateValue
+          } 
+          // Handle boolean fields (special case for 'armado')
+          else if (column === 'armado' && typeof row[column] === 'string') {
+            transformedRow[column] = row[column].toLowerCase() === 'si' || row[column] === true
+          } 
+          // All other fields stored as-is
+          else {
+            transformedRow[column] = row[column]
           }
         })
 
@@ -112,12 +145,12 @@ Deno.serve(async (req) => {
         errors.push({
           row: i + 1,
           message: error.message,
-          data: row
+          data: JSON.stringify(jsonData[i]).substring(0, 100) + "..."
         })
       }
     }
 
-    console.log(`Datos validados: ${transformedData.length} filas válidas, ${errors.length} errores`)
+    console.log(`Data validated: ${transformedData.length} valid rows, ${errors.length} errors`)
 
     // If there are validation errors, return them
     if (errors.length > 0) {
@@ -137,30 +170,40 @@ Deno.serve(async (req) => {
       )
     }
 
-    // Insert transformed data
-    const { error: insertError } = await supabaseClient
-      .from('servicios_custodia')
-      .insert(transformedData)
+    // Process in batches to avoid timeouts
+    let insertedCount = 0
+    for (let i = 0; i < transformedData.length; i += batchSize) {
+      const batch = transformedData.slice(i, i + batchSize)
+      console.log(`Processing batch ${i/batchSize + 1}: ${batch.length} records`)
+      
+      const { error: insertError } = await supabaseClient
+        .from('servicios_custodia')
+        .insert(batch)
 
-    if (insertError) {
-      console.error('Error de inserción en la base de datos:', insertError)
-      return new Response(
-        JSON.stringify({ 
-          success: false,
-          message: 'Error al insertar datos en la base de datos',
-          error: insertError.message,
-          details: insertError.details
-        }),
-        { 
-          status: 500, 
-          headers: { 
-            ...corsHeaders,
-            'Content-Type': 'application/json' 
-          } 
-        }
-      )
+      if (insertError) {
+        console.error('Error de inserción en la base de datos:', insertError)
+        return new Response(
+          JSON.stringify({ 
+            success: false,
+            message: 'Error al insertar datos en la base de datos',
+            error: insertError.message,
+            details: insertError.details
+          }),
+          { 
+            status: 500, 
+            headers: { 
+              ...corsHeaders,
+              'Content-Type': 'application/json' 
+            } 
+          }
+        )
+      }
+      
+      insertedCount += batch.length
+      console.log(`Inserted ${insertedCount}/${transformedData.length} records`)
     }
 
+    console.log('Import completed successfully')
     return new Response(
       JSON.stringify({ 
         success: true,
@@ -178,7 +221,7 @@ Deno.serve(async (req) => {
     return new Response(
       JSON.stringify({ 
         success: false,
-        message: error.message,
+        message: 'Error en el procesamiento: ' + error.message,
         stack: error.stack
       }),
       { 
