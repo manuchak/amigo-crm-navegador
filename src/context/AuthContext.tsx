@@ -16,6 +16,7 @@ import {
 // Define the properties that our AuthContext will expose
 interface AuthContextProps {
   currentUser: UserData | null;
+  userData: UserData | null; // Added userData property to match interface
   loading: boolean;
   signOut: () => Promise<void>;
   updateUserRole: (uid: string, role: UserRole) => Promise<void>;
@@ -209,6 +210,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Value object that will be provided to components using this context
   const value = {
     currentUser,
+    userData: currentUser, // Set userData to be the same as currentUser for compatibility
     loading,
     signIn,
     signUp,

@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/context/AuthContext';
@@ -31,6 +32,7 @@ const AuthGuard: React.FC<AuthGuardProps> = ({ children, requiredRole }) => {
       console.log('Checking access for page:', pageId);
       setError(null);
       
+      // Always allow access to auth pages
       if (pageId === 'auth' || pageId === 'login') {
         console.log('Auth page detected, allowing access');
         setHasPageAccess(true);
@@ -38,6 +40,7 @@ const AuthGuard: React.FC<AuthGuardProps> = ({ children, requiredRole }) => {
         return;
       }
       
+      // If no user, deny access
       if (!currentUser) {
         console.log('No user found, denying access');
         setHasPageAccess(false);
@@ -45,6 +48,7 @@ const AuthGuard: React.FC<AuthGuardProps> = ({ children, requiredRole }) => {
         return;
       }
       
+      // Admin and owner always have full access
       if (currentUser.role === 'admin' || currentUser.role === 'owner') {
         console.log('Admin/Owner detected, granting access');
         setHasPageAccess(true);
@@ -52,6 +56,7 @@ const AuthGuard: React.FC<AuthGuardProps> = ({ children, requiredRole }) => {
         return;
       }
       
+      // Check role-based access for the current page
       const hasAccess = checkRoleAccess(currentUser.role, pageId);
       console.log(`Permission for ${pageId}: ${hasAccess ? 'Granted ✅' : 'Denied ❌'}`);
       setHasPageAccess(hasAccess);
@@ -60,6 +65,7 @@ const AuthGuard: React.FC<AuthGuardProps> = ({ children, requiredRole }) => {
       console.error('Error checking page access:', error);
       setError(error.message || 'Error al verificar permisos');
       
+      // Fallback to grant access to admins/owners even if there's an error
       setHasPageAccess(currentUser?.role === 'admin' || currentUser?.role === 'owner');
     } finally {
       setCheckingAccess(false);
@@ -90,6 +96,7 @@ const AuthGuard: React.FC<AuthGuardProps> = ({ children, requiredRole }) => {
     let isMounted = true;
     
     const runAccessCheck = async () => {
+      // Only check access if we're not loading and the component is still mounted
       if (!loading && isMounted) {
         await checkAccess();
       }
@@ -102,6 +109,7 @@ const AuthGuard: React.FC<AuthGuardProps> = ({ children, requiredRole }) => {
     };
   }, [currentUser, loading, pageId, retryCount]);
   
+  // Show loading state while checking
   if (loading || checkingAccess) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -123,13 +131,16 @@ const AuthGuard: React.FC<AuthGuardProps> = ({ children, requiredRole }) => {
     );
   }
   
+  // If no user, redirect to auth page
   if (!currentUser) {
+    // Do not redirect if we're already on the auth or login page
     if (location.pathname === '/auth' || location.pathname === '/login') {
       return <>{children}</>;
     }
     return <Navigate to="/auth" state={{ from: location }} replace />;
   }
   
+  // If we've determined user does not have access
   if (hasPageAccess === false) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -179,6 +190,7 @@ const AuthGuard: React.FC<AuthGuardProps> = ({ children, requiredRole }) => {
     );
   }
   
+  // If user has access, render the children
   return <>{children}</>;
 };
 
