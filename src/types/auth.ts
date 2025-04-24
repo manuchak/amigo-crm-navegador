@@ -1,4 +1,6 @@
 
+import { User, Session } from '@supabase/supabase-js';
+
 // User roles in the system
 export type UserRole = 
   | 'unverified' 
