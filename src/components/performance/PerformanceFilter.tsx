@@ -13,6 +13,7 @@ import { importServiciosData } from './services/performanceDataService';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertCircle } from "lucide-react";
+import { Progress } from "@/components/ui/progress";
 
 interface PerformanceFilterProps {
   dateRange: DateRange;
@@ -21,6 +22,7 @@ interface PerformanceFilterProps {
 
 export function PerformanceFilter({ dateRange, setDateRange }: PerformanceFilterProps) {
   const [isUploading, setIsUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
   const [importErrors, setImportErrors] = useState<any[]>([]);
   const [showErrorDialog, setShowErrorDialog] = useState(false);
 
@@ -28,8 +30,23 @@ export function PerformanceFilter({ dateRange, setDateRange }: PerformanceFilter
     const file = event.target.files?.[0];
     if (file) {
       setIsUploading(true);
+      setUploadProgress(10); // Start progress
+      
+      // Simulate progress during upload/processing
+      const progressInterval = setInterval(() => {
+        setUploadProgress(prev => {
+          const newProgress = prev + 5;
+          return newProgress < 90 ? newProgress : prev;
+        });
+      }, 300);
+      
       try {
         const result = await importServiciosData(file);
+        clearInterval(progressInterval);
+        
+        // Complete progress after processing
+        setUploadProgress(100);
+        setTimeout(() => setUploadProgress(0), 1000); // Reset after showing completed
         
         if (!result.success && result.errors) {
           setImportErrors(result.errors);
@@ -39,6 +56,7 @@ export function PerformanceFilter({ dateRange, setDateRange }: PerformanceFilter
         console.error("Error handling file upload:", error);
       } finally {
         setIsUploading(false);
+        clearInterval(progressInterval);
         // Reset the file input value so the same file can be uploaded again if needed
         event.target.value = '';
       }
@@ -106,6 +124,17 @@ export function PerformanceFilter({ dateRange, setDateRange }: PerformanceFilter
               </Button>
             </div>
           </div>
+          
+          {/* Upload progress bar */}
+          {uploadProgress > 0 && (
+            <div className="mt-4">
+              <div className="flex justify-between text-xs text-muted-foreground mb-1">
+                <span>Procesando archivo Excel</span>
+                <span>{uploadProgress}%</span>
+              </div>
+              <Progress value={uploadProgress} className="h-2" />
+            </div>
+          )}
         </CardContent>
       </Card>
 

@@ -39,16 +39,33 @@ export async function importServiciosData(file: File) {
     const formData = new FormData();
     formData.append('file', file);
 
+    toast.info("Importando datos", { 
+      description: "Por favor espere mientras procesamos el archivo..." 
+    });
+
     const response = await supabase.functions.invoke('import-servicios-data', {
       body: formData
     });
+
+    // Check if the response has data 
+    if (!response || !response.data) {
+      console.error("Error importing servicios data: No response data returned", response);
+      toast.error("Error de comunicación con el servidor", {
+        description: "No se recibió respuesta del servidor. Intente nuevamente."
+      });
+      
+      return { 
+        success: false, 
+        message: "Error de comunicación con el servidor" 
+      };
+    }
 
     if (!response.data.success) {
       console.error("Error importing servicios data:", response.data);
       
       // If there are specific validation errors, display them
       if (response.data.errors && response.data.errors.length > 0) {
-        const errorMessages = response.data.errors.map((err: any) => 
+        const errorMessages = response.data.errors.map((err) => 
           `Fila ${err.row}: ${err.message}`
         ).join('\n');
         

@@ -18,7 +18,7 @@ Deno.serve(async (req) => {
     const file = formData.get('file')
     
     if (!file || !(file instanceof File)) {
-      throw new Error('No file uploaded')
+      throw new Error('No se cargó ningún archivo')
     }
 
     const arrayBuffer = await file.arrayBuffer()
@@ -32,7 +32,7 @@ Deno.serve(async (req) => {
       throw new Error('El archivo Excel no contiene datos')
     }
 
-    console.log(`Parsing ${jsonData.length} rows from Excel file`)
+    console.log(`Parseando ${jsonData.length} filas del archivo Excel`)
 
     // Initialize Supabase client
     const supabaseClient = createClient(
@@ -117,7 +117,7 @@ Deno.serve(async (req) => {
       }
     }
 
-    console.log(`Validated data: ${transformedData.length} valid rows, ${errors.length} errors`)
+    console.log(`Datos validados: ${transformedData.length} filas válidas, ${errors.length} errores`)
 
     // If there are validation errors, return them
     if (errors.length > 0) {
@@ -143,7 +143,7 @@ Deno.serve(async (req) => {
       .insert(transformedData)
 
     if (insertError) {
-      console.error('Database insertion error:', insertError)
+      console.error('Error de inserción en la base de datos:', insertError)
       return new Response(
         JSON.stringify({ 
           success: false,
@@ -191,4 +191,3 @@ Deno.serve(async (req) => {
     )
   }
 })
-
