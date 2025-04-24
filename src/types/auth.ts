@@ -30,6 +30,7 @@ export interface AuthContextProps {
   userData: UserData | null;
   session: Session | null;
   loading: boolean;
+  isInitializing: boolean; // Added to track initial load state
   signIn: (email: string, password: string) => Promise<{ user: User | null; error: any }>;
   signUp: (email: string, password: string, displayName: string) => Promise<{ user: User | null; error: any }>;
   signOut: () => Promise<void>;
@@ -37,6 +38,6 @@ export interface AuthContextProps {
   getAllUsers: () => Promise<UserData[]>;
   verifyEmail: (userId: string) => Promise<{ success: boolean; error?: any }>;
   refreshSession: () => Promise<boolean>;
-  refreshUserData: () => Promise<void>; // Added to match component usage
-  resetPassword: (email: string) => Promise<void>; // Added for ForgotPasswordForm
+  refreshUserData: () => Promise<{ success: boolean; error?: any }>;
+  resetPassword: (email: string) => Promise<void>;
 }

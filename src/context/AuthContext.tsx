@@ -19,6 +19,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [session, setSession] = useState<Session | null>(null);
   const [userData, setUserData] = useState<UserData | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
+  const [isInitializing, setIsInitializing] = useState<boolean>(true);
 
   // Function to get a user's role from Supabase
   const getUserRole = async (userId: string): Promise<UserRole> => {
@@ -86,7 +87,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  // Function to refresh user data
+  // Function to refresh user data (safely)
   const refreshUserData = async () => {
     try {
       setLoading(true);
@@ -100,24 +101,28 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         throw error;
       }
       
-      if (sessionData?.session?.user) {
-        const sessionUser = sessionData.session.user;
-        setUser(sessionUser);
-        setSession(sessionData.session);
+      // Process session data - set to null if no session
+      const currentSession = sessionData?.session;
+      setSession(currentSession);
+      
+      if (currentSession?.user) {
+        setUser(currentSession.user);
         
         // Map user data from session
-        const mappedUserData = await mapUserData(sessionUser);
+        const mappedUserData = await mapUserData(currentSession.user);
         setUserData(mappedUserData);
         console.log("User data refreshed successfully:", mappedUserData.role);
       } else {
         console.log("No active session found during refresh");
         setUser(null);
-        setSession(null);
         setUserData(null);
       }
+      
+      return { success: true };
     } catch (error) {
       console.error('Error refreshing user data:', error);
       toast.error('Error al actualizar los datos de usuario');
+      return { success: false, error };
     } finally {
       setLoading(false);
     }
@@ -156,14 +161,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Set up the auth state listener
   useEffect(() => {
     // IMPORTANT: First set up the auth state listener, then check for existing session
-    // This is critical to prevent authentication loops
+    let mounted = true;
     console.log("Setting up auth state listener...");
     setLoading(true);
     
     // First, configure the authentication event listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, newSession) => {
+      (event, newSession) => {
         console.log('Auth state changed:', event);
+        
+        if (!mounted) return;
         
         if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
           console.log('User signed in or token refreshed');
@@ -171,18 +178,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           setUser(newSession?.user || null);
           
           if (newSession?.user) {
-            try {
-              // Update last login using setTimeout to avoid Supabase deadlocks
-              setTimeout(async () => {
-                await updateLastLogin(newSession.user.id);
-              }, 0);
-              
-              // Get complete user data
-              const userData = await mapUserData(newSession.user);
-              setUserData(userData);
-            } catch (error) {
-              console.error('Error mapping user data on auth change:', error);
-            }
+            // Use setTimeout to avoid potential Supabase deadlocks
+            setTimeout(() => {
+              if (mounted) {
+                // Update last login
+                updateLastLogin(newSession.user.id);
+                
+                // Get complete user data
+                mapUserData(newSession.user).then(userData => {
+                  if (mounted) setUserData(userData);
+                });
+              }
+            }, 0);
           }
         } else if (event === 'SIGNED_OUT') {
           console.log('User signed out');
@@ -192,6 +199,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
         
         setLoading(false);
+        setIsInitializing(false);
       }
     );
 
@@ -203,26 +211,34 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         
         if (error) {
           console.error("Error getting session:", error);
-          setLoading(false);
+          if (mounted) {
+            setLoading(false);
+            setIsInitializing(false);
+          }
           return;
         }
         
         if (data?.session) {
           console.log("Found existing session");
-          setSession(data.session);
-          setUser(data.session.user);
+          if (mounted) {
+            setSession(data.session);
+            setUser(data.session.user);
+          }
           
           // Process user data if there's a session
-          if (data.session.user) {
+          if (data.session.user && mounted) {
             try {
-              // Update last login using setTimeout to avoid Supabase deadlocks
+              // Use setTimeout to avoid potential Supabase deadlocks
               setTimeout(async () => {
+                if (!mounted) return;
+                
+                // Update last login
                 await updateLastLogin(data.session.user.id);
+                
+                // Map user data
+                const userData = await mapUserData(data.session.user);
+                if (mounted) setUserData(userData);
               }, 0);
-              
-              // Map user data
-              const userData = await mapUserData(data.session.user);
-              setUserData(userData);
             } catch (error) {
               console.error('Error mapping user data on init:', error);
             }
@@ -233,13 +249,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       } catch (error) {
         console.error('Error checking existing session:', error);
       } finally {
-        setLoading(false);
+        if (mounted) {
+          setLoading(false);
+          setIsInitializing(false);
+        }
       }
     };
     
     checkExistingSession();
 
     return () => {
+      mounted = false;
       subscription.unsubscribe();
     };
   }, []);
@@ -255,15 +275,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (error) throw error;
       
       if (data.user) {
-        // Update last login
-        await updateLastLogin(data.user.id);
-        
-        // Update user and user data
-        const userData = await mapUserData(data.user);
-        setUserData(userData);
-        console.log('User authenticated:', userData);
-        
-        toast.success(`¡Welcome back, ${userData.displayName || email}!`);
+        // We'll let onAuthStateChange handle setting the user state
+        toast.success(`¡Welcome back, ${data.user.email}!`);
       }
       
       return { user: data.user, error: null };
@@ -441,6 +454,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     userData,
     session,
     loading,
+    isInitializing,
     signIn,
     signUp,
     signOut,

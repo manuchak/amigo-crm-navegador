@@ -14,21 +14,21 @@ interface AuthGuardProps {
 const AuthGuard: React.FC<AuthGuardProps> = ({ children, requiredRole }) => {
   const { currentUser, loading, refreshUserData } = useAuth();
   const location = useLocation();
-  const [hasPageAccess, setHasPageAccess] = useState<boolean | null>(null);
-  const [checkingAccess, setCheckingAccess] = useState(true);
-  const [retryCount, setRetryCount] = useState(0);
+  const [accessVerified, setAccessVerified] = useState<boolean>(false);
+  const [accessDenied, setAccessDenied] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   
   const pageId = location.pathname.split('/')[1] || 'dashboard';
   
-  // Handle session refresh without triggering a new access check cycle
+  // Handle session refresh without re-entering verification loop
   const handleRefreshSession = async () => {
-    setRetryCount(prev => prev + 1);
     try {
+      setError(null);
       await refreshUserData();
-      // We don't set checkingAccess back to true here to prevent the loop
-    } catch (error) {
+      // After refresh, we'll let the effect handle access verification
+    } catch (error: any) {
       console.error('Error refreshing session:', error);
+      setError(error.message || 'Error refreshing session');
     }
   };
   
@@ -53,87 +53,50 @@ const AuthGuard: React.FC<AuthGuardProps> = ({ children, requiredRole }) => {
     }
   };
   
-  // Single effect to check access permissions
+  // Single effect to check access permissions once loading is complete
   useEffect(() => {
-    let isMounted = true;
-    
-    console.log('AuthGuard effect running. Loading:', loading, 'CurrentUser:', !!currentUser);
-    
-    // Function to check access permissions
-    const checkAccess = () => {
-      if (!isMounted) return;
-      
-      try {
-        console.log('Checking access for page:', pageId);
-        setError(null);
-        
-        // Always allow access to auth pages
-        if (pageId === 'auth' || pageId === 'login') {
-          console.log('Auth page detected, allowing access');
-          setHasPageAccess(true);
-          setCheckingAccess(false);
-          return;
-        }
-        
-        // If no user, deny access
-        if (!currentUser) {
-          console.log('No user found, denying access');
-          setHasPageAccess(false);
-          setCheckingAccess(false);
-          return;
-        }
-        
-        // Admin and owner always have full access
-        if (currentUser.role === 'admin' || currentUser.role === 'owner') {
-          console.log('Admin/Owner detected, granting access');
-          setHasPageAccess(true);
-          setCheckingAccess(false);
-          return;
-        }
-        
-        // Check role-based access for the current page
-        const hasAccess = checkRoleAccess(currentUser.role, pageId);
-        console.log(`Permission for ${pageId}: ${hasAccess ? 'Granted ✅' : 'Denied ❌'}`);
-        setHasPageAccess(hasAccess);
-        setCheckingAccess(false);
-        
-      } catch (error: any) {
-        console.error('Error checking page access:', error);
-        setError(error.message || 'Error al verificar permisos');
-        
-        // Fallback to grant access to admins/owners even if there's an error
-        setHasPageAccess(currentUser?.role === 'admin' || currentUser?.role === 'owner');
-        setCheckingAccess(false);
-      }
-    };
-    
-    // Only check access when loading is complete
-    if (!loading) {
-      checkAccess();
+    // Skip verification during loading or if we've already verified access
+    if (loading || accessVerified || accessDenied) {
+      return;
     }
     
-    return () => {
-      isMounted = false;
-    };
-  }, [currentUser, loading, pageId, retryCount]); // Only re-run when these dependencies change
+    console.log('AuthGuard checking access: Page:', pageId, 'User:', !!currentUser);
+    
+    // Always allow access to auth pages
+    if (pageId === 'auth' || pageId === 'login') {
+      setAccessVerified(true);
+      return;
+    }
+    
+    // If no user, deny access
+    if (!currentUser) {
+      setAccessDenied(true);
+      return;
+    }
+    
+    // Special case for admin/owner
+    if (currentUser.role === 'admin' || currentUser.role === 'owner') {
+      setAccessVerified(true);
+      return;
+    }
+    
+    // Check role-based access
+    const hasAccess = checkRoleAccess(currentUser.role, pageId);
+    if (hasAccess) {
+      setAccessVerified(true);
+    } else {
+      setAccessDenied(true);
+    }
+    
+  }, [currentUser, loading, pageId]);
   
   // Show loading state while checking
-  if (loading || checkingAccess) {
+  if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="flex flex-col items-center gap-2">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
           <p className="text-muted-foreground">Verificando acceso...</p>
-          {retryCount > 1 && (
-            <Button
-              onClick={handleRefreshSession}
-              variant="outline"
-              size="sm"
-              className="mt-2"
-            >
-              Reintentar
-            </Button>
-          )}
         </div>
       </div>
     );
@@ -148,8 +111,8 @@ const AuthGuard: React.FC<AuthGuardProps> = ({ children, requiredRole }) => {
     return <Navigate to="/auth" state={{ from: location }} replace />;
   }
   
-  // If we've determined user does not have access
-  if (hasPageAccess === false) {
+  // If access is denied based on role
+  if (accessDenied) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="flex flex-col items-center gap-2 max-w-md text-center p-8">
@@ -198,7 +161,7 @@ const AuthGuard: React.FC<AuthGuardProps> = ({ children, requiredRole }) => {
     );
   }
   
-  // If user has access, render the children
+  // Access is verified, render the children
   return <>{children}</>;
 };
 
