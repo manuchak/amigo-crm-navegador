@@ -31,7 +31,7 @@ export const useValidation = (leadId?: number) => {
     setFormData
   } = useValidationForm(leadId, currentUser, userData, setError);
   
-  // Save validation hook
+  // Save validation hook - updated to pass the async checkAuthStatus function
   const { saveValidation } = useSaveValidation(
     leadId,
     validation,
@@ -39,7 +39,7 @@ export const useValidation = (leadId?: number) => {
     formData,
     (isLoading) => loading !== isLoading, // Only update if different
     setError,
-    checkAuthStatus,
+    checkAuthStatus, // Now correctly typed as returning Promise<boolean>
     isOwner
   );
   

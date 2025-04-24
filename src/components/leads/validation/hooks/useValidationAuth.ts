@@ -90,6 +90,7 @@ export const useValidationAuth = () => {
   }, [currentUser, userData]);
 
   // Check authentication status with special handling for owners
+  // Changed to return Promise<boolean> to match async implementation
   const checkAuthStatus = async (): Promise<boolean> => {
     // Special handling for owners - they should always have access
     const ownerStatus = await checkForOwnerRole();

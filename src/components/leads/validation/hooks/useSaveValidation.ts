@@ -14,7 +14,8 @@ export const useSaveValidation = (
   formData: ValidationFormData,
   setLoading: (loading: boolean) => void,
   setError: (error: string | null) => void,
-  checkAuthStatus: () => boolean,
+  // Updated type to match the async function
+  checkAuthStatus: () => Promise<boolean>,
   isOwner: boolean
 ) => {
   const { toast: uiToast } = useToast();
@@ -25,10 +26,14 @@ export const useSaveValidation = (
     
     // For non-owners, verify authentication status
     // Owners can bypass standard auth check
-    if (!isOwner && !checkAuthStatus()) {
-      setError("Se requiere autenticación para guardar validaciones.");
-      toast.error("Sesión no válida. Por favor inicie sesión nuevamente.");
-      return null;
+    if (!isOwner) {
+      // Updated to await the promise
+      const isAuthenticated = await checkAuthStatus();
+      if (!isAuthenticated) {
+        setError("Se requiere autenticación para guardar validaciones.");
+        toast.error("Sesión no válida. Por favor inicie sesión nuevamente.");
+        return null;
+      }
     }
     
     setLoading(true);
