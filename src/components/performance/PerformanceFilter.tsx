@@ -25,35 +25,67 @@ export function PerformanceFilter({ dateRange, setDateRange }: PerformanceFilter
   const [uploadProgress, setUploadProgress] = useState(0);
   const [importErrors, setImportErrors] = useState<any[]>([]);
   const [showErrorDialog, setShowErrorDialog] = useState(false);
+  const [importStatus, setImportStatus] = useState('');
+  const [totalRows, setTotalRows] = useState(0);
+  const [processedRows, setProcessedRows] = useState(0);
 
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
       setIsUploading(true);
       setUploadProgress(10); // Start progress
+      setImportStatus('Analizando archivo...');
       
-      // Simulate progress during upload/processing
+      // Update progress during upload/processing
       const progressInterval = setInterval(() => {
         setUploadProgress(prev => {
-          const newProgress = prev + 5;
+          // Progress more slowly to avoid reaching 100% too early
+          const increment = prev < 30 ? 5 : (prev < 60 ? 3 : 1);
+          const newProgress = prev + increment;
           return newProgress < 90 ? newProgress : prev;
         });
-      }, 300);
+      }, 500);
       
       try {
-        const result = await importServiciosData(file);
+        setImportStatus('Procesando datos...');
+        const result = await importServiciosData(file, 
+          // Progress callback
+          (status, processed, total) => {
+            if (total > 0) {
+              setTotalRows(total);
+              setProcessedRows(processed);
+              setImportStatus(status);
+              // Calculate progress based on actual data processing
+              const dataProcessingProgress = Math.min(90, Math.floor((processed / total) * 90));
+              setUploadProgress(dataProcessingProgress);
+            }
+          }
+        );
+        
         clearInterval(progressInterval);
         
-        // Complete progress after processing
-        setUploadProgress(100);
-        setTimeout(() => setUploadProgress(0), 1000); // Reset after showing completed
-        
-        if (!result.success && result.errors) {
-          setImportErrors(result.errors);
-          setShowErrorDialog(true);
+        if (result.success) {
+          setImportStatus('¡Importación completada!');
+          setUploadProgress(100);
+        } else {
+          setImportStatus('Error en la importación');
+          if (result.errors) {
+            setImportErrors(result.errors);
+            setShowErrorDialog(true);
+          }
+          setUploadProgress(0);
         }
+        
+        setTimeout(() => {
+          setUploadProgress(0);
+          setImportStatus('');
+        }, 3000); // Reset after showing completed
+        
       } catch (error) {
         console.error("Error handling file upload:", error);
+        setImportStatus('Error en la importación');
+        clearInterval(progressInterval);
+        setUploadProgress(0);
       } finally {
         setIsUploading(false);
         clearInterval(progressInterval);
@@ -125,14 +157,20 @@ export function PerformanceFilter({ dateRange, setDateRange }: PerformanceFilter
             </div>
           </div>
           
-          {/* Upload progress bar */}
+          {/* Upload progress bar with more detailed status */}
           {uploadProgress > 0 && (
             <div className="mt-4">
               <div className="flex justify-between text-xs text-muted-foreground mb-1">
-                <span>Procesando archivo Excel</span>
+                <span>{importStatus}</span>
                 <span>{uploadProgress}%</span>
               </div>
               <Progress value={uploadProgress} className="h-2" />
+              
+              {totalRows > 0 && (
+                <p className="text-xs text-muted-foreground mt-1">
+                  Procesando {processedRows} de {totalRows} registros
+                </p>
+              )}
             </div>
           )}
         </CardContent>

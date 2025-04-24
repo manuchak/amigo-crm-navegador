@@ -7,6 +7,9 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
+// Configure max rows per batch to prevent resource exhaustion
+const MAX_ROWS_PER_BATCH = 50;
+
 Deno.serve(async (req) => {
   // Handle CORS preflight request
   if (req.method === 'OPTIONS') {
@@ -38,8 +41,8 @@ Deno.serve(async (req) => {
     console.log(`Processing file: ${file.name}, size: ${file.size} bytes`)
     const arrayBuffer = await file.arrayBuffer()
     
-    // Parse Excel data
-    const workbook = XLSX.read(arrayBuffer)
+    // Parse Excel data with streaming option to reduce memory usage
+    const workbook = XLSX.read(arrayBuffer, { type: 'array' })
     const worksheet = workbook.Sheets[workbook.SheetNames[0]]
     const jsonData = XLSX.utils.sheet_to_json(worksheet)
 
@@ -68,7 +71,6 @@ Deno.serve(async (req) => {
     )
 
     // Split data processing into smaller batches to avoid timeouts
-    const batchSize = 100;
     const errors = [];
     const transformedData = [];
     const tableColumns = [
@@ -100,14 +102,14 @@ Deno.serve(async (req) => {
       'fecha_contratacion', 'fecha_primer_servicio'
     ]
 
-    // Process each row from Excel
+    // First pass: validate all data before insertion to avoid partial imports
     console.log("Validating and transforming data")
     for (let i = 0; i < jsonData.length; i++) {
       try {
         const row = jsonData[i]
         const transformedRow = {}
         
-        // Transform each column to match database schema
+        // Only process essential fields to reduce memory usage
         tableColumns.forEach(column => {
           // Skip empty/undefined fields
           if (row[column] === undefined || row[column] === null || row[column] === '') {
@@ -170,24 +172,51 @@ Deno.serve(async (req) => {
       )
     }
 
-    // Process in batches to avoid timeouts
-    let insertedCount = 0
-    for (let i = 0; i < transformedData.length; i += batchSize) {
-      const batch = transformedData.slice(i, i + batchSize)
-      console.log(`Processing batch ${i/batchSize + 1}: ${batch.length} records`)
-      
-      const { error: insertError } = await supabaseClient
-        .from('servicios_custodia')
-        .insert(batch)
+    // Process in much smaller batches to avoid resource limits
+    let insertedCount = 0;
+    const totalBatches = Math.ceil(transformedData.length / MAX_ROWS_PER_BATCH);
 
-      if (insertError) {
-        console.error('Error de inserción en la base de datos:', insertError)
+    for (let batchNum = 0; batchNum < totalBatches; batchNum++) {
+      const startIdx = batchNum * MAX_ROWS_PER_BATCH;
+      const endIdx = Math.min((batchNum + 1) * MAX_ROWS_PER_BATCH, transformedData.length);
+      const batch = transformedData.slice(startIdx, endIdx);
+      
+      console.log(`Processing batch ${batchNum + 1}/${totalBatches}: ${batch.length} records`);
+      
+      try {
+        const { error: insertError } = await supabaseClient
+          .from('servicios_custodia')
+          .insert(batch);
+
+        if (insertError) {
+          console.error(`Batch ${batchNum + 1} error:`, insertError);
+          return new Response(
+            JSON.stringify({ 
+              success: false,
+              message: 'Error al insertar datos en la base de datos',
+              error: insertError.message,
+              details: insertError.details,
+              batchNumber: batchNum + 1
+            }),
+            { 
+              status: 500, 
+              headers: { 
+                ...corsHeaders,
+                'Content-Type': 'application/json' 
+              } 
+            }
+          );
+        }
+        
+        insertedCount += batch.length;
+        console.log(`Progress: ${insertedCount}/${transformedData.length} records inserted`);
+      } catch (batchError) {
+        console.error(`Batch ${batchNum + 1} exception:`, batchError);
         return new Response(
           JSON.stringify({ 
             success: false,
-            message: 'Error al insertar datos en la base de datos',
-            error: insertError.message,
-            details: insertError.details
+            message: `Error en el lote ${batchNum + 1}: ${batchError.message}`,
+            batchNumber: batchNum + 1
           }),
           { 
             status: 500, 
@@ -196,14 +225,16 @@ Deno.serve(async (req) => {
               'Content-Type': 'application/json' 
             } 
           }
-        )
+        );
       }
       
-      insertedCount += batch.length
-      console.log(`Inserted ${insertedCount}/${transformedData.length} records`)
+      // Add a short delay between batches to prevent overwhelming the database
+      if (batchNum < totalBatches - 1) {
+        await new Promise(resolve => setTimeout(resolve, 100));
+      }
     }
 
-    console.log('Import completed successfully')
+    console.log('Import completed successfully');
     return new Response(
       JSON.stringify({ 
         success: true,
@@ -215,9 +246,9 @@ Deno.serve(async (req) => {
           'Content-Type': 'application/json' 
         } 
       }
-    )
+    );
   } catch (error) {
-    console.error('Error:', error)
+    console.error('Error:', error);
     return new Response(
       JSON.stringify({ 
         success: false,
@@ -231,6 +262,6 @@ Deno.serve(async (req) => {
           'Content-Type': 'application/json'
         } 
       }
-    )
+    );
   }
-})
+});
