@@ -9,6 +9,7 @@ import {
   CardDescription,
 } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Button } from '@/components/ui/button'; // Added Button import
 import { Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { UserData, UserRole } from '@/types/auth';
@@ -97,6 +98,23 @@ const UserManagement = () => {
     } catch (error: any) {
       console.error('Error verifying user email:', error);
       toast.error('Error al verificar el email del usuario: ' + (error?.message || ''));
+    }
+  };
+
+  // Added handleAssignRole function implementation
+  const handleAssignRole = async (user: UserData, role: UserRole) => {
+    try {
+      await updateUserRole(user.uid, role);
+      
+      // Update the user in the local state
+      setUsers(users.map(u => 
+        u.uid === user.uid ? { ...u, role } : u
+      ));
+      
+      toast.success(`Rol ${role} asignado a ${user.displayName || user.email}`);
+    } catch (error: any) {
+      console.error('Error assigning role:', error);
+      toast.error('Error al asignar el rol: ' + (error?.message || ''));
     }
   };
 
