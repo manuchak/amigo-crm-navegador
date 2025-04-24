@@ -1,9 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
-import { useAuth } from '@/context/SupabaseAuthContext';
+import { useAuth } from '@/context/AuthContext';
 import { Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { supabase } from '@/integrations/supabase/client';
 import { UserRole } from '@/types/auth';
 
 interface AuthGuardProps {
@@ -12,7 +11,7 @@ interface AuthGuardProps {
 }
 
 const AuthGuard: React.FC<AuthGuardProps> = ({ children, requiredRole }) => {
-  const { user, loading, refreshSession, userData } = useAuth();
+  const { currentUser, loading, refreshUserData } = useAuth();
   const location = useLocation();
   const [hasPageAccess, setHasPageAccess] = useState<boolean | null>(null);
   const [checkingAccess, setCheckingAccess] = useState(true);
@@ -23,10 +22,8 @@ const AuthGuard: React.FC<AuthGuardProps> = ({ children, requiredRole }) => {
   
   const handleRefreshSession = async () => {
     setRetryCount(prev => prev + 1);
-    const success = await refreshSession();
-    if (success) {
-      setCheckingAccess(true);
-    }
+    await refreshUserData();
+    setCheckingAccess(true);
   };
   
   const checkAccess = async () => {
@@ -34,66 +31,28 @@ const AuthGuard: React.FC<AuthGuardProps> = ({ children, requiredRole }) => {
       console.log('Checking access for page:', pageId);
       setError(null);
       
-      if (pageId === 'auth') {
+      if (pageId === 'auth' || pageId === 'login') {
         console.log('Auth page detected, allowing access');
         setHasPageAccess(true);
         setCheckingAccess(false);
         return;
       }
       
-      if (!user) {
+      if (!currentUser) {
         console.log('No user found, denying access');
         setHasPageAccess(false);
         setCheckingAccess(false);
         return;
       }
       
-      if (userData?.role === 'admin') {
-        console.log('Admin detected, granting access');
+      if (currentUser.role === 'admin' || currentUser.role === 'owner') {
+        console.log('Admin/Owner detected, granting access');
         setHasPageAccess(true);
         setCheckingAccess(false);
         return;
       }
       
-      const { data: roleData, error: roleError } = await supabase.rpc('get_user_role', {
-        user_uid: user.id
-      });
-      
-      if (roleError) {
-        console.error('Error checking user role:', roleError);
-        if (userData?.role) {
-          const userRole = userData.role as UserRole;
-          const isAdmin = userRole === 'admin';
-          console.log(`Using cached role data: ${userRole}, isAdmin: ${isAdmin}`);
-          setHasPageAccess(isAdmin);
-          setCheckingAccess(false);
-          return;
-        }
-        throw roleError;
-      }
-      
-      if (roleData === 'admin') {
-        console.log('User is admin, granting access to all pages');
-        setHasPageAccess(true);
-        setCheckingAccess(false);
-        return;
-      }
-      
-      console.log(`Checking page permission for role ${roleData} and page ${pageId}`);
-      const { data: permissionData, error: permError } = await supabase
-        .from('role_permissions')
-        .select('allowed')
-        .eq('role', roleData)
-        .eq('permission_type', 'page')
-        .eq('permission_id', pageId)
-        .maybeSingle();
-        
-      if (permError) {
-        console.error('Error checking page permission:', permError);
-        throw permError;
-      }
-      
-      const hasAccess = permissionData?.allowed === true;
+      const hasAccess = checkRoleAccess(currentUser.role, pageId);
       console.log(`Permission for ${pageId}: ${hasAccess ? 'Granted ✅' : 'Denied ❌'}`);
       setHasPageAccess(hasAccess);
       
@@ -101,9 +60,29 @@ const AuthGuard: React.FC<AuthGuardProps> = ({ children, requiredRole }) => {
       console.error('Error checking page access:', error);
       setError(error.message || 'Error al verificar permisos');
       
-      setHasPageAccess(userData?.role === 'admin');
+      setHasPageAccess(currentUser?.role === 'admin' || currentUser?.role === 'owner');
     } finally {
       setCheckingAccess(false);
+    }
+  };
+  
+  const checkRoleAccess = (role: UserRole, page: string): boolean => {
+    switch (role) {
+      case 'admin':
+      case 'owner':
+        return true;
+      case 'afiliados':
+        return ['dashboard', 'leads', 'prospects'].includes(page);
+      case 'supply':
+      case 'supply_admin':
+        return ['dashboard', 'leads', 'validation'].includes(page);
+      case 'atención_afiliado':
+        return ['dashboard', 'support'].includes(page);
+      case 'pending':
+      case 'unverified':
+        return ['dashboard'].includes(page);
+      default:
+        return false;
     }
   };
   
@@ -121,7 +100,7 @@ const AuthGuard: React.FC<AuthGuardProps> = ({ children, requiredRole }) => {
     return () => {
       isMounted = false;
     };
-  }, [user, loading, pageId, retryCount, userData?.role]);
+  }, [currentUser, loading, pageId, retryCount]);
   
   if (loading || checkingAccess) {
     return (
@@ -144,7 +123,10 @@ const AuthGuard: React.FC<AuthGuardProps> = ({ children, requiredRole }) => {
     );
   }
   
-  if (!user) {
+  if (!currentUser) {
+    if (location.pathname === '/auth' || location.pathname === '/login') {
+      return <>{children}</>;
+    }
     return <Navigate to="/auth" state={{ from: location }} replace />;
   }
   

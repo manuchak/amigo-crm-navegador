@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
@@ -25,6 +24,7 @@ type FormData = z.infer<typeof formSchema>;
 const EmailSignUpForm: React.FC<{ onSuccess?: () => void }> = ({ onSuccess }) => {
   const { signUp, loading } = useAuth();
   const navigate = useNavigate();
+  const [registrationComplete, setRegistrationComplete] = useState(false);
   
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
@@ -39,13 +39,35 @@ const EmailSignUpForm: React.FC<{ onSuccess?: () => void }> = ({ onSuccess }) =>
   const onSubmit = async (data: FormData) => {
     try {
       await signUp(data.email, data.password, data.name);
-      // Simplified auth - redirect directly to dashboard after signup
-      navigate('/dashboard');
-      if (onSuccess) onSuccess();
+      
+      // Mark registration as complete but don't redirect immediately
+      setRegistrationComplete(true);
+      
+      // Only navigate after a short delay to prevent loops
+      setTimeout(() => {
+        navigate('/dashboard');
+        if (onSuccess) onSuccess();
+      }, 500);
     } catch (error) {
       // Error is handled by the hook
+      setRegistrationComplete(false);
     }
   };
+
+  // If registration is complete, show a success message
+  if (registrationComplete) {
+    return (
+      <div className="text-center py-4">
+        <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-green-100 mb-4">
+          <svg className="h-6 w-6 text-green-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+          </svg>
+        </div>
+        <h3 className="text-lg font-medium text-gray-900">¡Registro completado!</h3>
+        <p className="mt-2 text-sm text-gray-500">Tu cuenta ha sido creada con éxito. Estás siendo redirigido al dashboard...</p>
+      </div>
+    );
+  }
 
   return (
     <Form {...form}>

@@ -3,7 +3,7 @@ import React, { Suspense } from 'react';
 import { BrowserRouter as Router, Route, Routes, Navigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Toaster } from 'sonner';
-import { AuthProvider } from '@/context/SupabaseAuthContext'; // Updated import
+import { AuthProvider } from '@/context/AuthContext'; // Using our local AuthContext
 import AuthGuard from '@/components/auth/AuthGuard';
 import Navbar from '@/components/Navbar';
 import './App.css';
@@ -14,6 +14,7 @@ const queryClient = new QueryClient();
 // Lazy load routes for better performance
 const Dashboard = React.lazy(() => import('./pages/Dashboard'));
 const Auth = React.lazy(() => import('./pages/Auth'));
+const Login = React.lazy(() => import('./pages/Login')); // Add this if needed
 const UserManagement = React.lazy(() => import('./pages/UserManagement'));
 const Leads = React.lazy(() => import('./pages/Leads'));
 const Prospects = React.lazy(() => import('./pages/Prospects'));
@@ -31,6 +32,7 @@ function App() {
           <Suspense fallback={<div className="loading">Cargando...</div>}>
             <Routes>
               <Route path="/auth" element={<Auth />} />
+              <Route path="/login" element={<Login />} />
               
               {/* Protected routes */}
               <Route path="/dashboard" element={
