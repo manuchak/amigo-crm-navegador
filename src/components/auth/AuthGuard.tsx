@@ -21,12 +21,18 @@ const AuthGuard: React.FC<AuthGuardProps> = ({ children, requiredRole }) => {
   
   const pageId = location.pathname.split('/')[1] || 'dashboard';
   
+  // Handle session refresh without triggering a new access check cycle
   const handleRefreshSession = async () => {
     setRetryCount(prev => prev + 1);
-    await refreshUserData();
-    // No volvemos a establecer checkingAccess a true aquí para evitar el bucle
+    try {
+      await refreshUserData();
+      // We don't set checkingAccess back to true here to prevent the loop
+    } catch (error) {
+      console.error('Error refreshing session:', error);
+    }
   };
   
+  // Function to determine if a role has access to a specific page
   const checkRoleAccess = (role: UserRole, page: string): boolean => {
     switch (role) {
       case 'admin':
@@ -47,10 +53,14 @@ const AuthGuard: React.FC<AuthGuardProps> = ({ children, requiredRole }) => {
     }
   };
   
+  // Single effect to check access permissions
   useEffect(() => {
     let isMounted = true;
     
-    const checkAccess = async () => {
+    console.log('AuthGuard effect running. Loading:', loading, 'CurrentUser:', !!currentUser);
+    
+    // Function to check access permissions
+    const checkAccess = () => {
       if (!isMounted) return;
       
       try {
@@ -97,18 +107,15 @@ const AuthGuard: React.FC<AuthGuardProps> = ({ children, requiredRole }) => {
       }
     };
     
-    // Solo verificar acceso cuando no estamos cargando y el componente está montado
+    // Only check access when loading is complete
     if (!loading) {
       checkAccess();
-    } else {
-      // Si estamos cargando, establecer checkingAccess a true
-      setCheckingAccess(true);
     }
     
     return () => {
       isMounted = false;
     };
-  }, [currentUser, loading, pageId, retryCount]);
+  }, [currentUser, loading, pageId, retryCount]); // Only re-run when these dependencies change
   
   // Show loading state while checking
   if (loading || checkingAccess) {
@@ -117,7 +124,7 @@ const AuthGuard: React.FC<AuthGuardProps> = ({ children, requiredRole }) => {
         <div className="flex flex-col items-center gap-2">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
           <p className="text-muted-foreground">Verificando acceso...</p>
-          {(checkingAccess && retryCount > 2) && (
+          {retryCount > 1 && (
             <Button
               onClick={handleRefreshSession}
               variant="outline"
