@@ -11,8 +11,10 @@ export const useUserManagementMethods = (
   setLoading: React.Dispatch<React.SetStateAction<boolean>>,
   refreshUserData: () => Promise<void>
 ): UserManagementMethods => {
-  // Add a ref to track error state to prevent infinite loops on Supabase permission errors
+  // Control variables para prevenir loops infinitos
   const supabasePermissionErrorCount = useRef(0);
+  const MAX_PERMISSION_ERRORS = 3;
+  const isHandlingRequest = useRef(false);
   
   const props: UserManagementHookProps = {
     setUserData,
@@ -24,29 +26,49 @@ export const useUserManagementMethods = (
   const { verifyEmail, setUserAsVerifiedOwner } = useUserVerification(props);
   const { getAllUsers } = useUserListing(props);
 
-  // Wrap methods with error handling to prevent infinite loops
+  // Wrap getAllUsers with error handling to prevent infinite loops
   const safeGetAllUsers = useCallback(async () => {
+    // Prevenir solicitudes concurrentes
+    if (isHandlingRequest.current) {
+      console.log('Request already in progress, skipping duplicate getAllUsers');
+      return [];
+    }
+
+    isHandlingRequest.current = true;
+    
     try {
-      const result = await getAllUsers();
-      // Reset error counter on success
-      supabasePermissionErrorCount.current = 0;
-      return result;
-    } catch (error: any) {
-      console.error('Error in getAllUsers:', error);
-      
-      // If it's a permission error, increment counter
-      if (error?.message?.includes('permission') || error?.code === 'PGRST301') {
-        supabasePermissionErrorCount.current += 1;
-        
-        // If we've hit too many permission errors, stop trying with Supabase
-        if (supabasePermissionErrorCount.current >= 3) {
-          console.warn('Too many permission errors, falling back to local storage only');
-          // Return whatever local data we have
-          return [];
-        }
+      // Si ya hemos tenido demasiados errores de permisos, usar solo localStorage
+      if (supabasePermissionErrorCount.current >= MAX_PERMISSION_ERRORS) {
+        console.warn('Too many permission errors, using only local storage data');
+        // El método getAllUsers de useUserListing ya hace fallback a localStorage
+        return await getAllUsers();
       }
       
-      throw error;
+      const result = await getAllUsers();
+      
+      // Reset error counter on success
+      if (result && result.length > 0) {
+        supabasePermissionErrorCount.current = 0;
+      }
+      
+      return result;
+    } catch (error: any) {
+      console.error('Error in safeGetAllUsers:', error);
+      
+      // Si es un error de permisos, incrementar contador
+      if (error?.message?.includes('permission') || error?.code === 'PGRST301') {
+        supabasePermissionErrorCount.current += 1;
+      }
+      
+      // Intentar retornar datos locales en caso de error
+      try {
+        return [];
+      } catch (fallbackError) {
+        console.error('Error in fallback for getAllUsers:', fallbackError);
+        return [];
+      }
+    } finally {
+      isHandlingRequest.current = false;
     }
   }, [getAllUsers]);
 

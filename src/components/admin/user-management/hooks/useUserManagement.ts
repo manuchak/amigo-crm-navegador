@@ -14,17 +14,21 @@ const useUserManagement = ({ getAllUsers }: UseUserManagementProps) => {
   const [isEditDialogOpen, setIsEditDialogOpen] = useState<boolean>(false);
   const [isConfirmationOpen, setIsConfirmationOpen] = useState<boolean>(false);
   const [newRole, setNewRole] = useState<UserRole>('unverified');
-  const fetchInProgress = useRef<boolean>(false);
-  const hasAttemptedFetch = useRef<boolean>(false);
+  
+  // Control variables to prevent infinite loops and unnecessary fetches
+  const isInitialFetchComplete = useRef<boolean>(false);
+  const isProcessingFetch = useRef<boolean>(false);
+  const fetchErrorCount = useRef<number>(0);
+  const MAX_FETCH_ERRORS = 3;
 
   const fetchUsers = useCallback(async () => {
-    // Prevent concurrent fetches and unnecessary refetching
-    if (fetchInProgress.current) {
-      console.log('Fetch already in progress, skipping duplicate fetch');
+    // Skip if already fetching
+    if (isProcessingFetch.current) {
+      console.log('Fetch already in progress, skipping');
       return;
     }
     
-    fetchInProgress.current = true;
+    isProcessingFetch.current = true;
     setLoading(true);
     
     try {
@@ -32,39 +36,31 @@ const useUserManagement = ({ getAllUsers }: UseUserManagementProps) => {
       const usersData = await getAllUsers();
       console.log('Users fetched:', usersData?.length || 0);
       
-      if (usersData && usersData.length > 0) {
+      if (Array.isArray(usersData)) {
         setUsers(usersData);
-        hasAttemptedFetch.current = true;
-      } else if (!hasAttemptedFetch.current) {
-        // If we got no data and haven't successfully fetched before, try once more
-        console.log('No users returned, trying fallback...');
-        // Use a timeout to avoid potential race conditions
-        setTimeout(async () => {
-          try {
-            const fallbackData = await getAllUsers();
-            setUsers(fallbackData || []);
-          } catch (fallbackErr) {
-            console.error('Fallback fetch error:', fallbackErr);
-            // Show empty state if both attempts fail
-            setUsers([]);
-          } finally {
-            hasAttemptedFetch.current = true;
-            setLoading(false);
-            fetchInProgress.current = false;
-          }
-        }, 500);
-        return; // Exit early as we're handling loading in the timeout
+        // Reset error counter on success
+        fetchErrorCount.current = 0;
+        isInitialFetchComplete.current = true;
       } else {
+        console.warn('getAllUsers returned invalid data format');
         setUsers([]);
       }
     } catch (error) {
       console.error('Error fetching users:', error);
-      toast.error('Error al cargar la lista de usuarios');
+      
+      // Increment error counter
+      fetchErrorCount.current += 1;
+      
+      // Prevent retries after too many errors
+      if (fetchErrorCount.current >= MAX_FETCH_ERRORS) {
+        console.error('Maximum fetch error count reached, stopping retries');
+        toast.error('Error al cargar los usuarios. Por favor, intente más tarde.');
+      }
+      
       setUsers([]);
     } finally {
       setLoading(false);
-      fetchInProgress.current = false;
-      hasAttemptedFetch.current = true;
+      isProcessingFetch.current = false;
     }
   }, [getAllUsers]);
 
@@ -93,6 +89,7 @@ const useUserManagement = ({ getAllUsers }: UseUserManagementProps) => {
     fetchUsers,
     handleRoleChange,
     handleEditClick,
+    isInitialFetchComplete,
   };
 };
 

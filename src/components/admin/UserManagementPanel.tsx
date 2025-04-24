@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Loader2 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
@@ -30,8 +30,18 @@ const UserManagementPanel = () => {
     setNewRole,
     fetchUsers,
     handleRoleChange,
-    handleEditClick
+    handleEditClick,
+    isInitialFetchComplete
   } = useUserManagement({ getAllUsers });
+  
+  // Solo realizar la carga inicial una vez
+  useEffect(() => {
+    // Esta condición garantiza que solo se ejecute una vez al montar el componente
+    if (!isInitialFetchComplete.current) {
+      console.log('Realizando carga inicial de usuarios en UserManagementPanel');
+      fetchUsers();
+    }
+  }, [fetchUsers]);
   
   const handleUpdateRole = async () => {
     if (!selectedUser || !newRole) return;
@@ -73,6 +83,7 @@ const UserManagementPanel = () => {
   };
 
   const handleRefresh = () => {
+    console.log('Manual refresh triggered');
     fetchUsers();
   };
 
@@ -90,7 +101,7 @@ const UserManagementPanel = () => {
             onEditClick={handleEditClick}
             onVerifyUser={handleVerifyUser}
             canEditUser={(user) => canEditUser(currentUserData, user)}
-            formatDate={(date) => new Date(date).toLocaleDateString()}
+            formatDate={(date) => date ? new Date(date).toLocaleDateString() : 'N/A'}
           />
         )}
       </CardContent>
