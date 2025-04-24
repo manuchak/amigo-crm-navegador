@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Loader2 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
@@ -33,11 +33,13 @@ const UserManagementPanel = () => {
     handleEditClick
   } = useUserManagement({ getAllUsers });
   
+  // Only fetch data once on component mount
   useEffect(() => {
-    // Initial fetch of users when component mounts
     if (!users.length && !loading) {
+      console.log('Initial fetch of users in UserManagementPanel');
       fetchUsers();
     }
+  // The empty dependency array ensures this only runs once on mount
   }, []);
   
   const handleUpdateRole = async () => {
@@ -79,9 +81,14 @@ const UserManagementPanel = () => {
     }
   };
 
+  const handleRefresh = () => {
+    console.log('Manual refresh triggered');
+    fetchUsers();
+  };
+
   return (
     <Card className="border shadow-sm">
-      <UserManagementHeader loading={loading} onRefresh={fetchUsers} />
+      <UserManagementHeader loading={loading} onRefresh={handleRefresh} />
       <CardContent className="pt-6">
         {loading ? (
           <div className="flex justify-center py-8">
