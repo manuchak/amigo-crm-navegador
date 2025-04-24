@@ -1,4 +1,3 @@
-
 // User roles in the system
 export type UserRole = 
   | 'unverified' 
@@ -7,8 +6,7 @@ export type UserRole =
   | 'supply' 
   | 'supply_admin' 
   | 'afiliados' 
-  | 'admin' 
-  | 'owner';
+  | 'admin';
 
 export interface UserData {
   uid: string;
