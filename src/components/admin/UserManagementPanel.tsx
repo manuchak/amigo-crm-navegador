@@ -35,6 +35,7 @@ const UserManagementPanel = () => {
   
   // Initial fetch of users when component mounts, with empty dependency array to avoid infinite loops
   useEffect(() => {
+    console.log('UserManagementPanel mounted, fetching users...');
     fetchUsers();
     // This effect should only run once when the component mounts
   }, []);

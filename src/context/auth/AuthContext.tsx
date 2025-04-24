@@ -5,6 +5,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { AuthContextProps, UserData, UserRole } from '@/types/auth';
 import { useAuthSession } from './hooks/useAuthSession';
 import { useAuthMethods } from './hooks/useAuthMethods';
+import { useUserManagementMethods } from '@/hooks/useUserManagementMethods';
 
 const AuthContext = createContext<AuthContextProps | undefined>(undefined);
 
@@ -37,6 +38,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setLoading,
     setUserData
   });
+
+  // Get user management methods
+  const userManagementMethods = useUserManagementMethods(
+    setUserData, 
+    setLoading, 
+    authMethods.refreshUserData
+  );
 
   // The actual value we provide to consumers
   const value: AuthContextProps = {
@@ -71,29 +79,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     },
     signOut: authMethods.signOut,
-    updateUserRole: async (userId: string, role: UserRole) => {
-      try {
-        // This is a placeholder implementation
-        console.log(`Would update user ${userId} to role ${role}`);
-        return { success: true };
-      } catch (error) {
-        return { success: false, error };
-      }
-    },
-    getAllUsers: async () => {
-      // Placeholder implementation
-      console.log("Get all users called");
-      return [];
-    },
-    verifyEmail: async (userId: string) => {
-      try {
-        // This is a placeholder implementation
-        console.log(`Would verify email for user ${userId}`);
-        return { success: true };
-      } catch (error) {
-        return { success: false, error };
-      }
-    },
+    updateUserRole: userManagementMethods.updateUserRole,
+    getAllUsers: userManagementMethods.getAllUsers,
+    verifyEmail: userManagementMethods.verifyEmail,
     refreshSession: async () => {
       try {
         const { data } = await supabase.auth.refreshSession();

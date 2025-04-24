@@ -24,7 +24,6 @@ export const useUserManagementMethods = (
       console.log(`Updating role for ${uid} to ${role}`);
       
       // First attempt to use the Supabase RPC function for role updates
-      // This is more secure than direct updates as it enforces RLS
       try {
         const { error: rpcError } = await supabase.rpc('update_user_role', {
           target_user_id: uid,
@@ -57,52 +56,63 @@ export const useUserManagementMethods = (
   const getAllUsersMethod = async (): Promise<UserData[]> => {
     setLoading(true);
     try {
+      console.log('Getting all users...');
       // Try to get users from Supabase first
       try {
         const { data: profiles, error: profilesError } = await supabase
           .from('profiles')
-          .select('*, user_roles(role)');
+          .select('*');
         
         if (profilesError) {
-          console.error('Error fetching users from Supabase:', profilesError);
+          console.error('Error fetching profiles from Supabase:', profilesError);
           // Fall back to local storage if Supabase query fails
-          return getAllUsers();
+          const localUsers = getAllUsers();
+          console.log('Users from local storage:', localUsers);
+          return localUsers;
         }
         
+        console.log('Profiles fetched from Supabase:', profiles);
         if (profiles && profiles.length > 0) {
-          // Map profiles to UserData format
-          return profiles.map(profile => {
-            // Fix: Safely access the role property from user_roles
-            // Check if user_roles exists and has a role property
-            let role: UserRole = 'unverified';
-            
-            if (profile.user_roles && typeof profile.user_roles === 'object') {
-              // If user_roles is an object with role property
-              role = (profile.user_roles as { role: UserRole }).role || 'unverified';
-            } else if (Array.isArray(profile.user_roles) && profile.user_roles.length > 0) {
-              // If user_roles is an array, take the first item's role
-              role = (profile.user_roles[0] as { role: UserRole })?.role || 'unverified';
-            }
-            
-            return {
-              uid: profile.id,
-              email: profile.email,
-              displayName: profile.display_name || profile.email,
-              photoURL: profile.photo_url || null,
-              role: role,
-              emailVerified: true, // Assume verified if in database
-              createdAt: profile.created_at ? new Date(profile.created_at) : new Date(),
-              lastLogin: profile.last_login ? new Date(profile.last_login) : new Date(),
-            } as UserData;
-          });
+          // Get roles for each profile
+          const usersWithRoles: UserData[] = await Promise.all(
+            profiles.map(async (profile) => {
+              // Fetch role for this user
+              const { data: roleData, error: roleError } = await supabase.rpc(
+                'get_user_role', 
+                { user_uid: profile.id }
+              );
+              
+              const role = roleError ? 'unverified' : (roleData as UserRole || 'unverified');
+              console.log(`User ${profile.id} has role:`, role);
+              
+              // Get user data from Auth to check if email is verified
+              const { data: userData, error: userError } = await supabase.auth.admin.getUserById(profile.id);
+              
+              const emailVerified = userData?.user?.email_confirmed_at ? true : false;
+              
+              return {
+                uid: profile.id,
+                email: profile.email || '',
+                displayName: profile.display_name || profile.email || '',
+                photoURL: profile.photo_url || undefined,
+                role: role,
+                emailVerified: emailVerified,
+                createdAt: profile.created_at ? new Date(profile.created_at) : new Date(),
+                lastLogin: profile.last_login ? new Date(profile.last_login) : new Date(),
+              } as UserData;
+            })
+          );
+          console.log('Users with roles:', usersWithRoles);
+          return usersWithRoles;
         }
       } catch (supabaseError) {
         console.error('Error using Supabase for users, falling back:', supabaseError);
       }
       
       // Get users from local storage as fallback
-      const users = getAllUsers();
-      return users;
+      const localUsers = getAllUsers();
+      console.log('Users from local storage (fallback):', localUsers);
+      return localUsers;
     } catch (error) {
       console.error('Error getting all users:', error);
       toast.error('Error al obtener la lista de usuarios');

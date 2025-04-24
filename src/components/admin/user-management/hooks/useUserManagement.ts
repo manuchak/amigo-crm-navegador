@@ -18,7 +18,9 @@ const useUserManagement = ({ getAllUsers }: UseUserManagementProps) => {
   const fetchUsers = useCallback(async () => {
     setLoading(true);
     try {
+      console.log('Fetching users from getAllUsers function...');
       const usersData = await getAllUsers();
+      console.log('Users fetched:', usersData);
       setUsers(usersData || []);
     } catch (error) {
       console.error('Error fetching users:', error);
