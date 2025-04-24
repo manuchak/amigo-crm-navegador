@@ -230,7 +230,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const userRole = userRoles?.find(ur => ur.user_id === profile.id);
         
         // Find auth user data
-        const authUser = authUsers?.users?.find(u => u.id === profile.id);
+        // Fix for the TypeScript error - check if users array exists before using find
+        const authUsersList = authUsers?.users || [];
+        const authUser = authUsersList.find(u => u.id === profile.id);
         
         return {
           uid: profile.id,
