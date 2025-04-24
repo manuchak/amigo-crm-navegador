@@ -1,69 +1,60 @@
-
 import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Loader2, UserPlus, RefreshCw } from 'lucide-react';
-import { useAuth } from '@/context/AuthContext';
+import { Card, CardContent } from '@/components/ui/card';
+import { Loader2 } from 'lucide-react';
+import { useAuth } from '@/context/AuthContext'; // Changed from SupabaseAuthContext
 import { UserData } from '@/types/auth';
 import { toast } from 'sonner';
 import { 
   UserTable, 
   EditRoleDialog, 
   RoleChangeConfirmation,
-  formatDate,
   canEditUser
 } from '@/components/user-management';
+import UserManagementHeader from './UserManagementHeader';
+import useUserManagement from './hooks/useUserManagement';
 
 const UserManagementPanel = () => {
   const { getAllUsers, updateUserRole, verifyEmail, userData: currentUserData } = useAuth();
-  const [users, setUsers] = useState<UserData[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [selectedUser, setSelectedUser] = useState<UserData | null>(null);
-  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
-  const [isConfirmationOpen, setIsConfirmationOpen] = useState(false);
-  const [newRole, setNewRole] = useState(selectedUser?.role || 'unverified');
+  const { 
+    users, 
+    loading, 
+    selectedUser, 
+    isEditDialogOpen, 
+    isConfirmationOpen, 
+    newRole,
+    setUsers,
+    setSelectedUser, 
+    setIsEditDialogOpen, 
+    setIsConfirmationOpen, 
+    setNewRole,
+    fetchUsers,
+    handleRoleChange,
+    handleEditClick
+  } = useUserManagement({ getAllUsers });
   
   useEffect(() => {
-    fetchUsers();
-  }, []);
-  
-  const fetchUsers = async () => {
-    try {
-      setLoading(true);
-      const allUsers = await getAllUsers();
-      console.log("Fetched users:", allUsers);
-      setUsers(allUsers || []);
-    } catch (error) {
-      console.error('Error fetching users:', error);
-      toast.error('Error al cargar los usuarios');
-    } finally {
-      setLoading(false);
+    // Initial fetch of users when component mounts
+    if (!users.length && !loading) {
+      fetchUsers();
     }
-  };
-  
-  const handleEditClick = (user: UserData) => {
-    setSelectedUser(user);
-    setNewRole(user.role);
-    setIsEditDialogOpen(true);
-  };
-  
-  const handleRoleChange = (value: any) => {
-    setNewRole(value);
-  };
+  }, []);
   
   const handleUpdateRole = async () => {
     if (!selectedUser || !newRole) return;
     
     try {
+      console.log(`Updating role for user ${selectedUser.uid} to ${newRole}`);
       await updateUserRole(selectedUser.uid, newRole);
-      
-      // Update the user in the local state
-      setUsers(users.map(user => 
-        user.uid === selectedUser.uid ? { ...user, role: newRole } : user
-      ));
       
       setIsEditDialogOpen(false);
       setIsConfirmationOpen(true);
+      
+      // Update local state to show the change immediately
+      setUsers(prevUsers => prevUsers.map(user => 
+        user.uid === selectedUser.uid ? { ...user, role: newRole } : user
+      ));
+      
+      toast.success(`Rol actualizado a ${newRole} para ${selectedUser.displayName || selectedUser.email}`);
     } catch (error) {
       console.error('Error updating role:', error);
       toast.error('Error al actualizar el rol del usuario');
@@ -72,14 +63,15 @@ const UserManagementPanel = () => {
   
   const handleVerifyUser = async (user: UserData) => {
     try {
+      console.log(`Verifying email for user ${user.uid}`);
       await verifyEmail(user.uid);
       
-      // Update the user in the local state
-      setUsers(users.map(u => 
+      // Update local state to reflect the change
+      setUsers(prevUsers => prevUsers.map(u => 
         u.uid === user.uid ? { ...u, emailVerified: true } : u
       ));
       
-      toast.success(`Email verificado para ${user.displayName}`);
+      toast.success(`Email verificado para ${user.displayName || user.email}`);
     } catch (error) {
       console.error('Error verifying user email:', error);
       toast.error('Error al verificar el email del usuario');
@@ -88,25 +80,7 @@ const UserManagementPanel = () => {
 
   return (
     <Card className="border shadow-sm">
-      <CardHeader className="border-b bg-muted/40">
-        <div className="flex items-center justify-between">
-          <div>
-            <CardTitle>Gestión de Usuarios</CardTitle>
-            <CardDescription>Administra los usuarios y sus permisos</CardDescription>
-          </div>
-          <div className="flex items-center gap-2">
-            <Button 
-              variant="outline" 
-              size="sm"
-              onClick={fetchUsers}
-              disabled={loading}
-            >
-              {loading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <RefreshCw className="h-4 w-4 mr-2" />}
-              Recargar
-            </Button>
-          </div>
-        </div>
-      </CardHeader>
+      <UserManagementHeader loading={loading} onRefresh={fetchUsers} />
       <CardContent className="pt-6">
         {loading ? (
           <div className="flex justify-center py-8">
@@ -118,12 +92,11 @@ const UserManagementPanel = () => {
             onEditClick={handleEditClick}
             onVerifyUser={handleVerifyUser}
             canEditUser={(user) => canEditUser(currentUserData, user)}
-            formatDate={formatDate}
+            formatDate={(date) => new Date(date).toLocaleDateString()}
           />
         )}
       </CardContent>
 
-      {/* Edit Role Dialog */}
       <EditRoleDialog 
         isOpen={isEditDialogOpen}
         onOpenChange={setIsEditDialogOpen}
@@ -134,7 +107,6 @@ const UserManagementPanel = () => {
         currentUserRole={currentUserData?.role || 'unverified'}
       />
 
-      {/* Confirmation Dialog */}
       <RoleChangeConfirmation
         isOpen={isConfirmationOpen}
         onOpenChange={setIsConfirmationOpen}
