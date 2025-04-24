@@ -10,16 +10,24 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
-import UserAvatar from './UserAvatar';
-import RoleBadge from './RoleBadge';
-import EmailVerificationStatus from './EmailVerificationStatus';
+import { Badge } from '@/components/ui/badge';
+import { 
+  UserCheck, 
+  UserCog, 
+  Shield, 
+  CheckCircle2, 
+  XCircle,
+  User
+} from 'lucide-react';
+import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
+import { getRoleDisplayName } from '@/hooks/useRolePermissions';
 
 interface UserTableProps {
   users: UserData[];
   onEditClick: (user: UserData) => void;
   onVerifyUser: (user: UserData) => Promise<void>;
   canEditUser: (user: UserData) => boolean;
-  formatDate: (date: Date) => string;
+  formatDate: (date: Date | null | undefined) => string;
 }
 
 const UserTable: React.FC<UserTableProps> = ({
@@ -36,6 +44,27 @@ const UserTable: React.FC<UserTableProps> = ({
       </div>
     );
   }
+
+  // Function to get badge color based on role
+  const getRoleBadgeVariant = (role: string) => {
+    switch (role) {
+      case 'owner':
+        return 'default';
+      case 'admin':
+        return 'destructive';
+      case 'supply_admin':
+      case 'afiliados':
+        return 'secondary';
+      case 'supply':
+      case 'atención_afiliado':
+        return 'outline';
+      case 'pending':
+        return 'warning';
+      case 'unverified':
+      default:
+        return 'outline';
+    }
+  };
 
   return (
     <div className="overflow-x-auto">
@@ -55,14 +84,40 @@ const UserTable: React.FC<UserTableProps> = ({
           {users.map((user) => (
             <TableRow key={user.uid} className="hover:bg-muted/50">
               <TableCell className="font-medium">
-                <UserAvatar photoURL={user.photoURL} displayName={user.displayName} />
+                <div className="flex items-center gap-2">
+                  <Avatar className="h-8 w-8">
+                    {user.photoURL ? (
+                      <AvatarImage src={user.photoURL} alt={user.displayName} />
+                    ) : (
+                      <AvatarFallback className="bg-primary/10">
+                        <User className="h-4 w-4 text-primary" />
+                      </AvatarFallback>
+                    )}
+                  </Avatar>
+                  <span>{user.displayName}</span>
+                  {user.role === 'owner' && (
+                    <Shield className="h-4 w-4 text-amber-500" title="Propietario del sistema" />
+                  )}
+                </div>
               </TableCell>
               <TableCell>{user.email}</TableCell>
               <TableCell>
-                <RoleBadge role={user.role} />
+                <Badge variant={getRoleBadgeVariant(user.role) as any}>
+                  {getRoleDisplayName(user.role)}
+                </Badge>
               </TableCell>
               <TableCell>
-                <EmailVerificationStatus isVerified={user.emailVerified} />
+                {user.emailVerified ? (
+                  <div className="flex items-center text-green-600">
+                    <CheckCircle2 className="h-4 w-4 mr-1" />
+                    <span>Verificado</span>
+                  </div>
+                ) : (
+                  <div className="flex items-center text-amber-600">
+                    <XCircle className="h-4 w-4 mr-1" />
+                    <span>No verificado</span>
+                  </div>
+                )}
               </TableCell>
               <TableCell>{formatDate(user.createdAt)}</TableCell>
               <TableCell>{formatDate(user.lastLogin)}</TableCell>
@@ -74,17 +129,21 @@ const UserTable: React.FC<UserTableProps> = ({
                       size="sm"
                       onClick={() => onVerifyUser(user)}
                       disabled={!canEditUser(user)}
+                      className="flex items-center gap-1"
                     >
-                      Verificar Email
+                      <UserCheck className="h-4 w-4" />
+                      <span className="sr-only md:not-sr-only">Verificar</span>
                     </Button>
                   )}
                   <Button
-                    variant="outline"
+                    variant={canEditUser(user) ? "outline" : "ghost"}
                     size="sm"
                     onClick={() => onEditClick(user)}
                     disabled={!canEditUser(user)}
+                    className="flex items-center gap-1"
                   >
-                    Editar Rol
+                    <UserCog className="h-4 w-4" />
+                    <span className="sr-only md:not-sr-only">Editar Rol</span>
                   </Button>
                 </div>
               </TableCell>

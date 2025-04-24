@@ -21,6 +21,7 @@ export interface UserData {
   lastLogin: Date;
 }
 
+// This interface is implemented in the SupabaseAuthContext
 export interface AuthContextProps {
   currentUser: UserData | null;
   userData: UserData | null;

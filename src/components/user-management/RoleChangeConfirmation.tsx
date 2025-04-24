@@ -10,7 +10,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { Check } from 'lucide-react';
+import { CheckCircle2 } from 'lucide-react';
+import { getRoleDisplayName } from '@/hooks/useRolePermissions';
 
 interface RoleChangeConfirmationProps {
   isOpen: boolean;
@@ -25,16 +26,20 @@ const RoleChangeConfirmation: React.FC<RoleChangeConfirmationProps> = ({
   user,
   newRole,
 }) => {
+  if (!user) return null;
+  
+  const roleDisplayName = getRoleDisplayName(newRole as any);
+  
   return (
     <AlertDialog open={isOpen} onOpenChange={onOpenChange}>
       <AlertDialogContent>
         <AlertDialogHeader>
           <AlertDialogTitle className="flex items-center gap-2 text-green-600">
-            <Check className="h-5 w-5" />
+            <CheckCircle2 className="h-5 w-5" />
             Rol actualizado con éxito
           </AlertDialogTitle>
           <AlertDialogDescription>
-            {user?.displayName} ahora tiene el rol de <span className="font-semibold">{newRole}</span>.
+            {user.displayName || user.email} ahora tiene el rol de <span className="font-semibold">{roleDisplayName}</span>.
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>

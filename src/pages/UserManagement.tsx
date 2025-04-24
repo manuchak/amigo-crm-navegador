@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useAuth } from '@/context/AuthContext';
+import { useAuth } from '@/context/SupabaseAuthContext';
 import {
   Card,
   CardContent,
@@ -9,19 +9,16 @@ import {
 } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
-import { Loader2 } from 'lucide-react';
+import { Loader2, RefreshCw, Shield, UserCheck, UserX } from 'lucide-react';
 import { toast } from 'sonner';
 import { UserData, UserRole } from '@/types/auth';
-import { 
-  UserTable, 
-  EditRoleDialog, 
-  UserManagementHeader,
-  RoleChangeConfirmation,
-  formatDate,
-  canEditUser,
-  RegistrationRequestsTable,
-  UserPermissionConfig
-} from '@/components/user-management';
+import { useRolePermissions } from '@/hooks/useRolePermissions';
+
+import UserTable from '@/components/user-management/UserTable';
+import UserPermissionConfig from '@/components/user-management/UserPermissionConfig';
+import EditRoleDialog from '@/components/user-management/EditRoleDialog';
+import RoleChangeConfirmation from '@/components/user-management/RoleChangeConfirmation';
+import PendingUsers from '@/components/user-management/PendingUsers';
 
 const UserManagement = () => {
   const { getAllUsers, updateUserRole, verifyEmail, userData: currentUserData } = useAuth();
@@ -33,6 +30,7 @@ const UserManagement = () => {
   const [newRole, setNewRole] = useState<UserRole>('unverified');
   const [activeTab, setActiveTab] = useState('all-users');
   const [error, setError] = useState<string | null>(null);
+  const { hasPermission } = useRolePermissions();
   
   useEffect(() => {
     const fetchUsers = async () => {
@@ -68,7 +66,9 @@ const UserManagement = () => {
     if (!selectedUser || !newRole) return;
     
     try {
-      await updateUserRole(selectedUser.uid, newRole);
+      const { success, error } = await updateUserRole(selectedUser.uid, newRole);
+      
+      if (!success) throw error;
       
       setUsers(users.map(user => 
         user.uid === selectedUser.uid ? { ...user, role: newRole } : user
@@ -85,7 +85,9 @@ const UserManagement = () => {
   
   const handleVerifyUser = async (user: UserData) => {
     try {
-      await verifyEmail(user.uid);
+      const { success, error } = await verifyEmail(user.uid);
+      
+      if (!success) throw error;
       
       setUsers(users.map(u => 
         u.uid === user.uid ? { ...u, emailVerified: true } : u
@@ -100,7 +102,9 @@ const UserManagement = () => {
 
   const handleAssignRole = async (user: UserData, role: UserRole) => {
     try {
-      await updateUserRole(user.uid, role);
+      const { success, error } = await updateUserRole(user.uid, role);
+      
+      if (!success) throw error;
       
       setUsers(users.map(u => 
         u.uid === user.uid ? { ...u, role } : u
@@ -112,6 +116,17 @@ const UserManagement = () => {
       toast.error('Error al asignar el rol: ' + (error?.message || ''));
     }
   };
+
+  const [canManageUsers, setCanManageUsers] = useState(false);
+  
+  useEffect(() => {
+    const checkPermissions = async () => {
+      const canManage = await hasPermission('page', 'user_management');
+      setCanManageUsers(canManage);
+    };
+    
+    checkPermissions();
+  }, [hasPermission]);
 
   const isOwner = currentUserData?.role === 'owner';
   const isAdmin = currentUserData?.role === 'admin' || isOwner;
@@ -127,6 +142,21 @@ const UserManagement = () => {
     );
   }
 
+  if (!canManageUsers && !isAdmin && !isOwner) {
+    return (
+      <div className="container mx-auto py-20 px-4">
+        <Card className="shadow-md">
+          <CardHeader>
+            <CardTitle>Acceso Denegado</CardTitle>
+            <CardDescription className="text-red-500">
+              No tienes permisos para gestionar usuarios.
+            </CardDescription>
+          </CardHeader>
+        </Card>
+      </div>
+    );
+  }
+
   if (error) {
     return (
       <div className="container mx-auto py-20 px-4">
@@ -137,6 +167,7 @@ const UserManagement = () => {
           </CardHeader>
           <CardContent>
             <Button variant="outline" onClick={() => window.location.reload()}>
+              <RefreshCw className="h-4 w-4 mr-2" />
               Reintentar
             </Button>
           </CardContent>
@@ -145,18 +176,73 @@ const UserManagement = () => {
     );
   }
 
+  const pendingUsers = users.filter(user => 
+    user.role === 'unverified' || user.role === 'pending'
+  );
+
+  const formatDate = (date: Date | null | undefined): string => {
+    if (!date) return 'N/A';
+    
+    try {
+      const dateObj = date instanceof Date ? date : new Date(date);
+      return new Intl.DateTimeFormat('es-ES', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+        hour: 'numeric',
+        minute: 'numeric'
+      }).format(dateObj);
+    } catch (error) {
+      console.error('Error formatting date:', error);
+      return 'Fecha inválida';
+    }
+  };
+
+  const canEditUser = (user: UserData): boolean => {
+    if (!currentUserData) return false;
+    
+    if (currentUserData.uid === user.uid) return false;
+    
+    if (currentUserData.role === 'owner') {
+      return user.role !== 'owner';
+    }
+    
+    if (currentUserData.role === 'admin') {
+      return !['admin', 'owner'].includes(user.role);
+    }
+    
+    return false;
+  };
+
   return (
     <div className="container mx-auto py-20 px-4">
       <Card className="shadow-md">
         <CardHeader>
-          <CardTitle>Gestión de Usuarios</CardTitle>
-          <CardDescription>Administre los usuarios y roles en el sistema</CardDescription>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle>Gestión de Usuarios</CardTitle>
+              <CardDescription>Administre los usuarios y roles en el sistema</CardDescription>
+            </div>
+            {isOwner && (
+              <div className="flex items-center gap-2 bg-amber-50 px-3 py-1 rounded-full border border-amber-200">
+                <Shield className="h-4 w-4 text-amber-500" />
+                <span className="text-amber-700 text-sm font-medium">Modo Propietario</span>
+              </div>
+            )}
+          </div>
         </CardHeader>
         <CardContent>
           <Tabs defaultValue="all-users" value={activeTab} onValueChange={setActiveTab} className="w-full">
             <TabsList className="grid w-full md:w-auto md:inline-flex grid-cols-3 mb-6">
               <TabsTrigger value="all-users">Todos los Usuarios</TabsTrigger>
-              {isOwner && <TabsTrigger value="registration-requests">Solicitudes</TabsTrigger>}
+              {isAdmin && <TabsTrigger value="pending" className="relative">
+                Solicitudes
+                {pendingUsers.length > 0 && (
+                  <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-[10px] text-white">
+                    {pendingUsers.length}
+                  </span>
+                )}
+              </TabsTrigger>}
               {isAdmin && <TabsTrigger value="permissions">Permisos</TabsTrigger>}
             </TabsList>
             
@@ -165,17 +251,18 @@ const UserManagement = () => {
                 users={users}
                 onEditClick={handleEditClick}
                 onVerifyUser={handleVerifyUser}
-                canEditUser={(user) => canEditUser(currentUserData, user)}
+                canEditUser={canEditUser}
                 formatDate={formatDate}
               />
             </TabsContent>
             
-            {isOwner && (
-              <TabsContent value="registration-requests">
-                <RegistrationRequestsTable 
-                  users={users}
+            {isAdmin && (
+              <TabsContent value="pending">
+                <PendingUsers 
+                  users={pendingUsers}
                   onAssignRole={handleAssignRole}
                   onVerifyUser={handleVerifyUser}
+                  formatDate={formatDate}
                 />
               </TabsContent>
             )}

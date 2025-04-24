@@ -1,20 +1,15 @@
 
-import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import React, { useState } from 'react';
+import { Card, CardContent } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Button } from '@/components/ui/button';
 import { Loader2, AlertTriangle, ShieldCheck, RefreshCw, Shield } from 'lucide-react';
-import {
-  useRolePermissions,
-  availablePages,
-  availableActions,
-} from './hooks';
+import { useRolePermissions } from '@/hooks/useRolePermissions';
 import {
   Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
 } from '@/components/ui/table';
 import { toast } from 'sonner';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { checkForOwnerRole } from '@/integrations/supabase/client';
 
 const UserPermissionConfig: React.FC = () => {
   const [selectedTab, setSelectedTab] = useState<'pages' | 'actions'>('pages');
@@ -24,33 +19,23 @@ const UserPermissionConfig: React.FC = () => {
     saving,
     error,
     isOwner,
+    loadPermissions,
+    savePermissions,
     handlePermissionChange,
-    handleSavePermissions,
-    reloadPermissions,
+    availablePages,
+    availableActions,
   } = useRolePermissions();
-
-  // Log owner status and permissions when they change
-  useEffect(() => {
-    console.log('UserPermissionConfig owner status:', isOwner ? '✅ Yes' : '❌ No');
-    console.log('Current permissions state:', permissions);
-    
-    // Check owner status when component mounts
-    const ownerStatus = checkForOwnerRole();
-    console.log('Owner status from localStorage:', ownerStatus ? '✅ Yes' : '❌ No');
-  }, [isOwner, permissions]);
 
   const onSave = async () => {
     try {
-      await handleSavePermissions();
+      await savePermissions();
     } catch (error) {
       console.error('Error saving permissions:', error);
-      // Error is handled inside handleSavePermissions
     }
   };
 
   const onRetry = () => {
-    console.log('Manual retry triggered');
-    reloadPermissions();
+    loadPermissions();
     toast.info('Recargando configuración de permisos...');
   };
 
@@ -69,9 +54,9 @@ const UserPermissionConfig: React.FC = () => {
 
   return (
     <Card className="shadow-md mt-8">
-      <CardHeader>
-        <div className="flex justify-between items-center">
-          <CardTitle className="text-xl">Configuración de Permisos por Rol</CardTitle>
+      <CardContent className="p-6">
+        <div className="flex justify-between items-center mb-6">
+          <h3 className="text-lg font-medium">Configuración de Permisos por Rol</h3>
           <div className="flex items-center gap-2">
             <Button 
               variant="outline" 
@@ -94,8 +79,7 @@ const UserPermissionConfig: React.FC = () => {
             )}
           </div>
         </div>
-      </CardHeader>
-      <CardContent>
+        
         {error && (
           <Alert variant="destructive" className="mb-4 border-rose-300">
             <div className="flex items-center gap-2">
@@ -116,7 +100,6 @@ const UserPermissionConfig: React.FC = () => {
           </Alert>
         )}
 
-        {/* Show message if no permissions loaded */}
         {!loading && !error && (!permissions || permissions.length === 0) && (
           <Alert className="mb-4">
             <AlertDescription>

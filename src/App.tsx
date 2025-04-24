@@ -1,131 +1,89 @@
-import { Toaster } from "@/components/ui/toaster";
-import { Toaster as Sonner } from "@/components/ui/sonner";
-import { TooltipProvider } from "@/components/ui/tooltip";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
-import Navbar from "./components/Navbar";
-import Index from "./pages/Index";
-import Dashboard from "./pages/Dashboard";
-import Leads from "./pages/Leads";
-import Requerimientos from "./pages/Requerimientos";
-import AdminConfig from "./pages/AdminConfig";
-import NotFound from "./pages/NotFound";
-import { LeadsProvider } from "./context/LeadsContext";
-import { AuthProvider } from "./context/AuthContext";
-import Login from "./pages/Login";
-import Unauthorized from "./pages/Unauthorized";
-import UserManagement from "./pages/UserManagement";
-import AuthGuard from "./components/auth/AuthGuard";
-import Landing from "./pages/Landing";
-import AtencionAlAfiliado from "./pages/Support";
-import InstalacionGPS from "./pages/InstalacionGPS";
-import InstalacionGPSInstallers from "./pages/InstalacionGPSInstallers";
-import InstaladorRegistro from "./pages/InstaladorRegistro";
-import InstalacionesAgendadas from "./pages/InstalacionesAgendadas";
-import Performance from "./pages/Performance";
 
+import React, { Suspense } from 'react';
+import { BrowserRouter as Router, Route, Routes, Navigate } from 'react-router-dom';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { Toaster } from 'sonner';
+import { AuthProvider } from '@/context/SupabaseAuthContext'; // Updated import
+import AuthGuard from '@/components/auth/AuthGuard';
+import Navbar from '@/components/Navbar';
+import './App.css';
+
+// Create a React Query client
 const queryClient = new QueryClient();
 
-const App = () => {
+// Lazy load routes for better performance
+const Dashboard = React.lazy(() => import('./pages/Dashboard'));
+const Auth = React.lazy(() => import('./pages/Auth'));
+const UserManagement = React.lazy(() => import('./pages/UserManagement'));
+const Leads = React.lazy(() => import('./pages/Leads'));
+const Prospects = React.lazy(() => import('./pages/Prospects'));
+const Validation = React.lazy(() => import('./pages/Validation'));
+const Support = React.lazy(() => import('./pages/Support'));
+const CallCenter = React.lazy(() => import('./pages/CallCenter'));
+const Settings = React.lazy(() => import('./pages/Settings'));
+
+function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
-        <BrowserRouter>
-          <TooltipProvider>
-            <LeadsProvider>
-              <Toaster />
-              <Sonner />
-              <Routes>
-                <Route path="/custodios" element={<Landing />} />
-                <Route path="*" element={<AppWithNavbar />} />
-              </Routes>
-            </LeadsProvider>
-          </TooltipProvider>
-        </BrowserRouter>
+        <Router>
+          <Navbar />
+          <Suspense fallback={<div className="loading">Cargando...</div>}>
+            <Routes>
+              <Route path="/auth" element={<Auth />} />
+              
+              {/* Protected routes */}
+              <Route path="/dashboard" element={
+                <AuthGuard>
+                  <Dashboard />
+                </AuthGuard>
+              } />
+              <Route path="/user-management" element={
+                <AuthGuard>
+                  <UserManagement />
+                </AuthGuard>
+              } />
+              <Route path="/leads" element={
+                <AuthGuard>
+                  <Leads />
+                </AuthGuard>
+              } />
+              <Route path="/prospects" element={
+                <AuthGuard>
+                  <Prospects />
+                </AuthGuard>
+              } />
+              <Route path="/validation" element={
+                <AuthGuard>
+                  <Validation />
+                </AuthGuard>
+              } />
+              <Route path="/support" element={
+                <AuthGuard>
+                  <Support />
+                </AuthGuard>
+              } />
+              <Route path="/call-center" element={
+                <AuthGuard>
+                  <CallCenter />
+                </AuthGuard>
+              } />
+              <Route path="/settings" element={
+                <AuthGuard>
+                  <Settings />
+                </AuthGuard>
+              } />
+              
+              {/* Default redirect */}
+              <Route path="/" element={<Navigate to="/dashboard" replace />} />
+              <Route path="*" element={<Navigate to="/dashboard" replace />} />
+            </Routes>
+          </Suspense>
+        </Router>
+        <Toaster position="top-right" richColors closeButton />
       </AuthProvider>
     </QueryClientProvider>
   );
-};
-
-const AppWithNavbar = () => {
-  return (
-    <>
-      <Navbar />
-      <Routes>
-        <Route path="/" element={<Index />} />
-        <Route path="/login" element={<Login />} />
-        <Route path="/unauthorized" element={<Unauthorized />} />
-
-        <Route path="/dashboard" element={
-          <AuthGuard>
-            <Dashboard />
-          </AuthGuard>
-        } />
-
-        <Route path="/leads" element={
-          <AuthGuard allowedRoles={['atención_afiliado', 'admin', 'owner']}>
-            <Leads />
-          </AuthGuard>
-        } />
-
-        <Route path="/requerimientos" element={
-          <AuthGuard allowedRoles={['supply', 'supply_admin', 'admin', 'owner']}>
-            <Requerimientos />
-          </AuthGuard>
-        } />
-
-        <Route path="/instalacion-gps/instaladores" element={
-          <AuthGuard allowedRoles={['admin', 'owner']}>
-            <InstalacionGPSInstallers />
-          </AuthGuard>
-        } />
-
-        <Route path="/instalacion-gps/registro-instalador" element={
-          <AuthGuard allowedRoles={['admin', 'owner']}>
-            <InstaladorRegistro />
-          </AuthGuard>
-        } />
-
-        <Route path="/instalacion-gps" element={
-          <AuthGuard>
-            <InstalacionGPS />
-          </AuthGuard>
-        } />
-
-        <Route path="/support" element={
-          <AuthGuard>
-            <AtencionAlAfiliado />
-          </AuthGuard>
-        } />
-
-        <Route path="/admin-config" element={
-          <AuthGuard allowedRoles={['admin', 'owner']}>
-            <AdminConfig />
-          </AuthGuard>
-        } />
-
-        <Route path="/user-management" element={
-          <AuthGuard allowedRoles={['admin', 'owner']}>
-            <UserManagement />
-          </AuthGuard>
-        } />
-
-        <Route path="/instalacion-gps/agendadas" element={
-          <AuthGuard>
-            <InstalacionesAgendadas />
-          </AuthGuard>
-        } />
-
-        <Route path="/performance" element={
-          <AuthGuard>
-            <Performance />
-          </AuthGuard>
-        } />
-
-        <Route path="*" element={<NotFound />} />
-      </Routes>
-    </>
-  );
-};
+}
 
 export default App;
