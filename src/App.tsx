@@ -12,14 +12,14 @@ import './App.css';
 // Create a React Query client
 const queryClient = new QueryClient();
 
-// Import the Index page directly instead of lazy loading it to address the dynamic import issue
+// Import pages that need direct imports to address dynamic import issues
 import Index from './pages/Index';
+import UserManagement from './pages/UserManagement';
 
 // Lazy load other routes for better performance
 const Dashboard = React.lazy(() => import('./pages/Dashboard'));
 const Auth = React.lazy(() => import('./pages/Auth'));
 const Login = React.lazy(() => import('./pages/Login')); 
-const UserManagement = React.lazy(() => import('./pages/UserManagement'));
 const Leads = React.lazy(() => import('./pages/Leads'));
 const Prospects = React.lazy(() => import('./pages/Prospects'));
 const Validation = React.lazy(() => import('./pages/Validation'));
@@ -49,15 +49,17 @@ function App() {
                 <Route path="/inicio" element={<Index />} />
                 <Route path="/" element={<Index />} />
                 
+                {/* UserManagement - now directly imported */}
+                <Route path="/user-management" element={
+                  <AuthGuard>
+                    <UserManagement />
+                  </AuthGuard>
+                } />
+                
                 {/* Protected routes */}
                 <Route path="/dashboard" element={
                   <AuthGuard>
                     <Dashboard />
-                  </AuthGuard>
-                } />
-                <Route path="/user-management" element={
-                  <AuthGuard>
-                    <UserManagement />
                   </AuthGuard>
                 } />
                 <Route path="/leads" element={
