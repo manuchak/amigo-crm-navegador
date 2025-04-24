@@ -1,3 +1,4 @@
+
 // User roles in the system
 export type UserRole = 
   | 'unverified' 
@@ -6,7 +7,8 @@ export type UserRole =
   | 'supply' 
   | 'supply_admin' 
   | 'afiliados' 
-  | 'admin';
+  | 'admin'
+  | 'owner';  // Added "owner" role to fix type errors
 
 export interface UserData {
   uid: string;
