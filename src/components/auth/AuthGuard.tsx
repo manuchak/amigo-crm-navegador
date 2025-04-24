@@ -18,6 +18,7 @@ const AuthGuard: React.FC<AuthGuardProps> = ({ children, requiredRole }) => {
   const [accessDenied, setAccessDenied] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   
+  // Get the page ID from the URL
   const pageId = location.pathname.split('/')[1] || 'dashboard';
   
   // Handle session refresh without re-entering verification loop
@@ -43,6 +44,7 @@ const AuthGuard: React.FC<AuthGuardProps> = ({ children, requiredRole }) => {
       return true;
     }
     
+    // Define page access for non-admin roles
     switch (role) {
       case 'afiliados':
         return ['dashboard', 'leads', 'prospects'].includes(page);
@@ -73,7 +75,7 @@ const AuthGuard: React.FC<AuthGuardProps> = ({ children, requiredRole }) => {
     
     console.log('AuthGuard checking access: Page:', pageId, 'User:', !!currentUser, 'Role:', currentUser?.role);
     
-    // Always allow access to public pages
+    // Public pages are always accessible
     if (pageId === 'auth' || pageId === 'login' || pageId === '' || pageId === 'inicio') {
       setAccessVerified(true);
       return;

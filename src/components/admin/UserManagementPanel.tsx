@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Loader2 } from 'lucide-react';
-import { useAuth } from '@/context/AuthContext'; // Changed from SupabaseAuthContext
+import { useAuth } from '@/context/AuthContext';
 import { UserData } from '@/types/auth';
 import { toast } from 'sonner';
 import { 
@@ -33,12 +33,12 @@ const UserManagementPanel = () => {
     handleEditClick
   } = useUserManagement({ getAllUsers });
   
+  // Initial fetch of users when component mounts
   useEffect(() => {
-    // Initial fetch of users when component mounts
     if (!users.length && !loading) {
       fetchUsers();
     }
-  }, []);
+  }, [users.length, loading, fetchUsers]);
   
   const handleUpdateRole = async () => {
     if (!selectedUser || !newRole) return;
