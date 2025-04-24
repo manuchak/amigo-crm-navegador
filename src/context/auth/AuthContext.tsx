@@ -1,11 +1,10 @@
-
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { AuthContextProps, UserData, UserRole } from '@/types/auth';
 import { useAuthSession } from './hooks/useAuthSession';
 import { useAuthMethods } from './hooks/useAuthMethods';
-import { useUserManagementMethods } from '@/hooks/useUserManagementMethods';
+import { useUserManagementMethods } from '@/hooks/user-management';
 
 const AuthContext = createContext<AuthContextProps | undefined>(undefined);
 
@@ -24,7 +23,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [loading, setLoading] = useState<boolean>(true);
   const [isInitializing, setIsInitializing] = useState<boolean>(true);
 
-  // Initialize auth session management
   useAuthSession({
     setUser,
     setSession,
@@ -33,45 +31,40 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setIsInitializing
   });
 
-  // Get auth methods (signIn, signUp, etc.)
   const authMethods = useAuthMethods({
     setLoading,
     setUserData
   });
 
-  // Get user management methods
   const userManagementMethods = useUserManagementMethods(
     setUserData, 
     setLoading, 
     authMethods.refreshUserData
   );
 
-  // The actual value we provide to consumers
   const value: AuthContextProps = {
     user,
-    currentUser: userData, // Ensure currentUser is aliased to userData for backward compatibility
+    currentUser: userData,
     userData,
     session,
     loading,
     isInitializing,
-    // Fix type issues with signIn method
     signIn: async (email: string, password: string) => {
       try {
         setLoading(true);
         const userData = await authMethods.signIn(email, password);
-        return { user: user || null, error: null }; // Return Supabase User object instead of UserData
+        return { user: user || null, error: null };
       } catch (error) {
         return { user: null, error };
       } finally {
         setLoading(false);
       }
     },
-    // Fix type issues with signUp method
     signUp: async (email: string, password: string, displayName: string) => {
       try {
         setLoading(true);
         const userData = await authMethods.signUp(email, password, displayName);
-        return { user: user || null, error: null }; // Return Supabase User object instead of UserData
+        return { user: user || null, error: null };
       } catch (error) {
         return { user: null, error };
       } finally {
@@ -97,11 +90,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return false;
       }
     },
-    // Fix type issues with refreshUserData method
     refreshUserData: async () => {
       try {
         await authMethods.refreshUserData();
-        return { success: true }; // Return object with success property
+        return { success: true };
       } catch (error) {
         return { success: false, error };
       }
