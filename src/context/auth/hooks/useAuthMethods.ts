@@ -1,9 +1,8 @@
 
 import { useState } from 'react';
-import { User } from '@supabase/supabase-js';
+import { toast } from 'sonner'; 
 import { supabase } from '@/integrations/supabase/client';
-import { UserRole, UserData } from '@/types/auth';
-import { toast } from 'sonner';
+import { UserData, UserRole } from '@/types/auth';
 import { mapUserData } from './utils/userDataMapper';
 
 interface UseAuthMethodsProps {
@@ -11,34 +10,127 @@ interface UseAuthMethodsProps {
   setUserData: React.Dispatch<React.SetStateAction<UserData | null>>;
 }
 
-export const useAuthMethods = ({ setLoading, setUserData }: UseAuthMethodsProps) => {
-  const signIn = async (email: string, password: string) => {
+export const useAuthMethods = ({
+  setLoading,
+  setUserData
+}: UseAuthMethodsProps) => {
+  // Function to refresh user data
+  const refreshUserData = async () => {
     try {
-      setLoading(true);
-      const { data, error } = await supabase.auth.signInWithPassword({
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.user) {
+        const mappedUserData = await mapUserData(session.user);
+        if (mappedUserData) {
+          setUserData(mappedUserData);
+          console.log("User data refreshed successfully:", mappedUserData);
+          
+          // Update last login timestamp
+          await supabase
+            .from('profiles')
+            .update({ 
+              last_login: new Date().toISOString() 
+            })
+            .eq('id', session.user.id);
+            
+          return mappedUserData;
+        }
+      }
+      return null;
+    } catch (error) {
+      console.error('Error refreshing user data:', error);
+      toast.error('Error al actualizar los datos de usuario');
+      throw error;
+    }
+  };
+
+  // Authentication functions
+  const signIn = async (email: string, password: string) => {
+    setLoading(true);
+    try {
+      // Set a timeout to prevent hanging - longer timeout (30 seconds)
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('La conexión tardó demasiado tiempo, por favor inténtelo de nuevo')), 30000)
+      );
+      
+      const authPromise = supabase.auth.signInWithPassword({
         email,
         password,
       });
-
-      if (error) throw error;
       
-      if (data.user) {
-        toast.success(`¡Welcome back, ${data.user.email}!`);
+      // Race between the auth request and the timeout
+      const { data, error } = await Promise.race([
+        authPromise,
+        timeoutPromise.then(() => {
+          throw new Error('Tiempo de espera agotado');
+        })
+      ]) as Awaited<ReturnType<typeof supabase.auth.signInWithPassword>>;
+
+      if (error) {
+        let errorMessage = 'Error al iniciar sesión';
+        if (error.message.includes('Invalid login')) {
+          errorMessage = 'Correo o contraseña incorrectos';
+        } else if (error.message.includes('email')) {
+          errorMessage = 'El correo electrónico no es válido';
+        } else if (error.message.includes('password')) {
+          errorMessage = 'La contraseña es incorrecta';
+        }
+        throw new Error(errorMessage);
+      }
+
+      if (!data.user) {
+        throw new Error('No se pudo iniciar sesión, por favor inténtelo de nuevo');
+      }
+
+      const mappedUserData = await mapUserData(data.user);
+      
+      if (!mappedUserData) {
+        throw new Error('Error al obtener datos del usuario');
       }
       
-      return { user: data.user, error: null };
+      // Special case for manuel.chacon
+      if (email.toLowerCase() === 'manuel.chacon@detectasecurity.io') {
+        try {
+          // Ensure this user always has owner role
+          await supabase.rpc('update_user_role', {
+            target_user_id: data.user.id,
+            new_role: 'owner'
+          });
+          
+          // Ensure email is verified
+          await supabase.rpc('verify_user_email', {
+            target_user_id: data.user.id
+          });
+          
+          // Refresh user data to get updated role
+          const refreshedData = await mapUserData(data.user);
+          if (refreshedData) {
+            setUserData(refreshedData);
+          }
+        } catch (specialUserError) {
+          console.error('Error setting special user permissions:', specialUserError);
+          // Continue login even if special permissions failed
+        }
+      } else {
+        setUserData(mappedUserData);
+      }
+      
+      toast.success('Sesión iniciada con éxito');
+      return mappedUserData;
     } catch (error: any) {
-      console.error('Login error:', error);
-      toast.error(`Error logging in: ${error.message}`);
-      return { user: null, error };
+      console.error('Error signing in:', error);
+      throw error; // Rethrow to be handled by the form
     } finally {
       setLoading(false);
     }
   };
 
   const signUp = async (email: string, password: string, displayName: string) => {
+    setLoading(true);
     try {
-      setLoading(true);
+      // Get the current domain for redirects
+      const redirectURL = `${window.location.origin}/verify-confirmation`;
+      
+      // Create user with email confirmation
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
@@ -46,16 +138,45 @@ export const useAuthMethods = ({ setLoading, setUserData }: UseAuthMethodsProps)
           data: {
             display_name: displayName,
           },
-        }
+          emailRedirectTo: redirectURL
+        },
       });
 
-      if (error) throw error;
+      if (error) {
+        let errorMessage = 'Error al crear la cuenta';
+        if (error.message.includes('already')) {
+          errorMessage = 'El correo electrónico ya está en uso.';
+        }
+        throw new Error(errorMessage);
+      }
+
+      // Manually create profile record since we're not using triggers
+      if (data.user) {
+        // Create profile
+        await supabase.from('profiles').insert({
+          id: data.user.id,
+          email: email,
+          display_name: displayName,
+          created_at: new Date().toISOString(),
+          last_login: new Date().toISOString()
+        });
+        
+        // Set initial role
+        await supabase.from('user_roles').insert({
+          user_id: data.user.id,
+          role: 'unverified'
+        });
+      }
       
-      toast.success('Account created successfully');
-      return { user: data.user, error: null };
+      const mappedUserData = await mapUserData(data.user);
+      setUserData(mappedUserData);
+      
+      toast.success('Cuenta creada con éxito. Por favor, verifica tu correo electrónico.');
+      return mappedUserData;
     } catch (error: any) {
-      toast.error(`Error creating account: ${error.message}`);
-      return { user: null, error };
+      console.error('Error signing up:', error);
+      toast.error(error.message || 'Error al crear la cuenta');
+      throw error;
     } finally {
       setLoading(false);
     }
@@ -63,185 +184,40 @@ export const useAuthMethods = ({ setLoading, setUserData }: UseAuthMethodsProps)
 
   const signOut = async () => {
     try {
-      setLoading(true);
-      const { error } = await supabase.auth.signOut();
-      
-      if (error) throw error;
-      
+      await supabase.auth.signOut();
       setUserData(null);
-      toast.success('Logged out successfully');
-    } catch (error: any) {
+      toast.success('Sesión cerrada con éxito');
+    } catch (error) {
       console.error('Error signing out:', error);
-      toast.error(`Error signing out: ${error.message}`);
-    } finally {
-      setLoading(false);
+      toast.error('Error al cerrar sesión');
     }
   };
 
   const resetPassword = async (email: string) => {
+    setLoading(true);
     try {
-      setLoading(true);
+      // Get the current domain for redirects
+      const redirectURL = `${window.location.origin}/reset-password`;
+      
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/reset-password`,
+        redirectTo: redirectURL,
       });
-
-      if (error) throw error;
       
-      toast.success(`Password reset email sent to ${email}`);
+      if (error) throw error;
+      toast.success('Se ha enviado un correo para restablecer la contraseña');
     } catch (error: any) {
-      console.error('Password reset error:', error);
-      toast.error(`Error sending reset password email: ${error.message}`);
-      throw error;
+      console.error('Error sending password reset email:', error);
+      toast.error('Error al enviar el correo de restablecimiento');
     } finally {
       setLoading(false);
-    }
-  };
-
-  const updateUserRole = async (userId: string, role: UserRole) => {
-    try {
-      const { error } = await supabase.rpc('update_user_role', {
-        target_user_id: userId,
-        new_role: role
-      });
-
-      if (error) throw error;
-
-      return { success: true };
-    } catch (error: any) {
-      console.error('Error updating user role:', error);
-      return { success: false, error };
-    }
-  };
-
-  const verifyEmail = async (userId: string) => {
-    try {
-      const { error } = await supabase.rpc('verify_user_email', {
-        target_user_id: userId
-      });
-
-      if (error) throw error;
-
-      return { success: true };
-    } catch (error: any) {
-      console.error('Error verifying email:', error);
-      return { success: false, error };
-    }
-  };
-
-  const refreshSession = async () => {
-    try {
-      const { data, error } = await supabase.auth.refreshSession();
-      
-      if (error) {
-        console.error('Error refreshing session:', error);
-        return false;
-      }
-      
-      if (data && data.session) {
-        if (data.session.user) {
-          const userData = await mapUserData(data.session.user);
-          setUserData(userData);
-        }
-        return true;
-      }
-      
-      return false;
-    } catch (error) {
-      console.error('Error in refreshSession:', error);
-      return false;
-    }
-  };
-
-  const refreshUserData = async () => {
-    try {
-      setLoading(true);
-      console.log("Refreshing user data...");
-      
-      const { data: sessionData, error } = await supabase.auth.getSession();
-      
-      if (error) {
-        console.error("Error getting session:", error);
-        throw error;
-      }
-      
-      const currentSession = sessionData?.session;
-      
-      if (currentSession?.user) {
-        const mappedUserData = await mapUserData(currentSession.user);
-        setUserData(mappedUserData);
-        console.log("User data refreshed successfully:", mappedUserData.role);
-      } else {
-        console.log("No active session found during refresh");
-        setUserData(null);
-      }
-      
-      return { success: true };
-    } catch (error) {
-      console.error('Error refreshing user data:', error);
-      toast.error('Error al actualizar los datos de usuario');
-      return { success: false, error };
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const getAllUsers = async (): Promise<UserData[]> => {
-    try {
-      // First, get all profiles
-      const { data: profiles, error: profileError } = await supabase
-        .from('profiles')
-        .select('*');
-      
-      if (profileError) throw profileError;
-
-      // Then, get all users with their roles
-      const { data: userRoles, error: rolesError } = await supabase
-        .from('user_roles')
-        .select('*');
-      
-      if (rolesError) throw rolesError;
-
-      // Get all auth users (requires admin privileges or use service role key)
-      const { data: authUsers, error: authError } = await supabase.auth.admin.listUsers();
-      
-      if (authError) {
-        console.error('Error fetching auth users:', authError);
-      }
-
-      const users = profiles?.map(profile => {
-        const userRole = userRoles?.find(ur => ur.user_id === profile.id);
-        const authUsersList = authUsers?.users || [];
-        const authUser = authUsersList.find(u => u.id === profile.id);
-        
-        return {
-          uid: profile.id,
-          email: profile.email,
-          displayName: profile.display_name || profile.email,
-          photoURL: profile.photo_url || undefined,
-          role: (userRole?.role as UserRole) || 'unverified',
-          emailVerified: authUser?.email_confirmed_at ? true : false,
-          createdAt: profile.created_at ? new Date(profile.created_at) : new Date(),
-          lastLogin: profile.last_login ? new Date(profile.last_login) : new Date(),
-        };
-      }) || [];
-
-      return users;
-    } catch (error) {
-      console.error('Error getting users:', error);
-      toast.error('Error retrieving user list');
-      return [];
     }
   };
 
   return {
+    refreshUserData,
     signIn,
     signUp,
     signOut,
-    resetPassword,
-    updateUserRole,
-    verifyEmail,
-    refreshSession,
-    refreshUserData,
-    getAllUsers,
+    resetPassword
   };
 };

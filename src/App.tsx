@@ -3,7 +3,7 @@ import React, { Suspense } from 'react';
 import { BrowserRouter as Router, Route, Routes, Navigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Toaster } from 'sonner';
-import { AuthProvider } from '@/context/AuthContext'; // Using only Supabase AuthContext
+import { AuthProvider } from '@/context'; // Import from the updated location
 import { LeadsProvider } from '@/context/LeadsContext';
 import AuthGuard from '@/components/auth/AuthGuard';
 import Navbar from '@/components/Navbar';
@@ -15,7 +15,7 @@ const queryClient = new QueryClient();
 // Lazy load routes for better performance
 const Dashboard = React.lazy(() => import('./pages/Dashboard'));
 const Auth = React.lazy(() => import('./pages/Auth'));
-const Login = React.lazy(() => import('./pages/Login')); // Add this if needed
+const Login = React.lazy(() => import('./pages/Login')); 
 const UserManagement = React.lazy(() => import('./pages/UserManagement'));
 const Leads = React.lazy(() => import('./pages/Leads'));
 const Prospects = React.lazy(() => import('./pages/Prospects'));
@@ -25,6 +25,8 @@ const CallCenter = React.lazy(() => import('./pages/CallCenter'));
 const Settings = React.lazy(() => import('./pages/Settings'));
 
 function App() {
+  console.log("App rendering");
+  
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>

@@ -26,7 +26,7 @@ export const useAuthSession = ({
     console.log("Setting up auth state listener...");
     setLoading(true);
 
-    // First, configure the authentication event listener
+    // Configure auth state change listener first
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, newSession) => {
         console.log('Auth state changed:', event);
@@ -35,32 +35,53 @@ export const useAuthSession = ({
         
         if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
           console.log('User signed in or token refreshed');
-          setSession(newSession);
-          setUser(newSession?.user || null);
+          if (mounted) {
+            setSession(newSession);
+            setUser(newSession?.user || null);
+          }
           
           if (newSession?.user) {
             // Use setTimeout to avoid potential Supabase deadlocks
             setTimeout(async () => {
-              if (mounted) {
+              if (!mounted) return;
+              
+              try {
                 await updateLastLogin(newSession.user.id);
                 const userData = await mapUserData(newSession.user);
-                if (mounted) setUserData(userData);
+                if (mounted) {
+                  setUserData(userData);
+                  console.log("User data mapped successfully:", userData);
+                }
+              } catch (err) {
+                console.error("Error processing user data on auth change:", err);
+              } finally {
+                if (mounted) {
+                  setLoading(false);
+                  setIsInitializing(false);
+                }
               }
             }, 0);
           }
         } else if (event === 'SIGNED_OUT') {
           console.log('User signed out');
-          setSession(null);
-          setUser(null);
-          setUserData(null);
+          if (mounted) {
+            setSession(null);
+            setUser(null);
+            setUserData(null);
+            setLoading(false);
+            setIsInitializing(false);
+          }
+        } else {
+          // For other events, still update loading state
+          if (mounted) {
+            setLoading(false);
+            setIsInitializing(false);
+          }
         }
-        
-        setLoading(false);
-        setIsInitializing(false);
       }
     );
 
-    // Second, check for existing session
+    // Then check for existing session
     const checkExistingSession = async () => {
       try {
         console.log("Checking for existing session...");
@@ -84,23 +105,48 @@ export const useAuthSession = ({
           
           if (data.session.user && mounted) {
             try {
+              // Use setTimeout to avoid potential deadlocks
               setTimeout(async () => {
                 if (!mounted) return;
                 
-                await updateLastLogin(data.session.user.id);
-                const userData = await mapUserData(data.session.user);
-                if (mounted) setUserData(userData);
+                try {
+                  await updateLastLogin(data.session.user.id);
+                  const userData = await mapUserData(data.session.user);
+                  if (mounted) {
+                    setUserData(userData);
+                    console.log("User data loaded from existing session:", userData);
+                  }
+                } catch (err) {
+                  console.error("Error processing existing user session:", err);
+                } finally {
+                  if (mounted) {
+                    setLoading(false);
+                    setIsInitializing(false);
+                  }
+                }
               }, 0);
             } catch (error) {
               console.error('Error mapping user data on init:', error);
+              if (mounted) {
+                setLoading(false);
+                setIsInitializing(false);
+              }
+            }
+          } else {
+            if (mounted) {
+              setLoading(false);
+              setIsInitializing(false);
             }
           }
         } else {
           console.log("No existing session found");
+          if (mounted) {
+            setLoading(false);
+            setIsInitializing(false);
+          }
         }
       } catch (error) {
         console.error('Error checking existing session:', error);
-      } finally {
         if (mounted) {
           setLoading(false);
           setIsInitializing(false);
@@ -108,8 +154,10 @@ export const useAuthSession = ({
       }
     };
     
+    // Run session check
     checkExistingSession();
 
+    // Clean up
     return () => {
       mounted = false;
       subscription.unsubscribe();
