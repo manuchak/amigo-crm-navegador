@@ -1,8 +1,10 @@
 
 import { toast } from "sonner";
-import { ImportResponse } from "../types";
+import { ImportProgress, ImportResponse } from "../types";
 
 export function handleImportResponse(responseData: any): ImportResponse {
+  console.log("Processing import response:", responseData);
+  
   if (!responseData || responseData.success === undefined) {
     console.error("Invalid response format:", responseData);
     toast.error("Respuesta del servidor inválida", {
@@ -48,4 +50,30 @@ export function handleImportResponse(responseData: any): ImportResponse {
   });
   
   return { success: true, message: responseData.message };
+}
+
+// Convert ImportProgress to ImportResponse
+export function progressToResponse(progress: ImportProgress): ImportResponse {
+  if (progress.status === 'error') {
+    return {
+      success: false,
+      message: progress.message,
+      progressId: progress.id
+    };
+  }
+  
+  if (progress.status === 'completed') {
+    return {
+      success: true,
+      message: progress.message,
+      progressId: progress.id
+    };
+  }
+  
+  // Still in progress
+  return {
+    success: false,
+    message: progress.message || `Procesando: ${progress.processed} de ${progress.total}`,
+    progressId: progress.id
+  };
 }

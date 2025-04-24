@@ -1,7 +1,7 @@
 
 import { toast } from "sonner";
 import { v4 as uuidv4 } from "uuid";
-import { ImportResponse } from "../types";
+import { ImportResponse, ImportProgress } from "../types";
 import { supabase } from "@/integrations/supabase/client";
 
 // Function to initialize progress tracking
@@ -43,14 +43,21 @@ export async function callImportApi(
       };
     }
     
+    console.log(`Preparing to upload file: ${file.name}, size: ${file.size} bytes`);
+    
     // Initialize progress tracking
     const progressId = await initializeProgressTracking(file.size);
+    console.log(`Created progress tracking with ID: ${progressId}`);
     
     // Add progress ID to formData
     formData.append('progressId', progressId);
     
+    // Ensure we're using the correct URL and headers
+    const apiUrl = 'https://beefjsdgrdeiymzxwxru.supabase.co/functions/v1/import-servicios-data';
+    console.log(`Sending request to: ${apiUrl}`);
+    
     const response = await fetch(
-      `https://beefjsdgrdeiymzxwxru.supabase.co/functions/v1/import-servicios-data`,
+      apiUrl,
       {
         method: 'POST',
         body: formData,
@@ -63,10 +70,13 @@ export async function callImportApi(
       }
     );
     
+    console.log(`Response status: ${response.status}`);
+    
     if (!response.ok) {
       let errorMessage = `Error del servidor: ${response.status}`;
       try {
         const errorData = await response.json();
+        console.error("Server error details:", errorData);
         if (errorData && errorData.message) {
           errorMessage = errorData.message;
         }
@@ -81,6 +91,7 @@ export async function callImportApi(
     }
 
     const responseData = await response.json();
+    console.log("API success response:", responseData);
     return { ...responseData, progressId };
   } catch (error) {
     console.error("API call error:", error);
@@ -93,8 +104,10 @@ export async function callImportApi(
 }
 
 // Add a function to check import progress
-export async function checkImportProgress(progressId: string): Promise<ImportResponse> {
+export async function checkImportProgress(progressId: string): Promise<ImportProgress> {
   try {
+    console.log(`Checking progress for ID: ${progressId}`);
+    
     const { data, error } = await supabase
       .from('import_progress')
       .select('*')
@@ -104,44 +117,34 @@ export async function checkImportProgress(progressId: string): Promise<ImportRes
     if (error) {
       console.error("Error checking import progress:", error);
       return {
-        success: false,
+        id: progressId,
+        status: 'error',
+        processed: 0,
+        total: 0,
         message: "Error al verificar el progreso de importación"
       };
     }
     
     if (!data) {
+      console.warn("No progress data found for ID:", progressId);
       return {
-        success: false,
+        id: progressId,
+        status: 'error',
+        processed: 0,
+        total: 0,
         message: "No se encontró información de progreso"
       };
     }
     
-    // If status is 'error', treat as failure
-    if (data.status === 'error') {
-      return {
-        success: false,
-        message: data.message || "Error durante la importación"
-      };
-    }
-    
-    // If status is 'completed', treat as success
-    if (data.status === 'completed') {
-      return {
-        success: true,
-        message: data.message || "Importación completada exitosamente"
-      };
-    }
-    
-    // Still in progress
-    return {
-      success: false,
-      message: data.message || `Procesando: ${data.processed} de ${data.total}`,
-      progressId: data.id
-    };
+    console.log("Progress data retrieved:", data);
+    return data as ImportProgress;
   } catch (error) {
-    console.error("Error checking import progress:", error);
+    console.error("Exception checking import progress:", error);
     return {
-      success: false,
+      id: progressId,
+      status: 'error',
+      processed: 0,
+      total: 0,
       message: "Error al consultar el estado de la importación"
     };
   }

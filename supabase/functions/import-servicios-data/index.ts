@@ -4,13 +4,13 @@ import * as XLSX from 'https://esm.sh/xlsx@0.18.5'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-progress-id',
 }
 
 // Configure these parameters to balance performance vs resource usage
-const MAX_ROWS_PER_BATCH = 25; // Reduced batch size to use less memory per batch
-const BATCH_PROCESSING_DELAY = 150; // ms delay between batches to allow GC to work
-const MAX_ROWS_TOTAL = 30000; // Safety limit for total rows
+const MAX_ROWS_PER_BATCH = 20; // Reduced batch size to use less memory per batch
+const BATCH_PROCESSING_DELAY = 200; // ms delay between batches to allow GC to work
+const MAX_ROWS_TOTAL = 15000; // Safety limit for total rows
 
 Deno.serve(async (req) => {
   // Handle CORS preflight request
@@ -24,6 +24,12 @@ Deno.serve(async (req) => {
     // Get progress tracking ID from headers if available
     const progressId = req.headers.get('X-Progress-ID');
     console.log(`Progress ID: ${progressId || 'none'}`);
+    
+    // Initialize Supabase client
+    const supabaseClient = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+    );
     
     // Fetch Excel data from the uploaded file
     const formData = await req.formData();
@@ -47,19 +53,81 @@ Deno.serve(async (req) => {
 
     console.log(`Processing file: ${file.name}, size: ${file.size} bytes`);
     
-    // Initialize Supabase client
-    const supabaseClient = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-    );
+    // Update progress
+    if (progressId) {
+      await updateProgress(supabaseClient, progressId, 'validating', 0, file.size, 'Procesando archivo Excel');
+    }
     
     // Stream process the Excel file to reduce memory usage
     const arrayBuffer = await file.arrayBuffer();
-    const workbook = XLSX.read(arrayBuffer, { type: 'array' });
+    
+    // Update progress
+    if (progressId) {
+      await updateProgress(supabaseClient, progressId, 'validating', 0, file.size, 'Analizando estructura del archivo');
+    }
+    
+    let workbook;
+    try {
+      workbook = XLSX.read(arrayBuffer, { type: 'array' });
+    } catch (parseError) {
+      console.error("Error parsing Excel file:", parseError);
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          message: `Error al leer el archivo Excel: ${parseError.message}`
+        }),
+        { 
+          headers: { 
+            ...corsHeaders,
+            'Content-Type': 'application/json' 
+          },
+          status: 400 
+        }
+      );
+    }
+    
+    if (!workbook || !workbook.SheetNames || workbook.SheetNames.length === 0) {
+      return new Response(
+        JSON.stringify({ 
+          success: false,
+          message: 'El archivo Excel no contiene hojas válidas'
+        }),
+        { 
+          headers: { 
+            ...corsHeaders,
+            'Content-Type': 'application/json' 
+          },
+          status: 400
+        }
+      );
+    }
+    
     const worksheet = workbook.Sheets[workbook.SheetNames[0]];
-    const jsonData = XLSX.utils.sheet_to_json(worksheet);
+    if (!worksheet) {
+      return new Response(
+        JSON.stringify({ 
+          success: false,
+          message: 'No se encontró la hoja de cálculo en el archivo Excel'
+        }),
+        { 
+          headers: { 
+            ...corsHeaders,
+            'Content-Type': 'application/json' 
+          },
+          status: 400
+        }
+      );
+    }
+    
+    // Update progress before the CPU-intensive conversion
+    if (progressId) {
+      await updateProgress(supabaseClient, progressId, 'validating', 0, file.size, 'Convirtiendo datos de Excel a JSON');
+    }
+    
+    // Enable defval option to convert empty cells to null, and raw:false to parse dates correctly
+    const jsonData = XLSX.utils.sheet_to_json(worksheet, { defval: null, raw: false });
 
-    if (jsonData.length === 0) {
+    if (!jsonData || jsonData.length === 0) {
       return new Response(
         JSON.stringify({ 
           success: false,
@@ -74,6 +142,8 @@ Deno.serve(async (req) => {
         }
       );
     }
+    
+    console.log(`Found ${jsonData.length} rows in the Excel file`);
     
     // Safety check - prevent processing extremely large files
     if (jsonData.length > MAX_ROWS_TOTAL) {
@@ -92,7 +162,10 @@ Deno.serve(async (req) => {
       );
     }
 
-    console.log(`Parsing ${jsonData.length} rows from Excel file`);
+    // Update progress
+    if (progressId) {
+      await updateProgress(supabaseClient, progressId, 'validating', 0, jsonData.length, 'Validando datos');
+    }
 
     // Define table columns and validation fields
     const tableColumns = [
@@ -141,20 +214,14 @@ Deno.serve(async (req) => {
 
       // Update progress in database if progress ID is available
       if (progressId) {
-        try {
-          await supabaseClient
-            .from('import_progress')
-            .upsert({
-              id: progressId,
-              status: 'validating',
-              processed: startIdx,
-              total: jsonData.length,
-              message: `Validando datos (${startIdx} de ${jsonData.length})`
-            });
-        } catch (progressError) {
-          console.error("Error updating progress:", progressError);
-          // Continue processing even if progress update fails
-        }
+        await updateProgress(
+          supabaseClient, 
+          progressId, 
+          'validating', 
+          startIdx, 
+          jsonData.length, 
+          `Validando datos (${startIdx} de ${jsonData.length})`
+        );
       }
       
       // Validate each record in the current chunk
@@ -164,34 +231,80 @@ Deno.serve(async (req) => {
           const rowIndex = startIdx + i;
           const transformedRow = {};
           
+          // Check if row has any data
+          if (!row || Object.keys(row).length === 0) {
+            // Skip completely empty rows
+            continue;
+          }
+          
           tableColumns.forEach(column => {
+            // Skip missing fields
             if (row[column] === undefined || row[column] === null || row[column] === '') {
-              return; // Skip this field
+              return;
             }
             
-            if (numericFields.includes(column)) {
-              const numValue = parseFloat(row[column]);
-              if (isNaN(numValue)) {
-                throw new Error(`El valor '${row[column]}' en la columna '${column}' no es un número válido`);
+            try {
+              if (numericFields.includes(column)) {
+                // Handle numeric fields
+                let numValue;
+                if (typeof row[column] === 'string') {
+                  // Remove any non-numeric characters except decimal point
+                  const cleanedValue = row[column].toString().replace(/[^\d.-]/g, '');
+                  numValue = parseFloat(cleanedValue);
+                } else {
+                  numValue = parseFloat(row[column]);
+                }
+                
+                if (isNaN(numValue)) {
+                  throw new Error(`El valor '${row[column]}' en la columna '${column}' no es un número válido`);
+                }
+                transformedRow[column] = numValue;
+              } 
+              else if (dateFields.includes(column)) {
+                // Handle date fields
+                let dateValue;
+                if (row[column] instanceof Date) {
+                  dateValue = row[column];
+                } else {
+                  // Try parsing as string first
+                  dateValue = new Date(row[column]);
+                  
+                  // If that doesn't work, try Excel date number conversion
+                  if (isNaN(dateValue.getTime()) && typeof row[column] === 'number') {
+                    dateValue = XLSX.SSF.parse_date_code(row[column]);
+                  }
+                }
+                
+                if (isNaN(dateValue.getTime())) {
+                  throw new Error(`El valor '${row[column]}' en la columna '${column}' no es una fecha válida`);
+                }
+                transformedRow[column] = dateValue;
+              } 
+              else if (column === 'armado' && (typeof row[column] === 'string' || typeof row[column] === 'boolean')) {
+                // Handle boolean fields
+                if (typeof row[column] === 'string') {
+                  const lowerValue = row[column].toLowerCase();
+                  transformedRow[column] = lowerValue === 'si' || lowerValue === 'sí' || 
+                                          lowerValue === 'true' || lowerValue === 'verdadero' || 
+                                          lowerValue === '1' || lowerValue === 'y' || 
+                                          lowerValue === 'yes';
+                } else {
+                  transformedRow[column] = !!row[column];
+                }
+              } 
+              else {
+                // Handle string and other fields
+                transformedRow[column] = row[column];
               }
-              transformedRow[column] = numValue;
-            } 
-            else if (dateFields.includes(column)) {
-              const dateValue = new Date(row[column]);
-              if (isNaN(dateValue.getTime())) {
-                throw new Error(`El valor '${row[column]}' en la columna '${column}' no es una fecha válida`);
-              }
-              transformedRow[column] = dateValue;
-            } 
-            else if (column === 'armado' && typeof row[column] === 'string') {
-              transformedRow[column] = row[column].toLowerCase() === 'si' || row[column] === true;
-            } 
-            else {
-              transformedRow[column] = row[column];
+            } catch (fieldError) {
+              throw new Error(`Error en columna '${column}': ${fieldError.message}`);
             }
           });
 
-          transformedData.push(transformedRow);
+          // Only add the row if it has at least one non-null field
+          if (Object.keys(transformedRow).length > 0) {
+            transformedData.push(transformedRow);
+          }
         } catch (error) {
           errors.push({
             row: startIdx + i + 1, // +1 to account for header row
@@ -200,14 +313,25 @@ Deno.serve(async (req) => {
         }
       }
       
-      // Force GC between validation chunks by creating a small delay
-      await new Promise(resolve => setTimeout(resolve, 50));
+      // Force memory cleanup between validation chunks
+      await new Promise(resolve => setTimeout(resolve, 100));
     }
 
     console.log(`Data validated: ${transformedData.length} valid rows, ${errors.length} errors`);
 
     // If there are validation errors, return them
     if (errors.length > 0) {
+      if (progressId) {
+        await updateProgress(
+          supabaseClient, 
+          progressId, 
+          'error', 
+          0, 
+          jsonData.length, 
+          `Se encontraron ${errors.length} errores en los datos`
+        );
+      }
+      
       return new Response(
         JSON.stringify({ 
           success: false,
@@ -227,6 +351,7 @@ Deno.serve(async (req) => {
     // Process in much smaller batches to avoid resource limits
     let insertedCount = 0;
     const totalBatches = Math.ceil(transformedData.length / MAX_ROWS_PER_BATCH);
+    console.log(`Will process data in ${totalBatches} batches of ${MAX_ROWS_PER_BATCH} rows each`);
 
     for (let batchNum = 0; batchNum < totalBatches; batchNum++) {
       const startIdx = batchNum * MAX_ROWS_PER_BATCH;
@@ -237,20 +362,14 @@ Deno.serve(async (req) => {
       
       // Update progress if progress tracking ID is available
       if (progressId) {
-        try {
-          await supabaseClient
-            .from('import_progress')
-            .upsert({
-              id: progressId,
-              status: 'importing',
-              processed: startIdx,
-              total: transformedData.length,
-              message: `Importando datos (${startIdx} de ${transformedData.length})`
-            });
-        } catch (progressError) {
-          console.error("Error updating progress:", progressError);
-          // Continue processing even if progress update fails
-        }
+        await updateProgress(
+          supabaseClient, 
+          progressId, 
+          'importing', 
+          insertedCount, 
+          transformedData.length, 
+          `Importando datos (${insertedCount} de ${transformedData.length})`
+        );
       }
       
       try {
@@ -260,6 +379,19 @@ Deno.serve(async (req) => {
 
         if (insertError) {
           console.error(`Batch ${batchNum + 1} error:`, insertError);
+          
+          // Update progress to error status
+          if (progressId) {
+            await updateProgress(
+              supabaseClient, 
+              progressId, 
+              'error', 
+              insertedCount, 
+              transformedData.length, 
+              `Error en el lote ${batchNum + 1}: ${insertError.message}`
+            );
+          }
+          
           return new Response(
             JSON.stringify({ 
               success: false,
@@ -282,6 +414,19 @@ Deno.serve(async (req) => {
         console.log(`Progress: ${insertedCount}/${transformedData.length} records inserted`);
       } catch (batchError) {
         console.error(`Batch ${batchNum + 1} exception:`, batchError);
+        
+        // Update progress to error status
+        if (progressId) {
+          await updateProgress(
+            supabaseClient, 
+            progressId, 
+            'error', 
+            insertedCount, 
+            transformedData.length, 
+            `Error en el lote ${batchNum + 1}: ${batchError.message}`
+          );
+        }
+        
         return new Response(
           JSON.stringify({ 
             success: false,
@@ -305,19 +450,14 @@ Deno.serve(async (req) => {
 
     // Update final status if progress tracking is enabled
     if (progressId) {
-      try {
-        await supabaseClient
-          .from('import_progress')
-          .upsert({
-            id: progressId,
-            status: 'completed',
-            processed: transformedData.length,
-            total: transformedData.length,
-            message: `Se importaron ${transformedData.length} registros exitosamente`
-          });
-      } catch (progressError) {
-        console.error("Error updating final progress:", progressError);
-      }
+      await updateProgress(
+        supabaseClient, 
+        progressId, 
+        'completed', 
+        transformedData.length, 
+        transformedData.length, 
+        `Se importaron ${transformedData.length} registros exitosamente`
+      );
     }
 
     console.log('Import completed successfully');
@@ -334,7 +474,7 @@ Deno.serve(async (req) => {
       }
     );
   } catch (error) {
-    console.error('Error:', error);
+    console.error('Unhandled error:', error);
     return new Response(
       JSON.stringify({ 
         success: false,
@@ -351,3 +491,31 @@ Deno.serve(async (req) => {
     );
   }
 });
+
+// Helper function to update progress tracking
+async function updateProgress(
+  supabase,
+  progressId: string,
+  status: 'validating' | 'importing' | 'completed' | 'error',
+  processed: number,
+  total: number,
+  message: string
+) {
+  try {
+    await supabase
+      .from('import_progress')
+      .upsert({
+        id: progressId,
+        status,
+        processed,
+        total,
+        message,
+        updated_at: new Date().toISOString()
+      });
+      
+    return true;
+  } catch (error) {
+    console.error("Error updating progress:", error);
+    return false;
+  }
+}

@@ -4,7 +4,7 @@ import { toast } from "sonner";
 import { ProgressCallback, ImportResponse } from "./types";
 import { callImportApi, checkImportProgress } from "./api/importApi";
 import { handleImportError } from "./utils/errorHandler";
-import { handleImportResponse } from "./utils/responseHandler";
+import { handleImportResponse, progressToResponse } from "./utils/responseHandler";
 
 export async function importServiciosData(
   file: File, 
@@ -18,6 +18,22 @@ export async function importServiciosData(
       });
       return { success: false, message: "El archivo excede el tamaño máximo permitido" };
     }
+    
+    // Validate file type (must be Excel)
+    const validExcelTypes = [
+      'application/vnd.ms-excel',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      'application/vnd.ms-excel.sheet.macroEnabled.12'
+    ];
+    
+    if (!validExcelTypes.includes(file.type)) {
+      toast.error("Tipo de archivo incorrecto", {
+        description: "Por favor seleccione un archivo de Excel (.xls, .xlsx)."
+      });
+      return { success: false, message: "El formato de archivo no es válido. Solo se permiten archivos Excel (.xls, .xlsx)" };
+    }
+    
+    console.log(`Importing file: ${file.name} (${file.size} bytes, type: ${file.type})`);
     
     const toastId = "import-toast";
     const formData = new FormData();
@@ -71,12 +87,14 @@ export async function importServiciosData(
     
     // Set up abort controller with longer timeout for large files
     const abortController = new AbortController();
-    const timeoutId = setTimeout(() => abortController.abort(), 120000); // 2 minutes
+    const timeoutId = setTimeout(() => abortController.abort(), 180000); // 3 minutes
     
     try {
       // Start the import process
       const initialResponse = await callImportApi(formData, accessToken, abortController);
       clearTimeout(timeoutId);
+      
+      console.log("Initial import response:", initialResponse);
       
       // If we have a progress ID, start polling for progress updates
       if (initialResponse.progressId && onProgress) {
@@ -84,33 +102,35 @@ export async function importServiciosData(
         let isComplete = false;
         let errorOccurred = false;
         
+        console.log("Starting progress polling for ID:", initialResponse.progressId);
+        
         // Poll for progress updates every 3 seconds
         const pollInterval = setInterval(async () => {
           try {
-            const progressResponse = await checkImportProgress(initialResponse.progressId!);
+            const progressData = await checkImportProgress(initialResponse.progressId!);
+            console.log("Progress update:", progressData);
             
-            // If we got a successful response, the import is complete
-            if (progressResponse.success) {
+            // Update progress callback with current status
+            onProgress(
+              progressData.message || "Procesando datos...", 
+              progressData.processed, 
+              progressData.total
+            );
+            
+            // Check for completion
+            if (progressData.status === 'completed') {
+              console.log("Import completed successfully");
               isComplete = true;
               clearInterval(pollInterval);
-              return handleImportResponse(progressResponse);
-            }
-            
-            // Extract progress data from message if still in progress
-            const messageMatch = progressResponse.message?.match(/(\d+) de (\d+)/);
-            if (messageMatch && messageMatch.length === 3) {
-              const processed = parseInt(messageMatch[1], 10);
-              const total = parseInt(messageMatch[2], 10);
-              if (!isNaN(processed) && !isNaN(total) && total > 0) {
-                onProgress(progressResponse.message || "Procesando datos...", processed, total);
-              }
+              return;
             }
             
             // Check for error status
-            if (progressResponse.message?.includes("Error")) {
+            if (progressData.status === 'error') {
+              console.error("Import failed:", progressData.message);
               errorOccurred = true;
               clearInterval(pollInterval);
-              return handleImportError(new Error(progressResponse.message), toastId);
+              return;
             }
           } catch (pollError) {
             console.error("Error polling for progress:", pollError);
@@ -156,6 +176,7 @@ export async function importServiciosData(
       return handleImportError(fetchError, toastId);
     }
   } catch (error) {
+    console.error("Unhandled error in import process:", error);
     return handleImportError(error, "import-toast");
   }
 }
