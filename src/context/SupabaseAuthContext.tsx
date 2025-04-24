@@ -27,6 +27,7 @@ interface AuthContextProps {
   updateUserRole: (userId: string, role: UserRole) => Promise<{ success: boolean; error?: any }>;
   getAllUsers: () => Promise<UserData[]>;
   verifyEmail: (userId: string) => Promise<{ success: boolean; error?: any }>;
+  refreshSession: () => Promise<boolean>;
 }
 
 const AuthContext = createContext<AuthContextProps | undefined>(undefined);
@@ -85,52 +86,114 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
   };
 
+  // Función para actualizar el último inicio de sesión del usuario
+  const updateLastLogin = async (userId: string) => {
+    try {
+      await supabase
+        .from('profiles')
+        .update({ last_login: new Date().toISOString() })
+        .eq('id', userId);
+    } catch (error) {
+      console.error('Error updating last login:', error);
+    }
+  };
+
+  // Función para refrescar la sesión
+  const refreshSession = async (): Promise<boolean> => {
+    try {
+      const { data, error } = await supabase.auth.refreshSession();
+      
+      if (error) {
+        console.error('Error refreshing session:', error);
+        return false;
+      }
+      
+      if (data && data.session) {
+        setSession(data.session);
+        setUser(data.session.user);
+        
+        // Actualizar userData
+        if (data.session.user) {
+          const userData = await mapUserData(data.session.user);
+          setUserData(userData);
+        }
+        
+        return true;
+      }
+      
+      return false;
+    } catch (error) {
+      console.error('Error in refreshSession:', error);
+      return false;
+    }
+  };
+
   // Set up the auth state listener
   useEffect(() => {
-    // Set up the auth state listener
+    setLoading(true);
+    
+    // Primero, configura el listener de eventos de autenticación
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        setSession(session);
-        setUser(session?.user || null);
-
-        // Update user data if we have a session
-        if (session?.user) {
-          try {
-            const userData = await mapUserData(session.user);
-            setUserData(userData);
-          } catch (error) {
-            console.error('Error mapping user data:', error);
-            setUserData(null);
+      async (event, newSession) => {
+        console.log('Auth state changed:', event, !!newSession);
+        
+        if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+          setSession(newSession);
+          setUser(newSession?.user || null);
+          
+          if (newSession?.user) {
+            try {
+              // Actualizar último inicio de sesión
+              await updateLastLogin(newSession.user.id);
+              
+              // Obtener datos completos del usuario
+              const userData = await mapUserData(newSession.user);
+              setUserData(userData);
+            } catch (error) {
+              console.error('Error mapping user data on auth change:', error);
+            }
           }
-        } else {
+        } else if (event === 'SIGNED_OUT') {
+          setSession(null);
+          setUser(null);
           setUserData(null);
         }
-
+        
         setLoading(false);
       }
     );
 
-    // Check for existing session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user || null);
-      
-      if (session?.user) {
-        // We defer this to prevent auth deadlocks
-        setTimeout(async () => {
-          try {
-            const userData = await mapUserData(session.user);
-            setUserData(userData);
-          } catch (error) {
-            console.error('Error mapping user data:', error);
-          } finally {
-            setLoading(false);
+    // Segundo, verificar si hay una sesión existente
+    const checkExistingSession = async () => {
+      try {
+        const { data } = await supabase.auth.getSession();
+        
+        if (data?.session) {
+          setSession(data.session);
+          setUser(data.session.user);
+          
+          // Procesar los datos del usuario si hay sesión
+          if (data.session.user) {
+            try {
+              // Actualizar último inicio de sesión
+              await updateLastLogin(data.session.user.id);
+              
+              // Mapear datos de usuario
+              const userData = await mapUserData(data.session.user);
+              setUserData(userData);
+            } catch (error) {
+              console.error('Error mapping user data on init:', error);
+            }
           }
-        }, 0);
-      } else {
+        }
+      } catch (error) {
+        console.error('Error checking existing session:', error);
+      } finally {
         setLoading(false);
       }
-    });
+    };
+    
+    checkExistingSession();
 
     return () => {
       subscription.unsubscribe();
@@ -139,6 +202,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const signIn = async (email: string, password: string) => {
     try {
+      setLoading(true);
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
@@ -146,15 +210,31 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       if (error) throw error;
       
+      if (data.user) {
+        // Actualizar último inicio de sesión
+        await updateLastLogin(data.user.id);
+        
+        // Actualizar usuario y datos de usuario
+        const userData = await mapUserData(data.user);
+        setUserData(userData);
+        console.log('Usuario autenticado:', userData);
+        
+        toast.success(`¡Bienvenido de nuevo, ${userData.displayName || email}!`);
+      }
+      
       return { user: data.user, error: null };
     } catch (error: any) {
+      console.error('Error de inicio de sesión:', error);
       toast.error(`Error al iniciar sesión: ${error.message}`);
       return { user: null, error };
+    } finally {
+      setLoading(false);
     }
   };
 
   const signUp = async (email: string, password: string, options?: { data?: object }) => {
     try {
+      setLoading(true);
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
@@ -168,15 +248,29 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } catch (error: any) {
       toast.error(`Error al crear cuenta: ${error.message}`);
       return { user: null, error };
+    } finally {
+      setLoading(false);
     }
   };
 
   const signOut = async () => {
     try {
-      await supabase.auth.signOut();
+      setLoading(true);
+      const { error } = await supabase.auth.signOut();
+      
+      if (error) throw error;
+      
+      // Limpiar estado local
+      setSession(null);
+      setUser(null);
+      setUserData(null);
+      
       toast.success('Sesión cerrada con éxito');
     } catch (error: any) {
+      console.error('Error al cerrar sesión:', error);
       toast.error(`Error al cerrar sesión: ${error.message}`);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -285,6 +379,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     updateUserRole,
     getAllUsers,
     verifyEmail,
+    refreshSession,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

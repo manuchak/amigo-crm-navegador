@@ -1,9 +1,10 @@
 
 import React, { useEffect, useState } from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
-import { useAuth } from '@/context/SupabaseAuthContext'; // Updated import
+import { useAuth } from '@/context/SupabaseAuthContext';
 import { Loader2 } from 'lucide-react';
 import { useRolePermissions } from '@/hooks/useRolePermissions';
+import { Button } from '@/components/ui/button';
 
 interface AuthGuardProps {
   children: React.ReactNode;
@@ -11,48 +12,63 @@ interface AuthGuardProps {
 }
 
 const AuthGuard: React.FC<AuthGuardProps> = ({ children, requiredRole }) => {
-  const { user, loading } = useAuth();
+  const { user, loading, refreshSession } = useAuth();
   const location = useLocation();
   const { hasPermission } = useRolePermissions();
   const [hasPageAccess, setHasPageAccess] = useState<boolean | null>(null);
   const [checkingAccess, setCheckingAccess] = useState(true);
+  const [retryCount, setRetryCount] = useState(0);
   
   // Extract page ID from the current path
   const pageId = location.pathname.split('/')[1] || 'dashboard';
   
-  // Check if the user has permission to access this page
-  useEffect(() => {
-    const checkAccess = async () => {
-      if (!user) {
-        setHasPageAccess(false);
+  // Function to handle session refresh when needed
+  const handleRefreshSession = async () => {
+    setRetryCount(prev => prev + 1);
+    const success = await refreshSession();
+    if (success) {
+      checkAccess();
+    }
+  };
+  
+  // Function to check if user has access to this page
+  const checkAccess = async () => {
+    setCheckingAccess(true);
+    
+    try {
+      // No permission check needed for the auth page
+      if (pageId === 'auth') {
+        setHasPageAccess(true);
         setCheckingAccess(false);
         return;
       }
       
-      try {
-        // No permission check needed for the auth page
-        if (pageId === 'auth') {
-          setHasPageAccess(true);
-          setCheckingAccess(false);
-          return;
-        }
-        
-        // Check if the user has permission to access this page
-        const canAccess = await hasPermission('page', pageId);
-        setHasPageAccess(canAccess);
-      } catch (error) {
-        console.error('Error checking page access:', error);
-        // Default to allow access if there's an error checking permissions
-        setHasPageAccess(true);
-      } finally {
-        setCheckingAccess(false);
+      if (!user) {
+        console.log('No user found, denying access');
+        setHasPageAccess(false);
+        return;
       }
-    };
-    
+      
+      // Check if the user has permission to access this page
+      const canAccess = await hasPermission('page', pageId);
+      console.log(`Permission check for ${pageId}: ${canAccess}`);
+      setHasPageAccess(canAccess);
+    } catch (error) {
+      console.error('Error checking page access:', error);
+      // Default to allow access if there's an error checking permissions
+      // to prevent users from being locked out
+      setHasPageAccess(true);
+    } finally {
+      setCheckingAccess(false);
+    }
+  };
+  
+  // Check access when user, loading state, pageId or retry count changes
+  useEffect(() => {
     if (!loading) {
       checkAccess();
     }
-  }, [user, loading, pageId, hasPermission]);
+  }, [user, loading, pageId, retryCount]);
   
   if (loading || checkingAccess) {
     return (
@@ -95,13 +111,20 @@ const AuthGuard: React.FC<AuthGuardProps> = ({ children, requiredRole }) => {
           <p className="text-muted-foreground mt-2">
             No tienes permisos para acceder a esta página. Contacta con un administrador si crees que deberías tener acceso.
           </p>
-          <Button
-            onClick={() => window.location.href = '/dashboard'}
-            className="mt-4"
-            variant="outline"
-          >
-            Volver al Dashboard
-          </Button>
+          <div className="flex gap-2 mt-4">
+            <Button
+              onClick={() => window.location.href = '/dashboard'}
+              variant="outline"
+            >
+              Volver al Dashboard
+            </Button>
+            <Button
+              onClick={handleRefreshSession}
+              variant="default"
+            >
+              Actualizar permisos
+            </Button>
+          </div>
         </div>
       </div>
     );
@@ -109,34 +132,6 @@ const AuthGuard: React.FC<AuthGuardProps> = ({ children, requiredRole }) => {
   
   // User is authenticated and has access to the page
   return <>{children}</>;
-};
-
-// Button component for the access denied page
-const Button = ({ 
-  children, 
-  onClick, 
-  className = '', 
-  variant = 'default' 
-}: { 
-  children: React.ReactNode;
-  onClick: () => void;
-  className?: string;
-  variant?: 'default' | 'outline'; 
-}) => {
-  const baseStyles = "px-4 py-2 rounded font-medium focus:outline-none focus:ring-2 focus:ring-offset-2";
-  const variantStyles = {
-    default: "bg-primary text-white hover:bg-primary/90 focus:ring-primary",
-    outline: "border border-gray-300 bg-white text-gray-700 hover:bg-gray-50 focus:ring-gray-500"
-  };
-  
-  return (
-    <button 
-      className={`${baseStyles} ${variantStyles[variant]} ${className}`} 
-      onClick={onClick}
-    >
-      {children}
-    </button>
-  );
 };
 
 export default AuthGuard;
