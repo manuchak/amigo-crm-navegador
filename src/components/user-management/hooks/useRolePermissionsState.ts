@@ -20,6 +20,19 @@ export function useRolePermissionsState() {
         setIsOwner(ownerStatus);
       } catch (err) {
         console.error('Error checking owner status:', err);
+        // Fallback check from localStorage directly if the async check fails
+        if (typeof window !== 'undefined') {
+          try {
+            const userData = JSON.parse(localStorage.getItem('current_user') || '{}');
+            if (userData && userData.role === 'owner') {
+              console.log('Owner status from localStorage fallback: ✅ Yes');
+              setIsOwner(true);
+              return;
+            }
+          } catch (e) {
+            console.error('localStorage parsing error:', e);
+          }
+        }
         setIsOwner(false);
       }
     };

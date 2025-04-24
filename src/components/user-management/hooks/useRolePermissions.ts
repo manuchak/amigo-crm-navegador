@@ -43,6 +43,7 @@ export function useRolePermissions() {
       console.log('Starting save permissions operation...');
       
       await savePermissionsToDatabase(state.permissions);
+      toast.success('Permisos guardados correctamente');
       
     } catch (error: any) {
       console.error('Handle save permissions error:', error);

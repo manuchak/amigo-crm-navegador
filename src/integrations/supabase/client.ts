@@ -168,6 +168,13 @@ export const getAuthenticatedClient = async () => {
  */
 export const checkUserPermission = async (permissionType: 'page' | 'action', permissionId: string): Promise<boolean> => {
   try {
+    // First check if user is owner - owners have all permissions
+    const isOwner = await checkForOwnerRole();
+    if (isOwner) {
+      console.log(`Owner permission check for ${permissionType}:${permissionId}: ✅ Granted`);
+      return true;
+    }
+    
     const client = await getAuthenticatedClient();
     
     // Use RLS policies to enforce permissions
@@ -188,6 +195,18 @@ export const checkUserPermission = async (permissionType: 'page' | 'action', per
     return data?.allowed || false;
   } catch (error) {
     console.error("Error checking permission:", error);
+    
+    // Last resort fallback for owners
+    try {
+      const ownerStatus = await checkForOwnerRole();
+      if (ownerStatus) {
+        console.log(`Emergency owner permission check for ${permissionType}:${permissionId}: ✅ Granted`);
+        return true;
+      }
+    } catch (e) {
+      console.error("Failed even owner fallback check:", e);
+    }
+    
     return false;
   }
 };

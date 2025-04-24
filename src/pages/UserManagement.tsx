@@ -32,16 +32,19 @@ const UserManagement = () => {
   const [isConfirmationOpen, setIsConfirmationOpen] = useState(false);
   const [newRole, setNewRole] = useState<UserRole>('unverified');
   const [activeTab, setActiveTab] = useState('all-users');
+  const [error, setError] = useState<string | null>(null);
   
   useEffect(() => {
     const fetchUsers = async () => {
       try {
         setLoading(true);
+        setError(null);
         const allUsers = await getAllUsers();
         console.log("Fetched users:", allUsers);
         setUsers(allUsers || []);
-      } catch (error) {
+      } catch (error: any) {
         console.error('Error fetching users:', error);
+        setError(error?.message || 'Error al cargar los usuarios');
         toast.error('Error al cargar los usuarios');
       } finally {
         setLoading(false);
@@ -75,9 +78,9 @@ const UserManagement = () => {
       setIsEditDialogOpen(false);
       setIsConfirmationOpen(true);
       toast.success(`Rol actualizado a ${newRole} para ${selectedUser.displayName || selectedUser.email}`);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error updating role:', error);
-      toast.error('Error al actualizar el rol del usuario');
+      toast.error('Error al actualizar el rol del usuario: ' + (error?.message || ''));
     }
   };
   
@@ -91,25 +94,9 @@ const UserManagement = () => {
       ));
       
       toast.success(`Email verificado para ${user.displayName || user.email}`);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error verifying user email:', error);
-      toast.error('Error al verificar el email del usuario');
-    }
-  };
-
-  const handleAssignRole = async (user: UserData, role: UserRole) => {
-    try {
-      await updateUserRole(user.uid, role);
-      
-      // Update the user in the local state
-      setUsers(users.map(u => 
-        u.uid === user.uid ? { ...u, role } : u
-      ));
-      
-      toast.success(`Usuario ${user.displayName || user.email} asignado como ${role}`);
-    } catch (error) {
-      console.error('Error assigning role:', error);
-      toast.error('Error al asignar rol al usuario');
+      toast.error('Error al verificar el email del usuario: ' + (error?.message || ''));
     }
   };
 
@@ -124,6 +111,24 @@ const UserManagement = () => {
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
           <p className="text-muted-foreground">Cargando usuarios...</p>
         </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="container mx-auto py-20 px-4">
+        <Card className="shadow-md">
+          <CardHeader>
+            <CardTitle>Error</CardTitle>
+            <CardDescription className="text-red-500">{error}</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button variant="outline" onClick={() => window.location.reload()}>
+              Reintentar
+            </Button>
+          </CardContent>
+        </Card>
       </div>
     );
   }

@@ -89,11 +89,16 @@ export function usePermissionsData() {
         
         // Additional debugging for authentication errors
         console.error('Authentication error details:', err);
+        console.log('Trying owner role check after auth error...');
         
         // Check owner status again as fallback
-        const ownerStatus = await checkForOwnerRole();
-        console.log('Fallback owner status check:', ownerStatus ? '✅ Yes' : '❌ No');
-        setIsOwner(ownerStatus);
+        try {
+          const ownerStatus = await checkForOwnerRole();
+          console.log('Fallback owner status check:', ownerStatus ? '✅ Yes' : '❌ No');
+          setIsOwner(ownerStatus);
+        } catch (ownerCheckError) {
+          console.error('Even fallback owner check failed:', ownerCheckError);
+        }
       } else {
         setError(errorMessage);
       }
