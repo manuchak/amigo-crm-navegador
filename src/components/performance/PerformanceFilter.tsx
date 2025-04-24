@@ -8,6 +8,8 @@ import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import { DateRange } from "react-day-picker";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
+import { Input } from "@/components/ui/input";
+import { importServiciosData } from './services/performanceDataService';
 
 interface PerformanceFilterProps {
   dateRange: DateRange;
@@ -15,6 +17,17 @@ interface PerformanceFilterProps {
 }
 
 export function PerformanceFilter({ dateRange, setDateRange }: PerformanceFilterProps) {
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      try {
+        await importServiciosData(file);
+      } catch (error) {
+        console.error("Error handling file upload:", error);
+      }
+    }
+  };
+
   return (
     <Card className="border-0 shadow-md bg-white/90">
       <CardContent className="p-4">
@@ -54,6 +67,18 @@ export function PerformanceFilter({ dateRange, setDateRange }: PerformanceFilter
           </div>
 
           <div className="flex items-center gap-3">
+            <Input
+              type="file"
+              accept=".xlsx,.xls"
+              onChange={handleFileUpload}
+              className="hidden"
+              id="servicios-file-upload"
+            />
+            <label htmlFor="servicios-file-upload">
+              <Button variant="outline" size="sm" className="whitespace-nowrap" asChild>
+                <span>Importar Servicios</span>
+              </Button>
+            </label>
             <Button size="sm" variant="outline" className="whitespace-nowrap">
               Exportar datos
             </Button>
