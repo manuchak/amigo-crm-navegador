@@ -9,7 +9,7 @@ import { DateRange } from "react-day-picker";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { Input } from "@/components/ui/input";
-import { importServiciosData } from './services/performanceDataService';
+import { importServiciosData } from './services/import/importService';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertCircle } from "lucide-react";
@@ -28,70 +28,95 @@ export function PerformanceFilter({ dateRange, setDateRange }: PerformanceFilter
   const [importStatus, setImportStatus] = useState('');
   const [totalRows, setTotalRows] = useState(0);
   const [processedRows, setProcessedRows] = useState(0);
+  const [abortController, setAbortController] = useState<AbortController | null>(null);
 
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
-      setIsUploading(true);
-      setUploadProgress(10); // Start progress
-      setImportStatus('Analizando archivo...');
+      // Cancel any ongoing import
+      if (abortController) {
+        abortController.abort();
+      }
       
-      // Update progress during upload/processing
-      const progressInterval = setInterval(() => {
-        setUploadProgress(prev => {
-          // Progress more slowly to avoid reaching 100% too early
-          const increment = prev < 30 ? 5 : (prev < 60 ? 3 : 1);
-          const newProgress = prev + increment;
-          return newProgress < 90 ? newProgress : prev;
-        });
-      }, 500);
+      // Create a new abort controller for this import
+      const newAbortController = new AbortController();
+      setAbortController(newAbortController);
+      
+      setIsUploading(true);
+      setUploadProgress(5); // Start progress
+      setImportStatus('Analizando archivo...');
+      setImportErrors([]);
       
       try {
-        setImportStatus('Procesando datos...');
-        const result = await importServiciosData(file, 
-          // Progress callback
+        const result = await importServiciosData(
+          file, 
+          // Progress callback with improved status reporting
           (status, processed, total) => {
+            setImportStatus(status);
+            
             if (total > 0) {
               setTotalRows(total);
               setProcessedRows(processed);
-              setImportStatus(status);
-              // Calculate progress based on actual data processing
-              const dataProcessingProgress = Math.min(90, Math.floor((processed / total) * 90));
-              setUploadProgress(dataProcessingProgress);
+              
+              // Calculate progress with weighting - processing takes more time than validation
+              let calculatedProgress;
+              
+              if (status.includes("validando") || status.includes("Validando")) {
+                // Validation is 0-40% of the total progress
+                calculatedProgress = Math.min(40, Math.floor((processed / total) * 40));
+              } else {
+                // Importing is 40-95% of the total progress
+                calculatedProgress = 40 + Math.min(55, Math.floor((processed / total) * 55));
+              }
+              
+              setUploadProgress(calculatedProgress);
             }
           }
         );
-        
-        clearInterval(progressInterval);
         
         if (result.success) {
           setImportStatus('¡Importación completada!');
           setUploadProgress(100);
         } else {
           setImportStatus('Error en la importación');
-          if (result.errors) {
+          if (result.errors && result.errors.length > 0) {
             setImportErrors(result.errors);
             setShowErrorDialog(true);
           }
           setUploadProgress(0);
         }
         
+        // Reset the file input value so the same file can be uploaded again if needed
+        event.target.value = '';
+        
         setTimeout(() => {
-          setUploadProgress(0);
-          setImportStatus('');
-        }, 3000); // Reset after showing completed
+          if (result.success) {
+            setUploadProgress(0);
+            setImportStatus('');
+          }
+        }, 3000); // Keep success message visible for 3 seconds
         
       } catch (error) {
         console.error("Error handling file upload:", error);
         setImportStatus('Error en la importación');
-        clearInterval(progressInterval);
         setUploadProgress(0);
       } finally {
         setIsUploading(false);
-        clearInterval(progressInterval);
-        // Reset the file input value so the same file can be uploaded again if needed
+        setAbortController(null);
+        // Reset the file input value
         event.target.value = '';
       }
+    }
+  };
+
+  // Add a cancel import function
+  const handleCancelImport = () => {
+    if (abortController) {
+      abortController.abort();
+      setImportStatus('Importación cancelada');
+      setUploadProgress(0);
+      setIsUploading(false);
+      setAbortController(null);
     }
   };
 
@@ -148,6 +173,11 @@ export function PerformanceFilter({ dateRange, setDateRange }: PerformanceFilter
                   <span>{isUploading ? "Importando..." : "Importar Servicios"}</span>
                 </Button>
               </label>
+              {isUploading && (
+                <Button size="sm" variant="destructive" onClick={handleCancelImport} className="whitespace-nowrap">
+                  Cancelar
+                </Button>
+              )}
               <Button size="sm" variant="outline" className="whitespace-nowrap">
                 Exportar datos
               </Button>
@@ -157,7 +187,7 @@ export function PerformanceFilter({ dateRange, setDateRange }: PerformanceFilter
             </div>
           </div>
           
-          {/* Upload progress bar with more detailed status */}
+          {/* Enhanced upload progress bar with more detailed status */}
           {uploadProgress > 0 && (
             <div className="mt-4">
               <div className="flex justify-between text-xs text-muted-foreground mb-1">
@@ -167,9 +197,17 @@ export function PerformanceFilter({ dateRange, setDateRange }: PerformanceFilter
               <Progress value={uploadProgress} className="h-2" />
               
               {totalRows > 0 && (
-                <p className="text-xs text-muted-foreground mt-1">
-                  Procesando {processedRows} de {totalRows} registros
-                </p>
+                <div className="text-xs text-muted-foreground mt-1 flex justify-between">
+                  <span>Procesando {processedRows} de {totalRows} registros</span>
+                  {isUploading && (
+                    <button 
+                      onClick={handleCancelImport}
+                      className="text-xs text-red-500 hover:text-red-700"
+                    >
+                      Cancelar importación
+                    </button>
+                  )}
+                </div>
               )}
             </div>
           )}

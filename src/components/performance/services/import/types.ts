@@ -9,4 +9,13 @@ export interface ImportResponse {
     message: string;
   }>;
   error?: unknown;
+  progressId?: string;
+}
+
+export interface ImportProgress {
+  id: string;
+  status: 'validating' | 'importing' | 'completed' | 'error';
+  processed: number;
+  total: number;
+  message: string;
 }
