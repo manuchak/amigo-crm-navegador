@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Loader2 } from 'lucide-react';
@@ -10,8 +11,8 @@ import {
   RoleChangeConfirmation,
   canEditUser
 } from '@/components/user-management';
-import UserManagementHeader from './UserManagementHeader';
-import useUserManagement from './hooks/useUserManagement';
+import UserManagementHeader from './user-management/UserManagementHeader';
+import useUserManagement from './user-management/hooks/useUserManagement';
 
 const UserManagementPanel = () => {
   const { getAllUsers, updateUserRole, verifyEmail, userData: currentUserData } = useAuth();

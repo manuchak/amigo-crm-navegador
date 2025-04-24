@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { useAuth } from '@/context/AuthContext';
 import {
   Card,
@@ -8,12 +8,7 @@ import {
   CardTitle,
   CardDescription,
 } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Button } from '@/components/ui/button';
-import { RefreshCw, Shield } from 'lucide-react';
-import { toast } from 'sonner';
-import { UserData } from '@/types/auth';
-import { UserManagementPanel } from '@/components/admin/UserManagementPanel';
+import UserManagementPanel from '@/components/admin/UserManagementPanel';
 
 const UserManagement = () => {
   const { userData: currentUserData, loading } = useAuth();
