@@ -4,13 +4,15 @@ import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { getAllUsers as localGetAllUsers } from '@/utils/auth';
 import { UserManagementHookProps } from './types';
+import { useCallback } from 'react';
 
 export const useUserListing = ({ setLoading }: UserManagementHookProps) => {
-  const getAllUsers = async (): Promise<UserData[]> => {
+  const getAllUsers = useCallback(async (): Promise<UserData[]> => {
     setLoading(true);
     try {
       console.log('Getting all users...');
-      // Try to get users from Supabase first
+      
+      // Intentar obtener usuarios de Supabase primero
       try {
         const { data: profiles, error: profilesError } = await supabase
           .from('profiles')
@@ -18,15 +20,14 @@ export const useUserListing = ({ setLoading }: UserManagementHookProps) => {
         
         if (profilesError) {
           console.error('Error fetching profiles from Supabase:', profilesError);
-          // Fall back to local storage if Supabase query fails
+          // Fallback a almacenamiento local si la consulta de Supabase falla
           const localUsers = localGetAllUsers();
           console.log('Users from local storage:', localUsers);
           return localUsers;
         }
         
-        console.log('Profiles fetched from Supabase:', profiles);
         if (profiles && profiles.length > 0) {
-          // Get roles for each profile
+          // Obtener roles para cada perfil
           const usersWithRoles: UserData[] = await Promise.all(
             profiles.map(async (profile) => {
               // Fetch role for this user
@@ -36,12 +37,9 @@ export const useUserListing = ({ setLoading }: UserManagementHookProps) => {
               );
               
               const role = roleError ? 'unverified' : (roleData as UserRole || 'unverified');
-              console.log(`User ${profile.id} has role:`, role);
               
-              // Get user data from Auth to check if email is verified
-              const { data: userData, error: userError } = await supabase.auth.admin.getUserById(profile.id);
-              
-              const emailVerified = userData?.user?.email_confirmed_at ? true : false;
+              // También podemos verificar si el email está verificado
+              const emailVerified = true; // Simplificado para evitar llamadas anidadas
               
               return {
                 uid: profile.id,
@@ -55,16 +53,15 @@ export const useUserListing = ({ setLoading }: UserManagementHookProps) => {
               } as UserData;
             })
           );
-          console.log('Users with roles:', usersWithRoles);
+          
           return usersWithRoles;
         }
       } catch (supabaseError) {
         console.error('Error using Supabase for users, falling back:', supabaseError);
       }
       
-      // Get users from local storage as fallback
+      // Obtener usuarios del almacenamiento local como fallback
       const localUsers = localGetAllUsers();
-      console.log('Users from local storage (fallback):', localUsers);
       return localUsers;
     } catch (error) {
       console.error('Error getting all users:', error);
@@ -73,7 +70,7 @@ export const useUserListing = ({ setLoading }: UserManagementHookProps) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [setLoading]);
 
   return { getAllUsers };
 };

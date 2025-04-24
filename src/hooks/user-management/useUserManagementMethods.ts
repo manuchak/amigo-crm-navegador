@@ -4,6 +4,7 @@ import { useRoleManagement } from './useRoleManagement';
 import { useUserVerification } from './useUserVerification';
 import { useUserListing } from './useUserListing';
 import { UserData } from '@/types/auth';
+import { useCallback } from 'react';
 
 export const useUserManagementMethods = (
   setUserData: React.Dispatch<React.SetStateAction<UserData | null>>,
@@ -20,11 +21,17 @@ export const useUserManagementMethods = (
   const { verifyEmail, setUserAsVerifiedOwner } = useUserVerification(props);
   const { getAllUsers } = useUserListing(props);
 
+  // Memoizamos los métodos principales para evitar regeneraciones innecesarias
+  const memoizedGetAllUsers = useCallback(getAllUsers, [getAllUsers]);
+  const memoizedUpdateUserRole = useCallback(updateUserRole, [updateUserRole]);
+  const memoizedVerifyEmail = useCallback(verifyEmail, [verifyEmail]);
+  const memoizedSetUserAsVerifiedOwner = useCallback(setUserAsVerifiedOwner, [setUserAsVerifiedOwner]);
+
   return {
-    updateUserRole,
-    getAllUsers,
-    verifyEmail,
-    setUserAsVerifiedOwner
+    updateUserRole: memoizedUpdateUserRole,
+    getAllUsers: memoizedGetAllUsers,
+    verifyEmail: memoizedVerifyEmail,
+    setUserAsVerifiedOwner: memoizedSetUserAsVerifiedOwner
   };
 };
 
