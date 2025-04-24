@@ -3,6 +3,7 @@ import { UserManagementHookProps, UserManagementMethods } from './types';
 import { useRoleManagement } from './useRoleManagement';
 import { useUserVerification } from './useUserVerification';
 import { useUserListing } from './useUserListing';
+import { UserData } from '@/types/auth';
 
 export const useUserManagementMethods = (
   setUserData: React.Dispatch<React.SetStateAction<UserData | null>>,

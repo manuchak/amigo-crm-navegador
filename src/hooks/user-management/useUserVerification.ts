@@ -5,7 +5,7 @@ import { verifyUserEmail, findUserByEmail, setAsVerifiedOwner } from '@/utils/au
 import { UserManagementHookProps } from './types';
 
 export const useUserVerification = ({ setLoading, refreshUserData }: UserManagementHookProps) => {
-  const verifyEmail = async (uid: string) => {
+  const verifyEmail = async (uid: string): Promise<{ success: boolean; error?: any }> => {
     setLoading(true);
     try {
       // Try to use the Supabase RPC function first
@@ -29,9 +29,11 @@ export const useUserVerification = ({ setLoading, refreshUserData }: UserManagem
       
       toast.success('Correo electrónico verificado con éxito');
       await refreshUserData();
+      return { success: true };
     } catch (error) {
       console.error('Error verifying email:', error);
       toast.error('Error al verificar el correo electrónico');
+      return { success: false, error };
     } finally {
       setLoading(false);
     }

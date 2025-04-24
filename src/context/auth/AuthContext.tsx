@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
@@ -39,7 +40,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const userManagementMethods = useUserManagementMethods(
     setUserData, 
     setLoading, 
-    authMethods.refreshUserData
+    async () => {
+      await authMethods.refreshUserData();
+      return;
+    }
   );
 
   const value: AuthContextProps = {
@@ -72,9 +76,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     },
     signOut: authMethods.signOut,
-    updateUserRole: userManagementMethods.updateUserRole,
+    updateUserRole: async (userId: string, role: UserRole) => {
+      return await userManagementMethods.updateUserRole(userId, role);
+    },
     getAllUsers: userManagementMethods.getAllUsers,
-    verifyEmail: userManagementMethods.verifyEmail,
+    verifyEmail: async (userId: string) => {
+      return await userManagementMethods.verifyEmail(userId);
+    },
     refreshSession: async () => {
       try {
         const { data } = await supabase.auth.refreshSession();

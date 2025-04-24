@@ -1,5 +1,5 @@
 
-import { UserData } from '@/types/auth';
+import { UserData, UserRole } from '@/types/auth';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { getAllUsers as localGetAllUsers } from '@/utils/auth';

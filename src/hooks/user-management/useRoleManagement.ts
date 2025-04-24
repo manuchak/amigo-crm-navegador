@@ -1,12 +1,12 @@
 
-import { UserRole, UserData } from '@/types/auth';
+import { UserRole } from '@/types/auth';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { updateUserRole as localUpdateUserRole } from '@/utils/auth';
 import { UserManagementHookProps } from './types';
 
 export const useRoleManagement = ({ setLoading, refreshUserData }: UserManagementHookProps) => {
-  const updateUserRole = async (uid: string, role: UserRole) => {
+  const updateUserRole = async (uid: string, role: UserRole): Promise<{ success: boolean; error?: any }> => {
     setLoading(true);
     try {
       // Try to use the Supabase RPC function first
@@ -31,9 +31,11 @@ export const useRoleManagement = ({ setLoading, refreshUserData }: UserManagemen
       
       toast.success('Rol de usuario actualizado con éxito');
       await refreshUserData();
+      return { success: true };
     } catch (error: any) {
       console.error('Error updating user role:', error);
       toast.error('Error al actualizar el rol de usuario: ' + error.message);
+      return { success: false, error };
     } finally {
       setLoading(false);
     }
