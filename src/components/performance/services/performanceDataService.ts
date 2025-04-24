@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -43,9 +42,18 @@ export async function importServiciosData(file: File) {
       description: "Por favor espere mientras procesamos el archivo..." 
     });
 
-    // Get current session
-    const { data: sessionData } = await supabase.auth.getSession();
-    const accessToken = sessionData?.session?.access_token || '';
+    // Get current session using newer method
+    const { data: { session } } = await supabase.auth.getSession();
+    
+    if (!session) {
+      toast.error("Error de autenticación", {
+        description: "No hay sesión activa. Por favor inicie sesión nuevamente."
+      });
+      return { success: false, message: "No hay sesión activa" };
+    }
+    
+    // Use the access_token from the active session
+    const accessToken = session.access_token;
     
     // Convert to regular fetch for better error handling
     const response = await fetch(
@@ -71,7 +79,6 @@ export async function importServiciosData(file: File) {
           errorMessage = errorData.message;
         }
       } catch (parseError) {
-        // JSON parsing failed, use default error message
         console.error("Error parsing error response:", parseError);
       }
       
@@ -115,7 +122,6 @@ export async function importServiciosData(file: File) {
     if (!responseData.success) {
       console.error("Error importing servicios data:", responseData);
       
-      // If there are specific validation errors, display them
       if (responseData.errors && responseData.errors.length > 0) {
         const errorMessages = responseData.errors.map((err) => 
           `Fila ${err.row}: ${err.message}`
@@ -128,7 +134,6 @@ export async function importServiciosData(file: File) {
           duration: 5000
         });
 
-        // Log full details to console for debugging
         console.table(responseData.errors);
       } else {
         toast.error("Error al importar datos", {
