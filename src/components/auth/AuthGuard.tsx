@@ -38,15 +38,17 @@ const AuthGuard: React.FC<AuthGuardProps> = ({ children, requiredRole }) => {
   const checkRoleAccess = (role: UserRole, page: string): boolean => {
     console.log(`Checking role access: ${role} for page: ${page}`);
     
+    // Admin and owner always have access to all pages
+    if (role === 'admin' || role === 'owner') {
+      return true;
+    }
+    
     switch (role) {
-      case 'admin':
-      case 'owner':
-        return true;
       case 'afiliados':
         return ['dashboard', 'leads', 'prospects'].includes(page);
       case 'supply':
       case 'supply_admin':
-        return ['dashboard', 'leads', 'validation'].includes(page);
+        return ['dashboard', 'leads', 'validation', 'requerimientos'].includes(page);
       case 'atención_afiliado':
         return ['dashboard', 'support'].includes(page);
       case 'pending':
@@ -83,13 +85,14 @@ const AuthGuard: React.FC<AuthGuardProps> = ({ children, requiredRole }) => {
       return;
     }
     
-    // Special case for admin/owner
+    // Special case for admin/owner - always grant access to all pages
     if (currentUser.role === 'admin' || currentUser.role === 'owner') {
+      console.log(`Admin/Owner role detected, granting full access to page: ${pageId}`);
       setAccessVerified(true);
       return;
     }
     
-    // Check role-based access
+    // Check role-based access for other roles
     const hasAccess = checkRoleAccess(currentUser.role, pageId);
     console.log(`Access decision for ${currentUser.role} to page ${pageId}: ${hasAccess ? 'Granted' : 'Denied'}`);
     

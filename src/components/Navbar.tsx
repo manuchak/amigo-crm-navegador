@@ -51,20 +51,27 @@ const Navbar = () => {
     
     if (currentUser && userData) {
       items.push({ name: 'Dashboard', path: '/dashboard' });
-      items.push({ name: 'Performance', path: '/performance' });
       
-      if (['atención_afiliado', 'admin', 'owner'].includes(userData.role)) {
-        items.push({ name: 'Leads', path: '/leads' });
-      }
-      
-      if (['supply', 'supply_admin', 'admin', 'owner'].includes(userData.role)) {
-        items.push({ name: 'Requerimientos', path: '/requerimientos' });
-      }
-      
-      items.push({ name: 'Atención al Afiliado', path: '/support' });
-      
+      // Admin y Owner tienen acceso a todo
       if (['admin', 'owner'].includes(userData.role)) {
-        items.push({ name: 'Administración', path: '/admin-config' });
+        items.push({ name: 'Performance', path: '/performance' });
+        items.push({ name: 'Leads', path: '/leads' });
+        items.push({ name: 'Requerimientos', path: '/requerimientos' });
+        items.push({ name: 'Instalación GPS', path: '/instalacion-gps' });
+        items.push({ name: 'Soporte', path: '/support' });
+      } else {
+        // Para otros roles, añadir según sus permisos específicos
+        if (['atención_afiliado', 'supply', 'supply_admin', 'afiliados'].includes(userData.role)) {
+          items.push({ name: 'Leads', path: '/leads' });
+        }
+        
+        if (['supply', 'supply_admin'].includes(userData.role)) {
+          items.push({ name: 'Requerimientos', path: '/requerimientos' });
+        }
+        
+        if (['atención_afiliado'].includes(userData.role)) {
+          items.push({ name: 'Soporte', path: '/support' });
+        }
       }
     }
     
@@ -151,6 +158,13 @@ const Navbar = () => {
                       >
                         <Users className="mr-2 h-4 w-4" />
                         <span>Gestión de Usuarios</span>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem 
+                        className="cursor-pointer"
+                        onClick={() => navigate('/admin-config')}
+                      >
+                        <Shield className="mr-2 h-4 w-4" />
+                        <span>Admin Config</span>
                       </DropdownMenuItem>
                       <DropdownMenuSeparator />
                     </>

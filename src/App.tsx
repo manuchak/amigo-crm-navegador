@@ -24,6 +24,10 @@ const Support = React.lazy(() => import('./pages/Support'));
 const CallCenter = React.lazy(() => import('./pages/CallCenter'));
 const Settings = React.lazy(() => import('./pages/Settings'));
 const Index = React.lazy(() => import('./pages/Index')); // Import the Index page
+const Performance = React.lazy(() => import('./pages/Performance'));
+const Requerimientos = React.lazy(() => import('./pages/Requerimientos'));
+const AdminConfig = React.lazy(() => import('./pages/AdminConfig'));
+const InstalacionGPS = React.lazy(() => import('./pages/InstalacionGPS'));
 
 function App() {
   console.log("App rendering");
@@ -82,6 +86,28 @@ function App() {
                 <Route path="/settings" element={
                   <AuthGuard>
                     <Settings />
+                  </AuthGuard>
+                } />
+                
+                {/* Rutas para las páginas que mencionó el usuario */}
+                <Route path="/performance" element={
+                  <AuthGuard>
+                    <Performance />
+                  </AuthGuard>
+                } />
+                <Route path="/requerimientos" element={
+                  <AuthGuard>
+                    <Requerimientos />
+                  </AuthGuard>
+                } />
+                <Route path="/admin-config" element={
+                  <AuthGuard>
+                    <AdminConfig />
+                  </AuthGuard>
+                } />
+                <Route path="/instalacion-gps" element={
+                  <AuthGuard>
+                    <InstalacionGPS />
                   </AuthGuard>
                 } />
                 
