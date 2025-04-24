@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import {
@@ -9,7 +8,7 @@ import {
   CardDescription,
 } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Button } from '@/components/ui/button'; // Added Button import
+import { Button } from '@/components/ui/button';
 import { Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { UserData, UserRole } from '@/types/auth';
@@ -71,7 +70,6 @@ const UserManagement = () => {
     try {
       await updateUserRole(selectedUser.uid, newRole);
       
-      // Update the user in the local state
       setUsers(users.map(user => 
         user.uid === selectedUser.uid ? { ...user, role: newRole } : user
       ));
@@ -89,7 +87,6 @@ const UserManagement = () => {
     try {
       await verifyEmail(user.uid);
       
-      // Update the user in the local state
       setUsers(users.map(u => 
         u.uid === user.uid ? { ...u, emailVerified: true } : u
       ));
@@ -101,12 +98,10 @@ const UserManagement = () => {
     }
   };
 
-  // Added handleAssignRole function implementation
   const handleAssignRole = async (user: UserData, role: UserRole) => {
     try {
       await updateUserRole(user.uid, role);
       
-      // Update the user in the local state
       setUsers(users.map(u => 
         u.uid === user.uid ? { ...u, role } : u
       ));
@@ -118,7 +113,6 @@ const UserManagement = () => {
     }
   };
 
-  // Only owners should see the registration requests tab and permissions config
   const isOwner = currentUserData?.role === 'owner';
   const isAdmin = currentUserData?.role === 'admin' || isOwner;
 
@@ -195,7 +189,6 @@ const UserManagement = () => {
         </CardContent>
       </Card>
 
-      {/* Edit Role Dialog */}
       <EditRoleDialog 
         isOpen={isEditDialogOpen}
         onOpenChange={setIsEditDialogOpen}
@@ -206,7 +199,6 @@ const UserManagement = () => {
         currentUserRole={currentUserData?.role || 'unverified'}
       />
 
-      {/* Confirmation Dialog */}
       <RoleChangeConfirmation
         isOpen={isConfirmationOpen}
         onOpenChange={setIsConfirmationOpen}
