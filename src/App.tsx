@@ -12,7 +12,10 @@ import './App.css';
 // Create a React Query client
 const queryClient = new QueryClient();
 
-// Lazy load routes for better performance
+// Import the Index page directly instead of lazy loading it to address the dynamic import issue
+import Index from './pages/Index';
+
+// Lazy load other routes for better performance
 const Dashboard = React.lazy(() => import('./pages/Dashboard'));
 const Auth = React.lazy(() => import('./pages/Auth'));
 const Login = React.lazy(() => import('./pages/Login')); 
@@ -23,7 +26,6 @@ const Validation = React.lazy(() => import('./pages/Validation'));
 const Support = React.lazy(() => import('./pages/Support'));
 const CallCenter = React.lazy(() => import('./pages/CallCenter'));
 const Settings = React.lazy(() => import('./pages/Settings'));
-const Index = React.lazy(() => import('./pages/Index')); // Import the Index page
 const Performance = React.lazy(() => import('./pages/Performance'));
 const Requerimientos = React.lazy(() => import('./pages/Requerimientos'));
 const AdminConfig = React.lazy(() => import('./pages/AdminConfig'));
@@ -43,7 +45,7 @@ function App() {
                 <Route path="/auth" element={<Auth />} />
                 <Route path="/login" element={<Login />} />
                 
-                {/* Add the route for the Index/Inicio page */}
+                {/* Add the route for the Index/Inicio page - Use directly imported component */}
                 <Route path="/inicio" element={<Index />} />
                 <Route path="/" element={<Index />} />
                 

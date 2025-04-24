@@ -63,7 +63,7 @@ const Index = () => {
   // Filter menu items based on user role
   const filteredMenuItems = currentUser
     ? menuItems.filter(item => item.roles.includes(currentUser.role))
-    : menuItems;
+    : [];
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-white to-slate-50 dark:from-slate-950 dark:to-slate-900">
