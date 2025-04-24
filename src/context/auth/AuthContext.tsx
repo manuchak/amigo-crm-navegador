@@ -46,23 +46,24 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     session,
     loading,
     isInitializing,
-    // Add missing methods expected by the existing components
+    // Fix type issues with signIn method
     signIn: async (email: string, password: string) => {
       try {
         setLoading(true);
-        const result = await authMethods.signIn(email, password);
-        return { user: result || null, error: null };
+        const userData = await authMethods.signIn(email, password);
+        return { user: user || null, error: null }; // Return Supabase User object instead of UserData
       } catch (error) {
         return { user: null, error };
       } finally {
         setLoading(false);
       }
     },
+    // Fix type issues with signUp method
     signUp: async (email: string, password: string, displayName: string) => {
       try {
         setLoading(true);
-        const result = await authMethods.signUp(email, password, displayName);
-        return { user: result || null, error: null };
+        const userData = await authMethods.signUp(email, password, displayName);
+        return { user: user || null, error: null }; // Return Supabase User object instead of UserData
       } catch (error) {
         return { user: null, error };
       } finally {
@@ -108,7 +109,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return false;
       }
     },
-    refreshUserData: authMethods.refreshUserData,
+    // Fix type issues with refreshUserData method
+    refreshUserData: async () => {
+      try {
+        await authMethods.refreshUserData();
+        return { success: true }; // Return object with success property
+      } catch (error) {
+        return { success: false, error };
+      }
+    },
     resetPassword: authMethods.resetPassword
   };
 
