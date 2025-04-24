@@ -1,10 +1,8 @@
 
 import React from 'react';
-import { UserData, UserRole } from '@/types/auth';
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
@@ -17,15 +15,14 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
-import { User, Shield } from 'lucide-react';
-import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
-import { getRoleDisplayName } from '@/hooks/useRolePermissions';
+import { UserData, UserRole } from '@/types/auth';
+import { ROLES, getRoleDisplayName } from '@/hooks/useRolePermissions';
 
 interface EditRoleDialogProps {
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
   selectedUser: UserData | null;
-  newRole: UserRole;
+  newRole: string;
   onRoleChange: (value: UserRole) => void;
   onUpdateRole: () => Promise<void>;
   currentUserRole: UserRole;
@@ -38,106 +35,82 @@ const EditRoleDialog: React.FC<EditRoleDialogProps> = ({
   newRole,
   onRoleChange,
   onUpdateRole,
-  currentUserRole
+  currentUserRole,
 }) => {
-  if (!selectedUser) return null;
+  const [loading, setLoading] = React.useState(false);
 
-  const isOwner = currentUserRole === 'owner';
-  const isHighPrivilegeChange = ['admin', 'owner'].includes(newRole);
+  // Filter out roles based on user's own role
+  const availableRoles = ROLES.filter(role => {
+    // Only owner can assign owner role
+    if (role === 'owner') {
+      return currentUserRole === 'owner';
+    }
+    
+    // Admin can't assign admin roles (only owner can)
+    if (role === 'admin') {
+      return currentUserRole === 'owner';
+    }
+    
+    // Everyone can see other roles
+    return true;
+  });
+
+  const handleSave = async () => {
+    setLoading(true);
+    await onUpdateRole();
+    setLoading(false);
+  };
+  
+  if (!selectedUser) return null;
   
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Editar Rol de Usuario</DialogTitle>
-          <DialogDescription>
-            Cambia el nivel de permiso para este usuario
-          </DialogDescription>
         </DialogHeader>
         
-        <div className="grid gap-6 py-4">
-          <div className="flex items-center gap-3">
-            <Avatar className="h-10 w-10">
-              {selectedUser.photoURL ? (
-                <AvatarImage src={selectedUser.photoURL} alt={selectedUser.displayName} />
-              ) : (
-                <AvatarFallback className="bg-primary/10">
-                  <User className="h-5 w-5 text-primary" />
-                </AvatarFallback>
-              )}
-            </Avatar>
+        <div className="py-4">
+          <div className="space-y-4">
             <div>
-              <h4 className="text-sm font-medium">{selectedUser.displayName}</h4>
-              <p className="text-sm text-muted-foreground">{selectedUser.email}</p>
+              <p className="text-sm font-medium mb-1">Usuario</p>
+              <p className="text-base">{selectedUser.displayName || selectedUser.email}</p>
             </div>
-          </div>
-          
-          <div className="grid grid-cols-4 items-center gap-4">
-            <label htmlFor="role" className="col-span-1 text-right text-sm">
-              Rol actual:
-            </label>
-            <div className="col-span-3">
-              <div className="flex items-center gap-2">
-                <span className="text-sm font-medium">{getRoleDisplayName(selectedUser.role)}</span>
-                {selectedUser.role === 'owner' && (
-                  <Shield className="h-4 w-4 text-amber-500" />
-                )}
-              </div>
+            
+            <div>
+              <p className="text-sm font-medium mb-1">Email</p>
+              <p className="text-base">{selectedUser.email}</p>
             </div>
-          </div>
-          
-          <div className="grid grid-cols-4 items-center gap-4">
-            <label htmlFor="role" className="col-span-1 text-right text-sm">
-              Asignar rol:
-            </label>
-            <div className="col-span-3">
-              <Select
+            
+            <div className="space-y-2">
+              <label htmlFor="role" className="text-sm font-medium">
+                Rol
+              </label>
+              <Select 
                 value={newRole}
-                onValueChange={onRoleChange}
+                onValueChange={(value) => onRoleChange(value as UserRole)}
               >
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecciona un rol" />
+                <SelectTrigger id="role">
+                  <SelectValue placeholder="Seleccionar rol" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="unverified">No verificado</SelectItem>
-                  <SelectItem value="pending">Pendiente</SelectItem>
-                  <SelectItem value="atención_afiliado">Atención al Afiliado</SelectItem>
-                  <SelectItem value="supply">Supply</SelectItem>
-                  <SelectItem value="supply_admin">Supply Admin</SelectItem>
-                  <SelectItem value="afiliados">Afiliados</SelectItem>
-                  <SelectItem value="admin">Administrador</SelectItem>
-                  {isOwner && (
-                    <SelectItem value="owner">Propietario</SelectItem>
-                  )}
+                  {availableRoles.map(role => (
+                    <SelectItem key={role} value={role}>
+                      {getRoleDisplayName(role)}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
           </div>
-          
-          {isHighPrivilegeChange && !isOwner && (
-            <div className="rounded-md bg-amber-50 p-3 border border-amber-200">
-              <div className="flex gap-2">
-                <Shield className="h-5 w-5 text-amber-600 flex-shrink-0 mt-0.5" />
-                <div>
-                  <h5 className="text-sm font-medium text-amber-800">Permisos elevados</h5>
-                  <p className="text-sm text-amber-700">
-                    Solo el propietario del sistema puede asignar roles de administrador o propietario.
-                  </p>
-                </div>
-              </div>
-            </div>
-          )}
         </div>
         
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Cancelar
           </Button>
-          <Button 
-            onClick={onUpdateRole} 
-            disabled={!newRole || newRole === selectedUser.role || (isHighPrivilegeChange && !isOwner)}
-          >
-            Actualizar Rol
+          <Button onClick={handleSave} disabled={loading}>
+            {loading ? 'Guardando...' : 'Guardar Cambios'}
           </Button>
         </DialogFooter>
       </DialogContent>

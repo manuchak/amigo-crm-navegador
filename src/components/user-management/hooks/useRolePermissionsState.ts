@@ -1,7 +1,7 @@
 
 import { useState, useEffect } from 'react';
 import { RolePermission } from '../rolePermissions.constants';
-import { checkForOwnerRole } from '@/integrations/supabase/client';
+import { supabase } from '@/integrations/supabase/client';
 
 export function useRolePermissionsState() {
   const [permissions, setPermissions] = useState<RolePermission[]>([]);
@@ -11,16 +11,28 @@ export function useRolePermissionsState() {
   const [isOwner, setIsOwner] = useState<boolean>(false);
   const [retryCount, setRetryCount] = useState(0);
 
-  // Check owner status on component mount and handle async checkForOwnerRole
+  // Check owner status on component mount
   useEffect(() => {
     const checkOwnerStatus = async () => {
       try {
-        const ownerStatus = await checkForOwnerRole();
-        console.log('Owner status check result:', ownerStatus ? '✅ Yes' : '❌ No');
-        setIsOwner(ownerStatus);
+        const { data: userData } = await supabase.auth.getUser();
+        if (!userData.user) return;
+        
+        const { data, error } = await supabase.rpc('get_user_role', {
+          user_uid: userData.user.id
+        });
+        
+        if (!error && data === 'owner') {
+          console.log('Owner status check result: ✅ Yes');
+          setIsOwner(true);
+          return;
+        }
+        
+        console.log('Owner status check result: ❌ No');
+        setIsOwner(false);
       } catch (err) {
         console.error('Error checking owner status:', err);
-        // Fallback check from localStorage directly if the async check fails
+        // Fallback check from localStorage
         if (typeof window !== 'undefined') {
           try {
             const userData = JSON.parse(localStorage.getItem('current_user') || '{}');

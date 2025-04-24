@@ -112,8 +112,11 @@ export const useRolePermissions = () => {
   // Check if the current user is an owner
   const checkOwnerStatus = useCallback(async () => {
     try {
+      const { data: userData } = await supabase.auth.getUser();
+      if (!userData.user) return false;
+
       const { data, error } = await supabase.rpc('get_user_role', {
-        user_uid: supabase.auth.getUser().then(res => res.data.user?.id)
+        user_uid: userData.user.id
       });
 
       if (!error && data === 'owner') {
@@ -150,7 +153,7 @@ export const useRolePermissions = () => {
         setPermissions(getInitialPermissions());
       } else {
         // Process permissions from database
-        const rolePerms: Record<UserRole, RolePermission> = {};
+        const rolePerms: Record<string, RolePermission> = {};
         
         // Initialize with default structure
         ROLES.forEach(role => {
@@ -296,14 +299,32 @@ export const useRolePermissions = () => {
   // Check if a user has permission for a page or action
   const hasPermission = async (type: 'page' | 'action', id: string): Promise<boolean> => {
     try {
-      const { data, error } = await supabase.rpc('has_permission', {
-        p_type: type,
-        p_id: id
+      // Custom implementation using direct database query
+      const { data: userData } = await supabase.auth.getUser();
+      if (!userData.user) return false;
+
+      const userRole = await supabase.rpc('get_user_role', {
+        user_uid: userData.user.id
       });
+
+      if (userRole.error) throw userRole.error;
       
+      // Owner always has all permissions
+      if (userRole.data === 'owner') return true;
+
+      // Query the role_permissions table directly
+      const { data, error } = await supabase
+        .from('role_permissions')
+        .select('allowed')
+        .eq('role', userRole.data)
+        .eq('permission_type', type)
+        .eq('permission_id', id)
+        .maybeSingle();
+
       if (error) throw error;
       
-      return data === true;
+      return data?.allowed === true;
+      
     } catch (err) {
       console.error(`Error checking permission (${type}:${id}):`, err);
       return false;

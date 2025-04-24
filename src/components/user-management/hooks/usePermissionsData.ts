@@ -1,10 +1,7 @@
 
-import { useCallback } from 'react';
-import { getAdminClient, checkForOwnerRole } from '@/integrations/supabase/client';
+import { supabase } from '@/integrations/supabase/client';
 import { RolePermission } from '../rolePermissions.constants';
 import { getInitialPermissions } from '../rolePermissions.utils';
-import { toast } from 'sonner';
-import { processPermissionsData } from '../utils/permissionsDataProcessor';
 
 export function usePermissionsData() {
   const loadPermissions = async (
@@ -19,99 +16,100 @@ export function usePermissionsData() {
     setError(null);
     
     try {
-      console.log('Loading role permissions, attempt:', retryCount + 1);
-      
-      // First, check if we're in owner mode - this affects how we proceed
-      const currentOwnerStatus = await checkForOwnerRole();
-      console.log('Current owner status:', currentOwnerStatus ? '✅ Yes' : '❌ No');
-      
-      if (currentOwnerStatus !== isOwner) {
-        console.log(`Owner status changed from ${isOwner} to ${currentOwnerStatus}`);
-        setIsOwner(currentOwnerStatus);
+      // Check owner status if not already set
+      let ownerStatus = isOwner;
+      if (!ownerStatus) {
+        const { data: userData } = await supabase.auth.getUser();
+        if (userData.user) {
+          const { data: roleData, error: roleError } = await supabase.rpc('get_user_role', {
+            user_uid: userData.user.id
+          });
+          
+          if (!roleError && roleData === 'owner') {
+            ownerStatus = true;
+            setIsOwner(true);
+          }
+        }
       }
       
-      // Use a fresh admin client for every operation
-      console.log('Creating fresh admin client for permissions...');
-      const adminClient = getAdminClient();
-      
-      // Test connection with a simple, lightweight database query instead of RPC
-      console.log('Testing initial database connection...');
-      const { data: testData, error: testError } = await adminClient
-        .from('role_permissions')
-        .select('count(*)', { count: 'exact', head: true });
-      
-      if (testError) {
-        console.error('Initial connection test failed:', testError);
-        throw new Error(`Error de conexión inicial: ${testError.message}`);
-      }
-      
-      console.log('Connection test successful:', testData ? 'Connected' : 'No data');
-      
-      // Now proceed to get the actual permissions
-      console.log('Fetching permissions data...');
-      const { data: permissionsData, error: queryError } = await adminClient
+      // Get permissions from database
+      const { data, error } = await supabase
         .from('role_permissions')
         .select('*');
+        
+      if (error) throw error;
       
-      if (queryError) {
-        console.error('Error fetching permissions data:', queryError);
-        throw new Error(`Error al cargar permisos: ${queryError.message}`);
-      }
-      
-      console.log('Permission data received:', permissionsData?.length || 0, 'records');
-      
-      // Handle case where no permissions found
-      if (!permissionsData || permissionsData.length === 0) {
-        console.log('No permissions found, creating default values');
-        const defaultPermissions = getInitialPermissions();
-        setPermissions(defaultPermissions);
+      if (!data || data.length === 0) {
+        // No permissions in database, use defaults
+        setPermissions(getInitialPermissions());
       } else {
-        console.log('Processing existing permissions data');
-        const loadedPermissions = processPermissionsData(permissionsData);
-        setPermissions(loadedPermissions);
+        // Process permissions from database
+        const processedPermissions = processPermissionsData(data);
+        setPermissions(processedPermissions);
       }
-      
-      setError(null);
     } catch (err: any) {
-      console.error('Critical error in loadPermissions:', err);
+      console.error('Error loading permissions:', err);
+      setError(err.message || 'Error al cargar la configuración de permisos');
       
-      // Check for specific API key errors
-      const errorMessage = err.message || 'Error desconocido';
-      const isApiKeyError = errorMessage.includes('Invalid API key') || 
-                           errorMessage.includes('clave API') || 
-                           errorMessage.includes('JWT') ||
-                           errorMessage.includes('autenticación') ||
-                           errorMessage.includes('Authentication');
-      
-      // Special handling for JWT errors - they often require refresh
-      if (isApiKeyError) {
-        setError('Error de autenticación con la base de datos. Por favor intente nuevamente o recargue la página.');
-        
-        // Additional debugging for authentication errors
-        console.error('Authentication error details:', err);
-        console.log('Trying owner role check after auth error...');
-        
-        // Check owner status again as fallback
-        try {
-          const ownerStatus = await checkForOwnerRole();
-          console.log('Fallback owner status check:', ownerStatus ? '✅ Yes' : '❌ No');
-          setIsOwner(ownerStatus);
-        } catch (ownerCheckError) {
-          console.error('Even fallback owner check failed:', ownerCheckError);
-        }
-      } else {
-        setError(errorMessage);
-      }
-      
-      // Always load default permissions as fallback
-      console.log('Loading default permissions as fallback');
-      const defaultPermissions = getInitialPermissions();
-      setPermissions(defaultPermissions);
-      
-      toast.error(`Error al cargar permisos: ${errorMessage}`);
+      // Fallback to defaults
+      setPermissions(getInitialPermissions());
     } finally {
       setLoading(false);
     }
+  };
+  
+  // Process permissions data from database
+  const processPermissionsData = (data: any[]): RolePermission[] => {
+    // Import required functions and constants
+    const { ROLES, availablePages, availableActions } = require('../rolePermissions.constants');
+    const { getDisplayName } = require('../rolePermissions.utils');
+
+    // Initialize permissions object with default structure
+    const rolePerms: Record<string, RolePermission> = {};
+    
+    ROLES.forEach(role => {
+      rolePerms[role] = {
+        role,
+        displayName: getDisplayName(role),
+        pages: {},
+        actions: {}
+      };
+      
+      // Set all to false by default
+      availablePages.forEach(page => {
+        rolePerms[role].pages[page.id] = false;
+      });
+      
+      availableActions.forEach(action => {
+        rolePerms[role].actions[action.id] = false;
+      });
+    });
+    
+    // Fill in permissions from database
+    data.forEach(perm => {
+      const role = perm.role;
+      
+      if (!rolePerms[role]) return;
+      
+      if (perm.permission_type === 'page') {
+        rolePerms[role].pages[perm.permission_id] = perm.allowed;
+      } else if (perm.permission_type === 'action') {
+        rolePerms[role].actions[perm.permission_id] = perm.allowed;
+      }
+    });
+    
+    // Ensure owner has all permissions
+    if (rolePerms.owner) {
+      availablePages.forEach(page => {
+        rolePerms.owner.pages[page.id] = true;
+      });
+      
+      availableActions.forEach(action => {
+        rolePerms.owner.actions[action.id] = true;
+      });
+    }
+    
+    return Object.values(rolePerms);
   };
 
   return { loadPermissions };

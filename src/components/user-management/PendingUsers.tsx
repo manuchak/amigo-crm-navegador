@@ -1,25 +1,18 @@
 
 import React from 'react';
 import { UserData, UserRole } from '@/types/auth';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { UserCheck, Clock, AlertCircle, User } from 'lucide-react';
+import { UserCheck, UserX, User, Shield } from 'lucide-react';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
+import { Badge } from '@/components/ui/badge';
 import { getRoleDisplayName } from '@/hooks/useRolePermissions';
 
 interface PendingUsersProps {
   users: UserData[];
   onAssignRole: (user: UserData, role: UserRole) => Promise<void>;
   onVerifyUser: (user: UserData) => Promise<void>;
-  formatDate: (date: Date | null | undefined) => string;
+  formatDate: (date: Date | string | null | undefined) => string;
 }
 
 const PendingUsers: React.FC<PendingUsersProps> = ({
@@ -30,123 +23,126 @@ const PendingUsers: React.FC<PendingUsersProps> = ({
 }) => {
   if (users.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center py-12 px-4">
-        <div className="rounded-full bg-green-100 p-3">
-          <CheckCircleIcon className="h-6 w-6 text-green-600" />
-        </div>
-        <h3 className="mt-4 text-lg font-medium">No hay solicitudes pendientes</h3>
-        <p className="mt-2 text-center text-muted-foreground">
-          No hay usuarios pendientes de verificación o asignación de rol en este momento.
-        </p>
+      <div className="text-center py-8">
+        <p className="text-muted-foreground">No hay solicitudes de usuarios pendientes</p>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center gap-2">
-        <AlertCircle className="h-5 w-5 text-amber-500" />
-        <h3 className="text-lg font-medium">
-          Usuarios pendientes de asignación: {users.length}
-        </h3>
-      </div>
-      
-      <div className="overflow-x-auto">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Usuario</TableHead>
-              <TableHead>Email</TableHead>
-              <TableHead>Estado</TableHead>
-              <TableHead>Creado</TableHead>
-              <TableHead className="text-right">Acciones</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {users.map((user) => (
-              <TableRow key={user.uid} className="hover:bg-muted/50">
-                <TableCell className="font-medium">
-                  <div className="flex items-center gap-2">
-                    <Avatar className="h-8 w-8">
-                      {user.photoURL ? (
-                        <AvatarImage src={user.photoURL} alt={user.displayName} />
-                      ) : (
-                        <AvatarFallback className="bg-primary/10">
-                          <User className="h-4 w-4 text-primary" />
-                        </AvatarFallback>
-                      )}
-                    </Avatar>
-                    <span>{user.displayName}</span>
-                  </div>
-                </TableCell>
-                <TableCell>{user.email}</TableCell>
-                <TableCell>
-                  <Badge variant={user.role === 'pending' ? "warning" : "outline"}>
-                    <div className="flex items-center gap-1">
-                      <Clock className="h-3 w-3" />
-                      <span>{getRoleDisplayName(user.role)}</span>
-                    </div>
-                  </Badge>
-                </TableCell>
-                <TableCell>{formatDate(user.createdAt)}</TableCell>
-                <TableCell className="text-right">
-                  <div className="flex items-center justify-end gap-2">
-                    {!user.emailVerified && (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => onVerifyUser(user)}
-                        className="flex items-center gap-1"
-                      >
-                        <UserCheck className="h-4 w-4" />
-                        <span>Verificar</span>
-                      </Button>
-                    )}
-                    <div className="flex gap-1">
-                      <Button
-                        variant="default"
-                        size="sm"
-                        onClick={() => onAssignRole(user, 'atención_afiliado')}
-                      >
-                        Atención Afiliado
-                      </Button>
-                      <Button
-                        variant="secondary"
-                        size="sm"
-                        onClick={() => onAssignRole(user, 'supply')}
-                      >
-                        Supply
-                      </Button>
-                    </div>
-                  </div>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </div>
+    <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+      {users.map(user => (
+        <Card key={user.uid} className="overflow-hidden">
+          <CardHeader className="bg-muted/50">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Avatar className="h-8 w-8">
+                  {user.photoURL ? (
+                    <AvatarImage src={user.photoURL} alt={user.displayName} />
+                  ) : (
+                    <AvatarFallback className="bg-primary/10">
+                      <User className="h-4 w-4 text-primary" />
+                    </AvatarFallback>
+                  )}
+                </Avatar>
+                <CardTitle className="text-lg font-medium">{user.displayName || user.email}</CardTitle>
+              </div>
+              <Badge variant={user.role === 'unverified' ? 'outline' : 'warning'}>
+                {getRoleDisplayName(user.role)}
+              </Badge>
+            </div>
+          </CardHeader>
+          <CardContent className="pt-4">
+            <div className="space-y-4">
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">Email</p>
+                <p>{user.email}</p>
+              </div>
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">Fecha de registro</p>
+                <p>{formatDate(user.createdAt)}</p>
+              </div>
+              
+              <div className="flex flex-col gap-2">
+                <h4 className="text-sm font-medium text-muted-foreground">Acciones</h4>
+                
+                <div className="flex flex-wrap gap-2">
+                  {!user.emailVerified && (
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={() => onVerifyUser(user)}
+                      className="flex items-center gap-1"
+                    >
+                      <UserCheck className="h-4 w-4" /> 
+                      Verificar Email
+                    </Button>
+                  )}
+                  
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100"
+                    onClick={() => onAssignRole(user, 'atención_afiliado')}
+                  >
+                    Atención al Afiliado
+                  </Button>
+                  
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="bg-green-50 border-green-200 text-green-700 hover:bg-green-100"
+                    onClick={() => onAssignRole(user, 'supply')}
+                  >
+                    Supply
+                  </Button>
+                  
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="bg-yellow-50 border-yellow-200 text-yellow-700 hover:bg-yellow-100"
+                    onClick={() => onAssignRole(user, 'supply_admin')}
+                  >
+                    Supply Admin
+                  </Button>
+                  
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="bg-purple-50 border-purple-200 text-purple-700 hover:bg-purple-100"
+                    onClick={() => onAssignRole(user, 'afiliados')}
+                  >
+                    Afiliados
+                  </Button>
+                </div>
+                
+                <div className="flex gap-2 mt-2">
+                  <Button 
+                    size="sm" 
+                    variant="destructive"
+                    className="flex items-center gap-1"
+                    onClick={() => onAssignRole(user, 'admin')}
+                  >
+                    <Shield className="h-4 w-4" />
+                    Admin
+                  </Button>
+                  
+                  <Button 
+                    size="sm" 
+                    variant="destructive" 
+                    className="flex items-center gap-1 bg-gray-500 hover:bg-gray-600"
+                    onClick={() => onAssignRole(user, 'unverified')}
+                  >
+                    <UserX className="h-4 w-4" />
+                    Rechazar
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      ))}
     </div>
-  );
-};
-
-// CheckCircle icon for the empty state
-const CheckCircleIcon = (props: React.SVGProps<SVGSVGElement>) => {
-  return (
-    <svg
-      {...props}
-      xmlns="http://www.w3.org/2000/svg"
-      width="24"
-      height="24"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
-      <polyline points="22 4 12 14.01 9 11.01"></polyline>
-    </svg>
   );
 };
 

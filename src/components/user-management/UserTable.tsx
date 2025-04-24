@@ -96,7 +96,7 @@ const UserTable: React.FC<UserTableProps> = ({
                   </Avatar>
                   <span>{user.displayName}</span>
                   {user.role === 'owner' && (
-                    <Shield className="h-4 w-4 text-amber-500" title="Propietario del sistema" />
+                    <Shield className="h-4 w-4 text-amber-500" aria-label="Propietario del sistema" />
                   )}
                 </div>
               </TableCell>

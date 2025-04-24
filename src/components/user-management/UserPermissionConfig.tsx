@@ -1,224 +1,185 @@
 
 import React, { useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
-import { Checkbox } from '@/components/ui/checkbox';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
-import { Loader2, AlertTriangle, ShieldCheck, RefreshCw, Shield } from 'lucide-react';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Switch } from '@/components/ui/switch';
+import { Loader2, Save } from 'lucide-react';
 import { useRolePermissions } from '@/hooks/useRolePermissions';
-import {
-  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
-} from '@/components/ui/table';
-import { toast } from 'sonner';
-import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Badge } from '@/components/ui/badge';
 
-const UserPermissionConfig: React.FC = () => {
-  const [selectedTab, setSelectedTab] = useState<'pages' | 'actions'>('pages');
+const UserPermissionConfig = () => {
   const {
     permissions,
     loading,
     saving,
     error,
     isOwner,
-    loadPermissions,
-    savePermissions,
     handlePermissionChange,
+    savePermissions,
     availablePages,
     availableActions,
   } = useRolePermissions();
-
-  const onSave = async () => {
-    try {
-      await savePermissions();
-    } catch (error) {
-      console.error('Error saving permissions:', error);
-    }
-  };
-
-  const onRetry = () => {
-    loadPermissions();
-    toast.info('Recargando configuración de permisos...');
-  };
-
+  
+  const [activeTab, setActiveTab] = useState('pages');
+  
   if (loading) {
     return (
-      <Card className="shadow-md mt-8">
-        <CardContent className="flex items-center justify-center py-12">
-          <div className="flex flex-col items-center gap-2">
-            <Loader2 className="h-8 w-8 animate-spin text-primary" />
-            <p className="text-muted-foreground">Cargando configuración de permisos...</p>
-          </div>
+      <div className="flex justify-center items-center p-8">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+  
+  if (!isOwner) {
+    return (
+      <Card className="bg-amber-50 border-amber-200">
+        <CardContent className="pt-6">
+          <p className="text-amber-800">Solo el propietario puede configurar permisos del sistema.</p>
         </CardContent>
       </Card>
     );
   }
+  
+  return (
+    <div className="space-y-6">
+      {error && (
+        <div className="p-4 bg-red-50 text-red-600 rounded-md">
+          {error}
+        </div>
+      )}
+      
+      <div className="flex justify-between items-center">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+          <TabsList>
+            <TabsTrigger value="pages">Acceso a Páginas</TabsTrigger>
+            <TabsTrigger value="actions">Acceso a Acciones</TabsTrigger>
+          </TabsList>
+        </Tabs>
+        
+        <Button 
+          onClick={savePermissions} 
+          disabled={saving || loading}
+          className="ml-4"
+        >
+          {saving ? (
+            <>
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              Guardando...
+            </>
+          ) : (
+            <>
+              <Save className="h-4 w-4 mr-2" />
+              Guardar Cambios
+            </>
+          )}
+        </Button>
+      </div>
+      
+      <TabsContent value="pages" className="m-0">
+        <PermissionsTable
+          title="Permisos de Páginas"
+          permissions={permissions}
+          items={availablePages}
+          type="pages"
+          onChange={handlePermissionChange}
+        />
+      </TabsContent>
+      
+      <TabsContent value="actions" className="m-0">
+        <PermissionsTable
+          title="Permisos de Acciones"
+          permissions={permissions}
+          items={availableActions}
+          type="actions"
+          onChange={handlePermissionChange}
+        />
+      </TabsContent>
+    </div>
+  );
+};
+
+const PermissionsTable = ({
+  title,
+  permissions,
+  items,
+  type,
+  onChange,
+}: {
+  title: string;
+  permissions: any[];
+  items: any[];
+  type: 'pages' | 'actions';
+  onChange: (roleIndex: number, type: 'pages' | 'actions', id: string, checked: boolean) => void;
+}) => {
+  // Filter out unverified and pending roles
+  const activerPermissions = permissions.filter(
+    p => !['unverified', 'pending'].includes(p.role)
+  );
 
   return (
-    <Card className="shadow-md mt-8">
-      <CardContent className="p-6">
-        <div className="flex justify-between items-center mb-6">
-          <h3 className="text-lg font-medium">Configuración de Permisos por Rol</h3>
-          <div className="flex items-center gap-2">
-            <Button 
-              variant="outline" 
-              size="sm" 
-              onClick={onRetry} 
-              title="Recargar permisos"
-              className="flex items-center gap-1"
-            >
-              <RefreshCw className="h-4 w-4" />
-              <span>Recargar</span>
-            </Button>
-            
-            {isOwner && (
-              <Alert variant="default" className="max-w-fit p-1 px-3 bg-green-50 border-green-200">
-                <div className="flex items-center gap-2">
-                  <ShieldCheck className="h-4 w-4 text-green-500" />
-                  <AlertDescription className="text-green-700 text-sm">Modo Propietario: acceso total</AlertDescription>
-                </div>
-              </Alert>
-            )}
-          </div>
-        </div>
-        
-        {error && (
-          <Alert variant="destructive" className="mb-4 border-rose-300">
-            <div className="flex items-center gap-2">
-              <AlertTriangle className="h-5 w-5" />
-              <AlertDescription className="text-sm flex-1">
-                {error}
-              </AlertDescription>
-              <Button 
-                variant="outline" 
-                size="sm" 
-                className="ml-auto border-rose-300 hover:bg-rose-50"
-                onClick={onRetry}
-              >
-                <RefreshCw className="h-3 w-3 mr-1" />
-                Reintentar
-              </Button>
-            </div>
-          </Alert>
-        )}
-
-        {!loading && !error && (!permissions || permissions.length === 0) && (
-          <Alert className="mb-4">
-            <AlertDescription>
-              No se encontraron configuraciones de permisos. Haga clic en "Recargar" para intentar nuevamente o "Cargar configuración de permisos" para inicializar con valores predeterminados.
-            </AlertDescription>
-          </Alert>
-        )}
-        
-        <div className="mb-4 flex space-x-2">
-          <Button 
-            variant={selectedTab === 'pages' ? 'default' : 'outline'} 
-            onClick={() => setSelectedTab('pages')}
-          >
-            Acceso a Páginas
-          </Button>
-          <Button 
-            variant={selectedTab === 'actions' ? 'default' : 'outline'} 
-            onClick={() => setSelectedTab('actions')}
-          >
-            Acciones Permitidas
-          </Button>
-        </div>
-        
-        {permissions && permissions.length > 0 ? (
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="w-[200px]">Rol</TableHead>
-                  {selectedTab === 'pages' ? (
-                    availablePages.map(page => (
-                      <TableHead key={page.id} className="text-center" title={page.description}>
-                        {page.name}
-                      </TableHead>
-                    ))
-                  ) : (
-                    availableActions.map(action => (
-                      <TableHead key={action.id} className="text-center" title={action.description}>
-                        {action.name}
-                      </TableHead>
-                    ))
-                  )}
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {permissions.map((rolePermission, roleIndex) => (
-                  <TableRow key={rolePermission.role}>
-                    <TableCell className="font-medium">
-                      <div className="flex items-center gap-2">
-                        {rolePermission.role === 'owner' && (
-                          <Shield className="h-4 w-4 text-amber-500" />
-                        )}
-                        {rolePermission.displayName}
-                      </div>
-                    </TableCell>
-                    {selectedTab === 'pages' ? (
-                      availablePages.map(page => (
-                        <TableCell key={page.id} className="text-center">
-                          <div className="flex items-center justify-center">
-                            <Checkbox
-                              id={`${rolePermission.role}-${page.id}`}
-                              checked={rolePermission.pages[page.id]}
-                              onCheckedChange={(checked) => 
-                                handlePermissionChange(roleIndex, 'pages', page.id, checked as boolean)
-                              }
-                              disabled={rolePermission.role === 'owner'}
-                              className={rolePermission.role === 'owner' ? "opacity-60" : ""}
-                            />
-                          </div>
-                        </TableCell>
-                      ))
-                    ) : (
-                      availableActions.map(action => (
-                        <TableCell key={action.id} className="text-center">
-                          <div className="flex items-center justify-center">
-                            <Checkbox
-                              id={`${rolePermission.role}-${action.id}`}
-                              checked={rolePermission.actions[action.id]}
-                              onCheckedChange={(checked) => 
-                                handlePermissionChange(roleIndex, 'actions', action.id, checked as boolean)
-                              }
-                              disabled={rolePermission.role === 'owner'}
-                              className={rolePermission.role === 'owner' ? "opacity-60" : ""}
-                            />
-                          </div>
-                        </TableCell>
-                      ))
-                    )}
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
-        ) : (
-          <div className="py-8 text-center">
-            <p className="text-muted-foreground">No hay configuración de permisos disponible.</p>
-            <Button 
-              variant="outline"
-              onClick={onRetry}
-              className="mt-4"
-            >
-              <RefreshCw className="h-4 w-4 mr-2" />
-              Cargar configuración de permisos
-            </Button>
-          </div>
-        )}
-        
-        <div className="mt-6 flex justify-end">
-          <Button 
-            onClick={onSave} 
-            disabled={saving || !!error || !permissions || permissions.length === 0}
-            className={isOwner ? "bg-green-600 hover:bg-green-700" : ""}
-          >
-            {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            {saving ? 'Guardando...' : isOwner ? 'Guardar con Privilegios de Propietario' : 'Guardar Configuración'}
-          </Button>
-        </div>
-      </CardContent>
-    </Card>
+    <div className="rounded-md border">
+      <div className="overflow-x-auto">
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="bg-muted/50 border-b">
+              <th className="h-10 px-4 text-left font-medium">{title}</th>
+              {activerPermissions.map((role, index) => (
+                <th key={index} className="h-10 px-2 text-center font-medium">
+                  <Badge 
+                    variant={role.role === 'owner' ? 'default' : role.role === 'admin' ? 'destructive' : 'outline'}
+                    className="font-normal"
+                  >
+                    {role.displayName}
+                  </Badge>
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {items.map((item) => (
+              <tr key={item.id} className="border-b hover:bg-muted/50 transition-colors">
+                <td className="p-4 align-middle">
+                  <div className="font-medium">{item.name}</div>
+                  <div className="text-muted-foreground text-xs">{item.description}</div>
+                </td>
+                
+                {activerPermissions.map((role, roleIndex) => {
+                  // Owner always has all permissions and can't be changed
+                  const isOwnerRole = role.role === 'owner';
+                  
+                  return (
+                    <td key={roleIndex} className="p-2 text-center align-middle">
+                      {isOwnerRole ? (
+                        <Switch 
+                          checked={true} 
+                          disabled 
+                          className="data-[state=checked]:bg-amber-500" 
+                        />
+                      ) : (
+                        <Checkbox
+                          checked={type === 'pages' ? role.pages[item.id] : role.actions[item.id]}
+                          onCheckedChange={(checked) => {
+                            onChange(
+                              permissions.findIndex(p => p.role === role.role),
+                              type,
+                              item.id,
+                              !!checked
+                            );
+                          }}
+                          disabled={isOwnerRole}
+                        />
+                      )}
+                    </td>
+                  );
+                })}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
   );
 };
 

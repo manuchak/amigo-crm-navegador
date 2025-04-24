@@ -22,7 +22,7 @@ interface AuthContextProps {
   userData: UserData | null;
   loading: boolean;
   signIn: (email: string, password: string) => Promise<{ user: User | null; error: any }>;
-  signUp: (email: string, password: string, options?: { metadata?: any }) => Promise<{ user: User | null; error: any }>;
+  signUp: (email: string, password: string, options?: { data?: object }) => Promise<{ user: User | null; error: any }>;
   signOut: () => Promise<void>;
   updateUserRole: (userId: string, role: UserRole) => Promise<{ success: boolean; error?: any }>;
   getAllUsers: () => Promise<UserData[]>;
@@ -153,7 +153,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const signUp = async (email: string, password: string, options?: { metadata?: any }) => {
+  const signUp = async (email: string, password: string, options?: { data?: object }) => {
     try {
       const { data, error } = await supabase.auth.signUp({
         email,
@@ -225,10 +225,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         // Continue with what we have if this fails
       }
 
-      // Map profiles to UserData format
-      const users = profiles.map(profile => {
+      const users = profiles?.map(profile => {
         // Find the role for this user
-        const userRole = userRoles.find(ur => ur.user_id === profile.id);
+        const userRole = userRoles?.find(ur => ur.user_id === profile.id);
         
         // Find auth user data
         const authUser = authUsers?.users?.find(u => u.id === profile.id);
@@ -243,7 +242,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           createdAt: profile.created_at ? new Date(profile.created_at) : new Date(),
           lastLogin: profile.last_login ? new Date(profile.last_login) : new Date(),
         };
-      });
+      }) || [];
 
       return users;
     } catch (error) {
