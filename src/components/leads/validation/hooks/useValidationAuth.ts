@@ -12,6 +12,7 @@ export const useValidationAuth = () => {
   const [error, setError] = useState<string | null>(null);
   const { currentUser, userData } = useAuth();
   const [hasValidPermission, setHasValidPermission] = useState(false);
+  const [isOwner, setIsOwner] = useState(false);
 
   // Verify authentication with special handling for owner role
   useEffect(() => {
@@ -20,20 +21,21 @@ export const useValidationAuth = () => {
       setError(null);
     
       try {
+        // First check for owner status which grants all permissions
+        const ownerStatus = await checkForOwnerRole();
+        setIsOwner(ownerStatus);
+        
+        if (ownerStatus) {
+          console.log('Usuario con rol owner - acceso total concedido');
+          setHasValidPermission(true);
+          return;
+        }
+        
         // Check if there's a valid session
         const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
         
         if (sessionError) {
           throw new Error('Error al verificar la sesión: ' + sessionError.message);
-        }
-        
-        // Check if the user is owner - owners should have all permissions
-        const isOwner = userData?.role === 'owner' as UserRole || checkForOwnerRole();
-        
-        if (isOwner) {
-          console.log('Usuario con rol owner - acceso total concedido');
-          setHasValidPermission(true);
-          return;
         }
         
         // If not owner, verify if session exists
@@ -70,8 +72,10 @@ export const useValidationAuth = () => {
         }
       } catch (err: any) {
         // Special case for owner role - always grant access regardless of errors
-        if (userData?.role === 'owner' as UserRole || checkForOwnerRole()) {
+        const ownerStatus = await checkForOwnerRole();
+        if (ownerStatus || userData?.role === 'owner' as UserRole) {
           console.log('Error de autenticación pero usuario es propietario - acceso concedido');
+          setIsOwner(true);
           setHasValidPermission(true);
           return; // Exit early, don't set error for owners
         }
@@ -86,10 +90,10 @@ export const useValidationAuth = () => {
   }, [currentUser, userData]);
 
   // Check authentication status with special handling for owners
-  const checkAuthStatus = (): boolean => {
+  const checkAuthStatus = async (): Promise<boolean> => {
     // Special handling for owners - they should always have access
-    const isOwner = userData?.role === 'owner' as UserRole || checkForOwnerRole();
-    if (isOwner) {
+    const ownerStatus = await checkForOwnerRole();
+    if (ownerStatus) {
       console.log('Usuario con rol propietario - acceso total concedido');
       return true;
     }
@@ -108,8 +112,6 @@ export const useValidationAuth = () => {
     
     return hasValidPermission;
   };
-
-  const isOwner = userData?.role === 'owner' as UserRole || checkForOwnerRole();
 
   return {
     error,

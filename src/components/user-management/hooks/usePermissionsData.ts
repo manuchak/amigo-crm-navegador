@@ -22,7 +22,7 @@ export function usePermissionsData() {
       console.log('Loading role permissions, attempt:', retryCount + 1);
       
       // First, check if we're in owner mode - this affects how we proceed
-      const currentOwnerStatus = checkForOwnerRole();
+      const currentOwnerStatus = await checkForOwnerRole();
       console.log('Current owner status:', currentOwnerStatus ? '✅ Yes' : '❌ No');
       
       if (currentOwnerStatus !== isOwner) {
@@ -83,12 +83,17 @@ export function usePermissionsData() {
                            errorMessage.includes('autenticación') ||
                            errorMessage.includes('Authentication');
       
+      // Special handling for JWT errors - they often require refresh
       if (isApiKeyError) {
-        setError('Error de autenticación con la base de datos. Por favor intente nuevamente.');
+        setError('Error de autenticación con la base de datos. Por favor intente nuevamente o recargue la página.');
         
         // Additional debugging for authentication errors
         console.error('Authentication error details:', err);
-        console.log('Current owner status:', checkForOwnerRole() ? 'Owner' : 'Not owner');
+        
+        // Check owner status again as fallback
+        const ownerStatus = await checkForOwnerRole();
+        console.log('Fallback owner status check:', ownerStatus ? '✅ Yes' : '❌ No');
+        setIsOwner(ownerStatus);
       } else {
         setError(errorMessage);
       }

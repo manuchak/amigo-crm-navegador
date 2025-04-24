@@ -11,11 +11,20 @@ export function useRolePermissionsState() {
   const [isOwner, setIsOwner] = useState<boolean>(false);
   const [retryCount, setRetryCount] = useState(0);
 
-  // Check owner status on component mount
+  // Check owner status on component mount and handle async checkForOwnerRole
   useEffect(() => {
-    const ownerStatus = checkForOwnerRole();
-    console.log('Initial owner status:', ownerStatus ? '✅ Yes' : '❌ No');
-    setIsOwner(ownerStatus);
+    const checkOwnerStatus = async () => {
+      try {
+        const ownerStatus = await checkForOwnerRole();
+        console.log('Owner status check result:', ownerStatus ? '✅ Yes' : '❌ No');
+        setIsOwner(ownerStatus);
+      } catch (err) {
+        console.error('Error checking owner status:', err);
+        setIsOwner(false);
+      }
+    };
+
+    checkOwnerStatus();
   }, []);
 
   return {

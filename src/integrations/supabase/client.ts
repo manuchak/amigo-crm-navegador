@@ -23,20 +23,48 @@ export const supabase = createClient<Database>(
 );
 
 /**
- * Check if the current user has owner role from localStorage
- * to allow special permissions handling
+ * More reliable implementation of owner role checking that uses both
+ * localStorage and current session if available
  */
-export const checkForOwnerRole = (): boolean => {
+export const checkForOwnerRole = async (): Promise<boolean> => {
   try {
-    if (typeof window === 'undefined') return false;
+    // First check localStorage as a fast path
+    if (typeof window !== 'undefined') {
+      const currentUserStr = localStorage.getItem('current_user');
+      if (currentUserStr) {
+        try {
+          const userData = JSON.parse(currentUserStr);
+          if (userData && userData.role === 'owner') {
+            console.log('Owner detected via localStorage');
+            return true;
+          }
+        } catch (e) {
+          console.error("Error parsing localStorage user data:", e);
+        }
+      }
+    }
     
-    const currentUserStr = localStorage.getItem('current_user');
-    if (!currentUserStr) return false;
+    // Then verify with active session if available
+    try {
+      const { data } = await supabase.auth.getSession();
+      if (data?.session) {
+        // Try to get user role from RPC function
+        const { data: roleData, error: roleError } = await supabase
+          .rpc('get_user_role', { user_uid: data.session.user.id })
+          .single();
+          
+        if (!roleError && roleData === 'owner') {
+          console.log('Owner detected via session');
+          return true;
+        }
+      }
+    } catch (sessionError) {
+      console.error("Error checking session for owner role:", sessionError);
+    }
     
-    const userData = JSON.parse(currentUserStr);
-    return userData && userData.role === 'owner';
+    return false;
   } catch (e) {
-    console.error("Error checking for owner role:", e);
+    console.error("Error in checkForOwnerRole:", e);
     return false;
   }
 };
@@ -51,7 +79,7 @@ export const getAdminClient = () => {
   }
 
   try {
-    // Crear un nuevo cliente con el service role key
+    // Create a new client with the service role key
     return createClient<Database>(
       SUPABASE_URL,
       SUPABASE_SERVICE_ROLE_KEY,
@@ -68,7 +96,7 @@ export const getAdminClient = () => {
   }
 };
 
-// Para compatibilidad con código existente
+// For compatibility with existing code
 export const supabaseAdmin = getAdminClient();
 
 /**
@@ -76,8 +104,8 @@ export const supabaseAdmin = getAdminClient();
  * with proper security handling
  */
 export const getAuthenticatedClient = async () => {
-  // First check if user is owner (faster path)
-  const isOwner = checkForOwnerRole();
+  // First check if user is owner (faster path) using the async version
+  const isOwner = await checkForOwnerRole();
   
   if (isOwner) {
     console.log("✅ Owner role detected - using fresh admin client");
@@ -97,7 +125,7 @@ export const getAuthenticatedClient = async () => {
       console.warn("No active session found");
       
       // Final check for owner role as fallback before failing
-      if (checkForOwnerRole()) {
+      if (await checkForOwnerRole()) {
         console.log("No session but owner role detected in fallback - using admin client");
         return getAdminClient();
       }
@@ -125,7 +153,7 @@ export const getAuthenticatedClient = async () => {
     console.error("Auth client error:", error);
     
     // Always fallback to admin client for owners even if there are errors
-    if (checkForOwnerRole()) {
+    if (await checkForOwnerRole()) {
       console.log("Error occurred but owner detected - using fresh admin client");
       return getAdminClient();
     }

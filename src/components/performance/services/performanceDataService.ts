@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -42,18 +43,37 @@ export async function importServiciosData(file: File) {
       description: "Por favor espere mientras procesamos el archivo..." 
     });
 
-    // Get current session using newer method
-    const { data: { session } } = await supabase.auth.getSession();
+    // Get current session using more reliable async/await pattern
+    const { data, error: sessionError } = await supabase.auth.getSession();
     
-    if (!session) {
+    if (sessionError) {
+      console.error("Session error:", sessionError);
+      toast.error("Error de autenticación", {
+        description: "Error al obtener la sesión: " + sessionError.message
+      });
+      return { success: false, message: "Error al obtener la sesión" };
+    }
+    
+    if (!data.session) {
+      console.error("No active session");
       toast.error("Error de autenticación", {
         description: "No hay sesión activa. Por favor inicie sesión nuevamente."
       });
       return { success: false, message: "No hay sesión activa" };
     }
     
-    // Use the access_token from the active session
-    const accessToken = session.access_token;
+    // Use the access_token from the active session with proper error handling
+    const accessToken = data.session.access_token;
+    
+    if (!accessToken) {
+      console.error("No access token in session");
+      toast.error("Error de autenticación", {
+        description: "No se pudo obtener el token de acceso. Por favor inicie sesión nuevamente."
+      });
+      return { success: false, message: "No se pudo obtener el token de acceso" };
+    }
+    
+    console.log("Got valid access token, proceeding with import");
     
     // Convert to regular fetch for better error handling
     const response = await fetch(
