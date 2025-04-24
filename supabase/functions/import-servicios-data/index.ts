@@ -64,9 +64,9 @@ Deno.serve(async (req) => {
     for (let i = 0; i < jsonData.length; i++) {
       const row = jsonData[i]
       try {
-        // Validate data types for numeric fields
+        // Only validate numeric fields if they have a value
         const numericFields = ['km_teorico', 'cantidad_transportes', 'km_recorridos', 
-                              'km_extras', 'costo_custodio', 'casetas', 'cobro_cliente']
+                             'km_extras', 'costo_custodio', 'casetas', 'cobro_cliente']
         
         for (const field of numericFields) {
           if (row[field] !== undefined && row[field] !== null && row[field] !== '') {
@@ -77,9 +77,9 @@ Deno.serve(async (req) => {
           }
         }
 
-        // Validate date fields
+        // Only validate date fields if they have a value
         const dateFields = ['fecha_hora_cita', 'fecha_hora_asignacion', 
-                           'fecha_contratacion', 'fecha_primer_servicio']
+                          'fecha_contratacion', 'fecha_primer_servicio']
         
         for (const field of dateFields) {
           if (row[field] !== undefined && row[field] !== null && row[field] !== '') {
@@ -93,11 +93,11 @@ Deno.serve(async (req) => {
         // Transform to match database schema
         const transformedRow = {}
         tableColumns.forEach(column => {
-          if (row[column] !== undefined) {
+          if (row[column] !== undefined && row[column] !== null && row[column] !== '') {
             // Specific field conversions
-            if (numericFields.includes(column) && row[column] !== null && row[column] !== '') {
+            if (numericFields.includes(column)) {
               transformedRow[column] = parseFloat(row[column])
-            } else if (dateFields.includes(column) && row[column] !== null && row[column] !== '') {
+            } else if (dateFields.includes(column)) {
               transformedRow[column] = new Date(row[column])
             } else if (column === 'armado' && typeof row[column] === 'string') {
               transformedRow[column] = row[column].toLowerCase() === 'si' || row[column] === true
@@ -191,3 +191,4 @@ Deno.serve(async (req) => {
     )
   }
 })
+
