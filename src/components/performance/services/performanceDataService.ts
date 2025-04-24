@@ -43,6 +43,10 @@ export async function importServiciosData(file: File) {
       description: "Por favor espere mientras procesamos el archivo..." 
     });
 
+    // Get current session
+    const { data: sessionData } = await supabase.auth.getSession();
+    const accessToken = sessionData?.session?.access_token || '';
+    
     // Convert to regular fetch for better error handling
     const response = await fetch(
       `https://beefjsdgrdeiymzxwxru.supabase.co/functions/v1/import-servicios-data`,
@@ -50,8 +54,9 @@ export async function importServiciosData(file: File) {
         method: 'POST',
         body: formData,
         headers: {
-          'Authorization': `Bearer ${supabase.auth.session()?.access_token || ''}`,
-          'apikey': supabase.supabaseKey
+          'Authorization': `Bearer ${accessToken}`,
+          // Don't use protected supabaseKey property
+          'apikey': process.env.SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJlZWZqc2RncmRlaXltenh3eHJ1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDI5MzI1OTQsImV4cCI6MjA1ODUwODU5NH0.knvlRdFYtN2bl3t3I4O8v3dU_MWKDDuaBZkvukdU87w'
         }
       }
     );
@@ -67,6 +72,7 @@ export async function importServiciosData(file: File) {
         }
       } catch (parseError) {
         // JSON parsing failed, use default error message
+        console.error("Error parsing error response:", parseError);
       }
       
       console.error("Error importing servicios data:", errorMessage);
@@ -81,7 +87,30 @@ export async function importServiciosData(file: File) {
     }
 
     // Parse successful response
-    const responseData = await response.json();
+    let responseData;
+    try {
+      responseData = await response.json();
+    } catch (parseError) {
+      console.error("Error parsing successful response:", parseError);
+      toast.error("Error al procesar la respuesta del servidor", {
+        description: "La respuesta no tiene el formato esperado"
+      });
+      return { 
+        success: false, 
+        message: "Error al procesar la respuesta del servidor" 
+      };
+    }
+    
+    if (!responseData || responseData.success === undefined) {
+      console.error("Invalid response format:", responseData);
+      toast.error("Respuesta del servidor inválida", {
+        description: "La respuesta no tiene el formato esperado"
+      });
+      return {
+        success: false,
+        message: "Respuesta del servidor inválida"
+      };
+    }
     
     if (!responseData.success) {
       console.error("Error importing servicios data:", responseData);
