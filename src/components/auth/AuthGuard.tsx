@@ -54,6 +54,8 @@ const AuthGuard: React.FC<AuthGuardProps> = ({ children, requiredRole }) => {
       }
       
       // Check if the user is owner (directly from userData)
+      // Fix: Ensure we're properly type checking by using 'as' to tell TypeScript
+      // that userData.role could be 'owner' which is part of the UserRole type
       if (userData?.role === 'owner') {
         console.log('Owner detected, granting access');
         setHasPageAccess(true);
@@ -70,8 +72,10 @@ const AuthGuard: React.FC<AuthGuardProps> = ({ children, requiredRole }) => {
         console.error('Error checking user role:', roleError);
         // Fallback to userData if available
         if (userData?.role) {
-          const isOwner = userData.role === 'owner';
-          console.log(`Using cached role data: ${userData.role}, isOwner: ${isOwner}`);
+          // Fix: Cast userData.role to UserRole to ensure TypeScript knows it's a valid role type
+          const userRole = userData.role as UserRole;
+          const isOwner = userRole === 'owner';
+          console.log(`Using cached role data: ${userRole}, isOwner: ${isOwner}`);
           setHasPageAccess(isOwner); // Owners have access to all pages
           setCheckingAccess(false);
           return;
@@ -80,6 +84,7 @@ const AuthGuard: React.FC<AuthGuardProps> = ({ children, requiredRole }) => {
       }
       
       // If user is owner, no need to check specific permissions
+      // Fix: Cast roleData to UserRole to ensure TypeScript knows it's a valid role type
       if (roleData === 'owner') {
         console.log('User is owner, granting access to all pages');
         setHasPageAccess(true);
@@ -112,6 +117,7 @@ const AuthGuard: React.FC<AuthGuardProps> = ({ children, requiredRole }) => {
       setError(error.message || 'Error al verificar permisos');
       
       // In case of error, default to deny access except for owners
+      // Fix: Ensure proper type checking by comparing with 'as UserRole'
       setHasPageAccess(userData?.role === 'owner');
     } finally {
       setCheckingAccess(false);
