@@ -1,4 +1,3 @@
-
 import React, { Suspense } from 'react';
 import { BrowserRouter as Router, Route, Routes, Navigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -15,6 +14,10 @@ const queryClient = new QueryClient();
 // Import pages that need direct imports to address dynamic import issues
 import Index from './pages/Index';
 import UserManagement from './pages/UserManagement';
+import InstalacionGPS from './pages/InstalacionGPS';
+import InstalacionesAgendadas from './pages/InstalacionesAgendadas';
+import InstalacionGPSInstallers from './pages/InstalacionGPSInstallers';
+import InstaladorRegistro from './pages/InstaladorRegistro';
 
 // Lazy load other routes for better performance
 const Dashboard = React.lazy(() => import('./pages/Dashboard'));
@@ -29,7 +32,6 @@ const Settings = React.lazy(() => import('./pages/Settings'));
 const Performance = React.lazy(() => import('./pages/Performance'));
 const Requerimientos = React.lazy(() => import('./pages/Requerimientos'));
 const AdminConfig = React.lazy(() => import('./pages/AdminConfig'));
-const InstalacionGPS = React.lazy(() => import('./pages/InstalacionGPS'));
 
 function App() {
   console.log("App rendering");
@@ -93,7 +95,29 @@ function App() {
                   </AuthGuard>
                 } />
                 
-                {/* Rutas para las páginas que mencionó el usuario */}
+                {/* GPS Installation routes - Now using direct imports rather than lazy loading */}
+                <Route path="/instalacion-gps" element={
+                  <AuthGuard>
+                    <InstalacionGPS />
+                  </AuthGuard>
+                } />
+                <Route path="/instalacion-gps/agendadas" element={
+                  <AuthGuard>
+                    <InstalacionesAgendadas />
+                  </AuthGuard>
+                } />
+                <Route path="/instalacion-gps/instaladores" element={
+                  <AuthGuard>
+                    <InstalacionGPSInstallers />
+                  </AuthGuard>
+                } />
+                <Route path="/instalacion-gps/registro-instalador" element={
+                  <AuthGuard>
+                    <InstaladorRegistro />
+                  </AuthGuard>
+                } />
+                
+                {/* Other routes */}
                 <Route path="/performance" element={
                   <AuthGuard>
                     <Performance />
@@ -107,11 +131,6 @@ function App() {
                 <Route path="/admin-config" element={
                   <AuthGuard>
                     <AdminConfig />
-                  </AuthGuard>
-                } />
-                <Route path="/instalacion-gps" element={
-                  <AuthGuard>
-                    <InstalacionGPS />
                   </AuthGuard>
                 } />
                 
