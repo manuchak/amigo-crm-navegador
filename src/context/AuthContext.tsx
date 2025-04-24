@@ -1,233 +1,387 @@
-
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { User, Session } from '@supabase/supabase-js';
+import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { UserData, UserRole } from '@/types/auth';
-import { 
-  createUser, 
-  loginUser, 
-  signOut as signOutLocal, 
-  resetPassword as resetPasswordLocal, 
-  verifyUserEmail,
-  updateUserRole,
-  getAllUsers,
-  setAsVerifiedOwner
-} from '@/utils/auth';
+import { UserRole } from '@/types/auth';
 
-// Define the properties that our AuthContext will expose
-interface AuthContextProps {
-  currentUser: UserData | null;
-  userData: UserData | null; // Added userData property to match interface
-  loading: boolean;
-  signOut: () => Promise<void>;
-  updateUserRole: (uid: string, role: UserRole) => Promise<void>;
-  getAllUsers: () => Promise<UserData[]>;
-  refreshUserData: () => Promise<void>;
-  signIn: (email: string, password: string) => Promise<UserData | null>;
-  signUp: (email: string, password: string, displayName: string) => Promise<UserData | null>;
-  resetPassword: (email: string) => Promise<void>;
-  setUserAsVerifiedOwner: (email: string) => Promise<void>;
-  verifyEmail: (uid: string) => Promise<void>;
+interface UserData {
+  uid: string;
+  email: string;
+  displayName: string;
+  photoURL?: string;
+  role: UserRole;
+  emailVerified: boolean;
+  createdAt: Date;
+  lastLogin: Date;
 }
 
-// Create the context
+interface AuthContextProps {
+  user: User | null;
+  session: Session | null;
+  userData: UserData | null;
+  loading: boolean;
+  signIn: (email: string, password: string) => Promise<{ user: User | null; error: any }>;
+  signUp: (email: string, password: string, options?: { data?: object }) => Promise<{ user: User | null; error: any }>;
+  signOut: () => Promise<void>;
+  updateUserRole: (userId: string, role: UserRole) => Promise<{ success: boolean; error?: any }>;
+  getAllUsers: () => Promise<UserData[]>;
+  verifyEmail: (userId: string) => Promise<{ success: boolean; error?: any }>;
+  refreshSession: () => Promise<boolean>;
+}
+
 const AuthContext = createContext<AuthContextProps | undefined>(undefined);
 
-// Custom hook to use the auth context
 export const useAuth = () => {
   const context = useContext(AuthContext);
-  if (context === undefined) {
+  if (!context) {
     throw new Error('useAuth must be used within an AuthProvider');
   }
   return context;
 };
 
-// Provider component
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [currentUser, setCurrentUser] = useState<UserData | null>(null);
+  const [user, setUser] = useState<User | null>(null);
+  const [session, setSession] = useState<Session | null>(null);
+  const [userData, setUserData] = useState<UserData | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
 
-  // Check for existing user session on mount
-  useEffect(() => {
-    const storedUser = localStorage.getItem('current_user');
-    
-    if (storedUser) {
-      try {
-        const userData = JSON.parse(storedUser);
-        setCurrentUser(userData);
-      } catch (e) {
-        console.error('Error parsing stored user data:', e);
-        localStorage.removeItem('current_user');
-      }
+  // Function to get a user's role from Supabase
+  const getUserRole = async (userId: string): Promise<UserRole> => {
+    try {
+      // Use the RPC function to get the user role
+      const { data, error } = await supabase.rpc('get_user_role', {
+        user_uid: userId
+      }).single();
+
+      if (error) throw error;
+      return data as UserRole;
+    } catch (error) {
+      console.error('Error getting user role:', error);
+      return 'unverified';
     }
+  };
+
+  // Function to map Supabase user to our UserData format
+  const mapUserData = async (user: User): Promise<UserData> => {
+    // Get profile data
+    const { data: profileData } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', user.id)
+      .single();
+
+    // Get user role
+    const role = await getUserRole(user.id);
     
-    setLoading(false);
+    return {
+      uid: user.id,
+      email: user.email || '',
+      displayName: profileData?.display_name || user.email || '',
+      photoURL: profileData?.photo_url || undefined,
+      role: role,
+      emailVerified: user.email_confirmed_at ? true : false,
+      createdAt: profileData?.created_at ? new Date(profileData.created_at) : new Date(),
+      lastLogin: profileData?.last_login ? new Date(profileData.last_login) : new Date(),
+    };
+  };
+
+  // Función para actualizar el último inicio de sesión del usuario
+  const updateLastLogin = async (userId: string) => {
+    try {
+      await supabase
+        .from('profiles')
+        .update({ last_login: new Date().toISOString() })
+        .eq('id', userId);
+    } catch (error) {
+      console.error('Error updating last login:', error);
+    }
+  };
+
+  // Función para refrescar la sesión
+  const refreshSession = async (): Promise<boolean> => {
+    try {
+      const { data, error } = await supabase.auth.refreshSession();
+      
+      if (error) {
+        console.error('Error refreshing session:', error);
+        return false;
+      }
+      
+      if (data && data.session) {
+        setSession(data.session);
+        setUser(data.session.user);
+        
+        // Actualizar userData
+        if (data.session.user) {
+          const userData = await mapUserData(data.session.user);
+          setUserData(userData);
+        }
+        
+        return true;
+      }
+      
+      return false;
+    } catch (error) {
+      console.error('Error in refreshSession:', error);
+      return false;
+    }
+  };
+
+  // Set up the auth state listener
+  useEffect(() => {
+    setLoading(true);
+    
+    // Primero, configura el listener de eventos de autenticación
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, newSession) => {
+        console.log('Auth state changed:', event, !!newSession);
+        
+        if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+          setSession(newSession);
+          setUser(newSession?.user || null);
+          
+          if (newSession?.user) {
+            try {
+              // Actualizar último inicio de sesión
+              await updateLastLogin(newSession.user.id);
+              
+              // Obtener datos completos del usuario
+              const userData = await mapUserData(newSession.user);
+              setUserData(userData);
+            } catch (error) {
+              console.error('Error mapping user data on auth change:', error);
+            }
+          }
+        } else if (event === 'SIGNED_OUT') {
+          setSession(null);
+          setUser(null);
+          setUserData(null);
+        }
+        
+        setLoading(false);
+      }
+    );
+
+    // Segundo, verificar si hay una sesión existente
+    const checkExistingSession = async () => {
+      try {
+        const { data } = await supabase.auth.getSession();
+        
+        if (data?.session) {
+          setSession(data.session);
+          setUser(data.session.user);
+          
+          // Procesar los datos del usuario si hay sesión
+          if (data.session.user) {
+            try {
+              // Actualizar último inicio de sesión
+              await updateLastLogin(data.session.user.id);
+              
+              // Mapear datos de usuario
+              const userData = await mapUserData(data.session.user);
+              setUserData(userData);
+            } catch (error) {
+              console.error('Error mapping user data on init:', error);
+            }
+          }
+        }
+      } catch (error) {
+        console.error('Error checking existing session:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    
+    checkExistingSession();
+
+    return () => {
+      subscription.unsubscribe();
+    };
   }, []);
 
-  // Sign in functionality
   const signIn = async (email: string, password: string) => {
-    setLoading(true);
     try {
-      const userData = loginUser(email, password);
-      setCurrentUser(userData);
+      setLoading(true);
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+      if (error) throw error;
       
-      // Show success toast
-      toast.success('Sesión iniciada con éxito');
-      return userData;
+      if (data.user) {
+        // Actualizar último inicio de sesión
+        await updateLastLogin(data.user.id);
+        
+        // Actualizar usuario y datos de usuario
+        const userData = await mapUserData(data.user);
+        setUserData(userData);
+        console.log('Usuario autenticado:', userData);
+        
+        toast.success(`¡Bienvenido de nuevo, ${userData.displayName || email}!`);
+      }
+      
+      return { user: data.user, error: null };
     } catch (error: any) {
-      console.error('Error signing in:', error);
-      toast.error(error.message || 'Error al iniciar sesión');
-      throw error;
+      console.error('Error de inicio de sesión:', error);
+      toast.error(`Error al iniciar sesión: ${error.message}`);
+      return { user: null, error };
     } finally {
       setLoading(false);
     }
   };
 
-  // Sign up functionality with improved error handling
-  const signUp = async (email: string, password: string, displayName: string) => {
-    setLoading(true);
+  const signUp = async (email: string, password: string, options?: { data?: object }) => {
     try {
-      // Create the user account
-      const userData = createUser(email, password, displayName);
+      setLoading(true);
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: options || {},
+      });
+
+      if (error) throw error;
       
-      // Set the current user - but don't redirect if they need to verify email
-      setCurrentUser(userData);
-      
-      // Show success toast
       toast.success('Cuenta creada con éxito');
-      return userData;
+      return { user: data.user, error: null };
     } catch (error: any) {
-      console.error('Error signing up:', error);
-      toast.error(error.message || 'Error al crear la cuenta');
-      throw error;
+      toast.error(`Error al crear cuenta: ${error.message}`);
+      return { user: null, error };
     } finally {
       setLoading(false);
     }
   };
 
-  // Sign out functionality
   const signOut = async () => {
-    signOutLocal();
-    setCurrentUser(null);
-    toast.success('Sesión cerrada con éxito');
-  };
-
-  // Password reset functionality
-  const resetPassword = async (email: string) => {
-    setLoading(true);
     try {
-      resetPasswordLocal(email);
-      toast.success('Se ha enviado un correo para restablecer la contraseña');
+      setLoading(true);
+      const { error } = await supabase.auth.signOut();
+      
+      if (error) throw error;
+      
+      // Limpiar estado local
+      setSession(null);
+      setUser(null);
+      setUserData(null);
+      
+      toast.success('Sesión cerrada con éxito');
     } catch (error: any) {
-      console.error('Error resetting password:', error);
-      toast.error(error.message || 'Error al restablecer la contraseña');
+      console.error('Error al cerrar sesión:', error);
+      toast.error(`Error al cerrar sesión: ${error.message}`);
     } finally {
       setLoading(false);
     }
   };
 
-  // Update user role functionality
-  const updateUserRoleHandler = async (uid: string, role: UserRole) => {
+  const updateUserRole = async (userId: string, role: UserRole) => {
     try {
-      updateUserRole(uid, role);
+      const { error } = await supabase.rpc('update_user_role', {
+        target_user_id: userId,
+        new_role: role
+      });
+
+      if (error) throw error;
       
-      // If we're updating the current user, update the state
-      if (currentUser && currentUser.uid === uid) {
-        setCurrentUser({
-          ...currentUser,
-          role
-        });
+      // If we updated our own user, update the local state
+      if (user?.id === userId) {
+        setUserData(prev => prev ? { ...prev, role } : null);
       }
-      
-      toast.success(`Rol actualizado a ${role} con éxito`);
+
+      return { success: true };
     } catch (error: any) {
-      console.error('Error updating role:', error);
-      toast.error(error.message || 'Error al actualizar el rol');
+      console.error('Error updating user role:', error);
+      return { success: false, error };
     }
   };
 
-  // Get all users functionality
-  const getAllUsersHandler = async () => {
-    return getAllUsers();
-  };
-
-  // Refresh user data functionality
-  const refreshUserData = async () => {
-    if (!currentUser) return;
-    
-    // Check if user has been updated in storage
-    const storedUser = localStorage.getItem('current_user');
-    
-    if (storedUser) {
-      try {
-        const userData = JSON.parse(storedUser);
-        setCurrentUser(userData);
-      } catch (e) {
-        console.error('Error parsing stored user data:', e);
-      }
-    }
-  };
-
-  // Set user as verified owner functionality
-  const setUserAsVerifiedOwner = async (email: string) => {
+  const getAllUsers = async (): Promise<UserData[]> => {
     try {
-      // Find the user by email
-      const users = getAllUsers();
-      const user = users.find(u => u.email.toLowerCase() === email.toLowerCase());
+      // First, get all profiles
+      const { data: profiles, error: profileError } = await supabase
+        .from('profiles')
+        .select('*');
       
-      if (user && user.uid) {
-        setAsVerifiedOwner(user.uid);
-        toast.success('Usuario verificado como propietario');
-      } else {
-        throw new Error('Usuario no encontrado');
+      if (profileError) throw profileError;
+
+      // Then, get all users with their roles
+      const { data: userRoles, error: rolesError } = await supabase
+        .from('user_roles')
+        .select('*');
+      
+      if (rolesError) throw rolesError;
+
+      // Get all auth users (requires admin privileges or use service role key)
+      const { data: authUsers, error: authError } = await supabase.auth.admin.listUsers();
+      
+      if (authError) {
+        console.error('Error fetching auth users:', authError);
+        // Continue with what we have if this fails
       }
-    } catch (error: any) {
-      console.error('Error setting user as verified owner:', error);
-      toast.error(error.message || 'Error al verificar al usuario como propietario');
+
+      const users = profiles?.map(profile => {
+        // Find the role for this user
+        const userRole = userRoles?.find(ur => ur.user_id === profile.id);
+        
+        // Find auth user data
+        // Fix for the TypeScript error - check if users array exists before using find
+        const authUsersList = authUsers?.users || [];
+        const authUser = authUsersList.find(u => u.id === profile.id);
+        
+        return {
+          uid: profile.id,
+          email: profile.email,
+          displayName: profile.display_name || profile.email,
+          photoURL: profile.photo_url || undefined,
+          role: (userRole?.role as UserRole) || 'unverified',
+          emailVerified: authUser?.email_confirmed_at ? true : false,
+          createdAt: profile.created_at ? new Date(profile.created_at) : new Date(),
+          lastLogin: profile.last_login ? new Date(profile.last_login) : new Date(),
+        };
+      }) || [];
+
+      return users;
+    } catch (error) {
+      console.error('Error getting users:', error);
+      toast.error('Error al obtener la lista de usuarios');
+      return [];
     }
   };
 
-  // Verify email functionality
-  const verifyEmail = async (uid: string) => {
+  const verifyEmail = async (userId: string) => {
     try {
-      verifyUserEmail(uid);
-      
-      // If we're verifying the current user, update the state
-      if (currentUser && currentUser.uid === uid) {
-        setCurrentUser({
-          ...currentUser,
-          emailVerified: true,
-          role: currentUser.role === 'unverified' ? 'pending' as UserRole : currentUser.role
-        });
+      const { error } = await supabase.rpc('verify_user_email', {
+        target_user_id: userId
+      });
+
+      if (error) throw error;
+
+      // If we verified our own email, update the local state
+      if (user?.id === userId) {
+        setUserData(prev => prev ? { ...prev, emailVerified: true } : null);
       }
-      
-      toast.success('Correo electrónico verificado con éxito');
+
+      return { success: true };
     } catch (error: any) {
       console.error('Error verifying email:', error);
-      toast.error(error.message || 'Error al verificar el correo electrónico');
+      return { success: false, error };
     }
   };
 
-  // Value object that will be provided to components using this context
   const value = {
-    currentUser,
-    userData: currentUser, // Set userData to be the same as currentUser for compatibility
+    user,
+    session,
+    userData,
     loading,
     signIn,
     signUp,
     signOut,
-    resetPassword,
-    updateUserRole: updateUserRoleHandler,
-    getAllUsers: getAllUsersHandler,
-    refreshUserData,
-    setUserAsVerifiedOwner,
-    verifyEmail
+    updateUserRole,
+    getAllUsers,
+    verifyEmail,
+    refreshSession,
   };
 
-  return (
-    <AuthContext.Provider value={value}>
-      {children}
-    </AuthContext.Provider>
-  );
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
 
 export default AuthProvider;

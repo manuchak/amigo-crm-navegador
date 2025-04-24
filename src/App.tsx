@@ -3,8 +3,8 @@ import React, { Suspense } from 'react';
 import { BrowserRouter as Router, Route, Routes, Navigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Toaster } from 'sonner';
-import { AuthProvider } from '@/context/AuthContext'; // Using our local AuthContext
-import { LeadsProvider } from '@/context/LeadsContext'; // Import LeadsProvider
+import { AuthProvider } from '@/context/AuthContext'; // Using only Supabase AuthContext
+import { LeadsProvider } from '@/context/LeadsContext';
 import AuthGuard from '@/components/auth/AuthGuard';
 import Navbar from '@/components/Navbar';
 import './App.css';
@@ -28,7 +28,7 @@ function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
-        <LeadsProvider> {/* Wrap with LeadsProvider */}
+        <LeadsProvider>
           <Router>
             <Navbar />
             <Suspense fallback={<div className="loading">Cargando...</div>}>
@@ -85,7 +85,7 @@ function App() {
             </Suspense>
           </Router>
           <Toaster position="top-right" richColors closeButton />
-        </LeadsProvider> {/* Close LeadsProvider */}
+        </LeadsProvider>
       </AuthProvider>
     </QueryClientProvider>
   );

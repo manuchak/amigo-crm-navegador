@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from 'react';
-import { UserData } from '@/types/auth';
+import { UserData, UserRole } from '@/types/auth';
 import { toast } from 'sonner';
 
 interface UseUserManagementProps {
@@ -13,13 +13,12 @@ const useUserManagement = ({ getAllUsers }: UseUserManagementProps) => {
   const [selectedUser, setSelectedUser] = useState<UserData | null>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isConfirmationOpen, setIsConfirmationOpen] = useState(false);
-  const [newRole, setNewRole] = useState<any>('unverified');
+  const [newRole, setNewRole] = useState<UserRole>('unverified');
   
   const fetchUsers = async () => {
     try {
       setLoading(true);
       const allUsers = await getAllUsers();
-      console.log("Fetched users:", allUsers);
       setUsers(allUsers || []);
     } catch (error) {
       console.error('Error fetching users:', error);
@@ -35,7 +34,7 @@ const useUserManagement = ({ getAllUsers }: UseUserManagementProps) => {
     setIsEditDialogOpen(true);
   };
   
-  const handleRoleChange = (value: any) => {
+  const handleRoleChange = (value: UserRole) => {
     setNewRole(value);
   };
 
