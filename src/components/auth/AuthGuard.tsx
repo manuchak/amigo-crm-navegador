@@ -71,13 +71,13 @@ const AuthGuard: React.FC<AuthGuardProps> = ({ children, requiredRole }) => {
     
     console.log('AuthGuard checking access: Page:', pageId, 'User:', !!currentUser, 'Role:', currentUser?.role);
     
-    // Always allow access to auth pages
-    if (pageId === 'auth' || pageId === 'login') {
+    // Always allow access to public pages
+    if (pageId === 'auth' || pageId === 'login' || pageId === '' || pageId === 'inicio') {
       setAccessVerified(true);
       return;
     }
     
-    // If no user, deny access
+    // If no user, deny access to protected pages
     if (!currentUser) {
       setAccessDenied(true);
       return;
@@ -113,10 +113,10 @@ const AuthGuard: React.FC<AuthGuardProps> = ({ children, requiredRole }) => {
     );
   }
   
-  // If no user, redirect to auth page
+  // If no user, redirect to auth page (only for protected pages)
   if (!currentUser && !accessVerified) {
-    // Do not redirect if we're already on the auth or login page
-    if (location.pathname === '/auth' || location.pathname === '/login') {
+    // Do not redirect if we're already on auth, login, or home page
+    if (location.pathname === '/auth' || location.pathname === '/login' || location.pathname === '/') {
       return <>{children}</>;
     }
     console.log("Redirecting to /auth because no user is authenticated");
@@ -156,10 +156,10 @@ const AuthGuard: React.FC<AuthGuardProps> = ({ children, requiredRole }) => {
           )}
           <div className="flex gap-2 mt-4">
             <Button
-              onClick={() => window.location.href = '/dashboard'}
+              onClick={() => window.location.href = '/'}
               variant="outline"
             >
-              Volver al Dashboard
+              Volver al Inicio
             </Button>
             <Button
               onClick={handleRefreshSession}

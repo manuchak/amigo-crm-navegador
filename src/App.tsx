@@ -23,6 +23,7 @@ const Validation = React.lazy(() => import('./pages/Validation'));
 const Support = React.lazy(() => import('./pages/Support'));
 const CallCenter = React.lazy(() => import('./pages/CallCenter'));
 const Settings = React.lazy(() => import('./pages/Settings'));
+const Index = React.lazy(() => import('./pages/Index')); // Import the Index page
 
 function App() {
   console.log("App rendering");
@@ -37,6 +38,10 @@ function App() {
               <Routes>
                 <Route path="/auth" element={<Auth />} />
                 <Route path="/login" element={<Login />} />
+                
+                {/* Add the route for the Index/Inicio page */}
+                <Route path="/inicio" element={<Index />} />
+                <Route path="/" element={<Index />} />
                 
                 {/* Protected routes */}
                 <Route path="/dashboard" element={
@@ -80,9 +85,8 @@ function App() {
                   </AuthGuard>
                 } />
                 
-                {/* Default redirect */}
-                <Route path="/" element={<Navigate to="/dashboard" replace />} />
-                <Route path="*" element={<Navigate to="/dashboard" replace />} />
+                {/* Update default redirect to use the Index page instead of dashboard */}
+                <Route path="*" element={<Navigate to="/" replace />} />
               </Routes>
             </Suspense>
           </Router>

@@ -1,7 +1,8 @@
+
 import React from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
-import { Shield, LogIn, Users, LifeBuoy } from 'lucide-react';
+import { Shield, LogIn, Users, LifeBuoy, Home } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import {
   DropdownMenu,
@@ -182,6 +183,6 @@ const Navbar = () => {
       </div>
     </nav>
   );
-};
+}
 
 export default Navbar;
