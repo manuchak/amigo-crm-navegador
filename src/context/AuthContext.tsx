@@ -1,33 +1,9 @@
+
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { UserRole } from '@/types/auth';
-
-interface UserData {
-  uid: string;
-  email: string;
-  displayName: string;
-  photoURL?: string;
-  role: UserRole;
-  emailVerified: boolean;
-  createdAt: Date;
-  lastLogin: Date;
-}
-
-interface AuthContextProps {
-  user: User | null;
-  session: Session | null;
-  userData: UserData | null;
-  loading: boolean;
-  signIn: (email: string, password: string) => Promise<{ user: User | null; error: any }>;
-  signUp: (email: string, password: string, options?: { data?: object }) => Promise<{ user: User | null; error: any }>;
-  signOut: () => Promise<void>;
-  updateUserRole: (userId: string, role: UserRole) => Promise<{ success: boolean; error?: any }>;
-  getAllUsers: () => Promise<UserData[]>;
-  verifyEmail: (userId: string) => Promise<{ success: boolean; error?: any }>;
-  refreshSession: () => Promise<boolean>;
-}
+import { UserRole, UserData, AuthContextProps } from '@/types/auth';
 
 const AuthContext = createContext<AuthContextProps | undefined>(undefined);
 
@@ -85,7 +61,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
   };
 
-  // Función para actualizar el último inicio de sesión del usuario
+  // Function to update the user's last login
   const updateLastLogin = async (userId: string) => {
     try {
       await supabase
@@ -97,7 +73,31 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  // Función para refrescar la sesión
+  // Function to refresh user data
+  const refreshUserData = async () => {
+    try {
+      setLoading(true);
+      
+      // Check if there's an active session
+      const { data: sessionData } = await supabase.auth.getSession();
+      
+      if (sessionData?.session?.user) {
+        const sessionUser = sessionData.session.user;
+        setUser(sessionUser);
+        
+        // Map user data from session
+        const mappedUserData = await mapUserData(sessionUser);
+        setUserData(mappedUserData);
+      }
+    } catch (error) {
+      console.error('Error refreshing user data:', error);
+      toast.error('Error al actualizar los datos de usuario');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Function to refresh session
   const refreshSession = async (): Promise<boolean> => {
     try {
       const { data, error } = await supabase.auth.refreshSession();
@@ -111,7 +111,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setSession(data.session);
         setUser(data.session.user);
         
-        // Actualizar userData
+        // Update userData
         if (data.session.user) {
           const userData = await mapUserData(data.session.user);
           setUserData(userData);
@@ -131,7 +131,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     setLoading(true);
     
-    // Primero, configura el listener de eventos de autenticación
+    // First, configure the authentication event listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, newSession) => {
         console.log('Auth state changed:', event, !!newSession);
@@ -142,10 +142,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           
           if (newSession?.user) {
             try {
-              // Actualizar último inicio de sesión
+              // Update last login
               await updateLastLogin(newSession.user.id);
               
-              // Obtener datos completos del usuario
+              // Get complete user data
               const userData = await mapUserData(newSession.user);
               setUserData(userData);
             } catch (error) {
@@ -162,7 +162,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     );
 
-    // Segundo, verificar si hay una sesión existente
+    // Second, check for existing session
     const checkExistingSession = async () => {
       try {
         const { data } = await supabase.auth.getSession();
@@ -171,13 +171,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           setSession(data.session);
           setUser(data.session.user);
           
-          // Procesar los datos del usuario si hay sesión
+          // Process user data if there's a session
           if (data.session.user) {
             try {
-              // Actualizar último inicio de sesión
+              // Update last login
               await updateLastLogin(data.session.user.id);
               
-              // Mapear datos de usuario
+              // Map user data
               const userData = await mapUserData(data.session.user);
               setUserData(userData);
             } catch (error) {
@@ -210,43 +210,66 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (error) throw error;
       
       if (data.user) {
-        // Actualizar último inicio de sesión
+        // Update last login
         await updateLastLogin(data.user.id);
         
-        // Actualizar usuario y datos de usuario
+        // Update user and user data
         const userData = await mapUserData(data.user);
         setUserData(userData);
-        console.log('Usuario autenticado:', userData);
+        console.log('User authenticated:', userData);
         
-        toast.success(`¡Bienvenido de nuevo, ${userData.displayName || email}!`);
+        toast.success(`¡Welcome back, ${userData.displayName || email}!`);
       }
       
       return { user: data.user, error: null };
     } catch (error: any) {
-      console.error('Error de inicio de sesión:', error);
-      toast.error(`Error al iniciar sesión: ${error.message}`);
+      console.error('Login error:', error);
+      toast.error(`Error logging in: ${error.message}`);
       return { user: null, error };
     } finally {
       setLoading(false);
     }
   };
 
-  const signUp = async (email: string, password: string, options?: { data?: object }) => {
+  const signUp = async (email: string, password: string, displayName: string) => {
     try {
       setLoading(true);
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
-        options: options || {},
+        options: {
+          data: {
+            display_name: displayName,
+          },
+        }
       });
 
       if (error) throw error;
       
-      toast.success('Cuenta creada con éxito');
+      toast.success('Account created successfully');
       return { user: data.user, error: null };
     } catch (error: any) {
-      toast.error(`Error al crear cuenta: ${error.message}`);
+      toast.error(`Error creating account: ${error.message}`);
       return { user: null, error };
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const resetPassword = async (email: string) => {
+    try {
+      setLoading(true);
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/reset-password`,
+      });
+
+      if (error) throw error;
+      
+      toast.success(`Password reset email sent to ${email}`);
+    } catch (error: any) {
+      console.error('Password reset error:', error);
+      toast.error(`Error sending reset password email: ${error.message}`);
+      throw error;
     } finally {
       setLoading(false);
     }
@@ -259,15 +282,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       if (error) throw error;
       
-      // Limpiar estado local
+      // Clear local state
       setSession(null);
       setUser(null);
       setUserData(null);
       
-      toast.success('Sesión cerrada con éxito');
+      toast.success('Logged out successfully');
     } catch (error: any) {
-      console.error('Error al cerrar sesión:', error);
-      toast.error(`Error al cerrar sesión: ${error.message}`);
+      console.error('Error signing out:', error);
+      toast.error(`Error signing out: ${error.message}`);
     } finally {
       setLoading(false);
     }
@@ -342,7 +365,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return users;
     } catch (error) {
       console.error('Error getting users:', error);
-      toast.error('Error al obtener la lista de usuarios');
+      toast.error('Error retrieving user list');
       return [];
     }
   };
@@ -369,8 +392,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const value = {
     user,
-    session,
+    currentUser: userData, // Map userData to currentUser for backward compatibility
     userData,
+    session,
     loading,
     signIn,
     signUp,
@@ -379,6 +403,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     getAllUsers,
     verifyEmail,
     refreshSession,
+    refreshUserData,
+    resetPassword,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

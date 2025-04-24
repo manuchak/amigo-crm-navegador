@@ -21,18 +21,20 @@ export interface UserData {
   lastLogin: Date;
 }
 
-// This interface is implemented in the SupabaseAuthContext
+// This interface is implemented in the AuthContext
 export interface AuthContextProps {
-  currentUser: UserData | null;
+  user: User | null;
+  currentUser: UserData | null; // Added to match component usage
   userData: UserData | null;
+  session: Session | null;
   loading: boolean;
+  signIn: (email: string, password: string) => Promise<{ user: User | null; error: any }>;
+  signUp: (email: string, password: string, displayName: string) => Promise<{ user: User | null; error: any }>;
   signOut: () => Promise<void>;
-  updateUserRole: (uid: string, role: UserRole) => Promise<void>;
+  updateUserRole: (userId: string, role: UserRole) => Promise<{ success: boolean; error?: any }>;
   getAllUsers: () => Promise<UserData[]>;
-  refreshUserData: () => Promise<void>;
-  signIn: (email: string, password: string) => Promise<UserData | null>;
-  signUp: (email: string, password: string, displayName: string) => Promise<UserData | null>;
-  resetPassword: (email: string) => Promise<void>;
-  setUserAsVerifiedOwner: (email: string) => Promise<void>;
-  verifyEmail: (uid: string) => Promise<void>;
+  verifyEmail: (userId: string) => Promise<{ success: boolean; error?: any }>;
+  refreshSession: () => Promise<boolean>;
+  refreshUserData: () => Promise<void>; // Added to match component usage
+  resetPassword: (email: string) => Promise<void>; // Added for ForgotPasswordForm
 }
