@@ -87,7 +87,7 @@ export async function importServiciosData(
     
     // Set up abort controller with longer timeout for large files
     const abortController = new AbortController();
-    const timeoutId = setTimeout(() => abortController.abort(), 180000); // 3 minutes
+    const timeoutId = setTimeout(() => abortController.abort(), 300000); // 5 minutes
     
     try {
       // Start the import process
