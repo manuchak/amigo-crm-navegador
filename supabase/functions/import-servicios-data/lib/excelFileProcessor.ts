@@ -27,7 +27,7 @@ export async function processExcelFileStream(
 
     // Aproximar el número total de filas basado en el tamaño del archivo
     // Esta es solo una estimación que se refinará más adelante
-    const estimatedRowCount = Math.ceil(totalBytes / 200); // Aproximadamente 200 bytes por fila
+    let estimatedRowCount = Math.ceil(totalBytes / 200); // Aproximadamente 200 bytes por fila
     await progressManager.updateProgress(
       'validating',
       0,
