@@ -1,3 +1,4 @@
+
 import * as XLSX from 'https://esm.sh/xlsx@0.18.5'
 import { ProgressManager } from './progressManager.ts';
 import { BatchProcessor } from './batchProcessor.ts';
@@ -305,6 +306,44 @@ export async function processExcelFileStream(
         `Preparando importación de ${totalRows} registros`
       );
       
+      // Pre-process interval fields before sending to batch processor
+      for (const record of transformedData) {
+        // Process all interval type fields to prevent syntax errors with empty strings
+        const intervalFields = ['tiempo_retraso', 'tiempo_punto_origen', 'tiempo_estimado', 'duracion_servicio'];
+        
+        intervalFields.forEach(field => {
+          if (field in record) {
+            // If the value is empty, null, or undefined, remove the field completely
+            if (record[field] === '' || record[field] === null || record[field] === undefined) {
+              console.log(`Pre-processing: Removing empty interval field ${field}`);
+              delete record[field];
+              return;
+            }
+            
+            // If it's a string, validate and format it properly
+            if (typeof record[field] === 'string') {
+              const cleanValue = record[field].trim();
+              
+              // Skip empty or header-like values
+              if (cleanValue === '' || 
+                  cleanValue === '""' || 
+                  cleanValue === "''") {
+                console.log(`Pre-processing: Removing empty-looking interval field ${field}: "${cleanValue}"`);
+                delete record[field];
+                return;
+              }
+              
+              // If it doesn't match a basic pattern for interval, remove it
+              if (!/^[0-9:.hm\s]+$/.test(cleanValue) && 
+                  !cleanValue.match(/\d+\s*(hour|minute|second|day|week|month|year)/i)) {
+                console.log(`Pre-processing: Removing suspicious interval value for ${field}: "${cleanValue}"`);
+                delete record[field];
+              }
+            }
+          }
+        });
+      }
+      
       for (let i = 0; i < transformedData.length; i += batchSize) {
         const batchData = transformedData.slice(i, i + batchSize);
         
@@ -352,34 +391,6 @@ export async function processExcelFileStream(
       
       allResults.totalCount = totalRows;
       allResults.message = finalMessage;
-      
-      for (const record of transformedData) {
-        const intervalFields = ['tiempo_retraso', 'tiempo_punto_origen', 'tiempo_estimado', 'duracion_servicio'];
-        intervalFields.forEach(field => {
-          if (field in record) {
-            if (record[field] === '' || record[field] === null || record[field] === undefined) {
-              console.log(`Removing empty interval field ${field} before batch processing`);
-              delete record[field];
-              return;
-            }
-            
-            if (typeof record[field] === 'string') {
-              const cleanValue = record[field].trim();
-              
-              if (cleanValue === '' || cleanValue === '""' || cleanValue === "''") {
-                console.log(`Removing empty-looking interval field ${field}: "${cleanValue}"`);
-                delete record[field];
-                return;
-              }
-              
-              if (!/^[0-9:.hm\s]+$/.test(cleanValue) && !cleanValue.match(/\d+\s*(hour|minute|second|day|week|month|year)/i)) {
-                console.log(`Removing suspicious interval value for ${field}: "${cleanValue}"`);
-                delete record[field];
-              }
-            }
-          }
-        });
-      }
       
       return allResults;
       
