@@ -88,7 +88,7 @@ export function transformRowData(row: any, columnMapping: Record<string, string>
             const cleanValue = value
               .replace(/[$€£¥]/g, '') // Remove currency symbols
               .replace(/\s/g, '') // Remove spaces
-              .replace(/,/g, '.') // Replace commas with dots for decimal
+              .replace(/,/g, '.') // Replace comma with dot for decimal
               .replace(/[^\d.-]/g, ''); // Remove any remaining non-numeric chars except dots and minus
           
             // Handle empty string case
@@ -119,7 +119,7 @@ export function transformRowData(row: any, columnMapping: Record<string, string>
               console.log(`Couldn't convert numeric value for ${dbColumn}: ${value}`);
             }
           } else if (typeof value === 'number') {
-            // For direct number inputs, also apply validation for cobro_cliente
+            // For direct number inputs, also ensure cobro_cliente is properly formatted
             if (dbColumn === 'cobro_cliente') {
               const formattedValue = Number(value.toFixed(2));
               if (formattedValue >= 0 && formattedValue <= 1000000) {
@@ -159,7 +159,7 @@ export function transformRowData(row: any, columnMapping: Record<string, string>
         dbColumn === 'tiempo_estimado' ||
         dbColumn === 'duracion_servicio'
       ) {
-        // Skip empty strings for interval fields
+        // Skip empty strings and null values for interval fields
         if (value === '' || value === null) {
           return;
         }
@@ -176,7 +176,6 @@ export function transformRowData(row: any, columnMapping: Record<string, string>
           }
           
           // Try to format as a valid interval string
-          // Possible formats: '1:30:00', '1 hour', '90 minutes', etc.
           try {
             let formattedInterval = cleanValue;
             
@@ -195,8 +194,11 @@ export function transformRowData(row: any, columnMapping: Record<string, string>
               }
             }
             
-            transformedRow[dbColumn] = formattedInterval;
-            console.log(`Formatted interval value for ${dbColumn}: ${value} -> ${formattedInterval}`);
+            // Only include the field if we have a valid non-empty value
+            if (formattedInterval && formattedInterval.trim() !== '') {
+              transformedRow[dbColumn] = formattedInterval;
+              console.log(`Formatted interval value for ${dbColumn}: ${value} -> ${formattedInterval}`);
+            }
           } catch (e) {
             console.error(`Error formatting interval for ${dbColumn}:`, e);
             return; // Skip this field on error

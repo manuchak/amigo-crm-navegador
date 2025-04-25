@@ -1,4 +1,3 @@
-
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.7'
 import { ProgressManager } from './progressManager.ts';
 import { reportMemoryUsage, forceGarbageCollection } from './memoryMonitor.ts';
@@ -42,40 +41,56 @@ export class BatchProcessor {
         if (record[field] !== undefined && record[field] !== null) {
           // If the field is a string that represents a number, convert it
           if (typeof record[field] === 'string') {
-            // Clean the string by removing any non-numeric characters except decimal point
+            // Clean the string by removing currency symbols, spaces, and replacing commas with dots
             const cleanStr = record[field]
               .replace(/[$€£¥]/g, '') // Remove currency symbols
               .replace(/\s/g, '') // Remove spaces
-              .replace(/,/g, '.') // Replace comma with dot
-              .replace(/[^\d.-]/g, ''); // Remove anything that's not a digit, dot or minus
+              .replace(/,/g, '.') // Replace comma with dot for decimal
+              .replace(/[^\d.-]/g, ''); // Remove any remaining non-numeric chars except dots and minus
               
-            // Try to convert to number
+            // Handle empty string case
+            if (cleanStr === '' || cleanStr === '.') {
+              console.log(`Empty value for ${field} after cleaning: "${record[field]}"`);
+              delete record[field]; // Remove the field completely
+              continue;
+            }
+
+            // Parse as float and validate
             const numValue = parseFloat(cleanStr);
             
-            // If conversion is successful, use the number value
             if (!isNaN(numValue)) {
-              // For cobro_cliente, format to 2 decimal places to ensure valid number format
+              // For cobro_cliente field, apply extra validation
               if (field === 'cobro_cliente') {
-                // Ensure it's a valid number by limiting to 2 decimal places
-                record[field] = Number(numValue.toFixed(2)); 
-                console.log(`Formatted cobro_cliente from "${record[field]}" to ${numValue.toFixed(2)}`);
+                // Limit to 2 decimal places and ensure it's within a reasonable range
+                const formattedValue = Number(numValue.toFixed(2));
+                if (formattedValue >= 0 && formattedValue <= 1000000) { // Reasonable upper limit for a charge
+                  record[field] = formattedValue;
+                  console.log(`Converted cobro_cliente value: ${record[field]} -> ${formattedValue}`);
+                } else {
+                  console.log(`Rejected unreasonable cobro_cliente value: ${numValue}`);
+                  delete record[field]; // Remove invalid values
+                }
               } else {
                 record[field] = numValue;
+                console.log(`Converted numeric value for ${field}: ${record[field]} -> ${numValue}`);
               }
             } else {
-              // If conversion failed, remove the field
-              console.log(`Could not convert field ${field} value "${record[field]}" to number - removing field`);
-              delete record[field];
+              console.log(`Couldn't convert numeric value for ${field}: ${record[field]}`);
+              delete record[field]; // Remove invalid values
             }
           } else if (typeof record[field] === 'number') {
             // For direct number inputs, also ensure cobro_cliente is properly formatted
             if (field === 'cobro_cliente') {
-              record[field] = Number(record[field].toFixed(2));
+              const formattedValue = Number(record[field].toFixed(2));
+              if (formattedValue >= 0 && formattedValue <= 1000000) {
+                record[field] = formattedValue;
+              } else {
+                delete record[field]; // Remove out-of-range values
+              }
             }
-            // All other numeric fields can remain as-is
+            // Other numeric fields can stay as-is
           } else {
-            // If it's not a string nor a number, remove it
-            console.log(`Field ${field} is not a number - removing field`);
+            // If not a string or number, remove the field
             delete record[field];
           }
         }
@@ -89,28 +104,48 @@ export class BatchProcessor {
           if (record[field] === '' || record[field] === null) {
             console.log(`Removing empty interval value for ${field}`);
             delete record[field];
+            return;
           } 
-          // If it's not a properly formatted interval string, remove it
-          else if (typeof record[field] === 'string' && !record[field].match(/^\s*(\d+\s+days?\s+)?(\d+\s+hours?\s+)?(\d+\s+minutes?\s+)?(\d+\s+seconds?\s*)?$/)) {
+          
+          // If it's a string, try to convert to a valid interval format
+          if (typeof record[field] === 'string') {
+            const cleanValue = record[field].trim().toLowerCase();
+            
+            // Skip empty or header-like values
+            if (cleanValue === '' || cleanValue.includes('tiempo') || cleanValue.includes('duración')) {
+              delete record[field];
+              return;
+            }
+            
             try {
-              // Try to convert to a valid interval format
-              const cleanValue = record[field].trim().toLowerCase();
+              // Try to format to a valid PostgreSQL interval syntax
+              let formattedInterval: string | null = null;
               
               if (/^\d+$/.test(cleanValue)) {
-                // Just a number, assume it's minutes
-                record[field] = `${cleanValue} minutes`;
+                // Just a number, interpret as minutes
+                formattedInterval = `${cleanValue} minutes`;
               } else if (cleanValue.includes(':')) {
-                // HH:MM or HH:MM:SS format
+                // Format HH:MM or HH:MM:SS
                 const parts = cleanValue.split(':');
                 if (parts.length === 2) {
-                  record[field] = `${parts[0]} hours ${parts[1]} minutes`;
+                  formattedInterval = `${parts[0]} hours ${parts[1]} minutes`;
                 } else if (parts.length === 3) {
-                  record[field] = `${parts[0]} hours ${parts[1]} minutes ${parts[2]} seconds`;
-                } else {
-                  delete record[field];
+                  formattedInterval = `${parts[0]} hours ${parts[1]} minutes ${parts[2]} seconds`;
                 }
+              } else if (cleanValue.includes('h') || cleanValue.includes('m')) {
+                // Already a descriptive format like "2h 30m"
+                formattedInterval = cleanValue
+                  .replace('h', ' hours ')
+                  .replace('m', ' minutes ')
+                  .trim();
+              }
+              
+              // If we could format it, use the formatted value, otherwise remove the field
+              if (formattedInterval) {
+                record[field] = formattedInterval;
+                console.log(`Formatted interval: ${cleanValue} -> ${formattedInterval}`);
               } else {
-                // If we can't make sense of it, remove it
+                console.log(`Could not format interval: ${cleanValue}`);
                 delete record[field];
               }
             } catch (e) {
@@ -211,16 +246,37 @@ export class BatchProcessor {
           }
           
           // Special handling for interval syntax errors
-          if (error.code === "22007" && error.message && error.message.includes('interval')) {
+          if ((error.code === "22007" || error.message.includes('syntax for type interval')) && error.message.includes('interval')) {
             console.log("Found interval syntax error, applying fix");
+            
+            // Extract problematic value from error message if possible
+            let problematicValue = "";
+            const valueMatch = error.message.match(/type interval: "(.*)"/);
+            if (valueMatch && valueMatch[1]) {
+              problematicValue = valueMatch[1];
+              console.log(`Problematic interval value: "${problematicValue}"`);
+            }
             
             // Remove all interval fields that might be causing issues
             const intervalFields = ['tiempo_retraso', 'tiempo_punto_origen', 'tiempo_estimado', 'duracion_servicio'];
             for (const record of batchData) {
               intervalFields.forEach(field => {
                 if (field in record) {
-                  console.log(`Removing potentially problematic interval field ${field}`);
-                  delete record[field];
+                  // If we found the exact problematic value, only remove that one
+                  if (problematicValue && record[field] === problematicValue) {
+                    console.log(`Removing identified problematic interval field ${field} with value "${problematicValue}"`);
+                    delete record[field];
+                  }
+                  // If we don't know which value is problematic, check for empty strings
+                  else if (record[field] === '' || record[field] === null) {
+                    console.log(`Removing empty interval field ${field}`);
+                    delete record[field];
+                  }
+                  // As a last resort, remove all interval fields
+                  else if (!problematicValue) {
+                    console.log(`Removing all interval fields ${field} due to syntax error`);
+                    delete record[field];
+                  }
                 }
               });
             }
