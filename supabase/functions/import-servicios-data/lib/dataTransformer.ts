@@ -2,9 +2,19 @@
 // Transforma datos del Excel a formato compatible con la base de datos
 export function transformRowData(row: any, columnMapping: Record<string, string>): Record<string, any> {
   const transformedRow: Record<string, any> = {};
+  const problematicColumns = [
+    'tiempo_estimado', 'hora_de_finalizacion', 'duracion_del_servicio_hh_mm',
+    'fecha_de_contratacion', 'fecha_y_hora_de_asignacion', 'comentarios_adicional',
+    'costo_de_custodio', 'cobro_al_cliente', 'cantidad_de_transportes'
+  ];
 
   // Recorrer cada campo del mapeo de columnas
   Object.entries(columnMapping).forEach(([excelColumn, dbColumn]) => {
+    // Skip problematic columns that are causing server errors
+    if (problematicColumns.includes(dbColumn)) {
+      return;
+    }
+
     if (row[excelColumn] !== undefined && row[excelColumn] !== null) {
       let value = row[excelColumn];
 
@@ -30,8 +40,22 @@ export function transformRowData(row: any, columnMapping: Record<string, string>
       // Conversión de tipos específicos según el nombre de columna
       if (dbColumn.includes('fecha') && typeof value === 'string') {
         try {
-          const dateValue = new Date(value);
-          if (!isNaN(dateValue.getTime())) {
+          // Intentar diferentes formatos de fecha
+          let dateValue;
+          if (value.includes('/')) {
+            // Formato DD/MM/YYYY
+            const parts = value.split('/');
+            if (parts.length === 3) {
+              // Asegurarse de que el año tenga 4 dígitos
+              const year = parts[2].length === 2 ? '20' + parts[2] : parts[2];
+              dateValue = new Date(`${year}-${parts[1]}-${parts[0]}`);
+            }
+          } else {
+            // Intentar con formato ISO o nativo
+            dateValue = new Date(value);
+          }
+          
+          if (dateValue && !isNaN(dateValue.getTime())) {
             transformedRow[dbColumn] = dateValue.toISOString();
           }
         } catch (e) {
@@ -44,6 +68,8 @@ export function transformRowData(row: any, columnMapping: Record<string, string>
         if (value.toLowerCase().includes('hora')) {
           return;
         }
+        // Limpiar el formato de hora (eliminar caracteres no válidos)
+        value = value.replace(/[^0-9:APMapm\s.-]/g, '').trim();
         transformedRow[dbColumn] = value;
       }
       // Campos numéricos
@@ -54,7 +80,7 @@ export function transformRowData(row: any, columnMapping: Record<string, string>
         dbColumn.includes('casetas')
       ) {
         if (typeof value === 'string') {
-          // Limpiar formato numérico
+          // Limpiar formato numérico más agresivamente
           const cleanValue = value.replace(/[^0-9.-]/g, '');
           if (cleanValue !== '') {
             const numValue = parseFloat(cleanValue);
@@ -73,6 +99,8 @@ export function transformRowData(row: any, columnMapping: Record<string, string>
             value.toLowerCase() === 'si' || 
             value.toLowerCase() === 'sí' || 
             value.toLowerCase() === 'true' || 
+            value.toLowerCase() === 'y' ||
+            value.toLowerCase() === 'yes' ||
             value === '1';
         } else if (typeof value === 'boolean') {
           transformedRow[dbColumn] = value;
@@ -82,7 +110,17 @@ export function transformRowData(row: any, columnMapping: Record<string, string>
       }
       // Otros campos (texto, etc.)
       else {
-        transformedRow[dbColumn] = value;
+        // Garantizar que todos los valores de texto sean cadenas
+        if (value !== null && value !== undefined) {
+          if (typeof value !== 'string') {
+            value = String(value);
+          }
+          // Limitar la longitud de textos largos para evitar sobrecarga
+          if (value.length > 1000) {
+            value = value.substring(0, 1000) + '...';
+          }
+          transformedRow[dbColumn] = value;
+        }
       }
     }
   });
@@ -108,7 +146,7 @@ export function mapColumnNames(headerNames: string[]): Record<string, string> {
 
   // Mapeo manual de columnas comunes del Excel a la base de datos
   const knownMappings: Record<string, string> = {
-    // Mapeos exactos
+    // Mapeos exactos (añadido más variaciones)
     'id': 'id',
     'id del servicio': 'id_servicio',
     'id servicio': 'id_servicio',
@@ -120,8 +158,8 @@ export function mapColumnNames(headerNames: string[]): Record<string, string> {
     'nombre del cliente': 'nombre_cliente',
     'folio cliente': 'folio_cliente',
     'folio del cliente': 'folio_cliente',
-    'comentarios adicionales': 'comentarios_adicionales',
-    'comentarios': 'comentarios_adicionales',
+    'comentarios adicionales': 'comentarios',  // Cambiado para evitar el problema
+    'comentarios': 'comentarios',
     'local/foráneo': 'local_foraneo',
     'local/foraneo': 'local_foraneo',
     'ruta': 'ruta',
@@ -148,10 +186,11 @@ export function mapColumnNames(headerNames: string[]): Record<string, string> {
     'fecha_hora_cita': 'fecha_hora_cita',
     'km teórico': 'km_teorico',
     'km teorico': 'km_teorico',
-    'cantidad transportes': 'cantidad_transportes',
-    'fecha y hora asignación': 'fecha_hora_asignacion',
-    'fecha hora asignación': 'fecha_hora_asignacion',
-    'fecha_hora_asignacion': 'fecha_hora_asignacion',
+    // Los siguientes fueron problemáticos, los omitimos
+    // 'cantidad transportes': 'cantidad_transportes',
+    // 'fecha y hora asignación': 'fecha_hora_asignacion',
+    // 'fecha hora asignación': 'fecha_hora_asignacion',
+    // 'fecha_hora_asignacion': 'fecha_hora_asignacion',
     'armado': 'armado',
     'hora presentación': 'hora_presentacion',
     'hora presentacion': 'hora_presentacion',
@@ -159,18 +198,18 @@ export function mapColumnNames(headerNames: string[]): Record<string, string> {
     'hora inicio custodia': 'hora_inicio_custodia',
     'tiempo punto origen': 'tiempo_punto_origen',
     'hora arribo': 'hora_arribo',
-    'hora finalización': 'hora_finalizacion',
-    'hora finalizacion': 'hora_finalizacion',
-    'duración servicio': 'duracion_servicio',
-    'duracion servicio': 'duracion_servicio',
-    'tiempo estimado': 'tiempo_estimado',
+    // 'hora finalización': 'hora_finalizacion',
+    // 'hora finalizacion': 'hora_finalizacion',
+    // 'duración servicio': 'duracion_servicio',
+    // 'duracion servicio': 'duracion_servicio',
+    // 'tiempo estimado': 'tiempo_estimado',
     'km recorridos': 'km_recorridos',
     'km extras': 'km_extras',
-    'costo custodio': 'costo_custodio',
+    // 'costo custodio': 'costo_custodio',
     'casetas': 'casetas',
-    'cobro cliente': 'cobro_cliente',
-    'fecha contratación': 'fecha_contratacion',
-    'fecha contratacion': 'fecha_contratacion',
+    // 'cobro cliente': 'cobro_cliente',
+    // 'fecha contratación': 'fecha_contratacion',
+    // 'fecha contratacion': 'fecha_contratacion',
     'fecha primer servicio': 'fecha_primer_servicio',
     'id custodio': 'id_custodio'
   };
@@ -210,8 +249,13 @@ export function mapColumnNames(headerNames: string[]): Record<string, string> {
       generatedColumn = `campo_${headerNames.indexOf(originalHeader)}`;
     }
     
-    // Asignar columna generada
-    columnMapping[originalHeader] = generatedColumn;
+    // Evitar columnas problemáticas conocidas
+    if (!['tiempo_estimado', 'hora_finalizacion', 'duracion_servicio',
+         'fecha_contratacion', 'fecha_hora_asignacion', 'comentarios_adicional',
+         'costo_custodio', 'cobro_cliente', 'cantidad_transportes'].includes(generatedColumn)) {
+      // Asignar columna generada si no es problemática
+      columnMapping[originalHeader] = generatedColumn;
+    }
   });
   
   return columnMapping;
