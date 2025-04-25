@@ -61,6 +61,9 @@ export function determineHeaderMapping(headerRow: Record<string, any>): Record<s
   // Lista de columnas inválidas o problemáticas que deben ser ignoradas
   const invalidColumns = ['cantidad_de_transportes', 'null', 'undefined', ''];
   
+  // Mostrar encabezados para debugging
+  console.log("Encabezados detectados:", JSON.stringify(headerRow));
+  
   // Iterar sobre los encabezados encontrados y mapearlos
   Object.entries(headerRow).forEach(([excelCol, headerValue]) => {
     // Ignorar columnas vacías o sin valor
@@ -123,19 +126,26 @@ export function determineHeaderMapping(headerRow: Record<string, any>): Record<s
         if (dbColumnName && !invalidColumns.includes(dbColumnName)) {
           mapping[excelCol] = dbColumnName;
           console.log(`Mapeo generado (no string): ${headerText} -> ${dbColumnName}`);
+        } else {
+          console.log(`Ignorando columna con nombre inválido (no string): ${headerText}`);
         }
       }
     }
   });
   
+  // Verificación final de mapeos
   console.log(`Mapeo final de columnas: ${JSON.stringify(mapping)}`);
   
   // Verificar si tenemos al menos las columnas mínimas necesarias
   const requiredColumns = ['nombre_cliente', 'fecha_servicio', 'tipo_servicio'];
-  const hasRequiredColumns = requiredColumns.some(col => Object.values(mapping).includes(col));
+  const foundRequiredColumns = requiredColumns.filter(col => Object.values(mapping).includes(col));
   
-  if (!hasRequiredColumns) {
+  if (foundRequiredColumns.length === 0) {
     console.warn('ADVERTENCIA: No se encontraron columnas esenciales en el mapeo. Esto puede causar datos NULL.');
+    console.warn('Columnas requeridas:', requiredColumns);
+    console.warn('Columnas encontradas:', Object.values(mapping));
+  } else {
+    console.log(`Se encontraron ${foundRequiredColumns.length}/${requiredColumns.length} columnas requeridas`);
   }
   
   return mapping;

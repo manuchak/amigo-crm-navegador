@@ -7,6 +7,9 @@ export function transformRowData(row: any, headerMapping: Record<string, string>
   // Variable para contar cuántos campos útiles se han encontrado
   let fieldCount = 0;
   
+  // Para debugging
+  console.log(`Transformando fila con datos iniciales:`, JSON.stringify(row).substring(0, 300));
+  
   // Recorrer cada entrada en el objeto row (cada columna del Excel)
   for (const [excelColumn, value] of Object.entries(row)) {
     // Buscar el nombre de columna correspondiente en la base de datos
@@ -20,9 +23,11 @@ export function transformRowData(row: any, headerMapping: Record<string, string>
         continue;
       }
       
-      // Convertir los valores según el tipo de dato esperado
+      // Verificar que el valor no sea undefined, null o cadena vacía
       if (value !== undefined && value !== null && value !== '') {
         fieldCount++; // Incrementar contador de campos no vacíos
+        
+        console.log(`Procesando campo [${excelColumn} -> ${dbColumn}] con valor:`, value, typeof value);
         
         // Determinar el tipo de dato y transformar apropiadamente
         if (typeof value === 'string') {
@@ -40,11 +45,16 @@ export function transformRowData(row: any, headerMapping: Record<string, string>
         } else if (typeof value === 'boolean') {
           transformedData[dbColumn] = value;
         } else {
-          // Para cualquier otro tipo, intentar convertir a string
+          // Para cualquier otro tipo, intentar convertir a string sin perder datos
           try {
-            const stringValue = String(value).trim();
-            if (stringValue && stringValue !== 'null' && stringValue !== 'undefined') {
-              transformedData[dbColumn] = stringValue;
+            // Si parece ser una fecha en formato de número de Excel
+            if (typeof value === 'object' && value !== null && 'getMonth' in value) {
+              transformedData[dbColumn] = new Date(value).toISOString();
+            } else {
+              const stringValue = String(value).trim();
+              if (stringValue && stringValue !== 'null' && stringValue !== 'undefined') {
+                transformedData[dbColumn] = stringValue;
+              }
             }
           } catch (e) {
             console.warn(`No se pudo convertir valor para ${dbColumn}: ${e.message}`);
@@ -55,6 +65,8 @@ export function transformRowData(row: any, headerMapping: Record<string, string>
         // de la base de datos se aplique (si existe)
         console.log(`Valor vacío para columna ${dbColumn}, se omitirá`);
       }
+    } else {
+      console.log(`No se encontró mapeo para columna Excel '${excelColumn}'`);
     }
   }
   
@@ -64,8 +76,8 @@ export function transformRowData(row: any, headerMapping: Record<string, string>
     transformedData.created_at = new Date().toISOString();
     transformedData.updated_at = new Date().toISOString();
     
-    // Logging para depurar
-    console.log(`Transformada fila con ${fieldCount} campos: ${JSON.stringify(transformedData).substring(0, 500)}...`);
+    // Logging para depurar - Mostrar los datos transformados
+    console.log(`Transformada fila con ${fieldCount} campos útiles:`, JSON.stringify(transformedData).substring(0, 500));
     
     return transformedData;
   } else {
@@ -107,6 +119,9 @@ export function mapColumnNames(excelColumns: string[]): Record<string, string> {
     'Estatus': 'estado'
   };
   
+  // Debug para ver las columnas de Excel entrantes
+  console.log("Columnas Excel recibidas para mapeo:", excelColumns);
+  
   excelColumns.forEach(column => {
     // Normalizar el nombre de la columna (quitar espacios extras, convertir a minúsculas)
     const normalizedColumn = column.trim();
@@ -114,6 +129,7 @@ export function mapColumnNames(excelColumns: string[]): Record<string, string> {
     // Buscar en mapeos comunes
     if (commonMappings[normalizedColumn]) {
       columnMapping[column] = commonMappings[normalizedColumn];
+      console.log(`Mapeado: ${column} -> ${commonMappings[normalizedColumn]}`);
     } 
     // Si no está en los mapeos comunes, intentar generar un nombre de columna basado en convenciones
     else {
@@ -126,6 +142,9 @@ export function mapColumnNames(excelColumns: string[]): Record<string, string> {
       // Verificar que la columna generada no sea la problemática
       if (dbColumnName && dbColumnName !== 'cantidad_de_transportes') {
         columnMapping[column] = dbColumnName;
+        console.log(`Mapeado (generado): ${column} -> ${dbColumnName}`);
+      } else {
+        console.log(`Ignorando columna: ${column} (generaría '${dbColumnName}')`);
       }
     }
   });

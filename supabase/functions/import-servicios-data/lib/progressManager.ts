@@ -4,10 +4,14 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.7'
 export class ProgressManager {
   private supabase;
   private progressId: string | null;
+  private lastUpdateTime: number;
+  private updateThrottle: number; // ms mínimo entre actualizaciones
 
   constructor(supabaseUrl: string, supabaseKey: string, progressId: string | null) {
     this.supabase = createClient(supabaseUrl, supabaseKey);
     this.progressId = progressId;
+    this.lastUpdateTime = 0;
+    this.updateThrottle = 1000; // 1 segundo entre actualizaciones para evitar sobrecargar la BD
   }
 
   async updateProgress(
@@ -17,11 +21,23 @@ export class ProgressManager {
     message: string
   ): Promise<boolean> {
     if (!this.progressId) return false;
+    
+    const now = Date.now();
+    // Limitar actualizaciones frecuentes excepto para completado y error
+    if (status !== 'completed' && 
+        status !== 'completed_with_errors' && 
+        status !== 'error' &&
+        now - this.lastUpdateTime < this.updateThrottle) {
+      return true; // Omitir actualización para evitar sobrecargar la BD
+    }
+    
+    this.lastUpdateTime = now;
 
     try {
-      // Asegurar que processed y total son números enteros positivos
-      const processedInt = Math.max(0, Math.floor(processed));
-      const totalInt = Math.max(1, Math.floor(total));
+      // IMPORTANTE: Asegurar que processed y total son números enteros positivos
+      // Esto estaba causando errores en la inserción
+      const processedInt = Math.max(0, Math.floor(Number(processed)));
+      const totalInt = Math.max(1, Math.floor(Number(total)));
       
       console.log(`Actualizando progreso: ${this.progressId} - ${status} - ${processedInt}/${totalInt} - ${message}`);
       
@@ -38,6 +54,7 @@ export class ProgressManager {
         
       if (error) {
         console.error("Error en actualización de progreso:", error);
+        console.error("Detalles:", { status, processed: processedInt, total: totalInt });
         return false;
       }
         

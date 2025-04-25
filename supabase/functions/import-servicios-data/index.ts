@@ -11,7 +11,7 @@ import { processExcelFileStream } from './lib/excelFileProcessor.ts'
 
 // Configuraciones de procesamiento extremadamente conservadoras para evitar errores de recursos
 const BATCH_CONFIG = {
-  batchSize: 5,              // Reducido aún más a 5 para minimizar consumo de memoria por lote
+  batchSize: 5,              // Reducido a 5 para minimizar consumo de memoria por lote
   processingDelay: 1000,     // Aumentado a 1000ms para dar más tiempo al GC entre lotes
   maxProcessingTime: 10 * 60 * 1000, // 10 minutos en ms (reducido para detectar timeout más rápido)
   backoffFactor: 3,          // Aumentado para retrocesos más agresivos
@@ -21,7 +21,6 @@ const BATCH_CONFIG = {
 };
 
 // Iniciar monitoreo de memoria temprano
-// No se puede usar Deno.env.set en Edge Functions, eliminando esta línea
 reportMemoryUsage("Inicio del servicio");
 
 Deno.serve(async (req) => {
