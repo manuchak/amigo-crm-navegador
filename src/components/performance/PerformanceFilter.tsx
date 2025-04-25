@@ -8,7 +8,7 @@ import { DateRange } from "react-day-picker";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { Input } from "@/components/ui/input";
-import { importServiciosData, importCsvData } from './services/import/importService';
+import { importServiciosData } from './services/import/importService';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertCircle, FileWarning } from "lucide-react";
@@ -59,11 +59,7 @@ export function PerformanceFilter({ dateRange, setDateRange }: PerformanceFilter
     setShowLargeFileWarning(false);
 
     try {
-      const importFunction = file.name.toLowerCase().endsWith('.csv') 
-        ? importCsvData 
-        : importServiciosData;
-
-      const result = await importFunction(file, (status, processed, total) => {
+      const result = await importServiciosData(file, (status, processed, total) => {
         setImportStatus(status);
         if (total > 0) {
           setTotalRows(total);
