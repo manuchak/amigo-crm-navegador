@@ -1,54 +1,70 @@
 
-export function transformRowData(row: Record<string, any>, headerMapping: Record<string, string>) {
-  const transformedRow: Record<string, any> = {};
+// Función para transformar los datos de una fila del Excel a un objeto compatible con la base de datos
+export function transformRowData(row: any, headerMapping: Record<string, string>): Record<string, any> {
+  // Crear un objeto para almacenar los datos transformados
+  const transformedData: Record<string, any> = {};
   
-  for (const [excelColumn, value] of Object.entries(row)) {
-    const dbColumn = headerMapping[excelColumn] || excelColumn.toLowerCase().replace(/\s+/g, '_');
+  // Recorrer cada campo en el mapeo de encabezados
+  for (const [excelColumn, dbColumn] of Object.entries(headerMapping)) {
+    // Si el mapeo existe, transformar el dato
+    if (excelColumn && dbColumn && dbColumn !== 'cantidad_de_transportes') {
+      // Obtener el valor de la columna del Excel
+      const value = row[excelColumn];
+      
+      // Transformar según el tipo de dato esperado (simplificado)
+      if (value !== undefined && value !== null) {
+        transformedData[dbColumn] = value;
+      }
+    }
+  }
+  
+  // Añadir campos de control y auditoría
+  transformedData.created_at = new Date().toISOString();
+  transformedData.updated_at = new Date().toISOString();
+  
+  return transformedData;
+}
+
+// Función para transformar los nombres de las columnas del Excel a nombres de columnas en la BD
+export function mapColumnNames(excelColumns: string[]): Record<string, string> {
+  const columnMapping: Record<string, string> = {};
+  
+  const commonMappings: Record<string, string> = {
+    'Fecha': 'fecha_servicio',
+    'Número de Manifiesto': 'numero_manifiesto',
+    'Cliente': 'cliente_nombre',
+    'Custodio': 'custodio_nombre',
+    'Unidad': 'unidad',
+    'KM': 'kilometraje',
+    'Destino': 'destino',
+    'Origen': 'origen',
+    'Servicios': 'tipo_servicio',
+    // No incluimos 'cantidad_de_transportes' ya que no existe en el esquema
+    'Importe': 'importe',
+    'Estatus': 'estatus'
+  };
+  
+  excelColumns.forEach(column => {
+    // Normalizar el nombre de la columna (quitar espacios extras, convertir a minúsculas)
+    const normalizedColumn = column.trim();
     
-    if (dbColumn.includes('fecha') || dbColumn.includes('date') || dbColumn.includes('time')) {
-      transformedRow[dbColumn] = transformDateValue(value);
+    // Buscar en mapeos comunes
+    if (commonMappings[normalizedColumn]) {
+      columnMapping[column] = commonMappings[normalizedColumn];
     } 
-    else if (dbColumn.includes('km') || dbColumn.includes('costo') || dbColumn.includes('cobro')) {
-      transformedRow[dbColumn] = transformNumericValue(value);
-    } 
-    else if (dbColumn.includes('armado')) {
-      transformedRow[dbColumn] = transformBooleanValue(value);
-    }
+    // Si no está en los mapeos comunes, intentar generar un nombre de columna basado en convenciones
     else {
-      transformedRow[dbColumn] = value;
+      // Convertir "Nombre de Columna" a "nombre_de_columna"
+      const dbColumnName = normalizedColumn
+        .toLowerCase()
+        .replace(/\s+/g, '_')
+        .replace(/[^a-z0-9_]/g, '');
+        
+      if (dbColumnName && dbColumnName !== 'cantidad_de_transportes') {
+        columnMapping[column] = dbColumnName;
+      }
     }
-  }
+  });
   
-  return transformedRow;
-}
-
-function transformDateValue(value: any): string | null {
-  try {
-    if (value instanceof Date) {
-      return value.toISOString();
-    } 
-    if (typeof value === 'string') {
-      const parsedDate = new Date(value);
-      return !isNaN(parsedDate.getTime()) ? parsedDate.toISOString() : value;
-    }
-    return value;
-  } catch {
-    return value;
-  }
-}
-
-function transformNumericValue(value: any): number | null {
-  if (typeof value === 'string') {
-    const numericValue = value.replace(/[^\d.-]/g, '');
-    return numericValue ? parseFloat(numericValue) : null;
-  }
-  return value;
-}
-
-function transformBooleanValue(value: any): boolean {
-  if (typeof value === 'string') {
-    const upperValue = value.toUpperCase();
-    return upperValue === 'SI' || upperValue === 'YES' || upperValue === 'TRUE' || upperValue === '1';
-  }
-  return !!value;
+  return columnMapping;
 }

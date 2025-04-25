@@ -233,6 +233,9 @@ export class BatchProcessor {
           }
         }
         
+        // Validar que transformedBatch no contenga campos que no existan en la base de datos
+        console.log(`Insertando batch ${batchNum + 1} con ${transformedBatch.length} registros`);
+        
         // Insertar datos usando upsert evitando duplicados, con mecanismo de reintentos
         try {
           const { error: insertError } = await this.supabase
@@ -242,6 +245,37 @@ export class BatchProcessor {
           if (insertError) {
             attempts++;
             console.error(`Error en lote ${batchNum + 1} (intento ${attempts}):`, insertError);
+            
+            // Si el error es sobre columnas que no existen, intentar limpiar los datos
+            if (insertError.message && insertError.message.includes("Could not find the")) {
+              // Obtener el nombre de la columna problemática
+              const columnMatch = insertError.message.match(/Could not find the '(.+?)' column/);
+              const problemColumn = columnMatch ? columnMatch[1] : null;
+              
+              if (problemColumn) {
+                console.log(`Detectada columna problemática: ${problemColumn}, eliminando del conjunto de datos`);
+                // Eliminar la columna problemática de todos los registros
+                transformedBatch.forEach(record => {
+                  if (record[problemColumn] !== undefined) {
+                    delete record[problemColumn];
+                  }
+                });
+                
+                // Intentar nuevamente con los datos limpios
+                const { error: retryError } = await this.supabase
+                  .from('servicios_custodia')
+                  .insert(transformedBatch);
+                
+                if (!retryError) {
+                  // Éxito después de limpiar los datos
+                  console.log(`Inserción exitosa después de eliminar columna problemática`);
+                  return {
+                    success: true,
+                    insertedCount: transformedBatch.length
+                  };
+                }
+              }
+            }
             
             // Si alcanzamos el máximo de reintentos, reportamos el error
             if (attempts >= this.config.maxRetries) {

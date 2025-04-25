@@ -19,15 +19,15 @@ export class ProgressManager {
     if (!this.progressId) return false;
 
     try {
-      console.log(`Actualizando progreso: ${this.progressId} - ${status} - ${processed}/${total} - ${message}`);
+      console.log(`Actualizando progreso: ${this.progressId} - ${status} - ${Math.floor(processed)}/${Math.floor(total)} - ${message}`);
       
       await this.supabase
         .from('import_progress')
         .upsert({
           id: this.progressId,
           status,
-          processed,
-          total,
+          processed: Math.floor(processed),
+          total: Math.floor(total),
           message,
           updated_at: new Date().toISOString()
         });

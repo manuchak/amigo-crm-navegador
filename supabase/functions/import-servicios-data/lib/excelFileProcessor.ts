@@ -90,7 +90,7 @@ export async function processExcelFileStream(
       
       await progressManager.updateProgress(
         'validating',
-        file.size * 0.2,
+        Math.floor(file.size * 0.2),
         file.size,
         'Leyendo archivo completo'
       );
@@ -157,7 +157,7 @@ export async function processExcelFileStream(
       
       await progressManager.updateProgress(
         'validating',
-        file.size * 0.3,
+        Math.floor(file.size * 0.3),
         file.size,
         'Extrayendo datos'
       );
@@ -187,7 +187,7 @@ export async function processExcelFileStream(
       
       await progressManager.updateProgress(
         'validating',
-        file.size * 0.4,
+        Math.floor(file.size * 0.4),
         file.size,
         'Iniciando procesamiento de datos'
       );
