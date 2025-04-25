@@ -4,19 +4,23 @@ import { toast } from "sonner";
 import { ProgressCallback, ImportResponse } from "./types";
 import { callImportApi, checkImportProgress, testEdgeFunctionConnection } from "./api/importApi";
 import { handleImportError } from "./utils/errorHandler";
-import { handleImportResponse, progressToResponse } from "./utils/responseHandler";
+import { handleImportResponse } from "./utils/responseHandler";
+
+// Constantes para límites y configuración
+const MAX_FILE_SIZE_MB = 5; // Reducido a 5MB para prevenir errores de recursos
+const MAX_ALLOWED_FILE_SIZE_MB = 15; // Límite absoluto máximo
 
 export async function importServiciosData(
   file: File, 
   onProgress?: ProgressCallback
 ): Promise<ImportResponse> {
   try {
-    // Validar tamaño de archivo (reducido a 15MB para prevenir errores de recursos)
-    if (file.size > 15 * 1024 * 1024) {
+    // Validar tamaño de archivo con un límite más restrictivo
+    if (file.size > MAX_ALLOWED_FILE_SIZE_MB * 1024 * 1024) {
       toast.error("Archivo demasiado grande", {
-        description: "El archivo excede el tamaño máximo permitido de 15 MB. Por favor, divida el archivo en partes más pequeñas."
+        description: `El archivo excede el tamaño máximo permitido de ${MAX_ALLOWED_FILE_SIZE_MB} MB. Por favor, divida el archivo en partes más pequeñas.`
       });
-      return { success: false, message: "El archivo excede el tamaño máximo permitido" };
+      return { success: false, message: `El archivo excede el tamaño máximo permitido de ${MAX_ALLOWED_FILE_SIZE_MB} MB` };
     }
     
     // Validar tipo de archivo (debe ser Excel)
@@ -51,6 +55,14 @@ export async function importServiciosData(
 
     if (onProgress) {
       onProgress("Verificando conexión con el servidor", 0, 0);
+    }
+    
+    // Mostrar advertencia si el archivo es grande pero está dentro del límite permitido
+    if (file.size > MAX_FILE_SIZE_MB * 1024 * 1024) {
+      toast.warning("Archivo grande detectado", {
+        description: `El archivo es grande (${(file.size / (1024 * 1024)).toFixed(1)} MB). La importación puede tardar varios minutos y podría fallar debido a limitaciones de recursos.`,
+        duration: 6000
+      });
     }
     
     // Verificar la conectividad con la función Edge antes de iniciar
@@ -231,8 +243,7 @@ export async function importServiciosData(
         });
       }
       
-      // Fix: Here is the issue - handleImportResponse was being called with two arguments
-      // but should only receive one according to the function signature
+      // Si no hay ID de progreso, manejar la respuesta directamente
       return handleImportResponse(initialResponse);
     } catch (fetchError) {
       clearTimeout(timeoutId);

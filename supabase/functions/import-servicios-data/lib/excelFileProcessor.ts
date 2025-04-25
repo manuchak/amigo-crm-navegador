@@ -26,87 +26,42 @@ export async function processExcelFileStream(
       'Iniciando lectura del archivo con procesamiento en stream'
     );
 
-    // Manejar archivos grandes mediante streaming con chunks más pequeños
-    const fileStream = file.stream();
-    const reader = fileStream.getReader();
-    
-    let chunks: Uint8Array[] = [];
-    let done = false;
-    
-    // Leer el archivo en chunks más pequeños
-    while (!done) {
-      const { value, done: doneReading } = await reader.read();
-      done = doneReading;
-      
-      if (value) {
-        chunks.push(value);
-        processedBytes += value.length;
-        
-        // Actualizar progreso de lectura
-        await progressManager.updateProgress(
-          'validating',
-          processedBytes,
-          totalBytes,
-          `Leyendo archivo en bloques: ${Math.round((processedBytes / totalBytes) * 100)}%`
-        );
-        
-        // Forzar GC cada 2MB leídos para evitar acumulación de memoria
-        if (processedBytes % (2 * 1024 * 1024) === 0) {
-          await forceGarbageCollection();
-        }
-      }
-    }
+    // Aproximar el número total de filas basado en el tamaño del archivo
+    // Esta es solo una estimación que se refinará más adelante
+    const estimatedRowCount = Math.ceil(totalBytes / 200); // Aproximadamente 200 bytes por fila
+    await progressManager.updateProgress(
+      'validating',
+      0,
+      estimatedRowCount,
+      'Estimando tamaño del archivo'
+    );
+
+    // Nueva implementación: Procesar el archivo en bloques muy pequeños
+    let sheetData: any[] = [];
+    let workbook = null;
+    let headerMapping = {};
     
     try {
-      // Dividir el procesamiento en pasos separados para liberar memoria entre operaciones
-      // Paso 1: Combinar chunks y crear el array buffer con liberación de memoria agresiva
+      // Nuevo enfoque: Cargar solo los primeros bytes para obtener la estructura
+      // y luego procesar los datos en pequeñas secciones
+
+      // Paso 1: Obtener solo los primeros 64KB para detectar la estructura del archivo
+      const headerChunk = await file.slice(0, 64 * 1024).arrayBuffer();
+      
       await progressManager.updateProgress(
         'validating',
-        totalBytes,
-        totalBytes,
-        'Preparando datos para parseo'
+        0,
+        estimatedRowCount,
+        'Analizando estructura del archivo'
       );
       
-      const totalSize = chunks.reduce((size, chunk) => size + chunk.length, 0);
-      let chunksAll = new Uint8Array(totalSize);
-      
-      let position = 0;
-      for(let i = 0; i < chunks.length; i++) {
-        chunksAll.set(chunks[i], position);
-        position += chunks[i].length;
-        chunks[i] = new Uint8Array(0); // Liberar memoria de cada chunk después de usarlo
-      }
-      
-      chunks = []; // Liberar el array de chunks
-      await forceGarbageCollection(); // Forzar recolección de basura después de liberar arrays
-      
-      // Reportar progreso de parsing
-      await progressManager.updateProgress(
-        'validating',
-        totalBytes,
-        totalBytes,
-        'Parseando datos de Excel'
-      );
-      
-      // Paso 2: Cargar el workbook con opciones ultra optimizadas
-      let workbook = XLSX.read(chunksAll.buffer, {
+      // Cargar solo para detectar estructura
+      workbook = XLSX.read(new Uint8Array(headerChunk), {
         type: 'array',
         cellDates: true,
-        cellNF: false,
-        cellText: false,
-        raw: true,    // Modo raw para evitar post-procesamiento
-        dense: true,  // Modo denso para optimizar memoria
-        sheetRows: 0, // No limitar filas (0 = sin límite)
-        memory: true  // Activar optimizaciones de memoria
+        sheetRows: 10, // Leer solo las primeras 10 filas para detectar encabezados
+        bookSheets: true // Solo cargar información de hojas, no datos completos
       });
-      
-      // Liberar el buffer una vez que se ha leído
-      // @ts-ignore: Intentar liberar memoria explícitamente
-      let chunksAllTemp = null;
-      chunksAllTemp = chunksAll;
-      // @ts-ignore: Forzar liberación
-      chunksAll = null;
-      await forceGarbageCollection();
       
       if (!workbook?.SheetNames?.length) {
         return {
@@ -116,39 +71,43 @@ export async function processExcelFileStream(
       }
       
       const worksheetName = workbook.SheetNames[0];
-      let worksheet = workbook.Sheets[worksheetName];
+      const headerSheet = workbook.Sheets[worksheetName];
       
-      // Paso 3: Analizar rango y extraer encabezados
-      await progressManager.updateProgress(
-        'validating',
-        totalBytes,
-        totalBytes,
-        'Extrayendo encabezados'
-      );
+      // Extraer solo los encabezados
+      const headerRange = XLSX.utils.decode_range(headerSheet['!ref'] || 'A1:Z1');
+      headerRange.e.r = headerRange.s.r; // Limitar solo a la primera fila
       
-      const range = XLSX.utils.decode_range(worksheet['!ref'] || 'A1:Z1000');
-      const totalRows = range.e.r - range.s.r + 1;
-      
-      // Extraer encabezados primero (fila 0)
       const headerRow: Record<string, any> = {};
-      for (let C = range.s.c; C <= range.e.c; ++C) {
-        const cell = worksheet[XLSX.utils.encode_cell({r: range.s.r, c: C})];
+      for (let C = headerRange.s.c; C <= headerRange.e.c; ++C) {
+        const cell = headerSheet[XLSX.utils.encode_cell({r: headerRange.s.r, c: C})];
         if (cell && cell.v !== undefined) {
           const header = XLSX.utils.encode_col(C);
           headerRow[header] = cell.v;
         }
       }
       
-      // Determinar el mapeo de columnas
-      const headerMapping = determineHeaderMapping(headerRow);
+      // Determinar mapeo de columnas
+      headerMapping = determineHeaderMapping(headerRow);
       
-      // Liberar memoria de workbook
-      // @ts-ignore: Mantener solo la primera hoja y liberar el resto
-      for (let i = 1; i < workbook.SheetNames.length; i++) {
-        delete workbook.Sheets[workbook.SheetNames[i]];
-      }
+      // Liberar memoria del workbook inicial
+      // @ts-ignore: Forzar liberación de recursos
+      workbook = null;
+      await forceGarbageCollection();
       
-      // Crear procesador de lotes con configuración ultra-conservadora
+      // Paso 2: Procesar el archivo en pequeños fragmentos de filas
+      // Dividir en bloques de ~1MB para procesar por lotes
+
+      const batchSize = 1 * 1024 * 1024; // 1 MB por batch
+      let offset = 0;
+      
+      await progressManager.updateProgress(
+        'validating',
+        0,
+        estimatedRowCount,
+        'Iniciando lectura por fragmentos'
+      );
+      
+      // Crear el procesador de lotes
       const batchProcessor = new BatchProcessor(
         Deno.env.get('SUPABASE_URL') ?? '',
         Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
@@ -156,101 +115,98 @@ export async function processExcelFileStream(
         config
       );
       
-      await progressManager.updateProgress(
-        'importing',
-        0,
-        totalRows - 1, // -1 para no contar la fila de encabezados
-        `Preparando importación de ${totalRows - 1} registros`
-      );
-      
-      reportMemoryUsage("Antes de procesar filas");
-      
-      // Paso 4: Procesar filas en micro-lotes extremadamente pequeños (50 filas)
-      const rowsPerMicroBatch = 50; // Procesar solo 50 filas a la vez en memoria
-      const microBatchCount = Math.ceil((totalRows - 1) / rowsPerMicroBatch);
-      let processedRowCount = 0;
+      // Variables para seguimiento del proceso
+      let totalRows = 0;
+      let totalProcessed = 0;
       let allResults: any = { success: true, insertedCount: 0, errors: [] };
       
-      for (let mb = 0; mb < microBatchCount; mb++) {
-        // Asegurar que no nos pasamos del límite de tiempo
-        if (mb % 10 === 0) {
-          await new Promise(resolve => setTimeout(resolve, 50)); // Pausa corta cada 10 lotes
-        }
+      while (offset < file.size) {
+        // Calcular tamaño del bloque actual
+        const currentBatchSize = Math.min(batchSize, file.size - offset);
         
-        const startRow = range.s.r + 1 + (mb * rowsPerMicroBatch); // +1 para saltar encabezados
-        const endRow = Math.min(startRow + rowsPerMicroBatch - 1, range.e.r);
+        // Leer solo un fragmento del archivo
+        const batchSlice = file.slice(offset, offset + currentBatchSize);
+        const batchBuffer = await batchSlice.arrayBuffer();
         
-        // Extraer solo el micro-lote actual (50 filas a la vez)
-        const microBatchData = [];
-        for (let R = startRow; R <= endRow; R++) {
-          const rowData: Record<string, any> = {};
-          let isEmpty = true;
+        await progressManager.updateProgress(
+          'validating',
+          offset,
+          file.size,
+          `Leyendo fragmento ${Math.ceil(offset / batchSize) + 1}/${Math.ceil(file.size / batchSize)}`
+        );
+        
+        // Procesar solo este fragmento
+        try {
+          const batchWorkbook = XLSX.read(new Uint8Array(batchBuffer), {
+            type: 'array',
+            cellDates: true,
+            raw: true
+          });
           
-          for (let C = range.s.c; C <= range.e.c; C++) {
-            const cellAddress = XLSX.utils.encode_cell({r: R, c: C});
-            const cell = worksheet[cellAddress];
-            if (cell && cell.v !== undefined) {
-              const header = XLSX.utils.encode_col(C);
-              rowData[header] = cell.v;
-              isEmpty = false;
+          const worksheetName = batchWorkbook.SheetNames[0];
+          const worksheet = batchWorkbook.Sheets[worksheetName];
+          
+          // Convertir solo esta sección a JSON
+          const batchData = XLSX.utils.sheet_to_json(worksheet, {header: 'A'});
+          
+          // Saltar la primera fila (encabezados) solo en el primer batch
+          const startIndex = (offset === 0) ? 1 : 0;
+          const rowsToProcess = batchData.slice(startIndex);
+          
+          // Actualizar contador de filas
+          const batchRowCount = rowsToProcess.length;
+          totalRows += batchRowCount;
+          
+          // Procesar este lote si hay datos
+          if (rowsToProcess.length > 0) {
+            try {
+              const batchResult = await batchProcessor.processBatches(rowsToProcess, headerMapping);
+              
+              // Acumular resultados
+              if (batchResult.insertedCount) allResults.insertedCount += batchResult.insertedCount;
+              if (batchResult.errors && batchResult.errors.length) {
+                allResults.errors = [...allResults.errors, ...batchResult.errors];
+              }
+              
+              totalProcessed += rowsToProcess.length;
+            } catch (batchError) {
+              console.error("Error procesando batch:", batchError);
+              allResults.errors.push({
+                message: `Error en fragmento: ${batchError.message}`
+              });
             }
           }
           
-          if (!isEmpty) {
-            microBatchData.push(rowData);
-          }
-        }
-        
-        // Procesar este micro-lote y liberar memoria
-        if (microBatchData.length > 0) {
-          try {
-            const microResult = await batchProcessor.processBatches(microBatchData, headerMapping);
-            processedRowCount += microBatchData.length;
-            
-            // Acumular resultados
-            if (microResult.insertedCount) allResults.insertedCount += microResult.insertedCount;
-            if (microResult.errors && microResult.errors.length) {
-              allResults.errors = [...allResults.errors, ...microResult.errors];
-            }
-          } catch (processingError) {
-            console.error(`Error procesando micro-lote ${mb}:`, processingError);
-            allResults.errors.push({
-              batch: mb, 
-              message: `Error en micro-lote: ${processingError.message}`
-            });
-          }
-          
-          // Actualizar progreso solo cada 5 micro-lotes para reducir llamadas a la base de datos
-          if (mb % 5 === 0 || mb === microBatchCount - 1) {
-            await progressManager.updateProgress(
-              'importing',
-              processedRowCount,
-              totalRows - 1,
-              `Procesando filas: ${processedRowCount} de ${totalRows - 1} (${Math.round((processedRowCount / (totalRows - 1)) * 100)}%)`
-            );
-          }
-        }
-        
-        // Forzar liberación de memoria después de cada micro-lote
-        // @ts-ignore: Liberar explícitamente el micro-lote
-        microBatchData.length = 0;
-        if (mb % 5 === 0) { // Llamar al GC cada 5 micro-lotes
+          // Liberar memoria de cada batch
+          // @ts-ignore: Forzar liberación de recursos
+          batchWorkbook = null;
+          // @ts-ignore: Forzar liberación de recursos
+          worksheet = null;
+          // @ts-ignore: Forzar liberación de recursos
+          batchData.length = 0;
           await forceGarbageCollection();
+          
+        } catch (batchParseError) {
+          console.error("Error parseando fragmento:", batchParseError);
+          allResults.errors.push({
+            message: `Error al analizar fragmento: ${batchParseError.message}`
+          });
         }
+        
+        // Avanzar al siguiente bloque
+        offset += currentBatchSize;
+        
+        // Actualizar progreso
+        await progressManager.updateProgress(
+          'importing',
+          totalProcessed,
+          Math.max(totalRows, estimatedRowCount),
+          `Procesadas ${totalProcessed} filas de ${totalRows} detectadas`
+        );
+        
+        // Forzar GC después de cada bloque
+        await forceGarbageCollection();
       }
-      
-      // Paso 5: Limpieza final y reporte
-      // Liberar memoria de la worksheet y workbook manualmente
-      // @ts-ignore: Forzar liberación de memoria
-      let worksheetTemp = worksheet;
-      // @ts-ignore: Forzar liberación de memoria
-      worksheet = null;
-      // @ts-ignore: Forzar liberación de memoria
-      let workbookTemp = workbook;
-      // @ts-ignore: Forzar liberación de memoria
-      workbook = null;
-      
-      reportMemoryUsage("Después de procesar filas");
       
       // Actualizar estado final en la base de datos
       const finalStatus = allResults.errors?.length > 0 ? 'completed_with_errors' : 'completed';
@@ -260,13 +216,13 @@ export async function processExcelFileStream(
       
       await progressManager.updateProgress(
         finalStatus as any,
-        totalRows - 1,
-        totalRows - 1,
+        totalProcessed,
+        totalRows,
         finalMessage
       );
       
       // Establecer el recuento total en el resultado para el frontend
-      allResults.totalCount = totalRows - 1;
+      allResults.totalCount = totalRows;
       allResults.message = finalMessage;
       
       return allResults;
