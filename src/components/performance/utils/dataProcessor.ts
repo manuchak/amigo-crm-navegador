@@ -127,8 +127,14 @@ function generateMockData(): CustodioPerformanceData {
   const performanceByDay = generatePerformanceTrends();
   const monthlyRevenue = generateMonthlyRevenue();
   
-  // Fixed: Use calculateSummaryMetrics to generate metrics properly
-  const summaryMetrics = calculateSummaryMetrics(custodios, {});
+  // Fixed: Create a proper DateRange object for calculateSummaryMetrics
+  const defaultDateRange: DateRange = {
+    from: new Date(new Date().setDate(new Date().getDate() - 30)),
+    to: new Date()
+  };
+  
+  // Fixed: Use calculateSummaryMetrics to generate metrics properly with valid DateRange
+  const summaryMetrics = calculateSummaryMetrics(custodios, defaultDateRange);
   
   return {
     summaryMetrics,

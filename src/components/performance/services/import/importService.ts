@@ -125,11 +125,11 @@ export async function importServiciosData(
     
     // Configurar abort controller con timeout más corto para archivos grandes
     const abortController = new AbortController();
-    // 5 minutos de timeout
+    // 10 minutos de timeout, aumentado de 5 para evitar cortes prematuros
     const timeoutId = setTimeout(() => {
       console.warn("Timeout alcanzado, abortando operación");
       abortController.abort();
-    }, 5 * 60 * 1000);
+    }, 10 * 60 * 1000);
     
     try {
       // Iniciar el proceso de importación con reintentos automáticos
@@ -147,7 +147,7 @@ export async function importServiciosData(
         
         console.log("Starting progress polling for ID:", initialResponse.progressId);
         
-        // Consultar actualizaciones de progreso cada 5 segundos
+        // Consultar actualizaciones de progreso cada 3 segundos (reducido de 5 para feedback más frecuente)
         const pollInterval = setInterval(async () => {
           try {
             console.log("Verificando progreso para ID:", initialResponse.progressId);
@@ -155,11 +155,13 @@ export async function importServiciosData(
             console.log("Progress update:", progressData);
             
             // Actualizar callback de progreso con estado actual
-            onProgress(
-              progressData.message || "Procesando datos...", 
-              progressData.processed, 
-              progressData.total
-            );
+            if (progressData && progressData.status) {
+              onProgress(
+                progressData.message || "Procesando datos...", 
+                progressData.processed, 
+                progressData.total
+              );
+            }
             
             // Verificar finalización
             if (progressData.status === 'completed' || progressData.status === 'completed_with_errors') {
@@ -180,7 +182,6 @@ export async function importServiciosData(
                 });
               }
               
-              // Si se completó con errores, convertir el progreso a respuesta para obtener los errores
               return;
             }
             
@@ -202,11 +203,11 @@ export async function importServiciosData(
           } catch (pollError) {
             console.error("Error polling for progress:", pollError);
           }
-        }, 5000);
+        }, 3000); // Reducido de 5000ms a 3000ms
         
-        // Esperar la finalización o timeout después de 20 minutos
+        // Esperar la finalización o timeout después de 15 minutos (reducido de 20)
         let timeoutCounter = 0;
-        const maxTimeout = 240; // 20 minutos (240 * 5 segundos)
+        const maxTimeout = 300; // 15 minutos (300 * 3 segundos)
         
         return new Promise<ImportResponse>((resolve) => {
           const checkCompletion = setInterval(() => {
@@ -240,7 +241,7 @@ export async function importServiciosData(
                 message: "La importación está tomando demasiado tiempo. Por favor verifique el estado más tarde." 
               });
             }
-          }, 5000);
+          }, 3000); // Reducido para coincidir con el intervalo de polling
         });
       }
       

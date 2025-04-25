@@ -81,16 +81,41 @@ export function transformRowData(row: any, headerMapping: Record<string, string>
             // Si es una cadena tipo "1,234.56" o "1.234,56", limpiarla primero
             if (typeof value === 'string') {
               // Eliminar signos de moneda y separadores de miles
-              const cleanedValue = value
+              let cleanedValue = value
                 .replace(/[$€£¥]/g, '')
-                .replace(/\s/g, '')
-                .replace(/,/g, ''); // Asumiendo formato de miles con coma
+                .replace(/\s/g, '');
+                
+              // Detectar formato europeo (1.234,56) vs americano (1,234.56)
+              if (cleanedValue.includes(',') && cleanedValue.includes('.')) {
+                // Si tiene ambos, determinamos el formato por la posición
+                const lastCommaPos = cleanedValue.lastIndexOf(',');
+                const lastDotPos = cleanedValue.lastIndexOf('.');
+                
+                if (lastDotPos > lastCommaPos) {
+                  // Formato americano: eliminar comas
+                  cleanedValue = cleanedValue.replace(/,/g, '');
+                } else {
+                  // Formato europeo: convertir a formato americano
+                  cleanedValue = cleanedValue.replace(/\./g, '').replace(/,/g, '.');
+                }
+              } else if (cleanedValue.includes(',')) {
+                // Asumimos formato europeo - reemplazar coma por punto
+                cleanedValue = cleanedValue.replace(/,/g, '.');
+              }
                 
               const numericValue = parseFloat(cleanedValue);
               if (!isNaN(numericValue)) {
                 transformedData[dbColumn] = numericValue;
                 console.log(`Convertido valor string '${value}' a número ${numericValue} para campo ${dbColumn}`);
               } else {
+                // Si el valor es un encabezado de columna, lo omitimos
+                if (typeof value === 'string' && 
+                    (value.toLowerCase().includes('casetas') || 
+                     value.toLowerCase().includes('cobro') ||
+                     value.toLowerCase().includes('costo'))) {
+                  console.log(`Ignorando valor de encabezado '${value}' para campo numérico ${dbColumn}`);
+                  continue;
+                }
                 console.log(`No se pudo convertir valor '${value}' a número para campo ${dbColumn}, omitiendo`);
               }
             } else if (typeof value === 'number') {
@@ -115,7 +140,11 @@ export function transformRowData(row: any, headerMapping: Record<string, string>
           transformedData[dbColumn] = value;
         } else if (value instanceof Date) {
           // Para valores de fecha, convertir a ISO string
-          transformedData[dbColumn] = value.toISOString();
+          try {
+            transformedData[dbColumn] = value.toISOString();
+          } catch (e) {
+            console.warn(`Error al convertir fecha para ${dbColumn}: ${e.message}`);
+          }
         } else if (typeof value === 'boolean') {
           transformedData[dbColumn] = value;
         } else {
@@ -123,7 +152,11 @@ export function transformRowData(row: any, headerMapping: Record<string, string>
           try {
             // Si parece ser una fecha en formato de número de Excel
             if (typeof value === 'object' && value !== null && 'getMonth' in value) {
-              transformedData[dbColumn] = new Date(value).toISOString();
+              try {
+                transformedData[dbColumn] = new Date(value).toISOString();
+              } catch (e) {
+                console.warn(`Error al convertir objeto fecha: ${e.message}`);
+              }
             } else {
               const stringValue = String(value).trim();
               if (stringValue && stringValue !== 'null' && stringValue !== 'undefined') {
@@ -174,6 +207,16 @@ export function transformRowData(row: any, headerMapping: Record<string, string>
         console.warn(`No se pudo convertir casetas a número, eliminando campo`);
         delete transformedData.casetas;
       }
+    }
+    
+    // Validación adicional para fechas
+    if ('fecha_primer_servicio' in transformedData && 
+        (transformedData.fecha_primer_servicio === 'Fecha primer servicio' || 
+         typeof transformedData.fecha_primer_servicio === 'string' && 
+         !transformedData.fecha_primer_servicio.match(/^\d{4}-\d{2}-\d{2}/)
+        )) {
+      console.warn(`Detectado valor inválido para fecha_primer_servicio: ${transformedData.fecha_primer_servicio}, eliminando`);
+      delete transformedData.fecha_primer_servicio;
     }
     
     return transformedData;
