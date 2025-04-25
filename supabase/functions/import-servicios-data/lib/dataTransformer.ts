@@ -7,17 +7,29 @@ export function transformRowData(row: any, headerMapping: Record<string, string>
   // Variable para contar cuántos campos útiles se han encontrado
   let fieldCount = 0;
   
+  // Mapa de correcciones para nombres de columnas que no coinciden con la BD
+  const columnCorrections: Record<string, string> = {
+    'cobro_al_cliente': 'cobro_cliente',
+  };
+  
   // Para debugging
   console.log(`Transformando fila con datos iniciales:`, JSON.stringify(row).substring(0, 300));
   
   // Recorrer cada entrada en el objeto row (cada columna del Excel)
   for (const [excelColumn, value] of Object.entries(row)) {
     // Buscar el nombre de columna correspondiente en la base de datos
-    const dbColumn = headerMapping[excelColumn];
+    let dbColumn = headerMapping[excelColumn];
     
     // Si existe un mapeo válido
     if (dbColumn) {
-      // Ignorar explícitamente la columna problemática
+      // Verificar si el nombre de columna necesita corrección
+      if (dbColumn in columnCorrections) {
+        const originalColumn = dbColumn;
+        dbColumn = columnCorrections[dbColumn];
+        console.log(`Corrigiendo nombre de columna: ${originalColumn} -> ${dbColumn}`);
+      }
+      
+      // Ignorar explícitamente columnas problemáticas conocidas
       if (dbColumn === 'cantidad_de_transportes') {
         console.log(`Ignorando columna problemática: ${excelColumn} -> ${dbColumn}`);
         continue;
@@ -91,63 +103,127 @@ export function mapColumnNames(excelColumns: string[]): Record<string, string> {
   const columnMapping: Record<string, string> = {};
   
   const commonMappings: Record<string, string> = {
+    // Fecha y manifiestos
     'Fecha': 'fecha_servicio',
     'Fecha de Servicio': 'fecha_servicio', 
     'Número de Manifiesto': 'numero_manifiesto',
     'Manifiesto': 'numero_manifiesto',
     'No. de Manifiesto': 'numero_manifiesto',
+    'Nro. Manifiesto': 'numero_manifiesto',
+    
+    // Cliente y custodio
     'Cliente': 'nombre_cliente',
     'Nombre del Cliente': 'nombre_cliente',
     'Custodio': 'nombre_custodio',
     'Nombre del Custodio': 'nombre_custodio',
+    
+    // Unidad y kilometraje
     'Unidad': 'unidad',
     'Vehículo': 'unidad',
     'ID Unidad': 'unidad',
+    'No. Unidad': 'unidad',
     'Kilometraje': 'km_recorridos',
     'KM': 'km_recorridos',
     'KM Recorrido': 'km_recorridos',
+    'Km': 'km_recorridos',
+    
+    // Origen y destino
     'Origen': 'origen',
     'Ciudad Origen': 'origen',
     'Destino': 'destino',
     'Ciudad Destino': 'destino',
+    
+    // Tipo de servicio
     'Servicio': 'tipo_servicio',
     'Servicios': 'tipo_servicio',
     'Tipo de Servicio': 'tipo_servicio',
+    'Tipo Servicio': 'tipo_servicio',
+    
+    // Importe y estatus
     'Importe': 'cobro_cliente',
     'Monto': 'cobro_cliente',
     'Costo': 'cobro_cliente',
-    'Estatus': 'estado'
+    'Precio': 'cobro_cliente',
+    'Cobro al cliente': 'cobro_cliente', // Corregido para coincidir con la columna en la BD
+    'Estatus': 'estado',
+    'Estado': 'estado',
+    
+    // Campos adicionales que pueden estar presentes
+    'Fecha Inicio': 'fecha_hora_asignacion',
+    'Hora Inicio': 'hora_inicio_custodia',
+    'Hora Fin': 'hora_finalizacion',
+    'Observaciones': 'comentarios_adicionales',
+    'Comentarios': 'comentarios_adicionales',
+    'Notas': 'comentarios_adicionales'
   };
   
-  // Debug para ver las columnas de Excel entrantes
-  console.log("Columnas Excel recibidas para mapeo:", excelColumns);
+  // Lista de columnas inválidas o problemáticas que deben ser ignoradas
+  const invalidColumns = ['cantidad_de_transportes', 'null', 'undefined', ''];
   
+  // Mostrar encabezados para debugging
+  console.log("Encabezados detectados:", JSON.stringify(excelColumns));
+  
+  // Iterar sobre los encabezados encontrados y mapearlos
   excelColumns.forEach(column => {
-    // Normalizar el nombre de la columna (quitar espacios extras, convertir a minúsculas)
+    // Ignorar columnas vacías o sin valor
+    if (column === null || column === undefined || column === '') {
+      console.log(`Ignorando columna por no tener nombre de encabezado`);
+      return;
+    }
+    
+    // Normalizar el nombre de la columna 
     const normalizedColumn = column.trim();
+    console.log(`Procesando encabezado: "${normalizedColumn}"`);
+    
+    // Ignorar columnas problemáticas explícitamente
+    if (invalidColumns.includes(normalizedColumn.toLowerCase())) {
+      console.log(`Ignorando columna problemática: ${normalizedColumn}`);
+      return;
+    }
+    
+    // Casos especiales de mapeo que requieren corrección
+    if (normalizedColumn === 'Cobro al cliente' || normalizedColumn === 'Cobro al Cliente') {
+      columnMapping[column] = 'cobro_cliente'; // Usar el nombre correcto de la columna
+      console.log(`Mapeo especial: ${normalizedColumn} -> cobro_cliente`);
+      return;
+    }
     
     // Buscar en mapeos comunes
     if (commonMappings[normalizedColumn]) {
       columnMapping[column] = commonMappings[normalizedColumn];
-      console.log(`Mapeado: ${column} -> ${commonMappings[normalizedColumn]}`);
-    } 
-    // Si no está en los mapeos comunes, intentar generar un nombre de columna basado en convenciones
-    else {
+      console.log(`Mapeo encontrado: ${normalizedColumn} -> ${commonMappings[normalizedColumn]}`);
+    } else {
+      // Si no encuentra mapeo, usar una versión normalizada del nombre de la columna
       // Convertir "Nombre de Columna" a "nombre_de_columna"
-      const dbColumnName = normalizedColumn
+      let dbColumnName = normalizedColumn
         .toLowerCase()
         .replace(/\s+/g, '_')
         .replace(/[^a-z0-9_]/g, '');
-        
-      // Verificar que la columna generada no sea la problemática
-      if (dbColumnName && dbColumnName !== 'cantidad_de_transportes') {
+      
+      // Verificar si el nombre de columna generado es válido
+      if (dbColumnName && !invalidColumns.includes(dbColumnName)) {
         columnMapping[column] = dbColumnName;
-        console.log(`Mapeado (generado): ${column} -> ${dbColumnName}`);
+        console.log(`Mapeo generado: ${normalizedColumn} -> ${dbColumnName}`);
       } else {
-        console.log(`Ignorando columna: ${column} (generaría '${dbColumnName}')`);
+        console.log(`Ignorando columna con nombre inválido: ${normalizedColumn}`);
       }
     }
   });
+  
+  // Verificación final de mapeos
+  console.log(`Mapeo final de columnas: ${JSON.stringify(columnMapping)}`);
+  
+  // Verificar si tenemos al menos las columnas mínimas necesarias
+  const requiredColumns = ['nombre_cliente', 'fecha_servicio', 'tipo_servicio'];
+  const foundRequiredColumns = requiredColumns.filter(col => Object.values(columnMapping).includes(col));
+  
+  if (foundRequiredColumns.length === 0) {
+    console.warn('ADVERTENCIA: No se encontraron columnas esenciales en el mapeo. Esto puede causar datos NULL.');
+    console.warn('Columnas requeridas:', requiredColumns);
+    console.warn('Columnas encontradas:', Object.values(columnMapping));
+  } else {
+    console.log(`Se encontraron ${foundRequiredColumns.length}/${requiredColumns.length} columnas requeridas`);
+  }
   
   return columnMapping;
 }

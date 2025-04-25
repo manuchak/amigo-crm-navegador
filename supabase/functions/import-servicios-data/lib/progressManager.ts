@@ -34,31 +34,76 @@ export class ProgressManager {
     this.lastUpdateTime = now;
 
     try {
-      // IMPORTANTE: Asegurar que processed y total son números enteros positivos
-      // Esto estaba causando errores en la inserción
-      const processedInt = Math.max(0, Math.floor(Number(processed)));
-      const totalInt = Math.max(1, Math.floor(Number(total)));
+      // IMPORTANTE: Asegurar que processed y total son números enteros positivos válidos
+      let processedInt = 0;
+      let totalInt = 1;
+      
+      try {
+        processedInt = Math.max(0, Math.floor(Number(processed)));
+        totalInt = Math.max(1, Math.floor(Number(total)));
+      } catch (parseError) {
+        console.error("Error convirtiendo processed/total a enteros:", parseError);
+        processedInt = 0;
+        totalInt = 1;
+      }
+      
+      if (isNaN(processedInt) || isNaN(totalInt)) {
+        console.error("Valores inválidos detectados:", { processed, total });
+        processedInt = 0;
+        totalInt = 1;
+      }
       
       console.log(`Actualizando progreso: ${this.progressId} - ${status} - ${processedInt}/${totalInt} - ${message}`);
       
-      const { error } = await this.supabase
-        .from('import_progress')
-        .upsert({
-          id: this.progressId,
-          status,
-          processed: processedInt,
-          total: totalInt,
-          message,
-          updated_at: new Date().toISOString()
-        });
-        
-      if (error) {
-        console.error("Error en actualización de progreso:", error);
-        console.error("Detalles:", { status, processed: processedInt, total: totalInt });
+      try {
+        const { error } = await this.supabase
+          .from('import_progress')
+          .upsert({
+            id: this.progressId,
+            status,
+            processed: processedInt,
+            total: totalInt,
+            message,
+            updated_at: new Date().toISOString()
+          });
+          
+        if (error) {
+          console.error("Error en actualización de progreso:", error);
+          console.error("Detalles:", { status, processed: processedInt, total: totalInt });
+          
+          // Intentar insertar si es que el registro no existe
+          if (error.code === "23505") { // Código de violación de restricción única
+            try {
+              const { error: insertError } = await this.supabase
+                .from('import_progress')
+                .insert({
+                  id: this.progressId,
+                  status,
+                  processed: processedInt,
+                  total: totalInt,
+                  message,
+                  updated_at: new Date().toISOString()
+                });
+                
+              if (insertError) {
+                console.error("Error en inserción de progreso tras fallo de upsert:", insertError);
+                return false;
+              }
+              return true;
+            } catch (innerError) {
+              console.error("Error en segundo intento de actualización:", innerError);
+              return false;
+            }
+          }
+          
+          return false;
+        }
+          
+        return true;
+      } catch (dbError) {
+        console.error("Error en operación de base de datos:", dbError);
         return false;
       }
-        
-      return true;
     } catch (error) {
       console.error("Error grave actualizando progreso:", error);
       return false;

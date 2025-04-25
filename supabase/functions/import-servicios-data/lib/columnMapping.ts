@@ -46,6 +46,7 @@ export function determineHeaderMapping(headerRow: Record<string, any>): Record<s
     'Monto': 'cobro_cliente',
     'Costo': 'cobro_cliente',
     'Precio': 'cobro_cliente',
+    'Cobro al cliente': 'cobro_cliente', // Corregido para coincidir con la BD
     'Estatus': 'estado',
     'Estado': 'estado',
     
@@ -61,14 +62,18 @@ export function determineHeaderMapping(headerRow: Record<string, any>): Record<s
   // Lista de columnas inválidas o problemáticas que deben ser ignoradas
   const invalidColumns = ['cantidad_de_transportes', 'null', 'undefined', ''];
   
-  // Mostrar encabezados para debugging
+  // Correcciones para nombres de columnas conocidos como problemáticos
+  const columnCorrections: Record<string, string> = {
+    'cobro_al_cliente': 'cobro_cliente',
+  };
+  
+  // Debug para ver las columnas de Excel entrantes
   console.log("Encabezados detectados:", JSON.stringify(headerRow));
   
-  // Iterar sobre los encabezados encontrados y mapearlos
-  Object.entries(headerRow).forEach(([excelCol, headerValue]) => {
+  Object.entries(headerRow).forEach(([excelColumn, headerValue]) => {
     // Ignorar columnas vacías o sin valor
     if (headerValue === null || headerValue === undefined || headerValue === '') {
-      console.log(`Ignorando columna ${excelCol} por no tener nombre de encabezado`);
+      console.log(`Ignorando columna ${excelColumn} por no tener nombre de encabezado`);
       return;
     }
     
@@ -76,6 +81,13 @@ export function determineHeaderMapping(headerRow: Record<string, any>): Record<s
     if (typeof headerValue === 'string') {
       const headerText = headerValue.trim();
       console.log(`Procesando encabezado: "${headerText}"`);
+      
+      // Casos especiales de mapeo que requieren corrección
+      if (headerText === 'Cobro al cliente' || headerText === 'Cobro al Cliente') {
+        mapping[excelColumn] = 'cobro_cliente'; // Usar el nombre correcto de la columna
+        console.log(`Mapeo especial: ${headerText} -> cobro_cliente`);
+        return;
+      }
       
       // Ignorar columnas problemáticas explícitamente
       if (invalidColumns.includes(headerText.toLowerCase())) {
@@ -85,7 +97,7 @@ export function determineHeaderMapping(headerRow: Record<string, any>): Record<s
       
       // Buscar en mapeos comunes
       if (commonMappings[headerText]) {
-        mapping[excelCol] = commonMappings[headerText];
+        mapping[excelColumn] = commonMappings[headerText];
         console.log(`Mapeo encontrado: ${headerText} -> ${commonMappings[headerText]}`);
       } else {
         // Si no encuentra mapeo, usar una versión normalizada del nombre de la columna
@@ -95,9 +107,16 @@ export function determineHeaderMapping(headerRow: Record<string, any>): Record<s
           .replace(/\s+/g, '_')
           .replace(/[^a-z0-9_]/g, '');
         
-        // Verificar si el nombre de columna generado es válido
+        // Verificar si el nombre de columna necesita corrección
+        if (dbColumnName in columnCorrections) {
+          const originalColumn = dbColumnName;
+          dbColumnName = columnCorrections[dbColumnName];
+          console.log(`Corrigiendo nombre de columna: ${originalColumn} -> ${dbColumnName}`);
+        }
+        
+        // Verificar que el nombre de columna generado es válido y no está en la lista de inválidos
         if (dbColumnName && !invalidColumns.includes(dbColumnName)) {
-          mapping[excelCol] = dbColumnName;
+          mapping[excelColumn] = dbColumnName;
           console.log(`Mapeo generado: ${headerText} -> ${dbColumnName}`);
         } else {
           console.log(`Ignorando columna con nombre inválido: ${headerText}`);
@@ -107,6 +126,13 @@ export function determineHeaderMapping(headerRow: Record<string, any>): Record<s
       // Si el valor no es una cadena pero es algo, convertirlo a cadena
       const headerText = String(headerValue).trim();
       
+      // Casos especiales de mapeo que requieren corrección
+      if (headerText === 'Cobro al cliente' || headerText === 'Cobro al Cliente') {
+        mapping[excelColumn] = 'cobro_cliente';
+        console.log(`Mapeo especial (no string): ${headerText} -> cobro_cliente`);
+        return;
+      }
+      
       // Ignorar columnas problemáticas explícitamente
       if (invalidColumns.includes(headerText.toLowerCase())) {
         console.log(`Ignorando columna problemática (no string): ${headerText}`);
@@ -114,7 +140,7 @@ export function determineHeaderMapping(headerRow: Record<string, any>): Record<s
       }
       
       if (commonMappings[headerText]) {
-        mapping[excelCol] = commonMappings[headerText];
+        mapping[excelColumn] = commonMappings[headerText];
         console.log(`Mapeo encontrado (no string): ${headerText} -> ${commonMappings[headerText]}`);
       } else {
         // Convertir a nombre de columna normalizado
@@ -122,9 +148,16 @@ export function determineHeaderMapping(headerRow: Record<string, any>): Record<s
           .toLowerCase()
           .replace(/\s+/g, '_')
           .replace(/[^a-z0-9_]/g, '');
+        
+        // Verificar si el nombre de columna necesita corrección
+        if (dbColumnName in columnCorrections) {
+          const originalColumn = dbColumnName;
+          dbColumnName = columnCorrections[dbColumnName];
+          console.log(`Corrigiendo nombre de columna (no string): ${originalColumn} -> ${dbColumnName}`);
+        }
           
         if (dbColumnName && !invalidColumns.includes(dbColumnName)) {
-          mapping[excelCol] = dbColumnName;
+          mapping[excelColumn] = dbColumnName;
           console.log(`Mapeo generado (no string): ${headerText} -> ${dbColumnName}`);
         } else {
           console.log(`Ignorando columna con nombre inválido (no string): ${headerText}`);

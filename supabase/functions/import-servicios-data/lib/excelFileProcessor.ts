@@ -4,7 +4,7 @@ import { ProgressManager } from './progressManager.ts';
 import { BatchProcessor } from './batchProcessor.ts';
 import { reportMemoryUsage, forceGarbageCollection } from './memoryMonitor.ts';
 import { determineHeaderMapping } from './columnMapping.ts';
-import { transformRowData } from './dataTransformer.ts';
+import { transformRowData, mapColumnNames } from './dataTransformer.ts';
 
 // Función para procesar el archivo Excel de manera extremadamente optimizada
 export async function processExcelFileStream(
@@ -187,8 +187,10 @@ export async function processExcelFileStream(
         };
       }
       
-      // Determinar mapeo de columnas
-      const headerMapping = determineHeaderMapping(headerRow);
+      // Determinar mapeo de columnas usando las funciones de la librería dataTransformer
+      // Convertir el objeto headerRow a un array de valores para mapColumnNames
+      const headerNames = Object.values(headerRow);
+      const headerMapping = mapColumnNames(headerNames);
       
       // Verificar si tenemos un mapeo mínimo necesario
       if (Object.keys(headerMapping).length === 0) {
@@ -204,8 +206,27 @@ export async function processExcelFileStream(
         };
       }
       
+      // Crear un mapeo inverso de nombres de Excel a columnas de Excel
+      const excelNameToColumn: Record<string, string> = {};
+      for (const [column, name] of Object.entries(headerRow)) {
+        if (typeof name === 'string') {
+          excelNameToColumn[name] = column;
+        } else {
+          excelNameToColumn[String(name)] = column;
+        }
+      }
+      
+      // Convertir headerMapping de mapeo por nombre a mapeo por columna
+      const columnMapping: Record<string, string> = {};
+      for (const [excelName, dbColumn] of Object.entries(headerMapping)) {
+        const excelColumn = excelNameToColumn[excelName];
+        if (excelColumn) {
+          columnMapping[excelColumn] = dbColumn;
+        }
+      }
+      
       // Mostrar el mapeo para debugging
-      console.log("Mapeo de columnas resultante:", JSON.stringify(headerMapping));
+      console.log("Mapeo de columnas resultante:", JSON.stringify(columnMapping));
       
       await progressManager.updateProgress(
         'validating',
@@ -244,7 +265,6 @@ export async function processExcelFileStream(
         
         // Mostrar ejemplo de la primera fila para debugging
         console.log('Ejemplo de la primera fila extraída:', JSON.stringify(data[0]).substring(0, 500));
-        console.log('Estructura de la primera fila:', Object.keys(data[0]));
         
       } catch (jsonError) {
         console.error('Error convirtiendo a JSON:', jsonError);
@@ -277,7 +297,7 @@ export async function processExcelFileStream(
       let validRowCount = 0;
       
       for (const row of data) {
-        const transformedRow = transformRowData(row, headerMapping);
+        const transformedRow = transformRowData(row, columnMapping);
         // Solo incluir filas que tengan al menos un campo válido
         if (Object.keys(transformedRow).length > 0) {
           transformedData.push(transformedRow);
