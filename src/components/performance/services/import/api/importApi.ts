@@ -1,10 +1,8 @@
-
 import { toast } from "sonner";
 import { v4 as uuidv4 } from "uuid";
 import { ImportResponse, ImportProgress } from "../types";
 import { supabase } from "@/integrations/supabase/client";
 
-// Función para inicializar progress tracking
 async function initializeProgressTracking(fileSize: number): Promise<string> {
   const progressId = uuidv4();
   
@@ -34,7 +32,6 @@ async function initializeProgressTracking(fileSize: number): Promise<string> {
   }
 }
 
-// Nueva función para verificar conectividad con la función Edge
 export async function testEdgeFunctionConnection(): Promise<boolean> {
   try {
     console.log("Verificando conectividad con la función Edge...");
@@ -47,7 +44,6 @@ export async function testEdgeFunctionConnection(): Promise<boolean> {
     
     const accessToken = sessionData.session.access_token;
     
-    // Crear un nuevo AbortController con timeout más corto para prueba
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 5000);
     
@@ -96,7 +92,6 @@ export async function callImportApi(
     
     console.log(`Preparando subir archivo: ${file.name}, tamaño: ${file.size} bytes`);
     
-    // Verificar conectividad antes de iniciar el proceso
     const isConnected = await testEdgeFunctionConnection();
     if (!isConnected) {
       console.warn("No se pudo establecer conexión con la función Edge. Intentando de todos modos...");
@@ -107,22 +102,23 @@ export async function callImportApi(
     
     formData.append('progressId', progressId);
     
+    const isCSV = file.name.toLowerCase().endsWith('.csv') || file.type === 'text/csv' || file.type === 'application/csv';
+    if (isCSV && !formData.has('format')) {
+      formData.append('format', 'csv');
+    }
+    
     const apiUrl = 'https://beefjsdgrdeiymzxwxru.supabase.co/functions/v1/import-servicios-data';
     console.log(`Enviando solicitud a: ${apiUrl}`);
     
-    // Implementación de reintentos progresivos para la solicitud principal
     let retryCount = 0;
     const maxRetries = 3;
     
     while (retryCount <= maxRetries) {
       try {
-        // Configurar un timeoutPromise más corto para detectar problemas de red
         const timeoutPromise = new Promise<never>((_, reject) => {
-          // 3 minutos para el fetch inicial por intento
           setTimeout(() => reject(new Error("Tiempo de espera excedido")), 5 * 60 * 1000);
         });
         
-        // Intentar la solicitud con backoff exponencial
         const fetchPromise = fetch(
           apiUrl,
           {
@@ -137,7 +133,6 @@ export async function callImportApi(
           }
         );
         
-        // Esperar la primera respuesta o el timeout
         const response = await Promise.race([fetchPromise, timeoutPromise]);
         
         console.log(`Estado de respuesta: ${response.status}`);
@@ -159,10 +154,9 @@ export async function callImportApi(
           }
           
           if (response.status >= 500) {
-            // Si es un error del servidor, intentar de nuevo
             console.log(`Reintentando (${retryCount + 1}/${maxRetries})...`);
             retryCount++;
-            await new Promise(resolve => setTimeout(resolve, Math.pow(2, retryCount) * 1000)); // Backoff exponencial
+            await new Promise(resolve => setTimeout(resolve, Math.pow(2, retryCount) * 1000));
             continue;
           }
           
@@ -184,12 +178,10 @@ export async function callImportApi(
       } catch (fetchError) {
         console.error(`Error en intento ${retryCount + 1}:`, fetchError);
         
-        // Si es el último intento, lanzar el error
         if (retryCount >= maxRetries) {
           throw fetchError;
         }
         
-        // De lo contrario, aumentar contador y esperar con backoff exponencial
         retryCount++;
         await new Promise(resolve => setTimeout(resolve, Math.pow(2, retryCount) * 1000));
       }
@@ -199,7 +191,6 @@ export async function callImportApi(
   } catch (error) {
     console.error("Error en la llamada de API:", error);
     
-    // Manejar específicamente errores de timeout o aborts
     let errorMessage = error instanceof Error ? error.message : "Error desconocido";
     let errorDescription = errorMessage;
     

@@ -8,6 +8,7 @@ import { ProgressManager } from './lib/progressManager.ts'
 import { BatchProcessor } from './lib/batchProcessor.ts'
 import { initializeMemoryUsageMonitoring, reportMemoryUsage } from './lib/memoryMonitor.ts'
 import { processExcelFileStream } from './lib/excelFileProcessor.ts'
+import { processCsvFile } from './lib/csvFileProcessor.ts'
 
 // Configuraciones de procesamiento extremadamente conservadoras para evitar errores de recursos
 const BATCH_CONFIG = {
@@ -109,7 +110,7 @@ Deno.serve(async (req) => {
       );
     }
 
-    console.log(`Procesando archivo: ${file.name}, tamaño: ${file.size} bytes, formato: ${format || 'excel'}`);
+    console.log(`Procesando archivo: ${file.name}, tamaño: ${file.size} bytes, formato: ${format || 'auto'}`);
     
     await progressManager.updateProgress(
       'validating',
@@ -120,13 +121,28 @@ Deno.serve(async (req) => {
     
     reportMemoryUsage("Antes de procesar archivo");
     
-    // Usar el procesador de Excel basado en streaming con micro-lotes
-    const processingResult = await processExcelFileStream(
-      file, 
-      progressManager, 
-      BATCH_CONFIG,
-      supabaseClient
-    );
+    let processingResult;
+    
+    // Determinar el formato del archivo y procesarlo adecuadamente
+    const isCSV = format === 'csv' || file.name.toLowerCase().endsWith('.csv') || file.type === 'text/csv' || file.type === 'application/csv';
+    
+    if (isCSV) {
+      console.log("Detectado formato CSV, utilizando procesador específico");
+      processingResult = await processCsvFile(
+        file,
+        progressManager,
+        BATCH_CONFIG,
+        supabaseClient
+      );
+    } else {
+      // Usar el procesador de Excel basado en streaming con micro-lotes
+      processingResult = await processExcelFileStream(
+        file, 
+        progressManager, 
+        BATCH_CONFIG,
+        supabaseClient
+      );
+    }
     
     reportMemoryUsage("Después de procesar archivo");
     

@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { ProgressCallback, ImportResponse } from "./types";
@@ -42,16 +41,16 @@ export async function importServiciosData(
       return { success: false, message: "El formato de archivo no es válido. Solo se permiten archivos Excel (.xls, .xlsx) o CSV (.csv)" };
     }
     
-    // Si es un archivo CSV, redirigir a la función de importación de CSV
-    if (isCSV) {
-      return importCsvData(file, onProgress);
-    }
-    
     console.log(`Importing file: ${file.name} (${file.size} bytes, type: ${file.type})`);
     
     const toastId = "import-toast";
     const formData = new FormData();
     formData.append('file', file);
+    
+    // Especificar explícitamente el formato CSV si corresponde
+    if (isCSV) {
+      formData.append('format', 'csv');
+    }
 
     toast.loading("Preparando importación", { 
       description: "Verificando conexión con el servidor...",
@@ -263,57 +262,6 @@ export async function importServiciosData(
     }
   } catch (error) {
     console.error("Unhandled error in import process:", error);
-    return handleImportError(error, "import-toast");
-  }
-}
-
-export async function importCsvData(
-  file: File,
-  onProgress?: ProgressCallback
-): Promise<ImportResponse> {
-  try {
-    if (file.size > 5 * 1024 * 1024) {
-      toast.error("Archivo demasiado grande", {
-        description: "Por favor divida el archivo en partes más pequeñas (máximo 5MB)"
-      });
-      return { success: false, message: "Archivo demasiado grande" };
-    }
-
-    const toastId = "import-toast";
-    toast.loading("Procesando archivo CSV...", { id: toastId });
-
-    const formData = new FormData();
-    formData.append('file', file);
-    formData.append('format', 'csv');
-
-    const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
-    if (sessionError || !sessionData.session) {
-      toast.error("Error de autenticación", { id: toastId });
-      return { success: false, message: "Error de autenticación" };
-    }
-
-    try {
-      // Create a new AbortController for this operation
-      const abortController = new AbortController();
-      
-      // Call the API with all three required arguments: formData, accessToken, and abortController
-      const response = await callImportApi(formData, sessionData.session.access_token, abortController);
-      
-      if (response.success) {
-        toast.success("Importación completada", { id: toastId });
-      } else {
-        toast.error("Error en la importación", {
-          description: response.message,
-          id: toastId
-        });
-      }
-      
-      return response;
-    } catch (error) {
-      return handleImportError(error, toastId);
-    }
-  } catch (error) {
-    console.error("Error in CSV import:", error);
     return handleImportError(error, "import-toast");
   }
 }
