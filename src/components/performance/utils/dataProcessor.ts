@@ -65,13 +65,14 @@ export function processExcelData(jsonData: any[], dateRange: DateRange): Custodi
       };
     });
 
+    // Fixed: Use calculateSummaryMetrics which returns PerformanceMetric[]
     const summaryMetrics = calculateSummaryMetrics(custodios, dateRange);
     const performanceByDay = generatePerformanceTrends();
     const monthlyRevenue = generateMonthlyRevenue();
     const totalRevenue = custodios.reduce((sum, c) => sum + c.earnings, 0);
 
     return {
-      summaryMetrics,
+      summaryMetrics,  // This now correctly uses the array returned by calculateSummaryMetrics
       performanceByDay,
       custodios,
       revenue: {
@@ -126,13 +127,11 @@ function generateMockData(): CustodioPerformanceData {
   const performanceByDay = generatePerformanceTrends();
   const monthlyRevenue = generateMonthlyRevenue();
   
+  // Fixed: Use calculateSummaryMetrics to generate metrics properly
+  const summaryMetrics = calculateSummaryMetrics(custodios, {});
+  
   return {
-    summaryMetrics: {
-      totalCustodios: custodios.length,
-      activeCustodios: custodios.filter(c => c.status === 'active').length,
-      averageRating: custodios.reduce((sum, c) => sum + c.averageRating, 0) / custodios.length,
-      totalRevenue
-    },
+    summaryMetrics,
     performanceByDay,
     custodios,
     revenue: {
