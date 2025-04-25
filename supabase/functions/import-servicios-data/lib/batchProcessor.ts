@@ -32,69 +32,78 @@ export class BatchProcessor {
     const backoffFactor = this.config.backoffFactor || 2;
     const initialBackoff = this.config.initialBackoff || 1000;
     
-    // Extra pre-processing for cobro_cliente field to prevent validation errors
+    // Enhanced pre-processing to prevent interval syntax errors
     for (const record of batchData) {
-      // Process numeric fields with special handling for cobro_cliente
-      const numericFields = ['km_teorico', 'km_recorridos', 'km_extras', 'costo_custodio', 'casetas', 'cobro_cliente', 'cantidad_transportes'];
+      // Process interval fields with special handling
+      const intervalFields = ['tiempo_retraso', 'tiempo_punto_origen', 'tiempo_estimado', 'duracion_servicio'];
       
-      for (const field of numericFields) {
-        if (record[field] !== undefined && record[field] !== null) {
-          // If the field is a string that represents a number, convert it
-          if (typeof record[field] === 'string') {
-            // Clean the string by removing currency symbols, spaces, and replacing commas with dots
-            const cleanStr = record[field]
-              .replace(/[$€£¥]/g, '') // Remove currency symbols
-              .replace(/\s/g, '') // Remove spaces
-              .replace(/,/g, '.') // Replace comma with dot for decimal
-              .replace(/[^\d.-]/g, ''); // Remove any remaining non-numeric chars except dots and minus
-              
-            // Handle empty string case
-            if (cleanStr === '' || cleanStr === '.') {
-              console.log(`Empty value for ${field} after cleaning: "${record[field]}"`);
-              delete record[field]; // Remove the field completely
-              continue;
-            }
-
-            // Parse as float and validate
-            const numValue = parseFloat(cleanStr);
-            
-            if (!isNaN(numValue)) {
-              // For cobro_cliente field, apply extra validation
-              if (field === 'cobro_cliente') {
-                // Limit to 2 decimal places and ensure it's within a reasonable range
-                const formattedValue = Number(numValue.toFixed(2));
-                if (formattedValue >= 0 && formattedValue <= 1000000) { // Reasonable upper limit for a charge
-                  record[field] = formattedValue;
-                  console.log(`Converted cobro_cliente value: ${record[field]} -> ${formattedValue}`);
-                } else {
-                  console.log(`Rejected unreasonable cobro_cliente value: ${numValue}`);
-                  delete record[field]; // Remove invalid values
-                }
-              } else {
-                record[field] = numValue;
-                console.log(`Converted numeric value for ${field}: ${record[field]} -> ${numValue}`);
-              }
-            } else {
-              console.log(`Couldn't convert numeric value for ${field}: ${record[field]}`);
-              delete record[field]; // Remove invalid values
-            }
-          } else if (typeof record[field] === 'number') {
-            // For direct number inputs, also ensure cobro_cliente is properly formatted
-            if (field === 'cobro_cliente') {
-              const formattedValue = Number(record[field].toFixed(2));
-              if (formattedValue >= 0 && formattedValue <= 1000000) {
-                record[field] = formattedValue;
-              } else {
-                delete record[field]; // Remove out-of-range values
-              }
-            }
-            // Other numeric fields can stay as-is
-          } else {
-            // If not a string or number, remove the field
+      intervalFields.forEach(field => {
+        if (field in record) {
+          // CRITICAL FIX: Remove empty string and null values for interval fields completely
+          if (record[field] === '' || record[field] === null || record[field] === undefined) {
+            console.log(`Removing empty/null interval value for ${field}`);
             delete record[field];
+            return;
+          }
+          
+          // If it's a string but not in a valid interval format, try to convert it
+          if (typeof record[field] === 'string') {
+            const cleanValue = record[field].trim().toLowerCase();
+            
+            // Skip empty or header-like values
+            if (cleanValue === '' || 
+                cleanValue.includes('tiempo') || 
+                cleanValue.includes('duración') ||
+                cleanValue === '""' ||
+                cleanValue === "''") {
+              console.log(`Removing invalid interval value for ${field}: "${cleanValue}"`);
+              delete record[field];
+              return;
+            }
+            
+            try {
+              // Try to format to a valid PostgreSQL interval syntax
+              let formattedInterval: string | null = null;
+              
+              if (/^\d+$/.test(cleanValue)) {
+                // Just a number, interpret as minutes for clear time intervals
+                formattedInterval = `${cleanValue} minutes`;
+              } else if (cleanValue.includes(':')) {
+                // Format HH:MM or HH:MM:SS
+                const parts = cleanValue.split(':');
+                if (parts.length === 2) {
+                  const hours = parseInt(parts[0], 10) || 0;
+                  const minutes = parseInt(parts[1], 10) || 0;
+                  formattedInterval = `${hours} hours ${minutes} minutes`;
+                } else if (parts.length === 3) {
+                  const hours = parseInt(parts[0], 10) || 0;
+                  const minutes = parseInt(parts[1], 10) || 0;
+                  const seconds = parseInt(parts[2], 10) || 0;
+                  formattedInterval = `${hours} hours ${minutes} minutes ${seconds} seconds`;
+                }
+              } else if (cleanValue.includes('h') || cleanValue.includes('m')) {
+                // Already a descriptive format like "2h 30m"
+                formattedInterval = cleanValue
+                  .replace('h', ' hours ')
+                  .replace('m', ' minutes ')
+                  .trim();
+              }
+              
+              // If we could format it, use the formatted value, otherwise remove the field
+              if (formattedInterval) {
+                record[field] = formattedInterval;
+                console.log(`Formatted interval: ${cleanValue} -> ${formattedInterval}`);
+              } else {
+                console.log(`Could not format interval: ${cleanValue} - removing field`);
+                delete record[field];
+              }
+            } catch (e) {
+              console.log(`Error processing interval ${field}: ${record[field]}. Removing field.`);
+              delete record[field];
+            }
           }
         }
-      }
+      });
       
       // Handle interval type fields to prevent syntax errors with empty strings
       const intervalFields = ['tiempo_retraso', 'tiempo_punto_origen', 'tiempo_estimado', 'duracion_servicio'];
@@ -228,6 +237,64 @@ export class BatchProcessor {
         if (error) {
           console.error(`Error en el intento ${retryCount + 1}:`, error);
           
+          // Special handling for interval syntax errors - CRITICAL FIX
+          if ((error.code === "22007" || error.message.includes('syntax for type interval')) && error.message.includes('interval')) {
+            console.log("Found interval syntax error, applying more aggressive fix");
+            
+            // Extract problematic value from error message
+            let problematicValue = "";
+            const valueMatch = error.message.match(/type interval: "(.*)"/);
+            if (valueMatch && valueMatch[1]) {
+              problematicValue = valueMatch[1];
+              console.log(`Problematic interval value: "${problematicValue}"`);
+            }
+            
+            // Remove all interval fields that might be causing issues
+            const intervalFields = ['tiempo_retraso', 'tiempo_punto_origen', 'tiempo_estimado', 'duracion_servicio'];
+            let fixApplied = false;
+            
+            for (const record of batchData) {
+              intervalFields.forEach(field => {
+                if (field in record) {
+                  // If we found the exact problematic value, only remove that one
+                  if (problematicValue && String(record[field]) === problematicValue) {
+                    console.log(`Removing identified problematic interval field ${field} with value "${problematicValue}"`);
+                    delete record[field];
+                    fixApplied = true;
+                  }
+                  // For empty strings or any values that look suspicious, remove them
+                  else if (
+                    record[field] === '' || 
+                    record[field] === null || 
+                    record[field] === undefined ||
+                    (typeof record[field] === 'string' && 
+                     (record[field].trim() === '' || 
+                      record[field] === '""' || 
+                      record[field] === "''" || 
+                      record[field].includes('NaN')))
+                  ) {
+                    console.log(`Removing potentially problematic empty/invalid interval field ${field}: "${record[field]}"`);
+                    delete record[field];
+                    fixApplied = true;
+                  }
+                  // If we don't know which value is problematic but this is our second attempt at fixing intervals
+                  // remove all interval fields as a last resort
+                  else if (retryCount > 0 && !fixApplied && !problematicValue) {
+                    console.log(`Removing all interval fields ${field} as last resort`);
+                    delete record[field];
+                    fixApplied = true;
+                  }
+                }
+              });
+            }
+            
+            // If we applied a fix, try again immediately
+            if (fixApplied) {
+              console.log("Applied interval field fixes, retrying immediately");
+              continue;
+            }
+          }
+          
           // Special handling for cobro_cliente validation errors
           if (error.message && error.message.includes('cobro_cliente')) {
             console.log("Found cobro_cliente error, applying special fix");
@@ -239,46 +306,6 @@ export class BatchProcessor {
                 delete record.cobro_cliente;
                 console.log("Removed problematic cobro_cliente field from record");
               }
-            }
-            
-            // Try immediately with the fixed data
-            continue;
-          }
-          
-          // Special handling for interval syntax errors
-          if ((error.code === "22007" || error.message.includes('syntax for type interval')) && error.message.includes('interval')) {
-            console.log("Found interval syntax error, applying fix");
-            
-            // Extract problematic value from error message if possible
-            let problematicValue = "";
-            const valueMatch = error.message.match(/type interval: "(.*)"/);
-            if (valueMatch && valueMatch[1]) {
-              problematicValue = valueMatch[1];
-              console.log(`Problematic interval value: "${problematicValue}"`);
-            }
-            
-            // Remove all interval fields that might be causing issues
-            const intervalFields = ['tiempo_retraso', 'tiempo_punto_origen', 'tiempo_estimado', 'duracion_servicio'];
-            for (const record of batchData) {
-              intervalFields.forEach(field => {
-                if (field in record) {
-                  // If we found the exact problematic value, only remove that one
-                  if (problematicValue && record[field] === problematicValue) {
-                    console.log(`Removing identified problematic interval field ${field} with value "${problematicValue}"`);
-                    delete record[field];
-                  }
-                  // If we don't know which value is problematic, check for empty strings
-                  else if (record[field] === '' || record[field] === null) {
-                    console.log(`Removing empty interval field ${field}`);
-                    delete record[field];
-                  }
-                  // As a last resort, remove all interval fields
-                  else if (!problematicValue) {
-                    console.log(`Removing all interval fields ${field} due to syntax error`);
-                    delete record[field];
-                  }
-                }
-              });
             }
             
             // Try immediately with the fixed data
@@ -390,9 +417,11 @@ export class BatchProcessor {
           
           // Increase retry counter and wait according to backoff strategy
           retryCount++;
-          const backoffTime = initialBackoff * Math.pow(backoffFactor, retryCount - 1);
-          console.log(`Reintentando en ${backoffTime}ms...`);
-          await new Promise(resolve => setTimeout(resolve, backoffTime));
+          if (retryCount <= maxRetries) {
+            const backoffTime = initialBackoff * Math.pow(backoffFactor, retryCount - 1);
+            console.log(`Reintentando en ${backoffTime}ms...`);
+            await new Promise(resolve => setTimeout(resolve, backoffTime));
+          }
           
         } else {
           // Success! Record the number of rows inserted

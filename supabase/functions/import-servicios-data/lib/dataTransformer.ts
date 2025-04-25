@@ -150,7 +150,7 @@ export function transformRowData(row: any, columnMapping: Record<string, string>
           transformedRow[dbColumn] = value === 1;
         }
       }
-      // Special handling for interval type fields to avoid empty string issues
+      // Greatly improved handling for interval type fields
       else if (
         dbColumn.includes('tiempo_') || 
         dbColumn.includes('duracion_') || 
@@ -159,9 +159,10 @@ export function transformRowData(row: any, columnMapping: Record<string, string>
         dbColumn === 'tiempo_estimado' ||
         dbColumn === 'duracion_servicio'
       ) {
-        // Skip empty strings and null values for interval fields
-        if (value === '' || value === null) {
-          return;
+        // CRITICAL FIX: Never allow empty strings for interval fields
+        if (value === '' || value === null || value === undefined) {
+          console.log(`Skipping empty value for interval field ${dbColumn}`);
+          return; // Skip this field completely rather than adding an empty string
         }
         
         // Try to format as a valid interval
@@ -172,32 +173,52 @@ export function transformRowData(row: any, columnMapping: Record<string, string>
             .toLowerCase();
             
           if (cleanValue === '') {
+            console.log(`Skipping cleaned-to-empty interval field ${dbColumn}`);
             return; // Skip empty values
           }
           
           // Try to format as a valid interval string
           try {
-            let formattedInterval = cleanValue;
+            let formattedInterval = null;
             
-            // If it's just numbers, assume it's hours
+            // If it's just numbers, assume it's minutes
             if (/^\d+$/.test(cleanValue)) {
-              formattedInterval = `${cleanValue} hours`;
+              formattedInterval = `${cleanValue} minutes`;
             }
-            
             // If it has a colon, format as HH:MM:SS
-            if (cleanValue.includes(':')) {
+            else if (cleanValue.includes(':')) {
               const parts = cleanValue.split(':');
               if (parts.length === 2) {
-                formattedInterval = `${parts[0]} hours ${parts[1]} minutes`;
+                const hours = parseInt(parts[0], 10);
+                const minutes = parseInt(parts[1], 10);
+                formattedInterval = `${hours} hours ${minutes} minutes`;
               } else if (parts.length === 3) {
-                formattedInterval = `${parts[0]} hours ${parts[1]} minutes ${parts[2]} seconds`;
+                const hours = parseInt(parts[0], 10);
+                const minutes = parseInt(parts[1], 10);
+                const seconds = parseInt(parts[2], 10);
+                formattedInterval = `${hours} hours ${minutes} minutes ${seconds} seconds`;
               }
+            }
+            // If it already has 'h', 'm', etc. format more cleverly
+            else if (cleanValue.includes('h') || cleanValue.includes('m') || cleanValue.includes('min')) {
+              formattedInterval = cleanValue
+                .replace('h', ' hours ')
+                .replace('m', ' minutes ')
+                .replace('min', ' minutes ')
+                .trim();
+            }
+            // Default fallback if it's a non-empty string
+            else if (cleanValue && cleanValue.length > 0 && /\d/.test(cleanValue)) {
+              // Contains at least one digit, assume minutes
+              formattedInterval = `${cleanValue} minutes`;
             }
             
             // Only include the field if we have a valid non-empty value
             if (formattedInterval && formattedInterval.trim() !== '') {
               transformedRow[dbColumn] = formattedInterval;
-              console.log(`Formatted interval value for ${dbColumn}: ${value} -> ${formattedInterval}`);
+              console.log(`Formatted interval field ${dbColumn}: ${value} -> ${formattedInterval}`);
+            } else {
+              console.log(`Could not format interval field ${dbColumn}: ${value} - skipping`);
             }
           } catch (e) {
             console.error(`Error formatting interval for ${dbColumn}:`, e);

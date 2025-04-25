@@ -1,4 +1,3 @@
-
 import * as XLSX from 'https://esm.sh/xlsx@0.18.5'
 import { ProgressManager } from './progressManager.ts';
 import { BatchProcessor } from './batchProcessor.ts';
@@ -6,7 +5,6 @@ import { reportMemoryUsage, forceGarbageCollection } from './memoryMonitor.ts';
 import { determineHeaderMapping } from './columnMapping.ts';
 import { transformRowData, mapColumnNames } from './dataTransformer.ts';
 
-// Función para procesar el archivo Excel de manera extremadamente optimizada
 export async function processExcelFileStream(
   file: File, 
   progressManager: ProgressManager, 
@@ -14,11 +12,9 @@ export async function processExcelFileStream(
   supabaseClient: any
 ): Promise<any> {
   try {
-    // Obtener el tamaño del array buffer para reportes de progreso
     const totalBytes = file.size;
     let processedBytes = 0;
     
-    // Reportar progreso inicial
     await progressManager.updateProgress(
       'validating',
       processedBytes,
@@ -26,9 +22,7 @@ export async function processExcelFileStream(
       'Iniciando lectura del archivo con procesamiento en stream'
     );
 
-    // Aproximar el número total de filas basado en el tamaño del archivo
-    // Esta es solo una estimación que se refinará más adelante
-    let estimatedRowCount = Math.ceil(totalBytes / 200); // Aproximadamente 200 bytes por fila
+    let estimatedRowCount = Math.ceil(totalBytes / 200);
     await progressManager.updateProgress(
       'validating',
       0,
@@ -37,16 +31,11 @@ export async function processExcelFileStream(
     );
 
     try {
-      // Verificación preliminar del formato del archivo
-      // Cargar solo los primeros bytes para validar que es un archivo Excel válido
       const headerBytes = await file.slice(0, Math.min(8192, file.size)).arrayBuffer();
       
       try {
-        // Intentar validar la cabecera del archivo
         const headerView = new Uint8Array(headerBytes);
         
-        // Verificar firma de archivo Excel (.xlsx)
-        // Los archivos .xlsx son archivos ZIP, que empiezan con PK
         if (headerView[0] !== 0x50 || headerView[1] !== 0x4B) {
           await progressManager.updateProgress(
             'error',
@@ -71,7 +60,6 @@ export async function processExcelFileStream(
         'Analizando estructura del archivo'
       );
       
-      // Cargar todo el archivo para procesarlo
       let completeBuffer;
       try {
         completeBuffer = await file.arrayBuffer();
@@ -98,22 +86,19 @@ export async function processExcelFileStream(
       
       let workbook;
       try {
-        // Intentar leer el archivo usando opciones más robustas
         workbook = XLSX.read(new Uint8Array(completeBuffer), {
           type: 'array',
           cellDates: true,
-          dateNF: 'yyyy-mm-dd',  // Formato de fecha consistente
-          WTF: true, // Activa modo más tolerante a errores
-          cellNF: false, // No procesar formatos de números para mejorar rendimiento
-          cellStyles: false, // No procesar estilos para mejorar rendimiento
-          raw: false, // No usar modo raw para garantizar conversión adecuada de fechas
-          codepage: 65001 // UTF-8
+          dateNF: 'yyyy-mm-dd',
+          WTF: true,
+          cellNF: false,
+          cellStyles: false,
+          raw: false,
+          codepage: 65001
         });
         
-        // Liberar memoria del buffer una vez leído
         completeBuffer = null;
         await forceGarbageCollection();
-        
       } catch (xlsxError) {
         console.error('Error procesando Excel con XLSX:', xlsxError);
         
@@ -138,11 +123,9 @@ export async function processExcelFileStream(
         };
       }
       
-      // Seleccionar la primera hoja
       const worksheetName = workbook.SheetNames[0];
       let worksheet = workbook.Sheets[worksheetName];
       
-      // Verificar si la hoja está vacía
       if (!worksheet || !worksheet['!ref']) {
         await progressManager.updateProgress(
           'error',
@@ -156,14 +139,12 @@ export async function processExcelFileStream(
         };
       }
       
-      // Extraer encabezados y verificar que sean válidos
       const headerRange = XLSX.utils.decode_range(worksheet['!ref']);
-      headerRange.e.r = headerRange.s.r; // Limitar solo a la primera fila
+      headerRange.e.r = headerRange.s.r;
       
       const headerRow: Record<string, any> = {};
       let validHeadersFound = false;
       
-      // Extraer encabezados - esto es crucial para el mapeo correcto
       for (let C = headerRange.s.c; C <= headerRange.e.c; ++C) {
         const cell = worksheet[XLSX.utils.encode_cell({r: headerRange.s.r, c: C})];
         if (cell && cell.v !== undefined && cell.v !== null && cell.v !== '') {
@@ -187,12 +168,9 @@ export async function processExcelFileStream(
         };
       }
       
-      // Determinar mapeo de columnas usando las funciones de la librería dataTransformer
-      // Convertir el objeto headerRow a un array de valores para mapColumnNames
       const headerNames = Object.values(headerRow);
       const headerMapping = mapColumnNames(headerNames);
       
-      // Verificar si tenemos un mapeo mínimo necesario
       if (Object.keys(headerMapping).length === 0) {
         await progressManager.updateProgress(
           'error',
@@ -206,7 +184,6 @@ export async function processExcelFileStream(
         };
       }
       
-      // Crear un mapeo inverso de nombres de Excel a columnas de Excel
       const excelNameToColumn: Record<string, string> = {};
       for (const [column, name] of Object.entries(headerRow)) {
         if (typeof name === 'string') {
@@ -216,7 +193,6 @@ export async function processExcelFileStream(
         }
       }
       
-      // Convertir headerMapping de mapeo por nombre a mapeo por columna
       const columnMapping: Record<string, string> = {};
       for (const [excelName, dbColumn] of Object.entries(headerMapping)) {
         const excelColumn = excelNameToColumn[excelName];
@@ -225,7 +201,6 @@ export async function processExcelFileStream(
         }
       }
       
-      // Mostrar el mapeo para debugging
       console.log("Mapeo de columnas resultante:", JSON.stringify(columnMapping));
       
       await progressManager.updateProgress(
@@ -235,19 +210,16 @@ export async function processExcelFileStream(
         'Extrayendo datos'
       );
       
-      // Convertir a JSON con opciones específicas para garantizar conversión correcta
       let data;
       try {
-        // Usar sheet_to_json para convertir a objetos JavaScript
         data = XLSX.utils.sheet_to_json(worksheet, {
-          raw: false, // No usar valores crudos para garantizar conversión correcta
-          dateNF: 'yyyy-mm-dd', // Formato de fecha consistente
-          defval: null, // Valor por defecto para celdas vacías
-          blankrows: false, // Ignorar filas vacías
-          header: 'A' // Usar letras de columna como nombres
+          raw: false,
+          dateNF: 'yyyy-mm-dd',
+          defval: null,
+          blankrows: false,
+          header: 'A'
         });
         
-        // Verificar que obtuvimos datos
         if (!data || data.length === 0) {
           await progressManager.updateProgress(
             'error',
@@ -263,9 +235,7 @@ export async function processExcelFileStream(
         
         console.log(`Se extrajeron ${data.length} filas de datos del Excel`);
         
-        // Mostrar ejemplo de la primera fila para debugging
         console.log('Ejemplo de la primera fila extraída:', JSON.stringify(data[0]).substring(0, 500));
-        
       } catch (jsonError) {
         console.error('Error convirtiendo a JSON:', jsonError);
         await progressManager.updateProgress(
@@ -280,7 +250,6 @@ export async function processExcelFileStream(
         };
       }
       
-      // Liberar memoria del workbook y worksheet
       worksheet = null;
       workbook = null;
       await forceGarbageCollection();
@@ -292,20 +261,17 @@ export async function processExcelFileStream(
         'Iniciando procesamiento de datos'
       );
       
-      // Transformar datos antes de insertar (pre-procesamiento)
       const transformedData = [];
       let validRowCount = 0;
       
-      for (const row of data) {
-        const transformedRow = transformRowData(row, columnMapping);
-        // Solo incluir filas que tengan al menos un campo válido
+      for (const record of data) {
+        const transformedRow = transformRowData(record, columnMapping);
         if (Object.keys(transformedRow).length > 0) {
           transformedData.push(transformedRow);
           validRowCount++;
         }
       }
       
-      // Verificar si tenemos datos transformados válidos
       if (transformedData.length === 0) {
         await progressManager.updateProgress(
           'error',
@@ -319,7 +285,6 @@ export async function processExcelFileStream(
         };
       }
       
-      // Crear el procesador de lotes
       const batchProcessor = new BatchProcessor(
         Deno.env.get('SUPABASE_URL') ?? '',
         Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
@@ -327,13 +292,11 @@ export async function processExcelFileStream(
         config
       );
       
-      // Variables para seguimiento del proceso
       let totalRows = transformedData.length;
       let totalProcessed = 0;
       let allResults: any = { success: true, insertedCount: 0, errors: [] };
       
-      // Procesar en pequeños lotes para evitar problemas de memoria
-      const batchSize = 5; // Reducido a 5 filas por lote
+      const batchSize = 5;
       
       await progressManager.updateProgress(
         'importing',
@@ -346,10 +309,8 @@ export async function processExcelFileStream(
         const batchData = transformedData.slice(i, i + batchSize);
         
         try {
-          // Ya no necesitamos pasar headerMapping porque los datos ya están transformados
           const batchResult = await batchProcessor.processBatch(batchData);
           
-          // Acumular resultados
           if (batchResult.insertedCount) allResults.insertedCount += batchResult.insertedCount;
           if (batchResult.errors && batchResult.errors.length) {
             allResults.errors = [...allResults.errors, ...batchResult.errors];
@@ -357,7 +318,6 @@ export async function processExcelFileStream(
           
           totalProcessed += batchData.length;
           
-          // Actualizar progreso
           await progressManager.updateProgress(
             'importing',
             totalProcessed,
@@ -365,12 +325,9 @@ export async function processExcelFileStream(
             `Procesadas ${totalProcessed} filas de ${totalRows} detectadas`
           );
           
-          // Forzar liberación de memoria entre lotes
           await forceGarbageCollection();
           
-          // Pequeña pausa para evitar sobrecargar la BD
           await new Promise(resolve => setTimeout(resolve, 200));
-          
         } catch (batchError) {
           console.error("Error procesando batch:", batchError);
           allResults.errors.push({
@@ -381,7 +338,6 @@ export async function processExcelFileStream(
         }
       }
       
-      // Actualizar estado final en la base de datos
       const finalStatus = allResults.errors?.length > 0 ? 'completed_with_errors' : 'completed';
       const finalMessage = allResults.errors?.length > 0 
         ? `Importación completada con ${allResults.errors.length} errores. Se insertaron ${allResults.insertedCount || 0} registros.`
@@ -394,14 +350,40 @@ export async function processExcelFileStream(
         finalMessage
       );
       
-      // Establecer el recuento total en el resultado para el frontend
       allResults.totalCount = totalRows;
       allResults.message = finalMessage;
+      
+      for (const record of transformedData) {
+        const intervalFields = ['tiempo_retraso', 'tiempo_punto_origen', 'tiempo_estimado', 'duracion_servicio'];
+        intervalFields.forEach(field => {
+          if (field in record) {
+            if (record[field] === '' || record[field] === null || record[field] === undefined) {
+              console.log(`Removing empty interval field ${field} before batch processing`);
+              delete record[field];
+              return;
+            }
+            
+            if (typeof record[field] === 'string') {
+              const cleanValue = record[field].trim();
+              
+              if (cleanValue === '' || cleanValue === '""' || cleanValue === "''") {
+                console.log(`Removing empty-looking interval field ${field}: "${cleanValue}"`);
+                delete record[field];
+                return;
+              }
+              
+              if (!/^[0-9:.hm\s]+$/.test(cleanValue) && !cleanValue.match(/\d+\s*(hour|minute|second|day|week|month|year)/i)) {
+                console.log(`Removing suspicious interval value for ${field}: "${cleanValue}"`);
+                delete record[field];
+              }
+            }
+          }
+        });
+      }
       
       return allResults;
       
     } catch (parseError) {
-      // Error específico en el procesamiento del Excel
       console.error('Error crítico en el procesamiento del Excel:', parseError);
       await progressManager.updateProgress(
         'error',
