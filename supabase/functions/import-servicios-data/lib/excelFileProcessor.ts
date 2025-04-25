@@ -68,7 +68,7 @@ export async function processExcelFileStream(
       );
       
       const totalSize = chunks.reduce((size, chunk) => size + chunk.length, 0);
-      const chunksAll = new Uint8Array(totalSize);
+      let chunksAll = new Uint8Array(totalSize);
       
       let position = 0;
       for(let i = 0; i < chunks.length; i++) {
@@ -89,7 +89,7 @@ export async function processExcelFileStream(
       );
       
       // Paso 2: Cargar el workbook con opciones ultra optimizadas
-      const workbook = XLSX.read(chunksAll.buffer, {
+      let workbook = XLSX.read(chunksAll.buffer, {
         type: 'array',
         cellDates: true,
         cellNF: false,
@@ -116,7 +116,7 @@ export async function processExcelFileStream(
       }
       
       const worksheetName = workbook.SheetNames[0];
-      const worksheet = workbook.Sheets[worksheetName];
+      let worksheet = workbook.Sheets[worksheetName];
       
       // Paso 3: Analizar rango y extraer encabezados
       await progressManager.updateProgress(
