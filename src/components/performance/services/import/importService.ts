@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { ProgressCallback, ImportResponse } from "./types";
@@ -282,7 +283,11 @@ export async function importCsvData(
     }
 
     try {
-      const response = await callImportApi(formData, sessionData.session.access_token);
+      // Create a new AbortController for this operation
+      const abortController = new AbortController();
+      
+      // Call the API with all three required arguments: formData, accessToken, and abortController
+      const response = await callImportApi(formData, sessionData.session.access_token, abortController);
       
       if (response.success) {
         toast.success("Importación completada", { id: toastId });
