@@ -1,4 +1,3 @@
-
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.7'
 import { ProgressManager } from './progressManager.ts';
 import { transformRowData } from './dataTransformer.ts';
@@ -223,9 +222,25 @@ export class BatchProcessor {
         
         for (let i = 0; i < batchData.length; i += maxMicroBatchSize) {
           const microBatch = batchData.slice(i, i + maxMicroBatchSize);
-          const transformedMicroBatch = microBatch.map(row => transformRowData(row, headerMapping));
           
-          transformedBatch.push(...transformedMicroBatch);
+          // Log para depurar la transformación de datos
+          console.log(`Procesando micro-batch ${i/maxMicroBatchSize + 1} del batch ${batchNum + 1}`);
+          console.log(`Ejemplo de datos originales:`, JSON.stringify(microBatch[0]).substring(0, 200) + '...');
+          
+          const transformedMicroBatch = microBatch.map(row => {
+            const transformed = transformRowData(row, headerMapping);
+            return transformed;
+          });
+          
+          // Validar que los datos transformados tienen contenido
+          const nonEmptyRecords = transformedMicroBatch.filter(record => 
+            Object.keys(record).length > 2); // Más que solo created_at y updated_at
+          
+          if (nonEmptyRecords.length < transformedMicroBatch.length) {
+            console.warn(`¡Advertencia! ${transformedMicroBatch.length - nonEmptyRecords.length} registros están casi vacíos`);
+          }
+          
+          transformedBatch.push(...nonEmptyRecords);
           
           // Mini pausa cada micro-batch para dar tiempo al GC si es necesario
           if (i + maxMicroBatchSize < batchData.length && i > 0 && i % 20 === 0) {
@@ -233,12 +248,22 @@ export class BatchProcessor {
           }
         }
         
-        // Validar que transformedBatch no contenga campos que no existan en la base de datos
+        // Verificar que hay datos para insertar
+        if (transformedBatch.length === 0) {
+          console.warn(`Batch ${batchNum + 1}: No hay datos válidos para insertar después de la transformación`);
+          return {
+            success: true,
+            insertedCount: 0
+          };
+        }
+        
+        // Log para depurar la inserción
         console.log(`Insertando batch ${batchNum + 1} con ${transformedBatch.length} registros`);
+        console.log(`Ejemplo de dato transformado:`, JSON.stringify(transformedBatch[0]).substring(0, 200) + '...');
         
         // Insertar datos usando upsert evitando duplicados, con mecanismo de reintentos
         try {
-          const { error: insertError } = await this.supabase
+          const { data, error: insertError } = await this.supabase
             .from('servicios_custodia')
             .insert(transformedBatch);
           

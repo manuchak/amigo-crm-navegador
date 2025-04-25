@@ -4,16 +4,23 @@ export function transformRowData(row: any, headerMapping: Record<string, string>
   // Crear un objeto para almacenar los datos transformados
   const transformedData: Record<string, any> = {};
   
-  // Recorrer cada campo en el mapeo de encabezados
-  for (const [excelColumn, dbColumn] of Object.entries(headerMapping)) {
-    // Si el mapeo existe, transformar el dato
-    if (excelColumn && dbColumn && dbColumn !== 'cantidad_de_transportes') {
-      // Obtener el valor de la columna del Excel
-      const value = row[excelColumn];
-      
-      // Transformar según el tipo de dato esperado (simplificado)
+  // Recorrer cada entrada en el objeto row (cada columna del Excel)
+  for (const [excelColumn, value] of Object.entries(row)) {
+    // Buscar el nombre de columna correspondiente en la base de datos
+    const dbColumn = headerMapping[excelColumn];
+    
+    // Si existe un mapeo y no es la columna problemática
+    if (dbColumn && dbColumn !== 'cantidad_de_transportes') {
+      // Convertir los valores según el tipo de dato esperado
       if (value !== undefined && value !== null) {
-        transformedData[dbColumn] = value;
+        // Determinar el tipo de dato y transformar apropiadamente
+        if (typeof value === 'string') {
+          transformedData[dbColumn] = value.trim();
+        } else if (value instanceof Date) {
+          transformedData[dbColumn] = value.toISOString();
+        } else {
+          transformedData[dbColumn] = value;
+        }
       }
     }
   }
@@ -21,6 +28,9 @@ export function transformRowData(row: any, headerMapping: Record<string, string>
   // Añadir campos de control y auditoría
   transformedData.created_at = new Date().toISOString();
   transformedData.updated_at = new Date().toISOString();
+  
+  // Logging para depurar
+  console.log(`Transformed row: ${JSON.stringify(transformedData)}`);
   
   return transformedData;
 }
@@ -31,17 +41,31 @@ export function mapColumnNames(excelColumns: string[]): Record<string, string> {
   
   const commonMappings: Record<string, string> = {
     'Fecha': 'fecha_servicio',
+    'Fecha de Servicio': 'fecha_servicio', 
     'Número de Manifiesto': 'numero_manifiesto',
-    'Cliente': 'cliente_nombre',
-    'Custodio': 'custodio_nombre',
+    'Manifiesto': 'numero_manifiesto',
+    'No. de Manifiesto': 'numero_manifiesto',
+    'Cliente': 'nombre_cliente',
+    'Nombre del Cliente': 'nombre_cliente',
+    'Custodio': 'nombre_custodio',
+    'Nombre del Custodio': 'nombre_custodio',
     'Unidad': 'unidad',
-    'KM': 'kilometraje',
-    'Destino': 'destino',
+    'Vehículo': 'unidad',
+    'ID Unidad': 'unidad',
+    'Kilometraje': 'km_recorridos',
+    'KM': 'km_recorridos',
+    'KM Recorrido': 'km_recorridos',
     'Origen': 'origen',
+    'Ciudad Origen': 'origen',
+    'Destino': 'destino',
+    'Ciudad Destino': 'destino',
+    'Servicio': 'tipo_servicio',
     'Servicios': 'tipo_servicio',
-    // No incluimos 'cantidad_de_transportes' ya que no existe en el esquema
-    'Importe': 'importe',
-    'Estatus': 'estatus'
+    'Tipo de Servicio': 'tipo_servicio',
+    'Importe': 'cobro_cliente',
+    'Monto': 'cobro_cliente',
+    'Costo': 'cobro_cliente',
+    'Estatus': 'estado'
   };
   
   excelColumns.forEach(column => {
@@ -60,6 +84,7 @@ export function mapColumnNames(excelColumns: string[]): Record<string, string> {
         .replace(/\s+/g, '_')
         .replace(/[^a-z0-9_]/g, '');
         
+      // Verificar que la columna generada no sea la problemática
       if (dbColumnName && dbColumnName !== 'cantidad_de_transportes') {
         columnMapping[column] = dbColumnName;
       }

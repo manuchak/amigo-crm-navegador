@@ -19,22 +19,31 @@ export class ProgressManager {
     if (!this.progressId) return false;
 
     try {
-      console.log(`Actualizando progreso: ${this.progressId} - ${status} - ${Math.floor(processed)}/${Math.floor(total)} - ${message}`);
+      // Asegurar que processed y total son números enteros
+      const processedInt = Math.floor(processed);
+      const totalInt = Math.floor(total);
       
-      await this.supabase
+      console.log(`Actualizando progreso: ${this.progressId} - ${status} - ${processedInt}/${totalInt} - ${message}`);
+      
+      const { error } = await this.supabase
         .from('import_progress')
         .upsert({
           id: this.progressId,
           status,
-          processed: Math.floor(processed),
-          total: Math.floor(total),
+          processed: processedInt,
+          total: totalInt,
           message,
           updated_at: new Date().toISOString()
         });
         
+      if (error) {
+        console.error("Error en actualización de progreso:", error);
+        return false;
+      }
+        
       return true;
     } catch (error) {
-      console.error("Error actualizando progreso:", error);
+      console.error("Error grave actualizando progreso:", error);
       return false;
     }
   }
