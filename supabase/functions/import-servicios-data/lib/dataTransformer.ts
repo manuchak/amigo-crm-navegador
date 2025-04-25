@@ -150,6 +150,59 @@ export function transformRowData(row: any, columnMapping: Record<string, string>
           transformedRow[dbColumn] = value === 1;
         }
       }
+      // Special handling for interval type fields to avoid empty string issues
+      else if (
+        dbColumn.includes('tiempo_') || 
+        dbColumn.includes('duracion_') || 
+        dbColumn === 'tiempo_retraso' ||
+        dbColumn === 'tiempo_punto_origen' ||
+        dbColumn === 'tiempo_estimado' ||
+        dbColumn === 'duracion_servicio'
+      ) {
+        // Skip empty strings for interval fields
+        if (value === '' || value === null) {
+          return;
+        }
+        
+        // Try to format as a valid interval
+        if (typeof value === 'string') {
+          // Clean the string - only allow numbers, colons, spaces, and certain words
+          const cleanValue = value.trim()
+            .replace(/[^0-9:. hmdaysminute\-]/gi, '')
+            .toLowerCase();
+            
+          if (cleanValue === '') {
+            return; // Skip empty values
+          }
+          
+          // Try to format as a valid interval string
+          // Possible formats: '1:30:00', '1 hour', '90 minutes', etc.
+          try {
+            let formattedInterval = cleanValue;
+            
+            // If it's just numbers, assume it's hours
+            if (/^\d+$/.test(cleanValue)) {
+              formattedInterval = `${cleanValue} hours`;
+            }
+            
+            // If it has a colon, format as HH:MM:SS
+            if (cleanValue.includes(':')) {
+              const parts = cleanValue.split(':');
+              if (parts.length === 2) {
+                formattedInterval = `${parts[0]} hours ${parts[1]} minutes`;
+              } else if (parts.length === 3) {
+                formattedInterval = `${parts[0]} hours ${parts[1]} minutes ${parts[2]} seconds`;
+              }
+            }
+            
+            transformedRow[dbColumn] = formattedInterval;
+            console.log(`Formatted interval value for ${dbColumn}: ${value} -> ${formattedInterval}`);
+          } catch (e) {
+            console.error(`Error formatting interval for ${dbColumn}:`, e);
+            return; // Skip this field on error
+          }
+        }
+      }
       // Otros campos (texto, etc.)
       else {
         // Garantizar que todos los valores de texto sean cadenas

@@ -1,3 +1,4 @@
+
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.7'
 import { ProgressManager } from './progressManager.ts';
 import { reportMemoryUsage, forceGarbageCollection } from './memoryMonitor.ts';
@@ -79,6 +80,46 @@ export class BatchProcessor {
           }
         }
       }
+      
+      // Handle interval type fields to prevent syntax errors with empty strings
+      const intervalFields = ['tiempo_retraso', 'tiempo_punto_origen', 'tiempo_estimado', 'duracion_servicio'];
+      intervalFields.forEach(field => {
+        if (field in record) {
+          // If the value is empty or null, remove the field entirely
+          if (record[field] === '' || record[field] === null) {
+            console.log(`Removing empty interval value for ${field}`);
+            delete record[field];
+          } 
+          // If it's not a properly formatted interval string, remove it
+          else if (typeof record[field] === 'string' && !record[field].match(/^\s*(\d+\s+days?\s+)?(\d+\s+hours?\s+)?(\d+\s+minutes?\s+)?(\d+\s+seconds?\s*)?$/)) {
+            try {
+              // Try to convert to a valid interval format
+              const cleanValue = record[field].trim().toLowerCase();
+              
+              if (/^\d+$/.test(cleanValue)) {
+                // Just a number, assume it's minutes
+                record[field] = `${cleanValue} minutes`;
+              } else if (cleanValue.includes(':')) {
+                // HH:MM or HH:MM:SS format
+                const parts = cleanValue.split(':');
+                if (parts.length === 2) {
+                  record[field] = `${parts[0]} hours ${parts[1]} minutes`;
+                } else if (parts.length === 3) {
+                  record[field] = `${parts[0]} hours ${parts[1]} minutes ${parts[2]} seconds`;
+                } else {
+                  delete record[field];
+                }
+              } else {
+                // If we can't make sense of it, remove it
+                delete record[field];
+              }
+            } catch (e) {
+              console.log(`Error processing interval ${field}: ${record[field]}. Removing field.`);
+              delete record[field];
+            }
+          }
+        }
+      });
       
       // Lista de columnas problemáticas conocidas para eliminar de forma preventiva
       const knownProblemColumns = [
@@ -163,6 +204,25 @@ export class BatchProcessor {
                 delete record.cobro_cliente;
                 console.log("Removed problematic cobro_cliente field from record");
               }
+            }
+            
+            // Try immediately with the fixed data
+            continue;
+          }
+          
+          // Special handling for interval syntax errors
+          if (error.code === "22007" && error.message && error.message.includes('interval')) {
+            console.log("Found interval syntax error, applying fix");
+            
+            // Remove all interval fields that might be causing issues
+            const intervalFields = ['tiempo_retraso', 'tiempo_punto_origen', 'tiempo_estimado', 'duracion_servicio'];
+            for (const record of batchData) {
+              intervalFields.forEach(field => {
+                if (field in record) {
+                  console.log(`Removing potentially problematic interval field ${field}`);
+                  delete record[field];
+                }
+              });
             }
             
             // Try immediately with the fixed data
