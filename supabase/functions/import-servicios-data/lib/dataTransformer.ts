@@ -5,8 +5,8 @@ export function transformRowData(row: any, columnMapping: Record<string, string>
   const problematicColumns = [
     'tiempo_estimado', 'hora_de_finalizacion', 'duracion_del_servicio_hh_mm',
     'fecha_de_contratacion', 'fecha_y_hora_de_asignacion', 'comentarios_adicional'
-    // Removed 'costo_de_custodio', 'cobro_al_cliente', and 'cantidad_de_transportes' from problematic columns
-    // Now we'll handle them specially instead of skipping them
+    // Removed these from problematic columns so we can handle them specially
+    // 'costo_de_custodio', 'cobro_al_cliente', 'cantidad_de_transportes'
   ];
 
   // Recorrer cada campo del mapeo de columnas
@@ -81,7 +81,7 @@ export function transformRowData(row: any, columnMapping: Record<string, string>
         dbColumn.includes('casetas') ||
         dbColumn === 'cantidad_transportes'
       ) {
-        // Improved numeric value processing
+        // Improved numeric value processing with special handling for cobro_cliente
         try {
           if (typeof value === 'string') {
             // First, normalize the string by removing currency symbols, spaces, and replacing commas with dots
@@ -93,6 +93,7 @@ export function transformRowData(row: any, columnMapping: Record<string, string>
           
             // Handle empty string case
             if (cleanValue === '' || cleanValue === '.') {
+              console.log(`Empty value for ${dbColumn} after cleaning: "${value}"`);
               return; // Skip this field
             }
 
@@ -100,13 +101,33 @@ export function transformRowData(row: any, columnMapping: Record<string, string>
             const numValue = parseFloat(cleanValue);
             
             if (!isNaN(numValue)) {
-              transformedRow[dbColumn] = numValue;
-              console.log(`Converted numeric value for ${dbColumn}: ${value} -> ${numValue}`);
+              // For cobro_cliente field, apply extra validation
+              if (dbColumn === 'cobro_cliente') {
+                // Limit to 2 decimal places and ensure it's within a reasonable range
+                const formattedValue = Number(numValue.toFixed(2));
+                if (formattedValue >= 0 && formattedValue <= 1000000) { // Reasonable upper limit for a charge
+                  transformedRow[dbColumn] = formattedValue;
+                  console.log(`Converted cobro_cliente value: ${value} -> ${formattedValue}`);
+                } else {
+                  console.log(`Rejected unreasonable cobro_cliente value: ${numValue}`);
+                }
+              } else {
+                transformedRow[dbColumn] = numValue;
+                console.log(`Converted numeric value for ${dbColumn}: ${value} -> ${numValue}`);
+              }
             } else {
               console.log(`Couldn't convert numeric value for ${dbColumn}: ${value}`);
             }
           } else if (typeof value === 'number') {
-            transformedRow[dbColumn] = value;
+            // For direct number inputs, also apply validation for cobro_cliente
+            if (dbColumn === 'cobro_cliente') {
+              const formattedValue = Number(value.toFixed(2));
+              if (formattedValue >= 0 && formattedValue <= 1000000) {
+                transformedRow[dbColumn] = formattedValue;
+              }
+            } else {
+              transformedRow[dbColumn] = value;
+            }
           }
         } catch (e) {
           console.error(`Error processing numeric field ${dbColumn}:`, e);

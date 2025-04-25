@@ -1,4 +1,3 @@
-
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.7'
 import { ProgressManager } from './progressManager.ts';
 import { reportMemoryUsage, forceGarbageCollection } from './memoryMonitor.ts';
@@ -33,9 +32,9 @@ export class BatchProcessor {
     const backoffFactor = this.config.backoffFactor || 2;
     const initialBackoff = this.config.initialBackoff || 1000;
     
-    // Sanitize numeric fields to ensure they're actually numeric
+    // Extra pre-processing for cobro_cliente field to prevent validation errors
     for (const record of batchData) {
-      // Process numeric fields
+      // Process numeric fields with special handling for cobro_cliente
       const numericFields = ['km_teorico', 'km_recorridos', 'km_extras', 'costo_custodio', 'casetas', 'cobro_cliente', 'cantidad_transportes'];
       
       for (const field of numericFields) {
@@ -54,14 +53,26 @@ export class BatchProcessor {
             
             // If conversion is successful, use the number value
             if (!isNaN(numValue)) {
-              record[field] = numValue;
-              console.log(`Converted field ${field} from "${record[field]}" to ${numValue}`);
+              // For cobro_cliente, format to 2 decimal places to ensure valid number format
+              if (field === 'cobro_cliente') {
+                // Ensure it's a valid number by limiting to 2 decimal places
+                record[field] = Number(numValue.toFixed(2)); 
+                console.log(`Formatted cobro_cliente from "${record[field]}" to ${numValue.toFixed(2)}`);
+              } else {
+                record[field] = numValue;
+              }
             } else {
               // If conversion failed, remove the field
               console.log(`Could not convert field ${field} value "${record[field]}" to number - removing field`);
               delete record[field];
             }
-          } else if (typeof record[field] !== 'number') {
+          } else if (typeof record[field] === 'number') {
+            // For direct number inputs, also ensure cobro_cliente is properly formatted
+            if (field === 'cobro_cliente') {
+              record[field] = Number(record[field].toFixed(2));
+            }
+            // All other numeric fields can remain as-is
+          } else {
             // If it's not a string nor a number, remove it
             console.log(`Field ${field} is not a number - removing field`);
             delete record[field];
@@ -141,15 +152,32 @@ export class BatchProcessor {
         if (error) {
           console.error(`Error en el intento ${retryCount + 1}:`, error);
           
-          // Si el error está relacionado con columnas que no existen, las eliminamos e intentamos de nuevo
+          // Special handling for cobro_cliente validation errors
+          if (error.message && error.message.includes('cobro_cliente')) {
+            console.log("Found cobro_cliente error, applying special fix");
+            
+            // Find and fix all cobro_cliente values
+            for (const record of batchData) {
+              if ('cobro_cliente' in record) {
+                // Remove the field completely to avoid validation errors
+                delete record.cobro_cliente;
+                console.log("Removed problematic cobro_cliente field from record");
+              }
+            }
+            
+            // Try immediately with the fixed data
+            continue;
+          }
+          
+          // If the error is related to columns that don't exist, remove them and try again
           if (error.code === "PGRST204" && error.message.includes("Could not find")) {
-            // Extraer el nombre de la columna problemática
+            // Extract the problematic column name
             const matches = error.message.match(/Could not find the '(.+?)' column/);
             if (matches && matches[1]) {
               const problematicColumn = matches[1];
               console.log(`Removiendo columna problemática: ${problematicColumn}`);
               
-              // Eliminar la columna de todos los registros del lote
+              // Remove the column from all records in the batch
               batchData.forEach(record => {
                 if (problematicColumn in record) {
                   delete record[problematicColumn];
@@ -157,29 +185,32 @@ export class BatchProcessor {
               });
               
               console.log(`Reintentando con ${batchData.length} registros sin la columna ${problematicColumn}`);
-              continue; // Reintentar inmediatamente con los datos corregidos
+              continue; // Retry immediately with the corrected data
             }
           }
           
-          // Si el error está relacionado con un formato numérico, intentamos corregirlo
+          // If the error is related to a numeric format, try to correct it
           if ((error.code === "22P02" || error.code === "22003") && error.message.includes("cobro_cliente")) {
             console.log("Error específico con cobro_cliente, realizando limpieza especial");
             
-            // Limpieza especial para cobro_cliente
+            // Special cleanup for cobro_cliente
             batchData.forEach(record => {
               if ('cobro_cliente' in record) {
-                // Si no es un número, eliminamos el campo
-                if (typeof record.cobro_cliente !== 'number') {
+                // If it's not a valid number, remove the field completely
+                if (typeof record.cobro_cliente !== 'number' || isNaN(record.cobro_cliente)) {
                   delete record.cobro_cliente;
+                } else {
+                  // Make sure it's formatted correctly if it is a number
+                  record.cobro_cliente = Number(Number(record.cobro_cliente).toFixed(2));
                 }
               }
             });
             
-            // Intentar otra vez inmediatamente
+            // Try again immediately
             continue;
           }
           
-          // Para errores de sintaxis de fecha, limpiamos los campos de fecha
+          // For date syntax errors, clean the date fields
           if (error.code === "22007" && (error.message.includes("date") || error.message.includes("time"))) {
             const matches = error.message.match(/invalid input syntax for type (date|time): "(.+?)"/);
             if (matches && matches[2]) {
@@ -213,43 +244,48 @@ export class BatchProcessor {
             }
           }
           
-          // Si el error es de tipo de datos, intentamos hacer una limpieza más profunda
+          // If the error is a data type error, try more thorough cleaning
           if (error.code === "22P02" || error.code === "22003") {
             console.log("Error de conversión de datos, realizando limpieza general de valores");
             
-            // Limpieza general de tipos de datos
+            // General data type cleanup
             batchData.forEach(record => {
               Object.keys(record).forEach(key => {
-                // Si es un valor vacío o problemático, eliminar
+                // If empty or problematic, remove
                 if (record[key] === '' || record[key] === undefined || record[key] === 'undefined') {
                   delete record[key];
                 }
                 
-                // Si parece ser un número pero está como string, convertir
+                // If it looks like a number but is a string, convert
                 if (typeof record[key] === 'string' && !isNaN(Number(record[key]))) {
                   record[key] = Number(record[key]);
+                  
+                  // Apply extra formatting for known numeric fields
+                  if (key === 'cobro_cliente' || key === 'costo_custodio' || key === 'casetas') {
+                    record[key] = Number(record[key].toFixed(2));
+                  }
                 }
               });
             });
             
-            // Intentar otra vez inmediatamente
+            // Try again immediately
             continue;
           }
           
-          // Aumentar el contador de reintentos y esperar según la estrategia de backoff
+          // Increase retry counter and wait according to backoff strategy
           retryCount++;
           const backoffTime = initialBackoff * Math.pow(backoffFactor, retryCount - 1);
           console.log(`Reintentando en ${backoffTime}ms...`);
           await new Promise(resolve => setTimeout(resolve, backoffTime));
           
         } else {
-          // Éxito! Registramos el número de filas insertadas
+          // Success! Record the number of rows inserted
           insertedCount = data ? data.length : batchData.length;
           console.log(`Insertadas ${insertedCount} filas exitosamente en el intento ${retryCount + 1}`);
           break;
         }
         
-        // Si alcanzamos el máximo de reintentos, registramos el error
+        // If we've reached the maximum number of retries, record the error
         if (retryCount >= maxRetries) {
           console.error(`Se alcanzó el máximo de reintentos (${maxRetries}). El último error fue:`, error);
           errors.push({
