@@ -11,10 +11,10 @@ export async function importServiciosData(
   onProgress?: ProgressCallback
 ): Promise<ImportResponse> {
   try {
-    // Validar tamaño de archivo
-    if (file.size > 25 * 1024 * 1024) {
+    // Validar tamaño de archivo (aumentado a 30MB para manejar archivos grandes)
+    if (file.size > 30 * 1024 * 1024) {
       toast.error("Archivo muy grande", {
-        description: "El archivo excede el tamaño máximo permitido de 25 MB. Por favor, utilice un archivo más pequeño o divídalo en partes."
+        description: "El archivo excede el tamaño máximo permitido de 30 MB. Por favor, utilice un archivo más pequeño o divídalo en partes."
       });
       return { success: false, message: "El archivo excede el tamaño máximo permitido" };
     }
@@ -26,7 +26,11 @@ export async function importServiciosData(
       'application/vnd.ms-excel.sheet.macroEnabled.12'
     ];
     
-    if (!validExcelTypes.includes(file.type)) {
+    // También verificar por extensión por si el tipo MIME no es confiable
+    const fileName = file.name.toLowerCase();
+    const hasValidExtension = fileName.endsWith('.xlsx') || fileName.endsWith('.xls');
+    
+    if (!validExcelTypes.includes(file.type) && !hasValidExtension) {
       toast.error("Tipo de archivo incorrecto", {
         description: "Por favor seleccione un archivo de Excel (.xls, .xlsx)."
       });
@@ -87,8 +91,8 @@ export async function importServiciosData(
     
     // Configurar abort controller con timeout más largo para archivos grandes
     const abortController = new AbortController();
-    // 10 minutos de timeout para subida de archivos grandes
-    const timeoutId = setTimeout(() => abortController.abort(), 10 * 60 * 1000);
+    // 15 minutos de timeout para subida de archivos grandes (aumentado de 10 a 15)
+    const timeoutId = setTimeout(() => abortController.abort(), 15 * 60 * 1000);
     
     try {
       // Iniciar el proceso de importación
@@ -105,7 +109,7 @@ export async function importServiciosData(
         
         console.log("Starting progress polling for ID:", initialResponse.progressId);
         
-        // Consultar actualizaciones de progreso cada 3 segundos
+        // Consultar actualizaciones de progreso cada 5 segundos (incrementado de 3 a 5)
         const pollInterval = setInterval(async () => {
           try {
             const progressData = await checkImportProgress(initialResponse.progressId!);
@@ -135,16 +139,24 @@ export async function importServiciosData(
               console.error("Import failed:", progressData.message);
               errorOccurred = true;
               clearInterval(pollInterval);
+              
+              // Mostrar mensaje de error
+              toast.error("Error en la importación", {
+                description: progressData.message || "Se produjo un error durante la importación",
+                id: toastId,
+                duration: 5000
+              });
+              
               return;
             }
           } catch (pollError) {
             console.error("Error polling for progress:", pollError);
           }
-        }, 3000);
+        }, 5000); // Aumentado de 3000ms a 5000ms para reducir la carga del servidor
         
-        // Esperar la finalización o timeout después de 30 minutos
+        // Esperar la finalización o timeout después de 45 minutos (incrementado de 30 a 45)
         let timeoutCounter = 0;
-        const maxTimeout = 600; // 30 minutos (600 * 3 segundos)
+        const maxTimeout = 540; // 45 minutos (540 * 5 segundos)
         
         return new Promise<ImportResponse>((resolve) => {
           const checkCompletion = setInterval(() => {
@@ -153,6 +165,10 @@ export async function importServiciosData(
             // Si completado, resolver con éxito
             if (isComplete) {
               clearInterval(checkCompletion);
+              toast.success("Importación completada", {
+                description: "Los datos se han importado exitosamente",
+                id: toastId
+              });
               resolve({ 
                 success: true, 
                 message: "Importación completada exitosamente",
@@ -163,18 +179,26 @@ export async function importServiciosData(
             else if (errorOccurred) {
               clearInterval(checkCompletion);
               clearInterval(pollInterval);
+              toast.error("Error en la importación", {
+                description: "Se produjo un error durante el proceso de importación",
+                id: toastId
+              });
               resolve({ success: false, message: "Error durante la importación" });
             }
             // Si timeout, resolver con error de timeout
             else if (timeoutCounter >= maxTimeout) {
               clearInterval(checkCompletion);
               clearInterval(pollInterval);
+              toast.error("Timeout de importación", {
+                description: "La importación está tomando demasiado tiempo. Por favor verifique el estado más tarde o intente con un archivo más pequeño.",
+                id: toastId
+              });
               resolve({ 
                 success: false, 
                 message: "La importación está tomando demasiado tiempo. Por favor verifique el estado más tarde." 
               });
             }
-          }, 3000);
+          }, 5000); // Aumentado de 3000ms a 5000ms para reducir la carga
         });
       }
       
