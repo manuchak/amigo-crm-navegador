@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { ProgressCallback, ImportResponse } from "./types";
@@ -6,16 +5,14 @@ import { callImportApi, checkImportProgress, testEdgeFunctionConnection } from "
 import { handleImportError } from "./utils/errorHandler";
 import { handleImportResponse } from "./utils/responseHandler";
 
-// Constantes para límites y configuración
-const MAX_FILE_SIZE_MB = 5; // Reducido a 5MB para prevenir errores de recursos
-const MAX_ALLOWED_FILE_SIZE_MB = 15; // Límite absoluto máximo
+const MAX_FILE_SIZE_MB = 5;
+const MAX_ALLOWED_FILE_SIZE_MB = 15;
 
 export async function importServiciosData(
   file: File, 
   onProgress?: ProgressCallback
 ): Promise<ImportResponse> {
   try {
-    // Validar tamaño de archivo con un límite más restrictivo
     if (file.size > MAX_ALLOWED_FILE_SIZE_MB * 1024 * 1024) {
       toast.error("Archivo demasiado grande", {
         description: `El archivo excede el tamaño máximo permitido de ${MAX_ALLOWED_FILE_SIZE_MB} MB. Por favor, divida el archivo en partes más pequeñas.`
@@ -23,14 +20,12 @@ export async function importServiciosData(
       return { success: false, message: `El archivo excede el tamaño máximo permitido de ${MAX_ALLOWED_FILE_SIZE_MB} MB` };
     }
     
-    // Validar tipo de archivo (debe ser Excel)
     const validExcelTypes = [
       'application/vnd.ms-excel',
       'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
       'application/vnd.ms-excel.sheet.macroEnabled.12'
     ];
     
-    // También verificar por extensión por si el tipo MIME no es confiable
     const fileName = file.name.toLowerCase();
     const hasValidExtension = fileName.endsWith('.xlsx') || fileName.endsWith('.xls');
     
@@ -57,7 +52,6 @@ export async function importServiciosData(
       onProgress("Verificando conexión con el servidor", 0, 0);
     }
     
-    // Mostrar advertencia si el archivo es grande pero está dentro del límite permitido
     if (file.size > MAX_FILE_SIZE_MB * 1024 * 1024) {
       toast.warning("Archivo grande detectado", {
         description: `El archivo es grande (${(file.size / (1024 * 1024)).toFixed(1)} MB). La importación puede tardar varios minutos y podría fallar debido a limitaciones de recursos.`,
@@ -65,7 +59,6 @@ export async function importServiciosData(
       });
     }
     
-    // Verificar la conectividad con la función Edge antes de iniciar
     const isConnected = await testEdgeFunctionConnection();
     
     if (!isConnected) {
@@ -87,7 +80,6 @@ export async function importServiciosData(
       onProgress("Validando estructura del archivo", 0, 0);
     }
 
-    // Obtener token de autenticación
     const { data, error: sessionError } = await supabase.auth.getSession();
     
     if (sessionError) {
@@ -123,25 +115,20 @@ export async function importServiciosData(
       onProgress("Subiendo archivo al servidor", 0, file.size);
     }
     
-    // Configurar abort controller con timeout más largo para archivos grandes
     const abortController = new AbortController();
-    // 15 minutos de timeout, aumentado de 10 para evitar cortes prematuros en archivos grandes
     const timeoutId = setTimeout(() => {
       console.warn("Timeout alcanzado, abortando operación");
       abortController.abort();
     }, 15 * 60 * 1000);
     
     try {
-      // Iniciar el proceso de importación con reintentos automáticos
       console.log("Llamando a importar...");
       const initialResponse = await callImportApi(formData, accessToken, abortController);
       clearTimeout(timeoutId);
       
       console.log("Initial import response:", initialResponse);
       
-      // Si tenemos un ID de progreso, comenzar el polling para actualizaciones de progreso
       if (initialResponse.progressId && onProgress) {
-        // Configurar polling de progreso
         let isComplete = false;
         let errorOccurred = false;
         let lastProcessedValue = 0;
@@ -149,23 +136,19 @@ export async function importServiciosData(
         
         console.log("Starting progress polling for ID:", initialResponse.progressId);
         
-        // Consultar actualizaciones de progreso cada 2 segundos (reducido de 3 para feedback más frecuente)
         const pollInterval = setInterval(async () => {
           try {
             console.log("Verificando progreso para ID:", initialResponse.progressId);
             const progressData = await checkImportProgress(initialResponse.progressId!);
             console.log("Progress update:", progressData);
             
-            // Detectar si el progreso está estancado
             if (progressData.processed === lastProcessedValue && progressData.processed > 0) {
               stuckCounter++;
               console.log(`Progreso potencialmente estancado: ${stuckCounter} verificaciones sin cambios`);
               
-              // Si el progreso está estancado por más de 10 verificaciones (20 segundos), considerarlo como completo
               if (stuckCounter >= 10 && progressData.processed > 0) {
                 console.log("Detectado estancamiento prolongado, asumiendo completado");
                 
-                // Actualizar a completado con advertencia
                 toast.warning("Importación completada parcialmente", {
                   description: `Se procesaron ${progressData.processed} registros. La importación se detuvo posiblemente debido a limitaciones del servidor.`,
                   id: toastId
@@ -180,7 +163,6 @@ export async function importServiciosData(
               stuckCounter = 0;
             }
             
-            // Actualizar callback de progreso con estado actual
             if (progressData && progressData.status) {
               onProgress(
                 progressData.message || "Procesando datos...", 
@@ -189,13 +171,11 @@ export async function importServiciosData(
               );
             }
             
-            // Verificar finalización
             if (progressData.status === 'completed' || progressData.status === 'completed_with_errors') {
               console.log(`Import completed${progressData.status === 'completed_with_errors' ? ' with errors' : ' successfully'}`);
               isComplete = true;
               clearInterval(pollInterval);
               
-              // Mostrar mensaje de éxito/advertencia según corresponda
               if (progressData.status === 'completed') {
                 toast.success("Importación completada", {
                   description: progressData.message || "Los datos se han importado exitosamente",
@@ -211,13 +191,11 @@ export async function importServiciosData(
               return;
             }
             
-            // Verificar estado de error
             if (progressData.status === 'error') {
               console.error("Import failed:", progressData.message);
               errorOccurred = true;
               clearInterval(pollInterval);
               
-              // Mostrar mensaje de error
               toast.error("Error en la importación", {
                 description: progressData.message || "Se produjo un error durante la importación",
                 id: toastId,
@@ -229,17 +207,15 @@ export async function importServiciosData(
           } catch (pollError) {
             console.error("Error polling for progress:", pollError);
           }
-        }, 2000); // Reducido de 3000ms a 2000ms
+        }, 2000);
         
-        // Esperar la finalización o timeout después de 20 minutos (aumentado de 15)
         let timeoutCounter = 0;
-        const maxTimeout = 600; // 20 minutos (600 * 2 segundos)
+        const maxTimeout = 600;
         
         return new Promise<ImportResponse>((resolve) => {
           const checkCompletion = setInterval(() => {
             timeoutCounter++;
             
-            // Si completado, resolver con éxito
             if (isComplete) {
               clearInterval(checkCompletion);
               resolve({ 
@@ -248,13 +224,11 @@ export async function importServiciosData(
                 errors: initialResponse.errors
               });
             } 
-            // Si ocurrió un error, resolver con error
             else if (errorOccurred) {
               clearInterval(checkCompletion);
               clearInterval(pollInterval);
               resolve({ success: false, message: "Error durante la importación" });
             }
-            // Si timeout, resolver con error de timeout
             else if (timeoutCounter >= maxTimeout) {
               clearInterval(checkCompletion);
               clearInterval(pollInterval);
@@ -267,11 +241,10 @@ export async function importServiciosData(
                 message: "La importación está tomando demasiado tiempo. Por favor verifique el estado más tarde." 
               });
             }
-          }, 2000); // Reducido para coincidir con el intervalo de polling
+          }, 2000);
         });
       }
       
-      // Si no hay ID de progreso, manejar la respuesta directamente
       return handleImportResponse(initialResponse);
     } catch (fetchError) {
       clearTimeout(timeoutId);
@@ -279,6 +252,53 @@ export async function importServiciosData(
     }
   } catch (error) {
     console.error("Unhandled error in import process:", error);
+    return handleImportError(error, "import-toast");
+  }
+}
+
+export async function importCsvData(
+  file: File,
+  onProgress?: ProgressCallback
+): Promise<ImportResponse> {
+  try {
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("Archivo demasiado grande", {
+        description: "Por favor divida el archivo en partes más pequeñas (máximo 5MB)"
+      });
+      return { success: false, message: "Archivo demasiado grande" };
+    }
+
+    const toastId = "import-toast";
+    toast.loading("Procesando archivo CSV...", { id: toastId });
+
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('format', 'csv');
+
+    const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+    if (sessionError || !sessionData.session) {
+      toast.error("Error de autenticación", { id: toastId });
+      return { success: false, message: "Error de autenticación" };
+    }
+
+    try {
+      const response = await callImportApi(formData, sessionData.session.access_token);
+      
+      if (response.success) {
+        toast.success("Importación completada", { id: toastId });
+      } else {
+        toast.error("Error en la importación", {
+          description: response.message,
+          id: toastId
+        });
+      }
+      
+      return response;
+    } catch (error) {
+      return handleImportError(error, toastId);
+    }
+  } catch (error) {
+    console.error("Error in CSV import:", error);
     return handleImportError(error, "import-toast");
   }
 }

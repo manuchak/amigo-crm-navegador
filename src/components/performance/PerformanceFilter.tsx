@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent } from "@/components/ui/card";
 import { Calendar } from 'lucide-react';
@@ -9,7 +8,7 @@ import { DateRange } from "react-day-picker";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { Input } from "@/components/ui/input";
-import { importServiciosData } from './services/import/importService';
+import { importServiciosData, importCsvData } from './services/import/importService';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertCircle, FileWarning } from "lucide-react";
@@ -32,115 +31,75 @@ export function PerformanceFilter({ dateRange, setDateRange }: PerformanceFilter
   const [showLargeFileWarning, setShowLargeFileWarning] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
 
-  const handleFileSelected = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileSelected = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
-    if (file) {
-      setSelectedFile(file);
-      
-      // Mostrar advertencia si el archivo es mayor a 5 MB
-      if (file.size > 5 * 1024 * 1024) {
-        setShowLargeFileWarning(true);
-      } else {
-        handleImportFile(file);
-      }
+    if (!file) return;
+    
+    setSelectedFile(file);
+    
+    if (file.size > 5 * 1024 * 1024) {
+      setShowLargeFileWarning(true);
+    } else {
+      handleFileImport(file);
     }
   };
 
-  const handleImportFile = async (file: File) => {
-    // Cancelar cualquier importación en curso
+  const handleFileImport = async (file: File) => {
     if (abortController) {
       abortController.abort();
     }
     
-    // Crear un nuevo controlador de aborto para esta importación
     const newAbortController = new AbortController();
     setAbortController(newAbortController);
     
     setIsUploading(true);
-    setUploadProgress(5); // Comenzar progress
+    setUploadProgress(5);
     setImportStatus('Analizando archivo...');
     setImportErrors([]);
     setShowLargeFileWarning(false);
-    
+
     try {
-      const result = await importServiciosData(
-        file, 
-        // Progress callback con informes de estado mejorados
-        (status, processed, total) => {
-          setImportStatus(status);
-          
-          if (total > 0) {
-            setTotalRows(total);
-            setProcessedRows(processed);
-            
-            // Calcular progreso con ponderación - el procesamiento toma más tiempo que la validación
-            let calculatedProgress;
-            
-            if (status.includes("validando") || status.includes("Validando") || status.includes("Extrayendo")) {
-              // La validación es 0-30% del progreso total
-              calculatedProgress = Math.min(30, Math.floor((processed / total) * 30));
-            } else if (status.includes("Preparando")) {
-              calculatedProgress = 35;
-            } else {
-              // La importación es 35-95% del progreso total
-              if (processed === 0) {
-                calculatedProgress = 35; // Mantener en 35% si aún no ha comenzado a procesar
-              } else {
-                calculatedProgress = 35 + Math.min(60, Math.floor((processed / total) * 60));
-              }
-            }
-            
-            setUploadProgress(calculatedProgress);
-          }
+      const importFunction = file.name.toLowerCase().endsWith('.csv') 
+        ? importCsvData 
+        : importServiciosData;
+
+      const result = await importFunction(file, (status, processed, total) => {
+        setImportStatus(status);
+        if (total > 0) {
+          setTotalRows(total);
+          setProcessedRows(processed);
+          const progress = Math.min(95, Math.floor((processed / total) * 95));
+          setUploadProgress(progress);
         }
-      );
-      
+      });
+
       if (result.success) {
         setImportStatus('¡Importación completada!');
         setUploadProgress(100);
         
-        // Si hay errores parciales pero la importación fue exitosa
-        if (result.errors && result.errors.length > 0) {
+        if (result.errors?.length > 0) {
           setImportErrors(result.errors);
-          setTimeout(() => {
-            setShowErrorDialog(true);
-          }, 1000);
+          setTimeout(() => setShowErrorDialog(true), 1000);
         }
       } else {
         setImportStatus('Error en la importación');
-        if (result.errors && result.errors.length > 0) {
+        if (result.errors?.length > 0) {
           setImportErrors(result.errors);
           setShowErrorDialog(true);
         }
         setUploadProgress(0);
       }
-      
-      setTimeout(() => {
-        if (result.success) {
-          // Mantener el mensaje de éxito más tiempo para archivos grandes
-          const delay = result.totalCount && result.totalCount > 10000 ? 5000 : 3000;
-          setTimeout(() => {
-            setUploadProgress(0);
-            setImportStatus('');
-            setIsUploading(false);
-          }, delay);
-        } else {
-          setIsUploading(false);
-        }
-      }, 1000);
-      
     } catch (error) {
       console.error("Error handling file upload:", error);
       setImportStatus('Error en la importación');
       setUploadProgress(0);
-      setIsUploading(false);
     } finally {
+      setIsUploading(false);
       setAbortController(null);
       setSelectedFile(null);
     }
   };
 
-  // Agregar una función para cancelar la importación
   const handleCancelImport = () => {
     if (abortController) {
       abortController.abort();
@@ -194,7 +153,7 @@ export function PerformanceFilter({ dateRange, setDateRange }: PerformanceFilter
             <div className="flex items-center gap-3">
               <Input
                 type="file"
-                accept=".xlsx,.xls"
+                accept=".xlsx,.xls,.csv"
                 onChange={handleFileSelected}
                 className="hidden"
                 id="servicios-file-upload"
@@ -202,7 +161,7 @@ export function PerformanceFilter({ dateRange, setDateRange }: PerformanceFilter
               />
               <label htmlFor="servicios-file-upload">
                 <Button variant="outline" size="sm" className="whitespace-nowrap" asChild disabled={isUploading}>
-                  <span>{isUploading ? "Importando..." : "Importar Servicios"}</span>
+                  <span>{isUploading ? "Importando..." : "Importar Servicios (CSV/Excel)"}</span>
                 </Button>
               </label>
               {isUploading && (
@@ -219,7 +178,6 @@ export function PerformanceFilter({ dateRange, setDateRange }: PerformanceFilter
             </div>
           </div>
           
-          {/* Enhanced upload progress bar with more detailed status */}
           {uploadProgress > 0 && (
             <div className="mt-4">
               <div className="flex justify-between text-xs text-muted-foreground mb-1">
@@ -246,7 +204,6 @@ export function PerformanceFilter({ dateRange, setDateRange }: PerformanceFilter
         </CardContent>
       </Card>
 
-      {/* Diálogo de advertencia para archivos grandes */}
       <Dialog open={showLargeFileWarning} onOpenChange={setShowLargeFileWarning}>
         <DialogContent className="max-w-md">
           <DialogHeader>
@@ -268,7 +225,7 @@ export function PerformanceFilter({ dateRange, setDateRange }: PerformanceFilter
               onClick={() => {
                 setShowLargeFileWarning(false);
                 if (selectedFile) {
-                  handleImportFile(selectedFile);
+                  handleFileImport(selectedFile);
                 }
               }}
             >
@@ -278,7 +235,6 @@ export function PerformanceFilter({ dateRange, setDateRange }: PerformanceFilter
         </DialogContent>
       </Dialog>
 
-      {/* Diálogo de errores */}
       <Dialog open={showErrorDialog} onOpenChange={setShowErrorDialog}>
         <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
           <DialogHeader>
