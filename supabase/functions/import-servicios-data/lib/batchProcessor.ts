@@ -1,5 +1,6 @@
 
 import { ProgressManager } from './progressManager.ts';
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.7';
 
 export class BatchProcessor {
   private supabase;
@@ -20,7 +21,7 @@ export class BatchProcessor {
     progressManager: ProgressManager,
     config: any
   ) {
-    this.supabase = { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.7').createClient(
+    this.supabase = createClient(
       supabaseUrl,
       supabaseKey
     );
