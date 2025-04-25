@@ -12,6 +12,11 @@ export function transformRowData(row: any, headerMapping: Record<string, string>
     'cobro_al_cliente': 'cobro_cliente',
   };
   
+  // Mapeo de valores de texto a booleanos para campos booleanos
+  const booleanFieldNames = ['armado', 'tienevehiculo', 'esmilitar', 'esarmado'];
+  const trueBooleanValues = ['si', 'sí', 'true', 'yes', 'armado', 'verdadero', '1', 'active', 'activo'];
+  const falseBooleanValues = ['no', 'false', 'desarmado', 'falso', '0', 'inactive', 'inactivo'];
+  
   // Para debugging
   console.log(`Transformando fila con datos iniciales:`, JSON.stringify(row).substring(0, 300));
   
@@ -41,8 +46,30 @@ export function transformRowData(row: any, headerMapping: Record<string, string>
         
         console.log(`Procesando campo [${excelColumn} -> ${dbColumn}] con valor:`, value, typeof value);
         
+        // Detectar si el campo es booleano por su nombre
+        const isLikelyBoolean = booleanFieldNames.includes(dbColumn.toLowerCase());
+        
         // Determinar el tipo de dato y transformar apropiadamente
-        if (typeof value === 'string') {
+        if (isLikelyBoolean) {
+          // Convertir valores de texto a booleanos
+          if (typeof value === 'string') {
+            const lowerValue = value.toLowerCase();
+            if (trueBooleanValues.includes(lowerValue)) {
+              transformedData[dbColumn] = true;
+              console.log(`Convertido valor '${value}' a boolean true para campo ${dbColumn}`);
+            } else if (falseBooleanValues.includes(lowerValue)) {
+              transformedData[dbColumn] = false;
+              console.log(`Convertido valor '${value}' a boolean false para campo ${dbColumn}`);
+            } else {
+              // Si no se puede determinar, omitir para usar el valor predeterminado
+              console.log(`Valor '${value}' no reconocido como booleano, omitiendo campo ${dbColumn}`);
+            }
+          } else if (typeof value === 'boolean') {
+            transformedData[dbColumn] = value;
+          } else if (typeof value === 'number') {
+            transformedData[dbColumn] = value !== 0;
+          }
+        } else if (typeof value === 'string') {
           transformedData[dbColumn] = value.trim();
         } else if (typeof value === 'number') {
           // Manejar casos especiales para tipos numéricos
@@ -145,8 +172,12 @@ export function mapColumnNames(excelColumns: string[]): Record<string, string> {
     'Costo': 'cobro_cliente',
     'Precio': 'cobro_cliente',
     'Cobro al cliente': 'cobro_cliente', // Corregido para coincidir con la columna en la BD
+    
+    // Estado y armado
     'Estatus': 'estado',
     'Estado': 'estado',
+    'Armado': 'armado', // Campo booleano
+    'Es Armado': 'armado',
     
     // Campos adicionales que pueden estar presentes
     'Fecha Inicio': 'fecha_hora_asignacion',
@@ -159,6 +190,11 @@ export function mapColumnNames(excelColumns: string[]): Record<string, string> {
   
   // Lista de columnas inválidas o problemáticas que deben ser ignoradas
   const invalidColumns = ['cantidad_de_transportes', 'null', 'undefined', ''];
+  
+  // Correcciones para nombres de columnas conocidos como problemáticos
+  const columnCorrections: Record<string, string> = {
+    'cobro_al_cliente': 'cobro_cliente',
+  };
   
   // Mostrar encabezados para debugging
   console.log("Encabezados detectados:", JSON.stringify(excelColumns));

@@ -47,8 +47,12 @@ export function determineHeaderMapping(headerRow: Record<string, any>): Record<s
     'Costo': 'cobro_cliente',
     'Precio': 'cobro_cliente',
     'Cobro al cliente': 'cobro_cliente', // Corregido para coincidir con la BD
+    
+    // Estado y armado
     'Estatus': 'estado',
     'Estado': 'estado',
+    'Armado': 'armado', // Campo booleano
+    'Es Armado': 'armado',
     
     // Campos adicionales que pueden estar presentes
     'Fecha Inicio': 'fecha_hora_asignacion',
@@ -86,6 +90,12 @@ export function determineHeaderMapping(headerRow: Record<string, any>): Record<s
       if (headerText === 'Cobro al cliente' || headerText === 'Cobro al Cliente') {
         mapping[excelColumn] = 'cobro_cliente'; // Usar el nombre correcto de la columna
         console.log(`Mapeo especial: ${headerText} -> cobro_cliente`);
+        return;
+      }
+      
+      if (headerText === 'Armado' || headerText === 'Es armado' || headerText === 'Es Armado') {
+        mapping[excelColumn] = 'armado'; // Mapeado como campo booleano
+        console.log(`Mapeo booleano: ${headerText} -> armado`);
         return;
       }
       
@@ -130,6 +140,12 @@ export function determineHeaderMapping(headerRow: Record<string, any>): Record<s
       if (headerText === 'Cobro al cliente' || headerText === 'Cobro al Cliente') {
         mapping[excelColumn] = 'cobro_cliente';
         console.log(`Mapeo especial (no string): ${headerText} -> cobro_cliente`);
+        return;
+      }
+      
+      if (headerText === 'Armado' || headerText === 'Es armado' || headerText === 'Es Armado') {
+        mapping[excelColumn] = 'armado'; // Mapeado como campo booleano
+        console.log(`Mapeo booleano (no string): ${headerText} -> armado`);
         return;
       }
       

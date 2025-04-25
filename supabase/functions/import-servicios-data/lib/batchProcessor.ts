@@ -67,6 +67,14 @@ export class BatchProcessor {
         'cobro_al_cliente': 'cobro_cliente', // Corregir el nombre de columna problemático
       };
       
+      // Lista de columnas a ignorar si dan problemas
+      const problematicColumns = [
+        'cantidad_de_transportes',
+        'tiempo_en_punto_de_origen',
+        'tiempo_de_retraso_hhmm',
+        'updated_at'
+      ];
+      
       // Verificar y corregir columnas problemáticas en todos los registros antes de intentar insertar
       const sanitizedData = data.map(record => {
         const correctedRecord = { ...record };
@@ -79,6 +87,29 @@ export class BatchProcessor {
             // Eliminar la columna problemática
             delete correctedRecord[problematicCol];
             console.log(`Corregido nombre de columna: ${problematicCol} -> ${correctCol}`);
+          }
+        }
+        
+        // Procesar campo armado para asegurar que sea booleano
+        if ('armado' in correctedRecord) {
+          const armadoValue = correctedRecord.armado;
+          if (typeof armadoValue === 'string') {
+            const lowerValue = armadoValue.toLowerCase();
+            if (['si', 'sí', 'true', 'yes', 'armado', '1', 'verdadero'].includes(lowerValue)) {
+              correctedRecord.armado = true;
+            } else if (['no', 'false', 'desarmado', '0', 'falso'].includes(lowerValue)) {
+              correctedRecord.armado = false;
+            } else {
+              // Si no se puede determinar, eliminar el campo para que use el valor predeterminado
+              delete correctedRecord.armado;
+            }
+          }
+        }
+        
+        // Eliminar columnas problemáticas conocidas
+        for (const col of problematicColumns) {
+          if (col in correctedRecord) {
+            delete correctedRecord[col];
           }
         }
         
@@ -102,9 +133,6 @@ export class BatchProcessor {
         return results;
       }
 
-      // Lista de columnas a ignorar si dan problemas (además de las ya corregidas)
-      const problematicColumns = ['cantidad_de_transportes'];
-
       // Insertar los registros con reintentos exponenciales
       let retryCount = 0;
       let success = false;
@@ -125,13 +153,19 @@ export class BatchProcessor {
             insertError = error;
             
             // Si la columna no existe, identificarla y eliminarla de todos los registros
-            if (error.message?.includes('no existe la columna') || error.message?.includes('Could not find') || error.code === 'PGRST204') {
+            if (error.message?.includes('no existe la columna') || 
+                error.message?.includes('Could not find') || 
+                error.code === 'PGRST204' ||
+                error.message?.includes('invalid input syntax for type boolean')) {
+              
               let badColumn = null;
+              let badValue = null;
               
               // Intentar extraer el nombre de la columna problemática del mensaje de error
               const columnMatchSpanish = error.message.match(/la columna «([^»]+)»/);
               const columnMatchEnglish = error.message.match(/'([^']+)' column/);
               const columnMatchGeneric = error.message.match(/Could not find the '([^']+)' column/);
+              const booleanValueMatch = error.message.match(/invalid input syntax for type boolean: "([^"]+)"/);
               
               if (columnMatchSpanish && columnMatchSpanish[1]) {
                 badColumn = columnMatchSpanish[1];
@@ -139,6 +173,22 @@ export class BatchProcessor {
                 badColumn = columnMatchEnglish[1];
               } else if (columnMatchGeneric && columnMatchGeneric[1]) {
                 badColumn = columnMatchGeneric[1];
+              } else if (booleanValueMatch && booleanValueMatch[1]) {
+                // Es un problema de valor booleano
+                badValue = booleanValueMatch[1];
+                console.log(`Problema con valor booleano: "${badValue}". Buscando columna con este valor...`);
+                
+                // Buscar la columna que tiene este valor incorrecto
+                for (const record of currentRecords) {
+                  for (const [col, val] of Object.entries(record)) {
+                    if (val === badValue) {
+                      badColumn = col;
+                      console.log(`Encontrada columna problemática: ${col} con valor: ${val}`);
+                      break;
+                    }
+                  }
+                  if (badColumn) break;
+                }
               }
               
               if (badColumn) {
