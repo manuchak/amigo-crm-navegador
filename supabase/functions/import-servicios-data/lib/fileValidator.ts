@@ -1,10 +1,10 @@
 
 export function validateFile(file: File): { isValid: boolean; message?: string } {
-  // Validar tamaño de archivo (aumentado a 30MB para archivos grandes)
-  if (file.size > 30 * 1024 * 1024) {
+  // Validar tamaño de archivo (reducido a 15MB para evitar problemas de recursos)
+  if (file.size > 15 * 1024 * 1024) {
     return {
       isValid: false,
-      message: "El archivo excede el tamaño máximo permitido de 30 MB"
+      message: "El archivo excede el tamaño máximo permitido de 15 MB. Por favor divida el archivo en partes más pequeñas."
     };
   }
   
@@ -23,6 +23,15 @@ export function validateFile(file: File): { isValid: boolean; message?: string }
     return {
       isValid: false,
       message: "El formato de archivo no es válido. Solo se permiten archivos Excel (.xls, .xlsx)"
+    };
+  }
+  
+  // Verificar que el nombre del archivo no contenga caracteres problemáticos
+  const illegalChars = /[<>:"/\\|?*\x00-\x1F]/g;
+  if (illegalChars.test(file.name)) {
+    return {
+      isValid: false,
+      message: "El nombre del archivo contiene caracteres no permitidos"
     };
   }
   

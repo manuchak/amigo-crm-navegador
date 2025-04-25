@@ -48,24 +48,48 @@ export class BatchProcessor {
     const errors: Array<{batch?: number; message: string; details?: string}> = [];
     const startTime = Date.now();
     
+    // Asegurarse que no estamos intentando procesar un conjunto vacío
+    if (totalRows === 0) {
+      return {
+        success: true,
+        message: "No se encontraron datos para procesar",
+        insertedCount: 0,
+        totalCount: 0
+      };
+    }
+    
+    // Reducir aún más el tamaño del lote si hay demasiados registros
+    let effectiveBatchSize = this.config.batchSize;
+    if (totalRows > 1000) {
+      // Tamaño de lote adaptativo - más pequeño para conjuntos grandes
+      effectiveBatchSize = Math.min(
+        this.config.batchSize,
+        Math.max(5, Math.floor(500 / Math.log10(totalRows)))
+      );
+      console.log(`Ajustando tamaño de lote a ${effectiveBatchSize} para optimizar procesamiento de ${totalRows} filas`);
+    }
+    
     // Dividir en sublotes más pequeños para procesar archivos muy grandes
-    const totalBatches = Math.ceil(totalRows / this.config.batchSize);
+    const totalBatches = Math.ceil(totalRows / effectiveBatchSize);
     
     await this.progressManager.updateProgress(
       'importing',
       0,
       totalRows,
-      `Iniciando importación de ${totalRows} registros en ${totalBatches} lotes`
+      `Iniciando importación de ${totalRows} registros en ${totalBatches} lotes pequeños`
     );
     
     // Reportar estado inicial de la memoria
     reportMemoryUsage("Inicio procesamiento por lotes");
 
     try {
+      // Mantener registro de batches consecutivos fallidos para abortar si es necesario
+      let consecutiveFailures = 0;
+      
       for (let batchNum = 0; batchNum < totalBatches; batchNum++) {
         // Verificar tiempo máximo de procesamiento
         if (Date.now() - startTime > this.config.maxProcessingTime) {
-          throw new Error("Tiempo de procesamiento excedido");
+          throw new Error(`Tiempo máximo de procesamiento excedido (${Math.round(this.config.maxProcessingTime/60000)} minutos)`);
         }
 
         // Verificar uso de memoria y forzar GC si es necesario
@@ -75,8 +99,8 @@ export class BatchProcessor {
           await new Promise(resolve => setTimeout(resolve, 500)); // Dar tiempo adicional para liberar memoria
         }
 
-        const startIdx = batchNum * this.config.batchSize;
-        const endIdx = Math.min((batchNum + 1) * this.config.batchSize, totalRows);
+        const startIdx = batchNum * effectiveBatchSize;
+        const endIdx = Math.min((batchNum + 1) * effectiveBatchSize, totalRows);
         const batchData = jsonData.slice(startIdx, endIdx);
         
         try {
@@ -89,42 +113,70 @@ export class BatchProcessor {
           
           if (batchResult.success) {
             insertedCount += batchResult.insertedCount;
+            consecutiveFailures = 0; // Resetear contador de fallos
           } else if (batchResult.error) {
+            consecutiveFailures++;
             errors.push({
               batch: batchNum + 1,
               message: batchResult.error.message || 'Error desconocido en el lote',
               details: batchResult.error.details
             });
             
-            // Si hay demasiados errores consecutivos, abortamos
-            if (errors.length > 10 && errors.length === batchNum + 1) {
-              throw new Error("Demasiados errores consecutivos, abortando proceso");
+            console.warn(`Error en lote ${batchNum + 1}: ${batchResult.error.message}. Fallos consecutivos: ${consecutiveFailures}`);
+            
+            // Si hay demasiados fallos consecutivos, hacer una pausa más larga o abortar
+            if (consecutiveFailures >= 3) {
+              console.warn(`${consecutiveFailures} fallos consecutivos detectados, haciendo pausa extendida...`);
+              await forceGarbageCollection();
+              await new Promise(r => setTimeout(r, consecutiveFailures * 2000)); // Pausa más larga
+              
+              if (consecutiveFailures >= 5) {
+                throw new Error("Demasiados errores consecutivos, abortando proceso");
+              }
             }
           }
 
-          // Actualizar progreso cada 2 lotes o si es el último lote
-          if (batchNum % 2 === 0 || batchNum === totalBatches - 1) {
-            await this.updateImportProgress(startTime, insertedCount, totalRows);
-          }
+          // Actualizar progreso cada batch para mejor visibilidad
+          await this.updateImportProgress(startTime, insertedCount, totalRows);
           
           // Breve retraso entre lotes para prevenir sobrecarga y dar tiempo al GC
+          // Retraso adaptativo basado en el número de registros procesados
+          const adaptiveDelay = Math.min(2000, this.config.processingDelay * (1 + Math.log10(batchNum + 1) / 10));
           if (batchNum < totalBatches - 1) {
-            await new Promise(resolve => setTimeout(resolve, this.config.processingDelay));
+            await new Promise(resolve => setTimeout(resolve, adaptiveDelay));
           }
           
         } catch (batchError) {
           console.error(`Excepción no controlada en lote ${batchNum + 1}:`, batchError);
+          consecutiveFailures++;
+          
           errors.push({
             batch: batchNum + 1,
             message: batchError instanceof Error ? batchError.message : 'Error desconocido'
           });
           
-          // Realizar una pausa más larga después de errores para permitir recuperación
-          await new Promise(resolve => setTimeout(resolve, this.config.processingDelay * 2));
+          // Si hay un problema grave, hacer pausa más larga
+          if (consecutiveFailures >= 3) {
+            console.warn(`${consecutiveFailures} fallos consecutivos detectados, haciendo pausa extendida para recuperación...`);
+            await forceGarbageCollection();
+            await new Promise(r => setTimeout(r, 5000)); // Pausa de 5 segundos
+          } else {
+            // Realizar una pausa más larga después de errores para permitir recuperación
+            await new Promise(resolve => setTimeout(resolve, this.config.processingDelay * 3));
+          }
+          
+          // Abortar si hay demasiados fallos consecutivos
+          if (consecutiveFailures >= 5) {
+            throw new Error("Demasiados errores consecutivos, abortando proceso");
+          }
         }
         
-        // Liberar referencias para ayudar al GC después de cada lote
-        if (batchNum % 5 === 0) {
+        // Liberar referencias explícitamente para ayudar al GC después de cada lote
+        // @ts-ignore: Intentar liberar memoria explícitamente
+        batchData.length = 0;
+        
+        // Forzar GC cada cierto número de lotes procesados
+        if (batchNum % 3 === 0 && batchNum > 0) {
           await forceGarbageCollection();
         }
       }
@@ -132,7 +184,7 @@ export class BatchProcessor {
       return this.generateResult(insertedCount, totalRows, errors);
     } catch (error) {
       // Error general en el procesamiento por lotes
-      console.error("Error en el procesamiento por lotes:", error);
+      console.error("Error crítico en el procesamiento por lotes:", error);
       
       // Actualizar estado de progreso a error
       await this.progressManager.updateProgress(
@@ -165,48 +217,84 @@ export class BatchProcessor {
     
     while (attempts < this.config.maxRetries) {
       try {
-        const transformedBatch = batchData.map(row => transformRowData(row, headerMapping));
+        // Transformar en micro-batches para reducir presión de memoria
+        const transformedBatch = [];
+        const maxMicroBatchSize = 5; // Procesar de 5 en 5 para reducir memoria
         
-        // Insertar datos usando upsert para evitar duplicados
-        const { error: insertError } = await this.supabase
-          .from('servicios_custodia')
-          .insert(transformedBatch);
+        for (let i = 0; i < batchData.length; i += maxMicroBatchSize) {
+          const microBatch = batchData.slice(i, i + maxMicroBatchSize);
+          const transformedMicroBatch = microBatch.map(row => transformRowData(row, headerMapping));
+          
+          transformedBatch.push(...transformedMicroBatch);
+          
+          // Mini pausa cada micro-batch para dar tiempo al GC si es necesario
+          if (i + maxMicroBatchSize < batchData.length && i > 0 && i % 20 === 0) {
+            await new Promise(r => setTimeout(r, 100));
+          }
+        }
         
-        if (insertError) {
+        // Insertar datos usando upsert evitando duplicados, con mecanismo de reintentos
+        try {
+          const { error: insertError } = await this.supabase
+            .from('servicios_custodia')
+            .insert(transformedBatch);
+          
+          if (insertError) {
+            attempts++;
+            console.error(`Error en lote ${batchNum + 1} (intento ${attempts}):`, insertError);
+            
+            // Si alcanzamos el máximo de reintentos, reportamos el error
+            if (attempts >= this.config.maxRetries) {
+              return {
+                success: false,
+                insertedCount: 0,
+                error: {
+                  message: insertError.message,
+                  details: insertError.details
+                }
+              };
+            }
+            
+            // Aplicar backoff exponencial con jitter para evitar thundering herd
+            const jitter = Math.random() * 500;
+            const waitTime = backoffTime + jitter;
+            console.log(`Reintentando lote ${batchNum + 1} en ${Math.round(waitTime)}ms...`);
+            await new Promise(resolve => setTimeout(resolve, waitTime));
+            backoffTime = Math.floor(backoffTime * this.config.backoffFactor);
+            
+            // Forzar GC entre intentos
+            await forceGarbageCollection();
+          } else {
+            // Éxito en la inserción
+            return {
+              success: true,
+              insertedCount: transformedBatch.length
+            };
+          }
+        } catch (dbError) {
+          // Error específico de base de datos
           attempts++;
+          console.error(`Error de base de datos en lote ${batchNum + 1} (intento ${attempts}):`, dbError);
           
-          console.error(`Error en lote ${batchNum + 1} (intento ${attempts}):`, insertError);
-          
-          // Si alcanzamos el máximo de reintentos, reportamos el error
           if (attempts >= this.config.maxRetries) {
             return {
               success: false,
               insertedCount: 0,
               error: {
-                message: insertError.message,
-                details: insertError.details
+                message: dbError instanceof Error ? dbError.message : 'Error de base de datos',
+                details: 'Error de conexión o timeout en la base de datos'
               }
             };
           }
           
-          // Aplicar backoff exponencial
-          console.log(`Reintentando lote ${batchNum + 1} en ${backoffTime}ms...`);
-          await new Promise(resolve => setTimeout(resolve, backoffTime));
-          backoffTime = Math.floor(backoffTime * this.config.backoffFactor);
-          
-          // Forzar GC entre intentos
-          await forceGarbageCollection();
-          
-        } else {
-          // Éxito en la inserción
-          return {
-            success: true,
-            insertedCount: transformedBatch.length
-          };
+          // Backoff exponencial más agresivo para errores de DB
+          const waitTime = backoffTime * 1.5;
+          await new Promise(resolve => setTimeout(resolve, waitTime));
+          backoffTime = Math.floor(backoffTime * this.config.backoffFactor * 1.2);
         }
       } catch (error) {
         attempts++;
-        console.error(`Excepción en lote ${batchNum + 1} (intento ${attempts}):`, error);
+        console.error(`Excepción en procesamiento de lote ${batchNum + 1} (intento ${attempts}):`, error);
         
         // Si alcanzamos el máximo de reintentos, reportamos el error
         if (attempts >= this.config.maxRetries) {
@@ -242,12 +330,14 @@ export class BatchProcessor {
     
     const memoryInfo = reportMemoryUsage("Progreso de importación");
     const memoryUsageMB = memoryInfo ? Math.round(memoryInfo.heapUsed / (1024 * 1024)) : 'N/A';
+    const memoryPercent = memoryInfo ? 
+      Math.round((memoryInfo.heapUsed / memoryInfo.heapTotal) * 100) : 'N/A';
     
     await this.progressManager.updateProgress(
       'importing',
       insertedCount,
       totalRows,
-      `Importando datos (${insertedCount} de ${totalRows}, ${rowsPerSecond.toFixed(1)} filas/s, ~${estimatedTimeRemaining}s restantes, Memoria: ${memoryUsageMB} MB)`
+      `Importando datos (${insertedCount} de ${totalRows}, ${rowsPerSecond.toFixed(1)} filas/s, ~${estimatedTimeRemaining}s restantes, Mem: ${memoryUsageMB}MB/${memoryPercent}%)`
     );
   }
 

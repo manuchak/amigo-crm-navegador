@@ -11,10 +11,10 @@ export async function importServiciosData(
   onProgress?: ProgressCallback
 ): Promise<ImportResponse> {
   try {
-    // Validar tamaño de archivo (aumentado a 30MB para manejar archivos grandes)
-    if (file.size > 30 * 1024 * 1024) {
-      toast.error("Archivo muy grande", {
-        description: "El archivo excede el tamaño máximo permitido de 30 MB. Por favor, utilice un archivo más pequeño o divídalo en partes."
+    // Validar tamaño de archivo (reducido a 15MB para prevenir errores de recursos)
+    if (file.size > 15 * 1024 * 1024) {
+      toast.error("Archivo demasiado grande", {
+        description: "El archivo excede el tamaño máximo permitido de 15 MB. Por favor, divida el archivo en partes más pequeñas."
       });
       return { success: false, message: "El archivo excede el tamaño máximo permitido" };
     }
@@ -91,8 +91,8 @@ export async function importServiciosData(
     
     // Configurar abort controller con timeout más largo para archivos grandes
     const abortController = new AbortController();
-    // 15 minutos de timeout para subida de archivos grandes (aumentado de 10 a 15)
-    const timeoutId = setTimeout(() => abortController.abort(), 15 * 60 * 1000);
+    // 10 minutos de timeout (reducido de 15 a 10 por las optimizaciones realizadas)
+    const timeoutId = setTimeout(() => abortController.abort(), 10 * 60 * 1000);
     
     try {
       // Iniciar el proceso de importación
@@ -109,7 +109,7 @@ export async function importServiciosData(
         
         console.log("Starting progress polling for ID:", initialResponse.progressId);
         
-        // Consultar actualizaciones de progreso cada 5 segundos (incrementado de 3 a 5)
+        // Consultar actualizaciones de progreso cada 5 segundos
         const pollInterval = setInterval(async () => {
           try {
             const progressData = await checkImportProgress(initialResponse.progressId!);
@@ -152,11 +152,11 @@ export async function importServiciosData(
           } catch (pollError) {
             console.error("Error polling for progress:", pollError);
           }
-        }, 5000); // Aumentado de 3000ms a 5000ms para reducir la carga del servidor
+        }, 5000);
         
-        // Esperar la finalización o timeout después de 45 minutos (incrementado de 30 a 45)
+        // Esperar la finalización o timeout después de 30 minutos (reducido de 45 minutos por optimizaciones)
         let timeoutCounter = 0;
-        const maxTimeout = 540; // 45 minutos (540 * 5 segundos)
+        const maxTimeout = 360; // 30 minutos (360 * 5 segundos)
         
         return new Promise<ImportResponse>((resolve) => {
           const checkCompletion = setInterval(() => {
@@ -190,7 +190,7 @@ export async function importServiciosData(
               clearInterval(checkCompletion);
               clearInterval(pollInterval);
               toast.error("Timeout de importación", {
-                description: "La importación está tomando demasiado tiempo. Por favor verifique el estado más tarde o intente con un archivo más pequeño.",
+                description: "La importación está tomando demasiado tiempo. Por favor intente con un archivo más pequeño.",
                 id: toastId
               });
               resolve({ 
@@ -198,7 +198,7 @@ export async function importServiciosData(
                 message: "La importación está tomando demasiado tiempo. Por favor verifique el estado más tarde." 
               });
             }
-          }, 5000); // Aumentado de 3000ms a 5000ms para reducir la carga
+          }, 5000);
         });
       }
       

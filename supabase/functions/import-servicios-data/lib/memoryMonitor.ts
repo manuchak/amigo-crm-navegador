@@ -1,6 +1,9 @@
 
 // Función para monitorear el uso de memoria en la función serverless
 
+let memoryUsageIntervalId: number | null = null;
+let memoryChecks = 0;
+
 /**
  * Inicializa el monitoreo de uso de memoria con reportes periódicos
  * en el log del servidor
@@ -8,15 +11,35 @@
 export function initializeMemoryUsageMonitoring() {
   // Reportar uso inicial de memoria
   reportMemoryUsage("Inicio");
+  memoryChecks = 0;
+  
+  // Limpiar monitoreo anterior si existe
+  if (memoryUsageIntervalId !== null) {
+    clearInterval(memoryUsageIntervalId);
+    memoryUsageIntervalId = null;
+  }
   
   // Configurar monitoreo periódico
-  const intervalId = setInterval(() => {
-    reportMemoryUsage("Monitoreo periódico");
-  }, 10000); // Reportar cada 10 segundos
+  memoryUsageIntervalId = setInterval(() => {
+    memoryChecks++;
+    // Reducir frecuencia de logs para evitar sobrecarga
+    if (memoryChecks % 3 === 0) {
+      reportMemoryUsage("Monitoreo periódico");
+    }
+    
+    // Verificar si es necesario forzar una recolección de basura
+    if (isMemoryUsageAboveThreshold(0.7)) {
+      console.warn("Uso de memoria alto detectado en monitoreo periódico, ejecutando GC forzado");
+      forceGarbageCollection();
+    }
+  }, 15000); // Reportar cada 15 segundos (aumentado de 10 a 15)
   
   // Limpieza al finalizar
   addEventListener('beforeunload', () => {
-    clearInterval(intervalId);
+    if (memoryUsageIntervalId !== null) {
+      clearInterval(memoryUsageIntervalId);
+      memoryUsageIntervalId = null;
+    }
     reportMemoryUsage("Finalización");
   });
 }
@@ -35,11 +58,13 @@ export function reportMemoryUsage(context: string) {
     const heapUsedMB = Math.round(memoryUsage.heapUsed / (1024 * 1024));
     const externalMB = Math.round(memoryUsage.external / (1024 * 1024));
     
+    // Calcular porcentaje de uso de heap
+    const heapUsagePercent = Math.round((memoryUsage.heapUsed / memoryUsage.heapTotal) * 100);
+    
     console.log(
       `[Memoria ${context}] ` +
       `RSS: ${usedMemoryMB} MB | ` +
-      `Heap Total: ${heapTotalMB} MB | ` + 
-      `Heap Usado: ${heapUsedMB} MB | ` +
+      `Heap: ${heapUsedMB}/${heapTotalMB} MB (${heapUsagePercent}%) | ` +
       `Externo: ${externalMB} MB`
     );
     
@@ -60,7 +85,7 @@ export function reportMemoryUsage(context: string) {
  * @param threshold Umbral de uso (0.0 a 1.0, donde 1.0 es 100%)
  * @returns true si el uso de memoria está por encima del umbral
  */
-export function isMemoryUsageAboveThreshold(threshold: number = 0.85): boolean {
+export function isMemoryUsageAboveThreshold(threshold: number = 0.80): boolean {
   try {
     const memoryUsage = Deno.memoryUsage();
     // En Deno, no hay un límite claro como en Node.js, pero podemos usar heapUsed/heapTotal
@@ -85,17 +110,48 @@ export function isMemoryUsageAboveThreshold(threshold: number = 0.85): boolean {
 export async function forceGarbageCollection(): Promise<void> {
   const beforeGC = reportMemoryUsage("Antes de GC");
   
-  // Intentar forzar la recolección de basura
-  // En Deno esto no es directamente accesible como en Node.js
-  // Pero podemos ayudar al GC liberando referencias
-  
-  // Esperar un poco para dar tiempo al GC
-  await new Promise(resolve => setTimeout(resolve, 100));
+  try {
+    // En Deno no tenemos acceso directo al GC pero podemos ayudar liberando referencias
+    
+    // 1. Recomendación para el GC
+    if (globalThis.gc) {
+      console.log("Ejecutando recolección de basura explícita");
+      // @ts-ignore: La propiedad gc no está en los tipos de Deno pero puede existir
+      globalThis.gc();
+    }
+    
+    // 2. Forzar limpieza de caché interna
+    // @ts-ignore: Intentar limpiar caché interna (específico de algunos entornos)
+    if (globalThis.__memoryPressure) {
+      // @ts-ignore
+      globalThis.__memoryPressure();
+    }
+    
+    // 3. Esperar un poco para dar tiempo al GC
+    // Se usa un bucle intensivo para forzar que el motor JS considere hacer GC
+    const dummy = new Array(10000);
+    for (let i = 0; i < 10000; i++) {
+      dummy[i] = new Array(100).fill(0);
+      if (i % 1000 === 0) {
+        await new Promise(r => setTimeout(r, 0));
+        dummy.splice(0, 500); // Liberar parte del array
+      }
+    }
+    
+    // 4. Esperar un poco más
+    await new Promise(resolve => setTimeout(resolve, 300));
+  } catch (err) {
+    console.error("Error durante la limpieza de memoria:", err);
+  }
   
   const afterGC = reportMemoryUsage("Después de GC");
   
   if (beforeGC && afterGC) {
     const diffMB = Math.round((beforeGC.heapUsed - afterGC.heapUsed) / (1024 * 1024));
-    console.log(`Memoria potencialmente liberada: ${diffMB} MB`);
+    if (diffMB > 0) {
+      console.log(`Memoria liberada tras GC: ${diffMB} MB`);
+    } else {
+      console.log(`No se liberó memoria significativa tras GC`);
+    }
   }
 }

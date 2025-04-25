@@ -6,21 +6,26 @@ import { determineHeaderMapping } from './lib/columnMapping.ts'
 import { validateFile } from './lib/fileValidator.ts'
 import { ProgressManager } from './lib/progressManager.ts'
 import { BatchProcessor } from './lib/batchProcessor.ts'
-import { initializeMemoryUsageMonitoring } from './lib/memoryMonitor.ts'
+import { initializeMemoryUsageMonitoring, reportMemoryUsage } from './lib/memoryMonitor.ts'
+import { processExcelFileStream } from './lib/excelFileProcessor.ts'
 
-// Configuraciones de procesamiento optimizadas para archivos grandes
+// Configuraciones de procesamiento extremadamente conservadoras para evitar errores de recursos
 const BATCH_CONFIG = {
-  batchSize: 20,             // Reducido de 50 a 20 para menor consumo de memoria
-  processingDelay: 200,      // Aumentado para dar más tiempo al GC
-  maxProcessingTime: 25 * 60 * 1000, // 25 minutos en ms
-  backoffFactor: 1.5,        // Factor de retroceso exponencial
-  maxRetries: 3,             // Número máximo de reintentos por lote
-  initialBackoff: 1000,      // Retroceso inicial en ms
-  memoryThreshold: 0.85      // Umbral de uso de memoria (85%)
+  batchSize: 10,             // Reducido drásticamente de 20 a 10 para disminuir el consumo de memoria por lote
+  processingDelay: 500,      // Aumentado de 200ms a 500ms para dar más tiempo al GC entre lotes
+  maxProcessingTime: 20 * 60 * 1000, // 20 minutos en ms (reducido de 25 minutos para mejor detección de timeout)
+  backoffFactor: 2,          // Aumentado para retrocesos más agresivos
+  maxRetries: 5,             // Aumentado de 3 a 5 para más reintentos
+  initialBackoff: 2000,      // Aumentado de 1000ms a 2000ms
+  memoryThreshold: 0.70      // Reducido de 0.85 a 0.70 para activar GC más temprano
 };
 
 // Iniciar monitoreo de memoria temprano
 initializeMemoryUsageMonitoring();
+
+// Establecer un límite bajo para la memoria heap
+Deno.env.set("NO_COLOR", "1"); // Desactivar colores en logs para ahorrar memoria
+reportMemoryUsage("Inicio del servicio");
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -28,7 +33,8 @@ Deno.serve(async (req) => {
   }
 
   try {
-    console.log("Iniciando proceso de importación");
+    console.log("Iniciando proceso de importación con configuración optimizada");
+    reportMemoryUsage("Antes de iniciar proceso");
     
     const progressId = req.headers.get('X-Progress-ID');
     console.log(`ID de progreso: ${progressId || 'ninguno'}`);
@@ -78,11 +84,20 @@ Deno.serve(async (req) => {
       'validating',
       0,
       file.size,
-      'Extrayendo datos del archivo Excel'
+      'Preparando procesamiento del archivo Excel'
     );
     
-    // Procesar el archivo por partes para reducir el uso de memoria
-    const processingResult = await processExcelFile(file, progressManager, BATCH_CONFIG);
+    reportMemoryUsage("Antes de procesar Excel");
+    
+    // Usar el nuevo procesador de Excel basado en streaming
+    const processingResult = await processExcelFileStream(
+      file, 
+      progressManager, 
+      BATCH_CONFIG,
+      supabaseClient
+    );
+    
+    reportMemoryUsage("Después de procesar Excel");
     
     return new Response(
       JSON.stringify(processingResult),
@@ -103,132 +118,7 @@ Deno.serve(async (req) => {
         headers: { ...corsHeaders, 'Content-Type': 'application/json'}
       }
     );
+  } finally {
+    reportMemoryUsage("Finalización del servicio");
   }
 });
-
-// Función para procesar el archivo Excel de manera optimizada
-async function processExcelFile(file: File, progressManager: ProgressManager, config: any): Promise<any> {
-  try {
-    // Obtener el tamaño del array buffer para reportes de progreso
-    const totalBytes = file.size;
-    let processedBytes = 0;
-    const chunkSize = 1024 * 1024; // 1MB
-    
-    // Reportar progreso inicial
-    await progressManager.updateProgress(
-      'validating',
-      processedBytes,
-      totalBytes,
-      'Iniciando lectura del archivo'
-    );
-
-    // Manejar archivos grandes mediante streaming
-    const fileStream = file.stream();
-    const reader = fileStream.getReader();
-    
-    let chunks: Uint8Array[] = [];
-    let done = false;
-    
-    // Leer el archivo en chunks para evitar problemas de memoria
-    while (!done) {
-      const { value, done: doneReading } = await reader.read();
-      done = doneReading;
-      
-      if (value) {
-        chunks.push(value);
-        processedBytes += value.length;
-        
-        // Actualizar progreso de lectura
-        await progressManager.updateProgress(
-          'validating',
-          processedBytes,
-          totalBytes,
-          `Leyendo archivo: ${Math.round((processedBytes / totalBytes) * 100)}%`
-        );
-      }
-    }
-    
-    // Combinar chunks y crear el array buffer
-    const chunksAll = new Uint8Array(processedBytes);
-    let position = 0;
-    for(const chunk of chunks) {
-      chunksAll.set(chunk, position);
-      position += chunk.length;
-    }
-    
-    const arrayBuffer = chunksAll.buffer;
-    chunks = []; // Liberar memoria
-    
-    // Reportar progreso de parsing
-    await progressManager.updateProgress(
-      'validating',
-      totalBytes,
-      totalBytes,
-      'Parseando datos de Excel'
-    );
-    
-    // Usar opciones de XLSX optimizadas para reducir uso de memoria
-    const workbook = XLSX.read(arrayBuffer, {
-      type: 'array',
-      cellDates: true,
-      cellNF: false,
-      cellText: false,
-      dense: true // Modo denso para optimizar memoria
-    });
-    
-    if (!workbook?.SheetNames?.length) {
-      return {
-        success: false,
-        message: 'El archivo Excel no contiene hojas válidas'
-      };
-    }
-    
-    const worksheet = workbook.Sheets[workbook.SheetNames[0]];
-    
-    // Usar rawHeader: true para reducir procesamiento
-    const jsonData = XLSX.utils.sheet_to_json(worksheet, {
-      defval: null,
-      raw: false,
-      header: 'A',
-      blankrows: false // Ignorar filas en blanco para ahorrar memoria
-    });
-    
-    // Liberar memoria del workbook
-    workbook.SheetNames = [];
-    
-    if (!jsonData?.length) {
-      return {
-        success: false,
-        message: 'El archivo Excel no contiene datos'
-      };
-    }
-    
-    const totalRows = jsonData.length;
-    console.log(`Se encontraron ${totalRows} filas en el archivo Excel`);
-    
-    // Determinar el esquema de columnas
-    const headerMapping = determineHeaderMapping(jsonData[0]);
-    
-    // Procesar datos en lotes
-    const batchProcessor = new BatchProcessor(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
-      progressManager,
-      config
-    );
-    
-    // Procesar los datos en lotes, con manejo de memoria y backoff exponencial
-    const result = await batchProcessor.processBatches(jsonData, headerMapping);
-    
-    return result;
-  } catch (error) {
-    console.error('Error procesando Excel:', error);
-    await progressManager.updateProgress(
-      'error',
-      0,
-      1,
-      'Error procesando el archivo: ' + error.message
-    );
-    throw error;
-  }
-}
