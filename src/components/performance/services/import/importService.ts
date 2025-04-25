@@ -77,14 +77,14 @@ export async function importServiciosData(
       return { success: false, message: "Error de conectividad con el servidor de importación" };
     }
 
-    toast.loading("Subiendo archivo", { 
-      description: "Por favor espere mientras subimos el archivo...",
+    toast.loading("Validando archivo", { 
+      description: "Verificando formato y estructura de datos...",
       duration: 0,
       id: toastId
     });
 
     if (onProgress) {
-      onProgress("Preparando importación", 0, 0);
+      onProgress("Validando estructura del archivo", 0, 0);
     }
 
     // Obtener token de autenticación

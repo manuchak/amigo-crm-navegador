@@ -1,6 +1,7 @@
 
 import { ProgressManager } from './progressManager.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.7';
+import { knownNumericColumns, knownBooleanColumns } from './columnMapping.ts';
 
 export class BatchProcessor {
   private supabase;
@@ -90,18 +91,69 @@ export class BatchProcessor {
           }
         }
         
+        // Corregir tipos de datos para columnas numéricas
+        for (const numericCol of knownNumericColumns) {
+          if (numericCol in correctedRecord && typeof correctedRecord[numericCol] !== 'number') {
+            try {
+              // Si es una cadena con formato de moneda o número con separadores, limpiarla
+              if (typeof correctedRecord[numericCol] === 'string') {
+                // Eliminar símbolos de moneda, espacios y separadores de miles
+                const cleanString = correctedRecord[numericCol]
+                  .toString()
+                  .replace(/[$€£¥]/g, '')
+                  .replace(/\s/g, '')
+                  .replace(/,/g, '');
+                  
+                const numValue = parseFloat(cleanString);
+                
+                if (!isNaN(numValue)) {
+                  correctedRecord[numericCol] = numValue;
+                  console.log(`Corregido valor numérico para ${numericCol}: ${correctedRecord[numericCol]} -> ${numValue}`);
+                } else {
+                  // Si no se puede convertir a número, eliminar el campo
+                  console.warn(`No se pudo convertir ${numericCol} a número: "${correctedRecord[numericCol]}", eliminando campo`);
+                  delete correctedRecord[numericCol];
+                }
+              } else if (correctedRecord[numericCol] === null) {
+                // Para valores null, eliminar el campo para que use el valor predeterminado
+                delete correctedRecord[numericCol];
+              } else {
+                // Intentar convertir otros tipos de datos a número
+                const numValue = Number(correctedRecord[numericCol]);
+                if (!isNaN(numValue)) {
+                  correctedRecord[numericCol] = numValue;
+                } else {
+                  delete correctedRecord[numericCol];
+                }
+              }
+            } catch (e) {
+              console.warn(`Error al procesar campo numérico ${numericCol}:`, e);
+              delete correctedRecord[numericCol];
+            }
+          }
+        }
+        
         // Procesar campo armado para asegurar que sea booleano
-        if ('armado' in correctedRecord) {
-          const armadoValue = correctedRecord.armado;
-          if (typeof armadoValue === 'string') {
-            const lowerValue = armadoValue.toLowerCase();
-            if (['si', 'sí', 'true', 'yes', 'armado', '1', 'verdadero'].includes(lowerValue)) {
-              correctedRecord.armado = true;
-            } else if (['no', 'false', 'desarmado', '0', 'falso'].includes(lowerValue)) {
-              correctedRecord.armado = false;
-            } else {
-              // Si no se puede determinar, eliminar el campo para que use el valor predeterminado
-              delete correctedRecord.armado;
+        for (const boolCol of knownBooleanColumns) {
+          if (boolCol in correctedRecord) {
+            const boolValue = correctedRecord[boolCol];
+            if (typeof boolValue === 'string') {
+              const lowerValue = boolValue.toLowerCase();
+              if (['si', 'sí', 'true', 'yes', 'armado', '1', 'verdadero'].includes(lowerValue)) {
+                correctedRecord[boolCol] = true;
+              } else if (['no', 'false', 'desarmado', '0', 'falso'].includes(lowerValue)) {
+                correctedRecord[boolCol] = false;
+              } else {
+                // Si no se puede determinar, eliminar el campo para que use el valor predeterminado
+                delete correctedRecord[boolCol];
+              }
+            } else if (typeof boolValue !== 'boolean') {
+              // Si no es string ni boolean, convertir a boolean si es posible
+              if (boolValue === 1 || boolValue === 0) {
+                correctedRecord[boolCol] = Boolean(boolValue);
+              } else {
+                delete correctedRecord[boolCol];
+              }
             }
           }
         }
@@ -156,15 +208,16 @@ export class BatchProcessor {
             if (error.message?.includes('no existe la columna') || 
                 error.message?.includes('Could not find') || 
                 error.code === 'PGRST204' ||
-                error.message?.includes('invalid input syntax for type boolean')) {
+                error.message?.includes('invalid input syntax for type')) {
               
               let badColumn = null;
               let badValue = null;
               
-              // Intentar extraer el nombre de la columna problemática del mensaje de error
+              // Intentar extraer el nombre de la columna problemática o el valor problemático
               const columnMatchSpanish = error.message.match(/la columna «([^»]+)»/);
               const columnMatchEnglish = error.message.match(/'([^']+)' column/);
               const columnMatchGeneric = error.message.match(/Could not find the '([^']+)' column/);
+              const numericValueMatch = error.message.match(/invalid input syntax for type numeric: "([^"]+)"/);
               const booleanValueMatch = error.message.match(/invalid input syntax for type boolean: "([^"]+)"/);
               
               if (columnMatchSpanish && columnMatchSpanish[1]) {
@@ -173,6 +226,37 @@ export class BatchProcessor {
                 badColumn = columnMatchEnglish[1];
               } else if (columnMatchGeneric && columnMatchGeneric[1]) {
                 badColumn = columnMatchGeneric[1];
+              } else if (numericValueMatch && numericValueMatch[1]) {
+                badValue = numericValueMatch[1];
+                console.log(`Problema con valor numérico: "${badValue}". Buscando columna con este valor...`);
+                
+                // Encontrar qué columna tiene este valor
+                for (const record of currentRecords) {
+                  for (const [col, val] of Object.entries(record)) {
+                    if (val === badValue && knownNumericColumns.includes(col)) {
+                      badColumn = col;
+                      console.log(`Encontrada columna numérica problemática: ${col} con valor: ${val}`);
+                      break;
+                    }
+                  }
+                  if (badColumn) break;
+                }
+                
+                // Si no encontramos la columna específica, verificar todas las columnas conocidas como numéricas
+                if (!badColumn) {
+                  for (const numCol of knownNumericColumns) {
+                    // Eliminar esta columna de todos los registros
+                    let found = false;
+                    for (const record of currentRecords) {
+                      if (numCol in record && typeof record[numCol] !== 'number') {
+                        found = true;
+                        badColumn = numCol;
+                        break;
+                      }
+                    }
+                    if (found) break;
+                  }
+                }
               } else if (booleanValueMatch && booleanValueMatch[1]) {
                 // Es un problema de valor booleano
                 badValue = booleanValueMatch[1];
@@ -211,6 +295,38 @@ export class BatchProcessor {
                 // Continuar con el siguiente intento (sin incrementar retryCount)
                 console.log(`Reintentando con ${currentRecords.length} registros sin la columna ${badColumn}`);
                 continue;
+              } else if (badValue) {
+                // Si no encontramos una columna específica pero tenemos un valor problemático
+                console.log(`Valor problemático encontrado: "${badValue}", pero no se pudo identificar la columna. Eliminando registros con este valor.`);
+                
+                // Filtrar cualquier registro que contenga este valor en cualquier columna numérica
+                const beforeCount = currentRecords.length;
+                currentRecords = currentRecords.filter(record => {
+                  let containsBadValue = false;
+                  for (const [col, val] of Object.entries(record)) {
+                    if (val === badValue && knownNumericColumns.includes(col)) {
+                      containsBadValue = true;
+                      break;
+                    }
+                  }
+                  return !containsBadValue;
+                });
+                
+                const removedCount = beforeCount - currentRecords.length;
+                console.log(`Se eliminaron ${removedCount} registros que contenían el valor problemático "${badValue}"`);
+                
+                if (currentRecords.length > 0) {
+                  // Continuar con el siguiente intento si aún quedan registros
+                  continue;
+                } else {
+                  // No quedan registros válidos
+                  results.success = false;
+                  results.errors.push({
+                    message: `No quedan registros válidos después de filtrar problemas de tipos de datos`,
+                    details: error.message
+                  });
+                  return results;
+                }
               }
             }
             

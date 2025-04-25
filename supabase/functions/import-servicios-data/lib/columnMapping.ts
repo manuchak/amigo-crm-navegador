@@ -47,12 +47,16 @@ export function determineHeaderMapping(headerRow: Record<string, any>): Record<s
     'Costo': 'cobro_cliente',
     'Precio': 'cobro_cliente',
     'Cobro al cliente': 'cobro_cliente', // Corregido para coincidir con la BD
+    'Cobro al Cliente': 'cobro_cliente', // Variante con mayúscula
+    'Cobro Cliente': 'cobro_cliente',    // Variante sin "al"
+    'Cobro': 'cobro_cliente',            // Variante corta
     
     // Estado y armado
     'Estatus': 'estado',
     'Estado': 'estado',
     'Armado': 'armado', // Campo booleano
     'Es Armado': 'armado',
+    'Es armado': 'armado',
     
     // Campos adicionales que pueden estar presentes
     'Fecha Inicio': 'fecha_hora_asignacion',
@@ -60,8 +64,24 @@ export function determineHeaderMapping(headerRow: Record<string, any>): Record<s
     'Hora Fin': 'hora_finalizacion',
     'Observaciones': 'comentarios_adicionales',
     'Comentarios': 'comentarios_adicionales',
-    'Notas': 'comentarios_adicionales'
+    'Notas': 'comentarios_adicionales',
+    
+    // Campos numéricos específicos
+    'Casetas': 'casetas',
+    'Cobro casetas': 'casetas',
+    'Costo casetas': 'casetas',
+    'Costo Custodio': 'costo_custodio',
+    'Costo del Custodio': 'costo_custodio'
   };
+  
+  // Lista de columnas conocidas como numéricas
+  const numericColumns = [
+    'km_recorridos', 'km_teorico', 'km_extras',
+    'cobro_cliente', 'costo_custodio', 'casetas'
+  ];
+  
+  // Lista de columnas conocidas como booleanas
+  const booleanColumns = ['armado', 'es_armado'];
   
   // Lista de columnas inválidas o problemáticas que deben ser ignoradas
   const invalidColumns = ['cantidad_de_transportes', 'null', 'undefined', ''];
@@ -96,6 +116,12 @@ export function determineHeaderMapping(headerRow: Record<string, any>): Record<s
       if (headerText === 'Armado' || headerText === 'Es armado' || headerText === 'Es Armado') {
         mapping[excelColumn] = 'armado'; // Mapeado como campo booleano
         console.log(`Mapeo booleano: ${headerText} -> armado`);
+        return;
+      }
+      
+      if (headerText === 'Casetas' || headerText === 'Cobro casetas' || headerText === 'Costo casetas') {
+        mapping[excelColumn] = 'casetas';
+        console.log(`Mapeo numérico: ${headerText} -> casetas`);
         return;
       }
       
@@ -149,6 +175,12 @@ export function determineHeaderMapping(headerRow: Record<string, any>): Record<s
         return;
       }
       
+      if (headerText === 'Casetas' || headerText === 'Cobro casetas' || headerText === 'Costo casetas') {
+        mapping[excelColumn] = 'casetas';
+        console.log(`Mapeo numérico (no string): ${headerText} -> casetas`);
+        return;
+      }
+      
       // Ignorar columnas problemáticas explícitamente
       if (invalidColumns.includes(headerText.toLowerCase())) {
         console.log(`Ignorando columna problemática (no string): ${headerText}`);
@@ -185,6 +217,17 @@ export function determineHeaderMapping(headerRow: Record<string, any>): Record<s
   // Verificación final de mapeos
   console.log(`Mapeo final de columnas: ${JSON.stringify(mapping)}`);
   
+  // Añadir información sobre tipos de datos para columnas críticas
+  const columnTypes: Record<string, string> = {};
+  for (const [excelCol, dbCol] of Object.entries(mapping)) {
+    if (numericColumns.includes(dbCol)) {
+      columnTypes[dbCol] = 'numeric';
+    } else if (booleanColumns.includes(dbCol)) {
+      columnTypes[dbCol] = 'boolean';
+    }
+  }
+  console.log(`Tipos de columnas detectados: ${JSON.stringify(columnTypes)}`);
+  
   // Verificar si tenemos al menos las columnas mínimas necesarias
   const requiredColumns = ['nombre_cliente', 'fecha_servicio', 'tipo_servicio'];
   const foundRequiredColumns = requiredColumns.filter(col => Object.values(mapping).includes(col));
@@ -199,3 +242,13 @@ export function determineHeaderMapping(headerRow: Record<string, any>): Record<s
   
   return mapping;
 }
+
+// Exportar también los tipos de columnas para su uso en la transformación de datos
+export const knownNumericColumns = [
+  'km_recorridos', 'km_teorico', 'km_extras',
+  'cobro_cliente', 'costo_custodio', 'casetas'
+];
+
+export const knownBooleanColumns = [
+  'armado', 'es_armado', 'esmilitar', 'tienevehiculo', 'esarmado'
+];

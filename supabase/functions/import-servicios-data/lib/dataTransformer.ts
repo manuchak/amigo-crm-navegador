@@ -1,5 +1,7 @@
 
 // Función para transformar los datos de una fila del Excel a un objeto compatible con la base de datos
+import { knownNumericColumns, knownBooleanColumns } from './columnMapping.ts';
+
 export function transformRowData(row: any, headerMapping: Record<string, string>): Record<string, any> {
   // Crear un objeto para almacenar los datos transformados
   const transformedData: Record<string, any> = {};
@@ -13,7 +15,6 @@ export function transformRowData(row: any, headerMapping: Record<string, string>
   };
   
   // Mapeo de valores de texto a booleanos para campos booleanos
-  const booleanFieldNames = ['armado', 'tienevehiculo', 'esmilitar', 'esarmado'];
   const trueBooleanValues = ['si', 'sí', 'true', 'yes', 'armado', 'verdadero', '1', 'active', 'activo'];
   const falseBooleanValues = ['no', 'false', 'desarmado', 'falso', '0', 'inactive', 'inactivo'];
   
@@ -47,7 +48,10 @@ export function transformRowData(row: any, headerMapping: Record<string, string>
         console.log(`Procesando campo [${excelColumn} -> ${dbColumn}] con valor:`, value, typeof value);
         
         // Detectar si el campo es booleano por su nombre
-        const isLikelyBoolean = booleanFieldNames.includes(dbColumn.toLowerCase());
+        const isLikelyBoolean = knownBooleanColumns.includes(dbColumn.toLowerCase());
+        
+        // Detectar si el campo es numérico por su nombre
+        const isLikelyNumeric = knownNumericColumns.includes(dbColumn.toLowerCase());
         
         // Determinar el tipo de dato y transformar apropiadamente
         if (isLikelyBoolean) {
@@ -66,18 +70,49 @@ export function transformRowData(row: any, headerMapping: Record<string, string>
             }
           } else if (typeof value === 'boolean') {
             transformedData[dbColumn] = value;
+            console.log(`Mantenido valor booleano ${value} para campo ${dbColumn}`);
           } else if (typeof value === 'number') {
             transformedData[dbColumn] = value !== 0;
+            console.log(`Convertido valor numérico ${value} a boolean ${value !== 0} para campo ${dbColumn}`);
+          }
+        } else if (isLikelyNumeric) {
+          // Asegurarse de que los valores numéricos se conviertan correctamente
+          try {
+            // Si es una cadena tipo "1,234.56" o "1.234,56", limpiarla primero
+            if (typeof value === 'string') {
+              // Eliminar signos de moneda y separadores de miles
+              const cleanedValue = value
+                .replace(/[$€£¥]/g, '')
+                .replace(/\s/g, '')
+                .replace(/,/g, ''); // Asumiendo formato de miles con coma
+                
+              const numericValue = parseFloat(cleanedValue);
+              if (!isNaN(numericValue)) {
+                transformedData[dbColumn] = numericValue;
+                console.log(`Convertido valor string '${value}' a número ${numericValue} para campo ${dbColumn}`);
+              } else {
+                console.log(`No se pudo convertir valor '${value}' a número para campo ${dbColumn}, omitiendo`);
+              }
+            } else if (typeof value === 'number') {
+              transformedData[dbColumn] = value;
+              console.log(`Mantenido valor numérico ${value} para campo ${dbColumn}`);
+            } else {
+              // Si no es string ni número, intentar convertir a número de todas formas
+              const numericValue = Number(value);
+              if (!isNaN(numericValue)) {
+                transformedData[dbColumn] = numericValue;
+                console.log(`Convertido valor de tipo ${typeof value} a número ${numericValue} para campo ${dbColumn}`);
+              } else {
+                console.log(`No se pudo convertir valor de tipo ${typeof value} a número para campo ${dbColumn}, omitiendo`);
+              }
+            }
+          } catch (error) {
+            console.error(`Error al convertir valor para campo numérico ${dbColumn}:`, error);
           }
         } else if (typeof value === 'string') {
           transformedData[dbColumn] = value.trim();
         } else if (typeof value === 'number') {
-          // Manejar casos especiales para tipos numéricos
-          if (dbColumn === 'km_recorridos' || dbColumn.includes('costo') || dbColumn.includes('cobro')) {
-            transformedData[dbColumn] = parseFloat(value.toString());
-          } else {
-            transformedData[dbColumn] = value;
-          }
+          transformedData[dbColumn] = value;
         } else if (value instanceof Date) {
           // Para valores de fecha, convertir a ISO string
           transformedData[dbColumn] = value.toISOString();
@@ -117,6 +152,29 @@ export function transformRowData(row: any, headerMapping: Record<string, string>
     
     // Logging para depurar - Mostrar los datos transformados
     console.log(`Transformada fila con ${fieldCount} campos útiles:`, JSON.stringify(transformedData).substring(0, 500));
+    
+    // Validar que cobro_cliente y casetas sean números si existen
+    if ('cobro_cliente' in transformedData && typeof transformedData.cobro_cliente !== 'number') {
+      console.warn(`Tipo incorrecto para cobro_cliente: ${typeof transformedData.cobro_cliente}, transformando a número`);
+      const numValue = parseFloat(transformedData.cobro_cliente);
+      if (!isNaN(numValue)) {
+        transformedData.cobro_cliente = numValue;
+      } else {
+        console.warn(`No se pudo convertir cobro_cliente a número, eliminando campo`);
+        delete transformedData.cobro_cliente;
+      }
+    }
+    
+    if ('casetas' in transformedData && typeof transformedData.casetas !== 'number') {
+      console.warn(`Tipo incorrecto para casetas: ${typeof transformedData.casetas}, transformando a número`);
+      const numValue = parseFloat(transformedData.casetas);
+      if (!isNaN(numValue)) {
+        transformedData.casetas = numValue;
+      } else {
+        console.warn(`No se pudo convertir casetas a número, eliminando campo`);
+        delete transformedData.casetas;
+      }
+    }
     
     return transformedData;
   } else {
