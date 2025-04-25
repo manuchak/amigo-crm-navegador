@@ -4,35 +4,74 @@ export function transformRowData(row: any, headerMapping: Record<string, string>
   // Crear un objeto para almacenar los datos transformados
   const transformedData: Record<string, any> = {};
   
+  // Variable para contar cuántos campos útiles se han encontrado
+  let fieldCount = 0;
+  
   // Recorrer cada entrada en el objeto row (cada columna del Excel)
   for (const [excelColumn, value] of Object.entries(row)) {
     // Buscar el nombre de columna correspondiente en la base de datos
     const dbColumn = headerMapping[excelColumn];
     
-    // Si existe un mapeo y no es la columna problemática
-    if (dbColumn && dbColumn !== 'cantidad_de_transportes') {
+    // Si existe un mapeo válido
+    if (dbColumn) {
+      // Ignorar explícitamente la columna problemática
+      if (dbColumn === 'cantidad_de_transportes') {
+        console.log(`Ignorando columna problemática: ${excelColumn} -> ${dbColumn}`);
+        continue;
+      }
+      
       // Convertir los valores según el tipo de dato esperado
-      if (value !== undefined && value !== null) {
+      if (value !== undefined && value !== null && value !== '') {
+        fieldCount++; // Incrementar contador de campos no vacíos
+        
         // Determinar el tipo de dato y transformar apropiadamente
         if (typeof value === 'string') {
           transformedData[dbColumn] = value.trim();
+        } else if (typeof value === 'number') {
+          // Manejar casos especiales para tipos numéricos
+          if (dbColumn === 'km_recorridos' || dbColumn.includes('costo') || dbColumn.includes('cobro')) {
+            transformedData[dbColumn] = parseFloat(value.toString());
+          } else {
+            transformedData[dbColumn] = value;
+          }
         } else if (value instanceof Date) {
+          // Para valores de fecha, convertir a ISO string
           transformedData[dbColumn] = value.toISOString();
-        } else {
+        } else if (typeof value === 'boolean') {
           transformedData[dbColumn] = value;
+        } else {
+          // Para cualquier otro tipo, intentar convertir a string
+          try {
+            const stringValue = String(value).trim();
+            if (stringValue && stringValue !== 'null' && stringValue !== 'undefined') {
+              transformedData[dbColumn] = stringValue;
+            }
+          } catch (e) {
+            console.warn(`No se pudo convertir valor para ${dbColumn}: ${e.message}`);
+          }
         }
+      } else {
+        // Para valores null/undefined, no asignar nada para que el valor predeterminado 
+        // de la base de datos se aplique (si existe)
+        console.log(`Valor vacío para columna ${dbColumn}, se omitirá`);
       }
     }
   }
   
-  // Añadir campos de control y auditoría
-  transformedData.created_at = new Date().toISOString();
-  transformedData.updated_at = new Date().toISOString();
-  
-  // Logging para depurar
-  console.log(`Transformed row: ${JSON.stringify(transformedData)}`);
-  
-  return transformedData;
+  // Solo añadir campos de control si tenemos datos útiles
+  if (fieldCount > 0) {
+    // Añadir campos de control y auditoría
+    transformedData.created_at = new Date().toISOString();
+    transformedData.updated_at = new Date().toISOString();
+    
+    // Logging para depurar
+    console.log(`Transformada fila con ${fieldCount} campos: ${JSON.stringify(transformedData).substring(0, 500)}...`);
+    
+    return transformedData;
+  } else {
+    console.warn("¡Fila sin datos útiles detectada! No se insertará.");
+    return {}; // Devolver objeto vacío para que se filtre después
+  }
 }
 
 // Función para transformar los nombres de las columnas del Excel a nombres de columnas en la BD

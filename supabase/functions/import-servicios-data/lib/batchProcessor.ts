@@ -1,3 +1,4 @@
+
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.7'
 import { ProgressManager } from './progressManager.ts';
 import { transformRowData } from './dataTransformer.ts';
@@ -224,8 +225,10 @@ export class BatchProcessor {
           const microBatch = batchData.slice(i, i + maxMicroBatchSize);
           
           // Log para depurar la transformación de datos
-          console.log(`Procesando micro-batch ${i/maxMicroBatchSize + 1} del batch ${batchNum + 1}`);
-          console.log(`Ejemplo de datos originales:`, JSON.stringify(microBatch[0]).substring(0, 200) + '...');
+          console.log(`Procesando micro-batch ${Math.floor(i/maxMicroBatchSize) + 1} del batch ${batchNum + 1}`);
+          if (microBatch.length > 0) {
+            console.log(`Ejemplo de datos originales:`, JSON.stringify(microBatch[0]).substring(0, 200) + '...');
+          }
           
           const transformedMicroBatch = microBatch.map(row => {
             const transformed = transformRowData(row, headerMapping);
@@ -237,7 +240,7 @@ export class BatchProcessor {
             Object.keys(record).length > 2); // Más que solo created_at y updated_at
           
           if (nonEmptyRecords.length < transformedMicroBatch.length) {
-            console.warn(`¡Advertencia! ${transformedMicroBatch.length - nonEmptyRecords.length} registros están casi vacíos`);
+            console.warn(`¡Advertencia! ${transformedMicroBatch.length - nonEmptyRecords.length} registros están casi vacíos y serán omitidos`);
           }
           
           transformedBatch.push(...nonEmptyRecords);
@@ -259,7 +262,9 @@ export class BatchProcessor {
         
         // Log para depurar la inserción
         console.log(`Insertando batch ${batchNum + 1} con ${transformedBatch.length} registros`);
-        console.log(`Ejemplo de dato transformado:`, JSON.stringify(transformedBatch[0]).substring(0, 200) + '...');
+        if (transformedBatch.length > 0) {
+          console.log(`Ejemplo de dato transformado:`, JSON.stringify(transformedBatch[0]).substring(0, 200) + '...');
+        }
         
         // Insertar datos usando upsert evitando duplicados, con mecanismo de reintentos
         try {
@@ -401,7 +406,7 @@ export class BatchProcessor {
   }
 
   private generateResult(insertedCount: number, totalRows: number, errors: any[]): BatchProcessorResult {
-    const success = errors.length === 0;
+    const success = insertedCount > 0; // Éxito si al menos se insertó un registro
     const status = errors.length > 0 ? 'completed_with_errors' : 'completed';
     const message = errors.length > 0
       ? `Importación completada con ${errors.length} errores. Se insertaron ${insertedCount} de ${totalRows} registros.`

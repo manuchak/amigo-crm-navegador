@@ -19,9 +19,9 @@ export class ProgressManager {
     if (!this.progressId) return false;
 
     try {
-      // Asegurar que processed y total son números enteros
-      const processedInt = Math.floor(processed);
-      const totalInt = Math.floor(total);
+      // Asegurar que processed y total son números enteros positivos
+      const processedInt = Math.max(0, Math.floor(processed));
+      const totalInt = Math.max(1, Math.floor(total));
       
       console.log(`Actualizando progreso: ${this.progressId} - ${status} - ${processedInt}/${totalInt} - ${message}`);
       

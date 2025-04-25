@@ -139,21 +139,66 @@ export async function processExcelFileStream(
       const worksheetName = workbook.SheetNames[0];
       let worksheet = workbook.Sheets[worksheetName];
       
-      // Extraer encabezados
-      const headerRange = XLSX.utils.decode_range(worksheet['!ref'] || 'A1:Z1');
+      // Verificar si la hoja está vacía
+      if (!worksheet || !worksheet['!ref']) {
+        await progressManager.updateProgress(
+          'error',
+          0,
+          totalBytes,
+          'La hoja Excel está vacía o no tiene datos'
+        );
+        return {
+          success: false,
+          message: 'La hoja Excel está vacía o no tiene datos'
+        };
+      }
+      
+      // Extraer encabezados y verificar que sean válidos
+      const headerRange = XLSX.utils.decode_range(worksheet['!ref']);
       headerRange.e.r = headerRange.s.r; // Limitar solo a la primera fila
       
       const headerRow: Record<string, any> = {};
+      let validHeadersFound = false;
+      
       for (let C = headerRange.s.c; C <= headerRange.e.c; ++C) {
         const cell = worksheet[XLSX.utils.encode_cell({r: headerRange.s.r, c: C})];
-        if (cell && cell.v !== undefined) {
+        if (cell && cell.v !== undefined && cell.v !== null && cell.v !== '') {
           const header = XLSX.utils.encode_col(C);
           headerRow[header] = cell.v;
+          validHeadersFound = true;
+          console.log(`Encabezado encontrado: ${header} = ${cell.v}`);
         }
+      }
+      
+      if (!validHeadersFound) {
+        await progressManager.updateProgress(
+          'error',
+          0,
+          totalBytes,
+          'No se encontraron encabezados válidos en la primera fila del Excel'
+        );
+        return {
+          success: false,
+          message: 'No se encontraron encabezados válidos en la primera fila del Excel'
+        };
       }
       
       // Determinar mapeo de columnas
       const headerMapping = determineHeaderMapping(headerRow);
+      
+      // Verificar si tenemos un mapeo mínimo necesario
+      if (Object.keys(headerMapping).length === 0) {
+        await progressManager.updateProgress(
+          'error',
+          0,
+          totalBytes,
+          'No se pudo determinar un mapeo válido para las columnas del Excel'
+        );
+        return {
+          success: false,
+          message: 'No se pudo determinar un mapeo válido para las columnas del Excel'
+        };
+      }
       
       await progressManager.updateProgress(
         'validating',
@@ -165,7 +210,50 @@ export async function processExcelFileStream(
       // Convertir a JSON en bloques para reducir uso de memoria
       let data;
       try {
-        data = XLSX.utils.sheet_to_json(worksheet);
+        // Usar range_to_json para tener más control sobre la conversión
+        const range = XLSX.utils.decode_range(worksheet['!ref']);
+        
+        // Verificar si hay más de una fila (encabezado + datos)
+        if (range.e.r <= range.s.r) {
+          await progressManager.updateProgress(
+            'error',
+            0,
+            totalBytes,
+            'El archivo Excel no contiene datos, solo encabezados'
+          );
+          return {
+            success: false,
+            message: 'El archivo Excel no contiene datos, solo encabezados'
+          };
+        }
+        
+        // Convertir a JSON con opciones adicionales para mejorar la interpretación de datos
+        data = XLSX.utils.sheet_to_json(worksheet, {
+          raw: false, // Convertir todo a strings para mejor manipulación
+          dateNF: 'yyyy-mm-dd', // Formato de fecha consistente
+          defval: null, // Valor por defecto para celdas vacías
+          blankrows: false // Ignorar filas vacías
+        });
+        
+        // Verificar que obtuvimos datos
+        if (!data || data.length === 0) {
+          await progressManager.updateProgress(
+            'error',
+            0,
+            totalBytes,
+            'No se pudieron extraer datos del archivo Excel'
+          );
+          return {
+            success: false,
+            message: 'No se pudieron extraer datos del archivo Excel'
+          };
+        }
+        
+        console.log(`Se extrajeron ${data.length} filas de datos del Excel`);
+        
+        // Mostrar ejemplo de la primera fila para debugging
+        console.log('Ejemplo de la primera fila extraída:', JSON.stringify(data[0]).substring(0, 500));
+        
       } catch (jsonError) {
         console.error('Error convirtiendo a JSON:', jsonError);
         await progressManager.updateProgress(
