@@ -16,7 +16,6 @@ export async function processExcelFileStream(
     // Obtener el tamaño del array buffer para reportes de progreso
     const totalBytes = file.size;
     let processedBytes = 0;
-    const chunkSize = 256 * 1024; // Reducido a 256KB para minimizar memoria
     
     // Reportar progreso inicial
     await progressManager.updateProgress(
@@ -36,17 +35,33 @@ export async function processExcelFileStream(
       'Estimando tamaño del archivo'
     );
 
-    // Nueva implementación: Procesar el archivo en bloques muy pequeños
-    let sheetData: any[] = [];
-    let workbook = null;
-    let headerMapping = {};
-    
     try {
-      // Nuevo enfoque: Cargar solo los primeros bytes para obtener la estructura
-      // y luego procesar los datos en pequeñas secciones
-
-      // Paso 1: Obtener solo los primeros 64KB para detectar la estructura del archivo
-      const headerChunk = await file.slice(0, 64 * 1024).arrayBuffer();
+      // Verificación preliminar del formato del archivo
+      // Cargar solo los primeros bytes para validar que es un archivo Excel válido
+      const headerBytes = await file.slice(0, Math.min(8192, file.size)).arrayBuffer();
+      
+      try {
+        // Intentar validar la cabecera del archivo
+        const headerView = new Uint8Array(headerBytes);
+        
+        // Verificar firma de archivo Excel (.xlsx)
+        // Los archivos .xlsx son archivos ZIP, que empiezan con PK
+        if (headerView[0] !== 0x50 || headerView[1] !== 0x4B) {
+          await progressManager.updateProgress(
+            'error',
+            0,
+            totalBytes,
+            'El archivo no parece ser un Excel válido. Por favor, verifique el formato del archivo.'
+          );
+          
+          return {
+            success: false,
+            message: 'El archivo no parece ser un Excel válido. Por favor, verifique el formato del archivo.'
+          };
+        }
+      } catch (headerError) {
+        console.error('Error verificando cabecera del archivo:', headerError);
+      }
       
       await progressManager.updateProgress(
         'validating',
@@ -55,13 +70,42 @@ export async function processExcelFileStream(
         'Analizando estructura del archivo'
       );
       
-      // Cargar solo para detectar estructura
-      workbook = XLSX.read(new Uint8Array(headerChunk), {
-        type: 'array',
-        cellDates: true,
-        sheetRows: 10, // Leer solo las primeras 10 filas para detectar encabezados
-        bookSheets: true // Solo cargar información de hojas, no datos completos
-      });
+      // Cargar todo el archivo para procesarlo (cambiando enfoque debido al error de compresión)
+      const completeBuffer = await file.arrayBuffer();
+      
+      await progressManager.updateProgress(
+        'validating',
+        file.size * 0.2,
+        file.size,
+        'Leyendo archivo completo'
+      );
+      
+      let workbook;
+      try {
+        // Intentar leer el archivo usando opciones más robustas
+        workbook = XLSX.read(new Uint8Array(completeBuffer), {
+          type: 'array',
+          cellDates: true,
+          WTF: true, // Activa modo más tolerante a errores
+          cellNF: false, // No procesar formatos de números para mejorar rendimiento
+          cellStyles: false // No procesar estilos para mejorar rendimiento
+        });
+      } catch (xlsxError) {
+        console.error('Error procesando Excel con XLSX:', xlsxError);
+        
+        await progressManager.updateProgress(
+          'error',
+          0,
+          totalBytes,
+          `Error al procesar el archivo Excel: ${xlsxError.message || 'Formato no reconocido'}`
+        );
+        
+        return {
+          success: false,
+          message: `Error al procesar el archivo Excel: ${xlsxError.message || 'Formato no reconocido'}`,
+          details: 'El archivo podría estar corrupto o no ser un formato Excel compatible.'
+        };
+      }
       
       if (!workbook?.SheetNames?.length) {
         return {
@@ -71,15 +115,15 @@ export async function processExcelFileStream(
       }
       
       const worksheetName = workbook.SheetNames[0];
-      const headerSheet = workbook.Sheets[worksheetName];
+      const worksheet = workbook.Sheets[worksheetName];
       
-      // Extraer solo los encabezados
-      const headerRange = XLSX.utils.decode_range(headerSheet['!ref'] || 'A1:Z1');
+      // Extraer encabezados
+      const headerRange = XLSX.utils.decode_range(worksheet['!ref'] || 'A1:Z1');
       headerRange.e.r = headerRange.s.r; // Limitar solo a la primera fila
       
       const headerRow: Record<string, any> = {};
       for (let C = headerRange.s.c; C <= headerRange.e.c; ++C) {
-        const cell = headerSheet[XLSX.utils.encode_cell({r: headerRange.s.r, c: C})];
+        const cell = worksheet[XLSX.utils.encode_cell({r: headerRange.s.r, c: C})];
         if (cell && cell.v !== undefined) {
           const header = XLSX.utils.encode_col(C);
           headerRow[header] = cell.v;
@@ -87,24 +131,30 @@ export async function processExcelFileStream(
       }
       
       // Determinar mapeo de columnas
-      headerMapping = determineHeaderMapping(headerRow);
-      
-      // Liberar memoria del workbook inicial
-      // @ts-ignore: Forzar liberación de recursos
-      workbook = null;
-      await forceGarbageCollection();
-      
-      // Paso 2: Procesar el archivo en pequeños fragmentos de filas
-      // Dividir en bloques de ~1MB para procesar por lotes
-
-      const batchSize = 1 * 1024 * 1024; // 1 MB por batch
-      let offset = 0;
+      const headerMapping = determineHeaderMapping(headerRow);
       
       await progressManager.updateProgress(
         'validating',
-        0,
-        estimatedRowCount,
-        'Iniciando lectura por fragmentos'
+        file.size * 0.3,
+        file.size,
+        'Extrayendo datos'
+      );
+      
+      // Convertir a JSON en bloques para reducir uso de memoria
+      const data = XLSX.utils.sheet_to_json(worksheet);
+      
+      // Liberar memoria del workbook
+      // @ts-ignore: Forzar liberación de recursos
+      workbook = null;
+      // @ts-ignore: Forzar liberación de recursos
+      worksheet = null;
+      await forceGarbageCollection();
+      
+      await progressManager.updateProgress(
+        'validating',
+        file.size * 0.4,
+        file.size,
+        'Iniciando procesamiento de datos'
       );
       
       // Crear el procesador de lotes
@@ -116,96 +166,44 @@ export async function processExcelFileStream(
       );
       
       // Variables para seguimiento del proceso
-      let totalRows = 0;
+      let totalRows = data.length;
       let totalProcessed = 0;
       let allResults: any = { success: true, insertedCount: 0, errors: [] };
       
-      while (offset < file.size) {
-        // Calcular tamaño del bloque actual
-        const currentBatchSize = Math.min(batchSize, file.size - offset);
+      // Procesar en pequeños lotes para evitar problemas de memoria
+      const batchSize = 50; // Reducido a 50 filas por lote
+      
+      for (let i = 0; i < data.length; i += batchSize) {
+        const batchData = data.slice(i, i + batchSize);
         
-        // Leer solo un fragmento del archivo
-        const batchSlice = file.slice(offset, offset + currentBatchSize);
-        const batchBuffer = await batchSlice.arrayBuffer();
-        
-        await progressManager.updateProgress(
-          'validating',
-          offset,
-          file.size,
-          `Leyendo fragmento ${Math.ceil(offset / batchSize) + 1}/${Math.ceil(file.size / batchSize)}`
-        );
-        
-        // Procesar solo este fragmento
         try {
-          const batchWorkbook = XLSX.read(new Uint8Array(batchBuffer), {
-            type: 'array',
-            cellDates: true,
-            raw: true
-          });
+          const batchResult = await batchProcessor.processBatches(batchData, headerMapping);
           
-          const worksheetName = batchWorkbook.SheetNames[0];
-          const worksheet = batchWorkbook.Sheets[worksheetName];
-          
-          // Convertir solo esta sección a JSON
-          const batchData = XLSX.utils.sheet_to_json(worksheet, {header: 'A'});
-          
-          // Saltar la primera fila (encabezados) solo en el primer batch
-          const startIndex = (offset === 0) ? 1 : 0;
-          const rowsToProcess = batchData.slice(startIndex);
-          
-          // Actualizar contador de filas
-          const batchRowCount = rowsToProcess.length;
-          totalRows += batchRowCount;
-          
-          // Procesar este lote si hay datos
-          if (rowsToProcess.length > 0) {
-            try {
-              const batchResult = await batchProcessor.processBatches(rowsToProcess, headerMapping);
-              
-              // Acumular resultados
-              if (batchResult.insertedCount) allResults.insertedCount += batchResult.insertedCount;
-              if (batchResult.errors && batchResult.errors.length) {
-                allResults.errors = [...allResults.errors, ...batchResult.errors];
-              }
-              
-              totalProcessed += rowsToProcess.length;
-            } catch (batchError) {
-              console.error("Error procesando batch:", batchError);
-              allResults.errors.push({
-                message: `Error en fragmento: ${batchError.message}`
-              });
-            }
+          // Acumular resultados
+          if (batchResult.insertedCount) allResults.insertedCount += batchResult.insertedCount;
+          if (batchResult.errors && batchResult.errors.length) {
+            allResults.errors = [...allResults.errors, ...batchResult.errors];
           }
           
-          // Liberar memoria de cada batch
-          // @ts-ignore: Forzar liberación de recursos
-          batchWorkbook = null;
-          // @ts-ignore: Forzar liberación de recursos
-          worksheet = null;
-          // @ts-ignore: Forzar liberación de recursos
-          batchData.length = 0;
+          totalProcessed += batchData.length;
+          
+          // Actualizar progreso
+          await progressManager.updateProgress(
+            'importing',
+            totalProcessed,
+            totalRows,
+            `Procesadas ${totalProcessed} filas de ${totalRows} detectadas`
+          );
+          
+          // Forzar liberación de memoria entre lotes
           await forceGarbageCollection();
           
-        } catch (batchParseError) {
-          console.error("Error parseando fragmento:", batchParseError);
+        } catch (batchError) {
+          console.error("Error procesando batch:", batchError);
           allResults.errors.push({
-            message: `Error al analizar fragmento: ${batchParseError.message}`
+            message: `Error en lote ${Math.ceil(i / batchSize)}: ${batchError.message}`
           });
         }
-        
-        // Avanzar al siguiente bloque
-        offset += currentBatchSize;
-        
-        // Actualizar progreso
-        await progressManager.updateProgress(
-          'importing',
-          totalProcessed,
-          Math.max(totalRows, estimatedRowCount),
-          `Procesadas ${totalProcessed} filas de ${totalRows} detectadas`
-        );
-        
-        // Forzar GC después de cada bloque
-        await forceGarbageCollection();
       }
       
       // Actualizar estado final en la base de datos
