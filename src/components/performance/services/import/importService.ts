@@ -231,8 +231,9 @@ export async function importServiciosData(
         });
       }
       
-      // Si no hay ID de progreso, manejar la respuesta directamente
-      return handleImportResponse(initialResponse, toastId);
+      // Fix: Here is the issue - handleImportResponse was being called with two arguments
+      // but should only receive one according to the function signature
+      return handleImportResponse(initialResponse);
     } catch (fetchError) {
       clearTimeout(timeoutId);
       return handleImportError(fetchError, toastId);
