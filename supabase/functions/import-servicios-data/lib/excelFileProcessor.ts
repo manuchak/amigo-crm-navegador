@@ -102,6 +102,9 @@ export async function processExcelFileStream(
       
       // Liberar el buffer una vez que se ha leído
       // @ts-ignore: Intentar liberar memoria explícitamente
+      let chunksAllTemp = null;
+      chunksAllTemp = chunksAll;
+      // @ts-ignore: Forzar liberación
       chunksAll = null;
       await forceGarbageCollection();
       
@@ -239,7 +242,11 @@ export async function processExcelFileStream(
       // Paso 5: Limpieza final y reporte
       // Liberar memoria de la worksheet y workbook manualmente
       // @ts-ignore: Forzar liberación de memoria
+      let worksheetTemp = worksheet;
+      // @ts-ignore: Forzar liberación de memoria
       worksheet = null;
+      // @ts-ignore: Forzar liberación de memoria
+      let workbookTemp = workbook;
       // @ts-ignore: Forzar liberación de memoria
       workbook = null;
       
