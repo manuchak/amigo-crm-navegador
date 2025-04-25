@@ -70,8 +70,23 @@ export async function processExcelFileStream(
         'Analizando estructura del archivo'
       );
       
-      // Cargar todo el archivo para procesarlo (cambiando enfoque debido al error de compresión)
-      const completeBuffer = await file.arrayBuffer();
+      // Cargar todo el archivo para procesarlo
+      let completeBuffer;
+      try {
+        completeBuffer = await file.arrayBuffer();
+      } catch (bufferError) {
+        console.error('Error al leer el archivo completo:', bufferError);
+        await progressManager.updateProgress(
+          'error',
+          0,
+          totalBytes,
+          'Error al leer el archivo: ' + bufferError.message
+        );
+        return {
+          success: false,
+          message: 'Error al leer el archivo: ' + bufferError.message
+        };
+      }
       
       await progressManager.updateProgress(
         'validating',
@@ -88,8 +103,15 @@ export async function processExcelFileStream(
           cellDates: true,
           WTF: true, // Activa modo más tolerante a errores
           cellNF: false, // No procesar formatos de números para mejorar rendimiento
-          cellStyles: false // No procesar estilos para mejorar rendimiento
+          cellStyles: false, // No procesar estilos para mejorar rendimiento
+          raw: true, // Modo raw para mejorar compatibilidad
+          codepage: 65001 // UTF-8
         });
+        
+        // Liberar memoria del buffer una vez leído
+        completeBuffer = null;
+        await forceGarbageCollection();
+        
       } catch (xlsxError) {
         console.error('Error procesando Excel con XLSX:', xlsxError);
         
@@ -115,7 +137,7 @@ export async function processExcelFileStream(
       }
       
       const worksheetName = workbook.SheetNames[0];
-      const worksheet = workbook.Sheets[worksheetName];
+      let worksheet = workbook.Sheets[worksheetName];
       
       // Extraer encabezados
       const headerRange = XLSX.utils.decode_range(worksheet['!ref'] || 'A1:Z1');
@@ -141,13 +163,26 @@ export async function processExcelFileStream(
       );
       
       // Convertir a JSON en bloques para reducir uso de memoria
-      const data = XLSX.utils.sheet_to_json(worksheet);
+      let data;
+      try {
+        data = XLSX.utils.sheet_to_json(worksheet);
+      } catch (jsonError) {
+        console.error('Error convirtiendo a JSON:', jsonError);
+        await progressManager.updateProgress(
+          'error',
+          0,
+          totalBytes,
+          `Error al procesar los datos: ${jsonError.message}`
+        );
+        return {
+          success: false,
+          message: `Error al procesar los datos: ${jsonError.message}`
+        };
+      }
       
-      // Liberar memoria del workbook
-      // @ts-ignore: Forzar liberación de recursos
-      workbook = null;
-      // @ts-ignore: Forzar liberación de recursos
+      // Liberar memoria del workbook y worksheet
       worksheet = null;
+      workbook = null;
       await forceGarbageCollection();
       
       await progressManager.updateProgress(

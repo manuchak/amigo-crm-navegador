@@ -150,6 +150,7 @@ export async function importServiciosData(
         // Consultar actualizaciones de progreso cada 5 segundos
         const pollInterval = setInterval(async () => {
           try {
+            console.log("Verificando progreso para ID:", initialResponse.progressId);
             const progressData = await checkImportProgress(initialResponse.progressId!);
             console.log("Progress update:", progressData);
             
