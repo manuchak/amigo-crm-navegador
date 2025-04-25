@@ -28,6 +28,28 @@ export function handleImportError(error: unknown, toastId: string): ImportRespon
         message: "Error de conexión con el servidor" 
       };
     }
+    
+    if (error.message.includes('compute resources')) {
+      toast.error("Error de recursos", {
+        description: "El servidor no tiene suficientes recursos para procesar este archivo. Intente con un archivo más pequeño o contacte al administrador.",
+        id: toastId
+      });
+      return {
+        success: false,
+        message: "El servidor no tiene suficientes recursos para procesar este archivo"
+      };
+    }
+    
+    if (error.message.includes('Tiempo de espera') || error.message.includes('timeout')) {
+      toast.error("Tiempo de espera excedido", {
+        description: "La operación ha tomado demasiado tiempo. El archivo puede ser muy grande.",
+        id: toastId
+      });
+      return {
+        success: false,
+        message: "Tiempo de espera excedido"
+      };
+    }
   }
   
   toast.error("Error al importar servicios", {

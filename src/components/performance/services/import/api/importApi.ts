@@ -4,7 +4,7 @@ import { v4 as uuidv4 } from "uuid";
 import { ImportResponse, ImportProgress } from "../types";
 import { supabase } from "@/integrations/supabase/client";
 
-// Function to initialize progress tracking
+// Función para inicializar progress tracking
 async function initializeProgressTracking(fileSize: number): Promise<string> {
   const progressId = uuidv4();
   
@@ -61,7 +61,14 @@ export async function callImportApi(
     const apiUrl = 'https://beefjsdgrdeiymzxwxru.supabase.co/functions/v1/import-servicios-data';
     console.log(`Enviando solicitud a: ${apiUrl}`);
     
-    const response = await fetch(
+    // Configurar un timeout más largo para el fetch debido al gran tamaño del archivo
+    const timeoutPromise = new Promise<never>((_, reject) => {
+      // 10 minutos para el fetch inicial (subida del archivo)
+      setTimeout(() => reject(new Error("Tiempo de espera excedido")), 10 * 60 * 1000);
+    });
+    
+    // Combinar la solicitud fetch con el promise de timeout
+    const fetchPromise = fetch(
       apiUrl,
       {
         method: 'POST',
@@ -74,6 +81,9 @@ export async function callImportApi(
         }
       }
     );
+    
+    // Esperar la primera respuesta o el timeout
+    const response = await Promise.race([fetchPromise, timeoutPromise]);
     
     console.log(`Estado de respuesta: ${response.status}`);
     
@@ -111,13 +121,25 @@ export async function callImportApi(
   } catch (error) {
     console.error("Error en la llamada de API:", error);
     
+    // Manejar específicamente errores de timeout o aborts
+    let errorMessage = error instanceof Error ? error.message : "Error desconocido";
+    let errorDescription = errorMessage;
+    
+    if (error instanceof Error) {
+      if (error.name === 'AbortError') {
+        errorDescription = "La operación fue cancelada";
+      } else if (errorMessage.includes('tiempo') || errorMessage.includes('time')) {
+        errorDescription = "La operación ha excedido el tiempo límite. El archivo puede ser demasiado grande.";
+      }
+    }
+    
     toast.error("Error en la importación", {
-      description: error instanceof Error ? error.message : "Error desconocido"
+      description: errorDescription
     });
     
     return { 
       success: false, 
-      message: error instanceof Error ? error.message : "Error desconocido"
+      message: errorMessage
     };
   }
 }

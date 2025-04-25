@@ -21,19 +21,23 @@ export function handleImportResponse(responseData: any): ImportResponse {
     console.error("Error importing servicios data:", responseData);
     
     if (responseData.errors && responseData.errors.length > 0) {
-      const errorMessages = responseData.errors.map((err: any) => 
-        `Fila ${err.row}: ${err.message}`
-      ).join('\n');
+      let errorDescription = "";
       
-      toast.error("Errores en el archivo Excel", {
-        description: errorMessages.length > 100 
-          ? `${errorMessages.substring(0, 100)}... (${responseData.errors.length} errores en total)`
-          : errorMessages,
+      if (responseData.errors.length === 1) {
+        errorDescription = `Error: ${responseData.errors[0].message}`;
+      } else if (responseData.errors.length <= 3) {
+        errorDescription = responseData.errors.map((err: any) => 
+          err.batch ? `Lote ${err.batch}: ${err.message}` : `Error: ${err.message}`
+        ).join('\n');
+      } else {
+        errorDescription = `Se encontraron ${responseData.errors.length} errores. Revise los detalles para más información.`;
+      }
+      
+      toast.error("Errores en la importación", {
+        description: errorDescription,
         duration: 5000,
         id: "import-toast"
       });
-
-      console.table(responseData.errors);
     } else {
       toast.error("Error al importar datos", {
         description: responseData.message || "Revise el formato del archivo",
@@ -44,15 +48,37 @@ export function handleImportResponse(responseData: any): ImportResponse {
     return { success: false, errors: responseData.errors, message: responseData.message };
   }
 
+  // Mensaje de éxito personalizado según la cantidad de registros
+  let successMessage = responseData.message;
+  
+  if (responseData.insertedCount && responseData.totalCount) {
+    if (responseData.insertedCount === responseData.totalCount) {
+      successMessage = `Se importaron ${responseData.insertedCount} registros exitosamente`;
+    } else {
+      successMessage = `Se importaron ${responseData.insertedCount} de ${responseData.totalCount} registros`;
+      
+      if (responseData.errors && responseData.errors.length > 0) {
+        successMessage += ` (${responseData.errors.length} errores)`;
+      }
+    }
+  }
+
   toast.success("Datos importados exitosamente", {
-    description: responseData.message,
-    id: "import-toast"
+    description: successMessage,
+    id: "import-toast",
+    duration: 5000
   });
   
-  return { success: true, message: responseData.message };
+  return { 
+    success: true, 
+    message: successMessage,
+    errors: responseData.errors,
+    insertedCount: responseData.insertedCount,
+    totalCount: responseData.totalCount
+  };
 }
 
-// Convert ImportProgress to ImportResponse
+// Convertir ImportProgress a ImportResponse
 export function progressToResponse(progress: ImportProgress): ImportResponse {
   if (progress.status === 'error') {
     return {
@@ -62,7 +88,7 @@ export function progressToResponse(progress: ImportProgress): ImportResponse {
     };
   }
   
-  if (progress.status === 'completed') {
+  if (progress.status === 'completed' || progress.status === 'completed_with_errors') {
     return {
       success: true,
       message: progress.message,
@@ -70,7 +96,7 @@ export function progressToResponse(progress: ImportProgress): ImportResponse {
     };
   }
   
-  // Still in progress
+  // Todavía en progreso
   return {
     success: false,
     message: progress.message || `Procesando: ${progress.processed} de ${progress.total}`,

@@ -11,15 +11,15 @@ export async function importServiciosData(
   onProgress?: ProgressCallback
 ): Promise<ImportResponse> {
   try {
-    // Validate file size early
-    if (file.size > 15 * 1024 * 1024) {
+    // Validar tamaño de archivo
+    if (file.size > 25 * 1024 * 1024) {
       toast.error("Archivo muy grande", {
-        description: "El archivo excede el tamaño máximo permitido de 15 MB. Por favor, utilice un archivo más pequeño."
+        description: "El archivo excede el tamaño máximo permitido de 25 MB. Por favor, utilice un archivo más pequeño o divídalo en partes."
       });
       return { success: false, message: "El archivo excede el tamaño máximo permitido" };
     }
     
-    // Validate file type (must be Excel)
+    // Validar tipo de archivo (debe ser Excel)
     const validExcelTypes = [
       'application/vnd.ms-excel',
       'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
@@ -39,8 +39,8 @@ export async function importServiciosData(
     const formData = new FormData();
     formData.append('file', file);
 
-    toast.info("Importando datos", { 
-      description: "Por favor espere mientras procesamos el archivo...",
+    toast.loading("Subiendo archivo", { 
+      description: "Por favor espere mientras subimos el archivo...",
       duration: 0,
       id: toastId
     });
@@ -49,7 +49,7 @@ export async function importServiciosData(
       onProgress("Preparando importación", 0, 0);
     }
 
-    // Get authentication token
+    // Obtener token de autenticación
     const { data, error: sessionError } = await supabase.auth.getSession();
     
     if (sessionError) {
@@ -82,50 +82,55 @@ export async function importServiciosData(
     }
     
     if (onProgress) {
-      onProgress("Subiendo archivo al servidor", 0, 0);
+      onProgress("Subiendo archivo al servidor", 0, file.size);
     }
     
-    // Set up abort controller with longer timeout for large files
+    // Configurar abort controller con timeout más largo para archivos grandes
     const abortController = new AbortController();
-    const timeoutId = setTimeout(() => abortController.abort(), 300000); // 5 minutes
+    // 10 minutos de timeout para subida de archivos grandes
+    const timeoutId = setTimeout(() => abortController.abort(), 10 * 60 * 1000);
     
     try {
-      // Start the import process
+      // Iniciar el proceso de importación
       const initialResponse = await callImportApi(formData, accessToken, abortController);
       clearTimeout(timeoutId);
       
       console.log("Initial import response:", initialResponse);
       
-      // If we have a progress ID, start polling for progress updates
+      // Si tenemos un ID de progreso, comenzar el polling para actualizaciones de progreso
       if (initialResponse.progressId && onProgress) {
-        // Set up progress polling
+        // Configurar polling de progreso
         let isComplete = false;
         let errorOccurred = false;
         
         console.log("Starting progress polling for ID:", initialResponse.progressId);
         
-        // Poll for progress updates every 3 seconds
+        // Consultar actualizaciones de progreso cada 3 segundos
         const pollInterval = setInterval(async () => {
           try {
             const progressData = await checkImportProgress(initialResponse.progressId!);
             console.log("Progress update:", progressData);
             
-            // Update progress callback with current status
+            // Actualizar callback de progreso con estado actual
             onProgress(
               progressData.message || "Procesando datos...", 
               progressData.processed, 
               progressData.total
             );
             
-            // Check for completion
-            if (progressData.status === 'completed') {
-              console.log("Import completed successfully");
+            // Verificar finalización
+            if (progressData.status === 'completed' || progressData.status === 'completed_with_errors') {
+              console.log(`Import completed${progressData.status === 'completed_with_errors' ? ' with errors' : ' successfully'}`);
               isComplete = true;
               clearInterval(pollInterval);
-              return;
+              
+              // Si se completó con errores, convertir el progreso a respuesta para obtener los errores
+              if (progressData.status === 'completed_with_errors') {
+                return;
+              }
             }
             
-            // Check for error status
+            // Verificar estado de error
             if (progressData.status === 'error') {
               console.error("Import failed:", progressData.message);
               errorOccurred = true;
@@ -137,26 +142,30 @@ export async function importServiciosData(
           }
         }, 3000);
         
-        // Wait for completion or timeout after 10 minutes
+        // Esperar la finalización o timeout después de 30 minutos
         let timeoutCounter = 0;
-        const maxTimeout = 200; // 10 minutes (200 * 3 seconds)
+        const maxTimeout = 600; // 30 minutos (600 * 3 segundos)
         
         return new Promise<ImportResponse>((resolve) => {
           const checkCompletion = setInterval(() => {
             timeoutCounter++;
             
-            // If complete, resolve with success
+            // Si completado, resolver con éxito
             if (isComplete) {
               clearInterval(checkCompletion);
-              resolve({ success: true, message: "Importación completada exitosamente" });
+              resolve({ 
+                success: true, 
+                message: "Importación completada exitosamente",
+                errors: initialResponse.errors
+              });
             } 
-            // If error occurred, resolve with error
+            // Si ocurrió un error, resolver con error
             else if (errorOccurred) {
               clearInterval(checkCompletion);
               clearInterval(pollInterval);
               resolve({ success: false, message: "Error durante la importación" });
             }
-            // If timed out, resolve with timeout error
+            // Si timeout, resolver con error de timeout
             else if (timeoutCounter >= maxTimeout) {
               clearInterval(checkCompletion);
               clearInterval(pollInterval);
@@ -169,7 +178,7 @@ export async function importServiciosData(
         });
       }
       
-      // If no progress ID, just handle the response directly
+      // Si no hay ID de progreso, manejar la respuesta directamente
       return handleImportResponse(initialResponse);
     } catch (fetchError) {
       clearTimeout(timeoutId);

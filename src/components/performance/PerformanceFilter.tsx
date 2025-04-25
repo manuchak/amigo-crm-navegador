@@ -12,7 +12,7 @@ import { Input } from "@/components/ui/input";
 import { importServiciosData } from './services/import/importService';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { AlertCircle } from "lucide-react";
+import { AlertCircle, FileWarning } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 
 interface PerformanceFilterProps {
@@ -29,87 +29,118 @@ export function PerformanceFilter({ dateRange, setDateRange }: PerformanceFilter
   const [totalRows, setTotalRows] = useState(0);
   const [processedRows, setProcessedRows] = useState(0);
   const [abortController, setAbortController] = useState<AbortController | null>(null);
+  const [showLargeFileWarning, setShowLargeFileWarning] = useState(false);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
 
-  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileSelected = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
-      // Cancel any ongoing import
-      if (abortController) {
-        abortController.abort();
-      }
+      setSelectedFile(file);
       
-      // Create a new abort controller for this import
-      const newAbortController = new AbortController();
-      setAbortController(newAbortController);
-      
-      setIsUploading(true);
-      setUploadProgress(5); // Start progress
-      setImportStatus('Analizando archivo...');
-      setImportErrors([]);
-      
-      try {
-        const result = await importServiciosData(
-          file, 
-          // Progress callback with improved status reporting
-          (status, processed, total) => {
-            setImportStatus(status);
-            
-            if (total > 0) {
-              setTotalRows(total);
-              setProcessedRows(processed);
-              
-              // Calculate progress with weighting - processing takes more time than validation
-              let calculatedProgress;
-              
-              if (status.includes("validando") || status.includes("Validando")) {
-                // Validation is 0-40% of the total progress
-                calculatedProgress = Math.min(40, Math.floor((processed / total) * 40));
-              } else {
-                // Importing is 40-95% of the total progress
-                calculatedProgress = 40 + Math.min(55, Math.floor((processed / total) * 55));
-              }
-              
-              setUploadProgress(calculatedProgress);
-            }
-          }
-        );
-        
-        if (result.success) {
-          setImportStatus('¡Importación completada!');
-          setUploadProgress(100);
-        } else {
-          setImportStatus('Error en la importación');
-          if (result.errors && result.errors.length > 0) {
-            setImportErrors(result.errors);
-            setShowErrorDialog(true);
-          }
-          setUploadProgress(0);
-        }
-        
-        // Reset the file input value so the same file can be uploaded again if needed
-        event.target.value = '';
-        
-        setTimeout(() => {
-          if (result.success) {
-            setUploadProgress(0);
-            setImportStatus('');
-          }
-        }, 3000); // Keep success message visible for 3 seconds
-        
-      } catch (error) {
-        console.error("Error handling file upload:", error);
-        setImportStatus('Error en la importación');
-        setUploadProgress(0);
-      } finally {
-        setIsUploading(false);
-        setAbortController(null);
-        // Reset the file input value
-        event.target.value = '';
+      // Mostrar advertencia si el archivo es mayor a 5 MB
+      if (file.size > 5 * 1024 * 1024) {
+        setShowLargeFileWarning(true);
+      } else {
+        handleImportFile(file);
       }
     }
   };
 
-  // Add a cancel import function
+  const handleImportFile = async (file: File) => {
+    // Cancelar cualquier importación en curso
+    if (abortController) {
+      abortController.abort();
+    }
+    
+    // Crear un nuevo controlador de aborto para esta importación
+    const newAbortController = new AbortController();
+    setAbortController(newAbortController);
+    
+    setIsUploading(true);
+    setUploadProgress(5); // Comenzar progress
+    setImportStatus('Analizando archivo...');
+    setImportErrors([]);
+    setShowLargeFileWarning(false);
+    
+    try {
+      const result = await importServiciosData(
+        file, 
+        // Progress callback con informes de estado mejorados
+        (status, processed, total) => {
+          setImportStatus(status);
+          
+          if (total > 0) {
+            setTotalRows(total);
+            setProcessedRows(processed);
+            
+            // Calcular progreso con ponderación - el procesamiento toma más tiempo que la validación
+            let calculatedProgress;
+            
+            if (status.includes("validando") || status.includes("Validando") || status.includes("Extrayendo")) {
+              // La validación es 0-30% del progreso total
+              calculatedProgress = Math.min(30, Math.floor((processed / total) * 30));
+            } else if (status.includes("Preparando")) {
+              calculatedProgress = 35;
+            } else {
+              // La importación es 35-95% del progreso total
+              if (processed === 0) {
+                calculatedProgress = 35; // Mantener en 35% si aún no ha comenzado a procesar
+              } else {
+                calculatedProgress = 35 + Math.min(60, Math.floor((processed / total) * 60));
+              }
+            }
+            
+            setUploadProgress(calculatedProgress);
+          }
+        }
+      );
+      
+      if (result.success) {
+        setImportStatus('¡Importación completada!');
+        setUploadProgress(100);
+        
+        // Si hay errores parciales pero la importación fue exitosa
+        if (result.errors && result.errors.length > 0) {
+          setImportErrors(result.errors);
+          setTimeout(() => {
+            setShowErrorDialog(true);
+          }, 1000);
+        }
+      } else {
+        setImportStatus('Error en la importación');
+        if (result.errors && result.errors.length > 0) {
+          setImportErrors(result.errors);
+          setShowErrorDialog(true);
+        }
+        setUploadProgress(0);
+      }
+      
+      setTimeout(() => {
+        if (result.success) {
+          // Mantener el mensaje de éxito más tiempo para archivos grandes
+          const delay = result.totalCount && result.totalCount > 10000 ? 5000 : 3000;
+          setTimeout(() => {
+            setUploadProgress(0);
+            setImportStatus('');
+            setIsUploading(false);
+          }, delay);
+        } else {
+          setIsUploading(false);
+        }
+      }, 1000);
+      
+    } catch (error) {
+      console.error("Error handling file upload:", error);
+      setImportStatus('Error en la importación');
+      setUploadProgress(0);
+      setIsUploading(false);
+    } finally {
+      setAbortController(null);
+      setSelectedFile(null);
+    }
+  };
+
+  // Agregar una función para cancelar la importación
   const handleCancelImport = () => {
     if (abortController) {
       abortController.abort();
@@ -117,6 +148,7 @@ export function PerformanceFilter({ dateRange, setDateRange }: PerformanceFilter
       setUploadProgress(0);
       setIsUploading(false);
       setAbortController(null);
+      setSelectedFile(null);
     }
   };
 
@@ -163,7 +195,7 @@ export function PerformanceFilter({ dateRange, setDateRange }: PerformanceFilter
               <Input
                 type="file"
                 accept=".xlsx,.xls"
-                onChange={handleFileUpload}
+                onChange={handleFileSelected}
                 className="hidden"
                 id="servicios-file-upload"
                 disabled={isUploading}
@@ -214,12 +246,47 @@ export function PerformanceFilter({ dateRange, setDateRange }: PerformanceFilter
         </CardContent>
       </Card>
 
+      {/* Diálogo de advertencia para archivos grandes */}
+      <Dialog open={showLargeFileWarning} onOpenChange={setShowLargeFileWarning}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <FileWarning className="h-5 w-5 text-yellow-600" />
+              Archivo grande detectado
+            </DialogTitle>
+            <DialogDescription>
+              Ha seleccionado un archivo de gran tamaño ({selectedFile ? (selectedFile.size / (1024 * 1024)).toFixed(2) : 0} MB). 
+              La importación puede tardar varios minutos y consumir recursos significativos.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="flex justify-end space-x-2 pt-4">
+            <Button variant="outline" onClick={() => setShowLargeFileWarning(false)}>
+              Cancelar
+            </Button>
+            <Button 
+              onClick={() => {
+                setShowLargeFileWarning(false);
+                if (selectedFile) {
+                  handleImportFile(selectedFile);
+                }
+              }}
+            >
+              Continuar con la importación
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Diálogo de errores */}
       <Dialog open={showErrorDialog} onOpenChange={setShowErrorDialog}>
         <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Errores de importación</DialogTitle>
             <DialogDescription>
-              Se encontraron errores en los siguientes registros del archivo Excel. Por favor corrija los errores y vuelva a cargar el archivo.
+              {importErrors.length > 0 && uploadProgress === 100 
+                ? "Se completó la importación pero se encontraron algunos errores. Los registros con errores no fueron importados."
+                : "Se encontraron errores en la importación. Por favor revise los detalles y vuelva a intentar."}
             </DialogDescription>
           </DialogHeader>
           
@@ -227,7 +294,9 @@ export function PerformanceFilter({ dateRange, setDateRange }: PerformanceFilter
             <AlertCircle className="h-4 w-4" />
             <AlertTitle>Se encontraron {importErrors.length} errores</AlertTitle>
             <AlertDescription>
-              Los datos no se importaron. Corrija los errores y vuelva a intentarlo.
+              {uploadProgress === 100 
+                ? "Algunos registros no se importaron correctamente. Revise los detalles a continuación."
+                : "Los datos no se importaron. Corrija los errores y vuelva a intentarlo."}
             </AlertDescription>
           </Alert>
 
@@ -235,15 +304,22 @@ export function PerformanceFilter({ dateRange, setDateRange }: PerformanceFilter
             <table className="w-full border-collapse">
               <thead>
                 <tr className="bg-muted">
-                  <th className="p-2 text-left">Fila</th>
+                  <th className="p-2 text-left">Lote/Fila</th>
                   <th className="p-2 text-left">Error</th>
                 </tr>
               </thead>
               <tbody>
                 {importErrors.map((error, index) => (
                   <tr key={index} className="border-b border-muted">
-                    <td className="p-2">{error.row}</td>
-                    <td className="p-2 text-destructive">{error.message}</td>
+                    <td className="p-2">{error.batch ? `Lote ${error.batch}` : error.row ? `Fila ${error.row}` : `Error ${index + 1}`}</td>
+                    <td className="p-2 text-destructive">
+                      {error.message}
+                      {error.details && (
+                        <div className="text-xs text-gray-600 mt-1">
+                          Detalles: {error.details}
+                        </div>
+                      )}
+                    </td>
                   </tr>
                 ))}
               </tbody>
