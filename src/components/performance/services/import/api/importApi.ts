@@ -34,6 +34,49 @@ async function initializeProgressTracking(fileSize: number): Promise<string> {
   }
 }
 
+// Nueva función para verificar conectividad con la función Edge
+export async function testEdgeFunctionConnection(): Promise<boolean> {
+  try {
+    console.log("Verificando conectividad con la función Edge...");
+    
+    const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+    if (sessionError || !sessionData.session) {
+      console.error("Error de sesión:", sessionError);
+      return false;
+    }
+    
+    const accessToken = sessionData.session.access_token;
+    
+    // Crear un nuevo AbortController con timeout más corto para prueba
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 5000);
+    
+    const apiUrl = 'https://beefjsdgrdeiymzxwxru.supabase.co/functions/v1/import-servicios-data';
+    const response = await fetch(apiUrl, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${accessToken}`,
+        'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJlZWZqc2RncmRlaXltenh3eHJ1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDI5MzI1OTQsImV4cCI6MjA1ODUwODU5NH0.knvlRdFYtN2bl3t3I4O8v3dU_MWKDDuaBZkvukdU87w',
+        'X-Test-Connection': 'true'
+      },
+      signal: controller.signal
+    });
+    
+    clearTimeout(timeoutId);
+    
+    if (response.ok) {
+      console.log("Conexión exitosa con la función Edge");
+      return true;
+    }
+    
+    console.error("Error conectando con la función Edge:", response.status);
+    return false;
+  } catch (error) {
+    console.error("Error verificando conectividad:", error);
+    return false;
+  }
+}
+
 export async function callImportApi(
   formData: FormData,
   accessToken: string,
@@ -53,6 +96,12 @@ export async function callImportApi(
     
     console.log(`Preparando subir archivo: ${file.name}, tamaño: ${file.size} bytes`);
     
+    // Verificar conectividad antes de iniciar el proceso
+    const isConnected = await testEdgeFunctionConnection();
+    if (!isConnected) {
+      console.warn("No se pudo establecer conexión con la función Edge. Intentando de todos modos...");
+    }
+    
     const progressId = await initializeProgressTracking(file.size);
     console.log(`ID de seguimiento de progreso creado: ${progressId}`);
     
@@ -61,63 +110,92 @@ export async function callImportApi(
     const apiUrl = 'https://beefjsdgrdeiymzxwxru.supabase.co/functions/v1/import-servicios-data';
     console.log(`Enviando solicitud a: ${apiUrl}`);
     
-    // Configurar un timeout más largo para el fetch debido al gran tamaño del archivo
-    const timeoutPromise = new Promise<never>((_, reject) => {
-      // 10 minutos para el fetch inicial (subida del archivo)
-      setTimeout(() => reject(new Error("Tiempo de espera excedido")), 10 * 60 * 1000);
-    });
+    // Implementación de reintentos progresivos para la solicitud principal
+    let retryCount = 0;
+    const maxRetries = 3;
     
-    // Combinar la solicitud fetch con el promise de timeout
-    const fetchPromise = fetch(
-      apiUrl,
-      {
-        method: 'POST',
-        body: formData,
-        signal: abortController.signal,
-        headers: {
-          'Authorization': `Bearer ${accessToken}`,
-          'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJlZWZqc2RncmRlaXltenh3eHJ1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDI5MzI1OTQsImV4cCI6MjA1ODUwODU5NH0.knvlRdFYtN2bl3t3I4O8v3dU_MWKDDuaBZkvukdU87w',
-          'X-Progress-ID': progressId
-        }
-      }
-    );
-    
-    // Esperar la primera respuesta o el timeout
-    const response = await Promise.race([fetchPromise, timeoutPromise]);
-    
-    console.log(`Estado de respuesta: ${response.status}`);
-    
-    if (!response.ok) {
-      let errorMessage = `Error del servidor: ${response.status}`;
+    while (retryCount <= maxRetries) {
       try {
-        const errorData = await response.json();
-        console.error("Detalles del error del servidor:", errorData);
-        if (errorData && errorData.message) {
-          errorMessage = errorData.message;
+        // Configurar un timeoutPromise más corto para detectar problemas de red
+        const timeoutPromise = new Promise<never>((_, reject) => {
+          // 3 minutos para el fetch inicial por intento
+          setTimeout(() => reject(new Error("Tiempo de espera excedido")), 3 * 60 * 1000);
+        });
+        
+        // Intentar la solicitud con backoff exponencial
+        const fetchPromise = fetch(
+          apiUrl,
+          {
+            method: 'POST',
+            body: formData,
+            signal: abortController.signal,
+            headers: {
+              'Authorization': `Bearer ${accessToken}`,
+              'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJlZWZqc2RncmRlaXltenh3eHJ1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDI5MzI1OTQsImV4cCI6MjA1ODUwODU5NH0.knvlRdFYtN2bl3t3I4O8v3dU_MWKDDuaBZkvukdU87w',
+              'X-Progress-ID': progressId
+            }
+          }
+        );
+        
+        // Esperar la primera respuesta o el timeout
+        const response = await Promise.race([fetchPromise, timeoutPromise]);
+        
+        console.log(`Estado de respuesta: ${response.status}`);
+        
+        if (!response.ok) {
+          let errorMessage = `Error del servidor: ${response.status}`;
+          try {
+            const errorData = await response.json();
+            console.error("Detalles del error del servidor:", errorData);
+            if (errorData && errorData.message) {
+              errorMessage = errorData.message;
+            }
+            
+            toast.error("Error en la importación", {
+              description: errorMessage
+            });
+          } catch (parseError) {
+            console.error("Error al analizar la respuesta de error:", parseError);
+          }
+          
+          if (response.status >= 500) {
+            // Si es un error del servidor, intentar de nuevo
+            console.log(`Reintentando (${retryCount + 1}/${maxRetries})...`);
+            retryCount++;
+            await new Promise(resolve => setTimeout(resolve, Math.pow(2, retryCount) * 1000)); // Backoff exponencial
+            continue;
+          }
+          
+          return { 
+            success: false, 
+            message: errorMessage,
+            progressId
+          };
+        }
+
+        const responseData = await response.json();
+        console.log("Respuesta exitosa de la API:", responseData);
+        
+        toast.success("Importación iniciada", {
+          description: "El archivo se está procesando"
+        });
+        
+        return { ...responseData, progressId };
+      } catch (fetchError) {
+        console.error(`Error en intento ${retryCount + 1}:`, fetchError);
+        
+        // Si es el último intento, lanzar el error
+        if (retryCount >= maxRetries) {
+          throw fetchError;
         }
         
-        toast.error("Error en la importación", {
-          description: errorMessage
-        });
-      } catch (parseError) {
-        console.error("Error al analizar la respuesta de error:", parseError);
+        // De lo contrario, aumentar contador y esperar con backoff exponencial
+        retryCount++;
+        await new Promise(resolve => setTimeout(resolve, Math.pow(2, retryCount) * 1000));
       }
-      
-      return { 
-        success: false, 
-        message: errorMessage,
-        progressId
-      };
     }
-
-    const responseData = await response.json();
-    console.log("Respuesta exitosa de la API:", responseData);
     
-    toast.success("Importación iniciada", {
-      description: "El archivo se está procesando"
-    });
-    
-    return { ...responseData, progressId };
+    throw new Error("Máximos reintentos alcanzados");
   } catch (error) {
     console.error("Error en la llamada de API:", error);
     
@@ -130,6 +208,8 @@ export async function callImportApi(
         errorDescription = "La operación fue cancelada";
       } else if (errorMessage.includes('tiempo') || errorMessage.includes('time')) {
         errorDescription = "La operación ha excedido el tiempo límite. El archivo puede ser demasiado grande.";
+      } else if (errorMessage.includes('fetch') || error.name === 'TypeError') {
+        errorDescription = "Error de conexión con la API. Verifique su conexión a internet o contacte al administrador.";
       }
     }
     

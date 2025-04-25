@@ -2,7 +2,7 @@
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { ProgressCallback, ImportResponse } from "./types";
-import { callImportApi, checkImportProgress } from "./api/importApi";
+import { callImportApi, checkImportProgress, testEdgeFunctionConnection } from "./api/importApi";
 import { handleImportError } from "./utils/errorHandler";
 import { handleImportResponse, progressToResponse } from "./utils/responseHandler";
 
@@ -42,6 +42,28 @@ export async function importServiciosData(
     const toastId = "import-toast";
     const formData = new FormData();
     formData.append('file', file);
+
+    toast.loading("Preparando importación", { 
+      description: "Verificando conexión con el servidor...",
+      duration: 0,
+      id: toastId
+    });
+
+    if (onProgress) {
+      onProgress("Verificando conexión con el servidor", 0, 0);
+    }
+    
+    // Verificar la conectividad con la función Edge antes de iniciar
+    const isConnected = await testEdgeFunctionConnection();
+    
+    if (!isConnected) {
+      toast.error("Error de conexión", {
+        description: "No se pudo conectar con el servidor de importación. Verifique su conexión a internet.",
+        id: toastId
+      });
+      
+      return { success: false, message: "Error de conectividad con el servidor de importación" };
+    }
 
     toast.loading("Subiendo archivo", { 
       description: "Por favor espere mientras subimos el archivo...",
@@ -89,13 +111,17 @@ export async function importServiciosData(
       onProgress("Subiendo archivo al servidor", 0, file.size);
     }
     
-    // Configurar abort controller con timeout más largo para archivos grandes
+    // Configurar abort controller con timeout más corto para archivos grandes
     const abortController = new AbortController();
-    // 10 minutos de timeout (reducido de 15 a 10 por las optimizaciones realizadas)
-    const timeoutId = setTimeout(() => abortController.abort(), 10 * 60 * 1000);
+    // 5 minutos de timeout
+    const timeoutId = setTimeout(() => {
+      console.warn("Timeout alcanzado, abortando operación");
+      abortController.abort();
+    }, 5 * 60 * 1000);
     
     try {
-      // Iniciar el proceso de importación
+      // Iniciar el proceso de importación con reintentos automáticos
+      console.log("Llamando a importar...");
       const initialResponse = await callImportApi(formData, accessToken, abortController);
       clearTimeout(timeoutId);
       
@@ -128,10 +154,21 @@ export async function importServiciosData(
               isComplete = true;
               clearInterval(pollInterval);
               
-              // Si se completó con errores, convertir el progreso a respuesta para obtener los errores
-              if (progressData.status === 'completed_with_errors') {
-                return;
+              // Mostrar mensaje de éxito/advertencia según corresponda
+              if (progressData.status === 'completed') {
+                toast.success("Importación completada", {
+                  description: progressData.message || "Los datos se han importado exitosamente",
+                  id: toastId
+                });
+              } else {
+                toast.warning("Importación completada con errores", {
+                  description: progressData.message || "Algunos registros no pudieron ser importados",
+                  id: toastId
+                });
               }
+              
+              // Si se completó con errores, convertir el progreso a respuesta para obtener los errores
+              return;
             }
             
             // Verificar estado de error
@@ -154,9 +191,9 @@ export async function importServiciosData(
           }
         }, 5000);
         
-        // Esperar la finalización o timeout después de 30 minutos (reducido de 45 minutos por optimizaciones)
+        // Esperar la finalización o timeout después de 20 minutos
         let timeoutCounter = 0;
-        const maxTimeout = 360; // 30 minutos (360 * 5 segundos)
+        const maxTimeout = 240; // 20 minutos (240 * 5 segundos)
         
         return new Promise<ImportResponse>((resolve) => {
           const checkCompletion = setInterval(() => {
@@ -165,10 +202,6 @@ export async function importServiciosData(
             // Si completado, resolver con éxito
             if (isComplete) {
               clearInterval(checkCompletion);
-              toast.success("Importación completada", {
-                description: "Los datos se han importado exitosamente",
-                id: toastId
-              });
               resolve({ 
                 success: true, 
                 message: "Importación completada exitosamente",
@@ -179,10 +212,6 @@ export async function importServiciosData(
             else if (errorOccurred) {
               clearInterval(checkCompletion);
               clearInterval(pollInterval);
-              toast.error("Error en la importación", {
-                description: "Se produjo un error durante el proceso de importación",
-                id: toastId
-              });
               resolve({ success: false, message: "Error durante la importación" });
             }
             // Si timeout, resolver con error de timeout
@@ -203,7 +232,7 @@ export async function importServiciosData(
       }
       
       // Si no hay ID de progreso, manejar la respuesta directamente
-      return handleImportResponse(initialResponse);
+      return handleImportResponse(initialResponse, toastId);
     } catch (fetchError) {
       clearTimeout(timeoutId);
       return handleImportError(fetchError, toastId);

@@ -11,33 +11,47 @@ import { processExcelFileStream } from './lib/excelFileProcessor.ts'
 
 // Configuraciones de procesamiento extremadamente conservadoras para evitar errores de recursos
 const BATCH_CONFIG = {
-  batchSize: 10,             // Reducido drásticamente de 20 a 10 para disminuir el consumo de memoria por lote
-  processingDelay: 500,      // Aumentado de 200ms a 500ms para dar más tiempo al GC entre lotes
-  maxProcessingTime: 20 * 60 * 1000, // 20 minutos en ms (reducido de 25 minutos para mejor detección de timeout)
-  backoffFactor: 2,          // Aumentado para retrocesos más agresivos
-  maxRetries: 5,             // Aumentado de 3 a 5 para más reintentos
-  initialBackoff: 2000,      // Aumentado de 1000ms a 2000ms
-  memoryThreshold: 0.70      // Reducido de 0.85 a 0.70 para activar GC más temprano
+  batchSize: 5,              // Reducido aún más a 5 para minimizar consumo de memoria por lote
+  processingDelay: 1000,     // Aumentado a 1000ms para dar más tiempo al GC entre lotes
+  maxProcessingTime: 10 * 60 * 1000, // 10 minutos en ms (reducido para detectar timeout más rápido)
+  backoffFactor: 3,          // Aumentado para retrocesos más agresivos
+  maxRetries: 7,             // Aumentado para más reintentos
+  initialBackoff: 3000,      // Aumentado para dar más tiempo entre reintentos
+  memoryThreshold: 0.65      // Reducido para activar GC más temprano
 };
 
 // Iniciar monitoreo de memoria temprano
-initializeMemoryUsageMonitoring();
-
-// Establecer un límite bajo para la memoria heap
-Deno.env.set("NO_COLOR", "1"); // Desactivar colores en logs para ahorrar memoria
+// No se puede usar Deno.env.set en Edge Functions, eliminando esta línea
 reportMemoryUsage("Inicio del servicio");
 
 Deno.serve(async (req) => {
+  // Manejo de CORS mejorado
   if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders });
+    return new Response('ok', { 
+      headers: { 
+        ...corsHeaders,
+        'Access-Control-Max-Age': '86400', // Caché para preflight requests - 24 horas
+      } 
+    });
   }
 
   try {
-    console.log("Iniciando proceso de importación con configuración optimizada");
+    console.log("Iniciando proceso de importación con configuración ultra-optimizada");
     reportMemoryUsage("Antes de iniciar proceso");
     
     const progressId = req.headers.get('X-Progress-ID');
     console.log(`ID de progreso: ${progressId || 'ninguno'}`);
+    
+    // Verificar si es una petición de prueba/heartbeat
+    if (req.headers.get('X-Test-Connection') === 'true') {
+      return new Response(
+        JSON.stringify({ 
+          success: true, 
+          message: 'Conexión exitosa con la función Edge' 
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
     
     const supabaseClient = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
@@ -50,7 +64,24 @@ Deno.serve(async (req) => {
       progressId
     );
     
-    const formData = await req.formData();
+    // Verificar si tenemos formData
+    let formData;
+    try {
+      formData = await req.formData();
+    } catch (formError) {
+      console.error('Error al procesar formData:', formError);
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          message: 'Error al procesar los datos del formulario' 
+        }),
+        { 
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+          status: 400 
+        }
+      );
+    }
+    
     const file = formData.get('file') as File;
     
     if (!file) {
@@ -66,7 +97,7 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Validar el archivo
+    // Validar el archivo con un límite más estricto
     const validation = validateFile(file);
     if (!validation.isValid) {
       return new Response(
@@ -89,7 +120,7 @@ Deno.serve(async (req) => {
     
     reportMemoryUsage("Antes de procesar Excel");
     
-    // Usar el nuevo procesador de Excel basado en streaming
+    // Usar el procesador de Excel basado en streaming con micro-lotes
     const processingResult = await processExcelFileStream(
       file, 
       progressManager, 
@@ -107,11 +138,16 @@ Deno.serve(async (req) => {
     );
     
   } catch (error) {
-    console.error('Error no controlado:', error);
+    console.error('Error crítico no controlado:', error);
+    
+    // Respuesta mejorada para errores
     return new Response(
       JSON.stringify({ 
         success: false,
-        message: 'Error en el procesamiento: ' + error.message
+        message: 'Error en el procesamiento de la importación', 
+        error: error.message,
+        stack: error.stack,
+        timestamp: new Date().toISOString()
       }),
       { 
         status: 500,

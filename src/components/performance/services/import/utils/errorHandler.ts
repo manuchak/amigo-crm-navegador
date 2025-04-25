@@ -18,7 +18,9 @@ export function handleImportError(error: unknown, toastId: string): ImportRespon
       };
     }
     
-    if (error.message.includes('NetworkError') || error.message.includes('Failed to fetch')) {
+    if (error.message.includes('NetworkError') || 
+        error.message.includes('Failed to fetch') ||
+        error.name === 'TypeError') {
       toast.error("Error de conexión", {
         description: "No se pudo conectar con el servidor. Por favor, verifique su conexión e intente nuevamente.",
         id: toastId

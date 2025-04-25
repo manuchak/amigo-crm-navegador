@@ -1,5 +1,8 @@
 
+// Encabezados CORS ampliados para garantizar compatibilidad
 export const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-progress-id',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-progress-id, x-test-connection',
+  'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
+  'Access-Control-Expose-Headers': 'content-length, content-type'
 };

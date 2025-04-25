@@ -1,10 +1,10 @@
 
 export function validateFile(file: File): { isValid: boolean; message?: string } {
-  // Validar tamaño de archivo (reducido a 15MB para evitar problemas de recursos)
-  if (file.size > 15 * 1024 * 1024) {
+  // Validar tamaño de archivo (reducido a 10MB para evitar problemas de recursos)
+  if (file.size > 10 * 1024 * 1024) {
     return {
       isValid: false,
-      message: "El archivo excede el tamaño máximo permitido de 15 MB. Por favor divida el archivo en partes más pequeñas."
+      message: "El archivo excede el tamaño máximo permitido de 10 MB. Por favor divida el archivo en partes más pequeñas."
     };
   }
   
