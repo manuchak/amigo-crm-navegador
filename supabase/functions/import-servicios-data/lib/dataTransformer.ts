@@ -1,366 +1,218 @@
 
-// Función para transformar los datos de una fila del Excel a un objeto compatible con la base de datos
-import { knownNumericColumns, knownBooleanColumns } from './columnMapping.ts';
+// Transforma datos del Excel a formato compatible con la base de datos
+export function transformRowData(row: any, columnMapping: Record<string, string>): Record<string, any> {
+  const transformedRow: Record<string, any> = {};
 
-export function transformRowData(row: any, headerMapping: Record<string, string>): Record<string, any> {
-  // Crear un objeto para almacenar los datos transformados
-  const transformedData: Record<string, any> = {};
-  
-  // Variable para contar cuántos campos útiles se han encontrado
-  let fieldCount = 0;
-  
-  // Mapa de correcciones para nombres de columnas que no coinciden con la BD
-  const columnCorrections: Record<string, string> = {
-    'cobro_al_cliente': 'cobro_cliente',
-  };
-  
-  // Mapeo de valores de texto a booleanos para campos booleanos
-  const trueBooleanValues = ['si', 'sí', 'true', 'yes', 'armado', 'verdadero', '1', 'active', 'activo'];
-  const falseBooleanValues = ['no', 'false', 'desarmado', 'falso', '0', 'inactive', 'inactivo'];
-  
-  // Para debugging
-  console.log(`Transformando fila con datos iniciales:`, JSON.stringify(row).substring(0, 300));
-  
-  // Recorrer cada entrada en el objeto row (cada columna del Excel)
-  for (const [excelColumn, value] of Object.entries(row)) {
-    // Buscar el nombre de columna correspondiente en la base de datos
-    let dbColumn = headerMapping[excelColumn];
-    
-    // Si existe un mapeo válido
-    if (dbColumn) {
-      // Verificar si el nombre de columna necesita corrección
-      if (dbColumn in columnCorrections) {
-        const originalColumn = dbColumn;
-        dbColumn = columnCorrections[dbColumn];
-        console.log(`Corrigiendo nombre de columna: ${originalColumn} -> ${dbColumn}`);
-      }
-      
-      // Ignorar explícitamente columnas problemáticas conocidas
-      if (dbColumn === 'cantidad_de_transportes') {
-        console.log(`Ignorando columna problemática: ${excelColumn} -> ${dbColumn}`);
-        continue;
-      }
-      
-      // Verificar que el valor no sea undefined, null o cadena vacía
-      if (value !== undefined && value !== null && value !== '') {
-        fieldCount++; // Incrementar contador de campos no vacíos
+  // Recorrer cada campo del mapeo de columnas
+  Object.entries(columnMapping).forEach(([excelColumn, dbColumn]) => {
+    if (row[excelColumn] !== undefined && row[excelColumn] !== null) {
+      let value = row[excelColumn];
+
+      // Limpieza y normalización de valores
+      if (typeof value === 'string') {
+        // Eliminar espacios en blanco extras
+        value = value.trim();
         
-        console.log(`Procesando campo [${excelColumn} -> ${dbColumn}] con valor:`, value, typeof value);
-        
-        // Detectar si el campo es booleano por su nombre
-        const isLikelyBoolean = knownBooleanColumns.includes(dbColumn.toLowerCase());
-        
-        // Detectar si el campo es numérico por su nombre
-        const isLikelyNumeric = knownNumericColumns.includes(dbColumn.toLowerCase());
-        
-        // Determinar el tipo de dato y transformar apropiadamente
-        if (isLikelyBoolean) {
-          // Convertir valores de texto a booleanos
-          if (typeof value === 'string') {
-            const lowerValue = value.toLowerCase();
-            if (trueBooleanValues.includes(lowerValue)) {
-              transformedData[dbColumn] = true;
-              console.log(`Convertido valor '${value}' a boolean true para campo ${dbColumn}`);
-            } else if (falseBooleanValues.includes(lowerValue)) {
-              transformedData[dbColumn] = false;
-              console.log(`Convertido valor '${value}' a boolean false para campo ${dbColumn}`);
-            } else {
-              // Si no se puede determinar, omitir para usar el valor predeterminado
-              console.log(`Valor '${value}' no reconocido como booleano, omitiendo campo ${dbColumn}`);
-            }
-          } else if (typeof value === 'boolean') {
-            transformedData[dbColumn] = value;
-            console.log(`Mantenido valor booleano ${value} para campo ${dbColumn}`);
-          } else if (typeof value === 'number') {
-            transformedData[dbColumn] = value !== 0;
-            console.log(`Convertido valor numérico ${value} a boolean ${value !== 0} para campo ${dbColumn}`);
-          }
-        } else if (isLikelyNumeric) {
-          // Asegurarse de que los valores numéricos se conviertan correctamente
-          try {
-            // Si es una cadena tipo "1,234.56" o "1.234,56", limpiarla primero
-            if (typeof value === 'string') {
-              // Eliminar signos de moneda y separadores de miles
-              let cleanedValue = value
-                .replace(/[$€£¥]/g, '')
-                .replace(/\s/g, '');
-                
-              // Detectar formato europeo (1.234,56) vs americano (1,234.56)
-              if (cleanedValue.includes(',') && cleanedValue.includes('.')) {
-                // Si tiene ambos, determinamos el formato por la posición
-                const lastCommaPos = cleanedValue.lastIndexOf(',');
-                const lastDotPos = cleanedValue.lastIndexOf('.');
-                
-                if (lastDotPos > lastCommaPos) {
-                  // Formato americano: eliminar comas
-                  cleanedValue = cleanedValue.replace(/,/g, '');
-                } else {
-                  // Formato europeo: convertir a formato americano
-                  cleanedValue = cleanedValue.replace(/\./g, '').replace(/,/g, '.');
-                }
-              } else if (cleanedValue.includes(',')) {
-                // Asumimos formato europeo - reemplazar coma por punto
-                cleanedValue = cleanedValue.replace(/,/g, '.');
-              }
-                
-              const numericValue = parseFloat(cleanedValue);
-              if (!isNaN(numericValue)) {
-                transformedData[dbColumn] = numericValue;
-                console.log(`Convertido valor string '${value}' a número ${numericValue} para campo ${dbColumn}`);
-              } else {
-                // Si el valor es un encabezado de columna, lo omitimos
-                if (typeof value === 'string' && 
-                    (value.toLowerCase().includes('casetas') || 
-                     value.toLowerCase().includes('cobro') ||
-                     value.toLowerCase().includes('costo'))) {
-                  console.log(`Ignorando valor de encabezado '${value}' para campo numérico ${dbColumn}`);
-                  continue;
-                }
-                console.log(`No se pudo convertir valor '${value}' a número para campo ${dbColumn}, omitiendo`);
-              }
-            } else if (typeof value === 'number') {
-              transformedData[dbColumn] = value;
-              console.log(`Mantenido valor numérico ${value} para campo ${dbColumn}`);
-            } else {
-              // Si no es string ni número, intentar convertir a número de todas formas
-              const numericValue = Number(value);
-              if (!isNaN(numericValue)) {
-                transformedData[dbColumn] = numericValue;
-                console.log(`Convertido valor de tipo ${typeof value} a número ${numericValue} para campo ${dbColumn}`);
-              } else {
-                console.log(`No se pudo convertir valor de tipo ${typeof value} a número para campo ${dbColumn}, omitiendo`);
-              }
-            }
-          } catch (error) {
-            console.error(`Error al convertir valor para campo numérico ${dbColumn}:`, error);
-          }
-        } else if (typeof value === 'string') {
-          transformedData[dbColumn] = value.trim();
-        } else if (typeof value === 'number') {
-          transformedData[dbColumn] = value;
-        } else if (value instanceof Date) {
-          // Para valores de fecha, convertir a ISO string
-          try {
-            transformedData[dbColumn] = value.toISOString();
-          } catch (e) {
-            console.warn(`Error al convertir fecha para ${dbColumn}: ${e.message}`);
-          }
-        } else if (typeof value === 'boolean') {
-          transformedData[dbColumn] = value;
-        } else {
-          // Para cualquier otro tipo, intentar convertir a string sin perder datos
-          try {
-            // Si parece ser una fecha en formato de número de Excel
-            if (typeof value === 'object' && value !== null && 'getMonth' in value) {
-              try {
-                transformedData[dbColumn] = new Date(value).toISOString();
-              } catch (e) {
-                console.warn(`Error al convertir objeto fecha: ${e.message}`);
-              }
-            } else {
-              const stringValue = String(value).trim();
-              if (stringValue && stringValue !== 'null' && stringValue !== 'undefined') {
-                transformedData[dbColumn] = stringValue;
-              }
-            }
-          } catch (e) {
-            console.warn(`No se pudo convertir valor para ${dbColumn}: ${e.message}`);
-          }
+        // Si es una cadena vacía después del trim, no incluir
+        if (value === '') {
+          return;
         }
-      } else {
-        // Para valores null/undefined, no asignar nada para que el valor predeterminado 
-        // de la base de datos se aplique (si existe)
-        console.log(`Valor vacío para columna ${dbColumn}, se omitirá`);
+        
+        // Si es un encabezado de columna, no incluir
+        if (value.includes('Fecha') || value.includes('fecha') || 
+            value.includes('Hora') || value.includes('hora') || 
+            value.includes('Nombre') || value.includes('nombre') ||
+            value.includes('ID') || value.includes('Id')) {
+          return;
+        }
       }
-    } else {
-      console.log(`No se encontró mapeo para columna Excel '${excelColumn}'`);
-    }
-  }
-  
-  // Solo añadir campos de control si tenemos datos útiles
-  if (fieldCount > 0) {
-    // Añadir campos de control y auditoría
-    transformedData.created_at = new Date().toISOString();
-    transformedData.updated_at = new Date().toISOString();
-    
-    // Logging para depurar - Mostrar los datos transformados
-    console.log(`Transformada fila con ${fieldCount} campos útiles:`, JSON.stringify(transformedData).substring(0, 500));
-    
-    // Validar que cobro_cliente y casetas sean números si existen
-    if ('cobro_cliente' in transformedData && typeof transformedData.cobro_cliente !== 'number') {
-      console.warn(`Tipo incorrecto para cobro_cliente: ${typeof transformedData.cobro_cliente}, transformando a número`);
-      const numValue = parseFloat(transformedData.cobro_cliente);
-      if (!isNaN(numValue)) {
-        transformedData.cobro_cliente = numValue;
-      } else {
-        console.warn(`No se pudo convertir cobro_cliente a número, eliminando campo`);
-        delete transformedData.cobro_cliente;
-      }
-    }
-    
-    if ('casetas' in transformedData && typeof transformedData.casetas !== 'number') {
-      console.warn(`Tipo incorrecto para casetas: ${typeof transformedData.casetas}, transformando a número`);
-      const numValue = parseFloat(transformedData.casetas);
-      if (!isNaN(numValue)) {
-        transformedData.casetas = numValue;
-      } else {
-        console.warn(`No se pudo convertir casetas a número, eliminando campo`);
-        delete transformedData.casetas;
-      }
-    }
-    
-    // Validación adicional para fechas
-    if ('fecha_primer_servicio' in transformedData && 
-        (transformedData.fecha_primer_servicio === 'Fecha primer servicio' || 
-         typeof transformedData.fecha_primer_servicio === 'string' && 
-         !transformedData.fecha_primer_servicio.match(/^\d{4}-\d{2}-\d{2}/)
-        )) {
-      console.warn(`Detectado valor inválido para fecha_primer_servicio: ${transformedData.fecha_primer_servicio}, eliminando`);
-      delete transformedData.fecha_primer_servicio;
-    }
-    
-    return transformedData;
-  } else {
-    console.warn("¡Fila sin datos útiles detectada! No se insertará.");
-    return {}; // Devolver objeto vacío para que se filtre después
-  }
-}
 
-// Función para transformar los nombres de las columnas del Excel a nombres de columnas en la BD
-export function mapColumnNames(excelColumns: string[]): Record<string, string> {
-  const columnMapping: Record<string, string> = {};
-  
-  const commonMappings: Record<string, string> = {
-    // Fecha y manifiestos
-    'Fecha': 'fecha_servicio',
-    'Fecha de Servicio': 'fecha_servicio', 
-    'Número de Manifiesto': 'numero_manifiesto',
-    'Manifiesto': 'numero_manifiesto',
-    'No. de Manifiesto': 'numero_manifiesto',
-    'Nro. Manifiesto': 'numero_manifiesto',
-    
-    // Cliente y custodio
-    'Cliente': 'nombre_cliente',
-    'Nombre del Cliente': 'nombre_cliente',
-    'Custodio': 'nombre_custodio',
-    'Nombre del Custodio': 'nombre_custodio',
-    
-    // Unidad y kilometraje
-    'Unidad': 'unidad',
-    'Vehículo': 'unidad',
-    'ID Unidad': 'unidad',
-    'No. Unidad': 'unidad',
-    'Kilometraje': 'km_recorridos',
-    'KM': 'km_recorridos',
-    'KM Recorrido': 'km_recorridos',
-    'Km': 'km_recorridos',
-    
-    // Origen y destino
-    'Origen': 'origen',
-    'Ciudad Origen': 'origen',
-    'Destino': 'destino',
-    'Ciudad Destino': 'destino',
-    
-    // Tipo de servicio
-    'Servicio': 'tipo_servicio',
-    'Servicios': 'tipo_servicio',
-    'Tipo de Servicio': 'tipo_servicio',
-    'Tipo Servicio': 'tipo_servicio',
-    
-    // Importe y estatus
-    'Importe': 'cobro_cliente',
-    'Monto': 'cobro_cliente',
-    'Costo': 'cobro_cliente',
-    'Precio': 'cobro_cliente',
-    'Cobro al cliente': 'cobro_cliente', // Corregido para coincidir con la columna en la BD
-    
-    // Estado y armado
-    'Estatus': 'estado',
-    'Estado': 'estado',
-    'Armado': 'armado', // Campo booleano
-    'Es Armado': 'armado',
-    
-    // Campos adicionales que pueden estar presentes
-    'Fecha Inicio': 'fecha_hora_asignacion',
-    'Hora Inicio': 'hora_inicio_custodia',
-    'Hora Fin': 'hora_finalizacion',
-    'Observaciones': 'comentarios_adicionales',
-    'Comentarios': 'comentarios_adicionales',
-    'Notas': 'comentarios_adicionales'
-  };
-  
-  // Lista de columnas inválidas o problemáticas que deben ser ignoradas
-  const invalidColumns = ['cantidad_de_transportes', 'null', 'undefined', ''];
-  
-  // Correcciones para nombres de columnas conocidos como problemáticos
-  const columnCorrections: Record<string, string> = {
-    'cobro_al_cliente': 'cobro_cliente',
-  };
-  
-  // Mostrar encabezados para debugging
-  console.log("Encabezados detectados:", JSON.stringify(excelColumns));
-  
-  // Iterar sobre los encabezados encontrados y mapearlos
-  excelColumns.forEach(column => {
-    // Ignorar columnas vacías o sin valor
-    if (column === null || column === undefined || column === '') {
-      console.log(`Ignorando columna por no tener nombre de encabezado`);
-      return;
-    }
-    
-    // Normalizar el nombre de la columna 
-    const normalizedColumn = column.trim();
-    console.log(`Procesando encabezado: "${normalizedColumn}"`);
-    
-    // Ignorar columnas problemáticas explícitamente
-    if (invalidColumns.includes(normalizedColumn.toLowerCase())) {
-      console.log(`Ignorando columna problemática: ${normalizedColumn}`);
-      return;
-    }
-    
-    // Casos especiales de mapeo que requieren corrección
-    if (normalizedColumn === 'Cobro al cliente' || normalizedColumn === 'Cobro al Cliente') {
-      columnMapping[column] = 'cobro_cliente'; // Usar el nombre correcto de la columna
-      console.log(`Mapeo especial: ${normalizedColumn} -> cobro_cliente`);
-      return;
-    }
-    
-    // Buscar en mapeos comunes
-    if (commonMappings[normalizedColumn]) {
-      columnMapping[column] = commonMappings[normalizedColumn];
-      console.log(`Mapeo encontrado: ${normalizedColumn} -> ${commonMappings[normalizedColumn]}`);
-    } else {
-      // Si no encuentra mapeo, usar una versión normalizada del nombre de la columna
-      // Convertir "Nombre de Columna" a "nombre_de_columna"
-      let dbColumnName = normalizedColumn
-        .toLowerCase()
-        .replace(/\s+/g, '_')
-        .replace(/[^a-z0-9_]/g, '');
-      
-      // Verificar si el nombre de columna generado es válido
-      if (dbColumnName && !invalidColumns.includes(dbColumnName)) {
-        columnMapping[column] = dbColumnName;
-        console.log(`Mapeo generado: ${normalizedColumn} -> ${dbColumnName}`);
-      } else {
-        console.log(`Ignorando columna con nombre inválido: ${normalizedColumn}`);
+      // Conversión de tipos específicos según el nombre de columna
+      if (dbColumn.includes('fecha') && typeof value === 'string') {
+        try {
+          const dateValue = new Date(value);
+          if (!isNaN(dateValue.getTime())) {
+            transformedRow[dbColumn] = dateValue.toISOString();
+          }
+        } catch (e) {
+          // Si falla la conversión, no incluir el campo
+          console.log(`Error al convertir fecha: ${value} para columna ${dbColumn}`);
+        }
+      }
+      else if (dbColumn.includes('hora') && typeof value === 'string') {
+        // No procesar si parece ser un encabezado
+        if (value.toLowerCase().includes('hora')) {
+          return;
+        }
+        transformedRow[dbColumn] = value;
+      }
+      // Campos numéricos
+      else if (
+        dbColumn.includes('km') || 
+        dbColumn.includes('costo') || 
+        dbColumn.includes('cobro') || 
+        dbColumn.includes('casetas')
+      ) {
+        if (typeof value === 'string') {
+          // Limpiar formato numérico
+          const cleanValue = value.replace(/[^0-9.-]/g, '');
+          if (cleanValue !== '') {
+            const numValue = parseFloat(cleanValue);
+            if (!isNaN(numValue)) {
+              transformedRow[dbColumn] = numValue;
+            }
+          }
+        } else if (typeof value === 'number') {
+          transformedRow[dbColumn] = value;
+        }
+      }
+      // Campos booleanos
+      else if (dbColumn.includes('armado')) {
+        if (typeof value === 'string') {
+          transformedRow[dbColumn] = 
+            value.toLowerCase() === 'si' || 
+            value.toLowerCase() === 'sí' || 
+            value.toLowerCase() === 'true' || 
+            value === '1';
+        } else if (typeof value === 'boolean') {
+          transformedRow[dbColumn] = value;
+        } else if (typeof value === 'number') {
+          transformedRow[dbColumn] = value === 1;
+        }
+      }
+      // Otros campos (texto, etc.)
+      else {
+        transformedRow[dbColumn] = value;
       }
     }
   });
+
+  return transformedRow;
+}
+
+// Mapea nombres de columnas del Excel a columnas de la base de datos
+export function mapColumnNames(headerNames: string[]): Record<string, string> {
+  const columnMapping: Record<string, string> = {};
   
-  // Verificación final de mapeos
-  console.log(`Mapeo final de columnas: ${JSON.stringify(columnMapping)}`);
+  // Mapa de normalización de acentos y caracteres especiales
+  const normalizeMap: Record<string, string> = {
+    'á': 'a', 'é': 'e', 'í': 'i', 'ó': 'o', 'ú': 'u',
+    'ü': 'u', 'ñ': 'n', 'Á': 'A', 'É': 'E', 'Í': 'I',
+    'Ó': 'O', 'Ú': 'U', 'Ü': 'U', 'Ñ': 'N'
+  };
   
-  // Verificar si tenemos al menos las columnas mínimas necesarias
-  const requiredColumns = ['nombre_cliente', 'fecha_servicio', 'tipo_servicio'];
-  const foundRequiredColumns = requiredColumns.filter(col => Object.values(columnMapping).includes(col));
+  // Función para normalizar texto (eliminar acentos)
+  const normalizeText = (text: string): string => {
+    return text.split('').map(char => normalizeMap[char] || char).join('');
+  };
+
+  // Mapeo manual de columnas comunes del Excel a la base de datos
+  const knownMappings: Record<string, string> = {
+    // Mapeos exactos
+    'id': 'id',
+    'id del servicio': 'id_servicio',
+    'id servicio': 'id_servicio',
+    'id cotización': 'id_cotizacion',
+    'id cotizacion': 'id_cotizacion',
+    'gm transport id': 'gm_transport_id',
+    'estado': 'estado',
+    'nombre cliente': 'nombre_cliente',
+    'nombre del cliente': 'nombre_cliente',
+    'folio cliente': 'folio_cliente',
+    'folio del cliente': 'folio_cliente',
+    'comentarios adicionales': 'comentarios_adicionales',
+    'comentarios': 'comentarios_adicionales',
+    'local/foráneo': 'local_foraneo',
+    'local/foraneo': 'local_foraneo',
+    'ruta': 'ruta',
+    'tipo de servicio': 'tipo_servicio',
+    'tipo servicio': 'tipo_servicio',
+    'nombre custodio': 'nombre_custodio',
+    'nombre de custodio': 'nombre_custodio',
+    'origen': 'origen',
+    'destino': 'destino',
+    'teléfono': 'telefono',
+    'telefono': 'telefono',
+    'contacto emergencia': 'contacto_emergencia',
+    'contacto de emergencia': 'contacto_emergencia',
+    'creado por': 'creado_por',
+    'teléfono emergencia': 'telefono_emergencia',
+    'telefono emergencia': 'telefono_emergencia',
+    'auto': 'auto',
+    'placa': 'placa',
+    'nombre armado': 'nombre_armado',
+    'teléfono armado': 'telefono_armado',
+    'telefono armado': 'telefono_armado',
+    'fecha y hora de cita': 'fecha_hora_cita',
+    'fecha hora cita': 'fecha_hora_cita',
+    'fecha_hora_cita': 'fecha_hora_cita',
+    'km teórico': 'km_teorico',
+    'km teorico': 'km_teorico',
+    'cantidad transportes': 'cantidad_transportes',
+    'fecha y hora asignación': 'fecha_hora_asignacion',
+    'fecha hora asignación': 'fecha_hora_asignacion',
+    'fecha_hora_asignacion': 'fecha_hora_asignacion',
+    'armado': 'armado',
+    'hora presentación': 'hora_presentacion',
+    'hora presentacion': 'hora_presentacion',
+    'tiempo retraso': 'tiempo_retraso',
+    'hora inicio custodia': 'hora_inicio_custodia',
+    'tiempo punto origen': 'tiempo_punto_origen',
+    'hora arribo': 'hora_arribo',
+    'hora finalización': 'hora_finalizacion',
+    'hora finalizacion': 'hora_finalizacion',
+    'duración servicio': 'duracion_servicio',
+    'duracion servicio': 'duracion_servicio',
+    'tiempo estimado': 'tiempo_estimado',
+    'km recorridos': 'km_recorridos',
+    'km extras': 'km_extras',
+    'costo custodio': 'costo_custodio',
+    'casetas': 'casetas',
+    'cobro cliente': 'cobro_cliente',
+    'fecha contratación': 'fecha_contratacion',
+    'fecha contratacion': 'fecha_contratacion',
+    'fecha primer servicio': 'fecha_primer_servicio',
+    'id custodio': 'id_custodio'
+  };
   
-  if (foundRequiredColumns.length === 0) {
-    console.warn('ADVERTENCIA: No se encontraron columnas esenciales en el mapeo. Esto puede causar datos NULL.');
-    console.warn('Columnas requeridas:', requiredColumns);
-    console.warn('Columnas encontradas:', Object.values(columnMapping));
-  } else {
-    console.log(`Se encontraron ${foundRequiredColumns.length}/${requiredColumns.length} columnas requeridas`);
-  }
+  // Iterar por cada nombre de columna en el Excel
+  headerNames.forEach(originalHeader => {
+    if (originalHeader === null || originalHeader === undefined) return;
+    
+    // Normalizar el encabezado (todo minúsculas, sin acentos)
+    let header = typeof originalHeader === 'string' ? 
+                 normalizeText(originalHeader.toLowerCase().trim()) : 
+                 String(originalHeader).toLowerCase().trim();
+    
+    // Verificar si existe un mapeo conocido
+    let dbColumn = knownMappings[header];
+    
+    // Si no hay mapeo directo, intentar con el encabezado original por si tiene acentos
+    if (!dbColumn && typeof originalHeader === 'string') {
+      dbColumn = knownMappings[originalHeader.toLowerCase().trim()];
+    }
+    
+    // Si encontramos un mapeo, agregarlo
+    if (dbColumn) {
+      columnMapping[originalHeader] = dbColumn;
+      return;
+    }
+    
+    // Intentar generar un nombre de columna basado en el encabezado
+    let generatedColumn = header
+      .replace(/[^a-z0-9_]/g, '_') // Reemplazar caracteres no alfanuméricos por guiones bajos
+      .replace(/_+/g, '_')         // Reemplazar múltiples guiones bajos consecutivos por uno solo
+      .replace(/^_|_$/g, '')       // Eliminar guiones bajos al inicio y al final
+      .toLowerCase();
+    
+    // Si después de la limpieza tenemos una columna vacía, usar un nombre genérico
+    if (!generatedColumn) {
+      generatedColumn = `campo_${headerNames.indexOf(originalHeader)}`;
+    }
+    
+    // Asignar columna generada
+    columnMapping[originalHeader] = generatedColumn;
+  });
   
   return columnMapping;
 }

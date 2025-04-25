@@ -119,7 +119,7 @@ export async function callImportApi(
         // Configurar un timeoutPromise más corto para detectar problemas de red
         const timeoutPromise = new Promise<never>((_, reject) => {
           // 3 minutos para el fetch inicial por intento
-          setTimeout(() => reject(new Error("Tiempo de espera excedido")), 3 * 60 * 1000);
+          setTimeout(() => reject(new Error("Tiempo de espera excedido")), 5 * 60 * 1000);
         });
         
         // Intentar la solicitud con backoff exponencial

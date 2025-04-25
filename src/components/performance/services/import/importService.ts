@@ -123,13 +123,13 @@ export async function importServiciosData(
       onProgress("Subiendo archivo al servidor", 0, file.size);
     }
     
-    // Configurar abort controller con timeout más corto para archivos grandes
+    // Configurar abort controller con timeout más largo para archivos grandes
     const abortController = new AbortController();
-    // 10 minutos de timeout, aumentado de 5 para evitar cortes prematuros
+    // 15 minutos de timeout, aumentado de 10 para evitar cortes prematuros en archivos grandes
     const timeoutId = setTimeout(() => {
       console.warn("Timeout alcanzado, abortando operación");
       abortController.abort();
-    }, 10 * 60 * 1000);
+    }, 15 * 60 * 1000);
     
     try {
       // Iniciar el proceso de importación con reintentos automáticos
@@ -144,15 +144,41 @@ export async function importServiciosData(
         // Configurar polling de progreso
         let isComplete = false;
         let errorOccurred = false;
+        let lastProcessedValue = 0;
+        let stuckCounter = 0;
         
         console.log("Starting progress polling for ID:", initialResponse.progressId);
         
-        // Consultar actualizaciones de progreso cada 3 segundos (reducido de 5 para feedback más frecuente)
+        // Consultar actualizaciones de progreso cada 2 segundos (reducido de 3 para feedback más frecuente)
         const pollInterval = setInterval(async () => {
           try {
             console.log("Verificando progreso para ID:", initialResponse.progressId);
             const progressData = await checkImportProgress(initialResponse.progressId!);
             console.log("Progress update:", progressData);
+            
+            // Detectar si el progreso está estancado
+            if (progressData.processed === lastProcessedValue && progressData.processed > 0) {
+              stuckCounter++;
+              console.log(`Progreso potencialmente estancado: ${stuckCounter} verificaciones sin cambios`);
+              
+              // Si el progreso está estancado por más de 10 verificaciones (20 segundos), considerarlo como completo
+              if (stuckCounter >= 10 && progressData.processed > 0) {
+                console.log("Detectado estancamiento prolongado, asumiendo completado");
+                
+                // Actualizar a completado con advertencia
+                toast.warning("Importación completada parcialmente", {
+                  description: `Se procesaron ${progressData.processed} registros. La importación se detuvo posiblemente debido a limitaciones del servidor.`,
+                  id: toastId
+                });
+                
+                clearInterval(pollInterval);
+                isComplete = true;
+                return;
+              }
+            } else {
+              lastProcessedValue = progressData.processed;
+              stuckCounter = 0;
+            }
             
             // Actualizar callback de progreso con estado actual
             if (progressData && progressData.status) {
@@ -203,11 +229,11 @@ export async function importServiciosData(
           } catch (pollError) {
             console.error("Error polling for progress:", pollError);
           }
-        }, 3000); // Reducido de 5000ms a 3000ms
+        }, 2000); // Reducido de 3000ms a 2000ms
         
-        // Esperar la finalización o timeout después de 15 minutos (reducido de 20)
+        // Esperar la finalización o timeout después de 20 minutos (aumentado de 15)
         let timeoutCounter = 0;
-        const maxTimeout = 300; // 15 minutos (300 * 3 segundos)
+        const maxTimeout = 600; // 20 minutos (600 * 2 segundos)
         
         return new Promise<ImportResponse>((resolve) => {
           const checkCompletion = setInterval(() => {
@@ -241,7 +267,7 @@ export async function importServiciosData(
                 message: "La importación está tomando demasiado tiempo. Por favor verifique el estado más tarde." 
               });
             }
-          }, 3000); // Reducido para coincidir con el intervalo de polling
+          }, 2000); // Reducido para coincidir con el intervalo de polling
         });
       }
       

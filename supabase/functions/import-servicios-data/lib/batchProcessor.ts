@@ -33,6 +33,84 @@ export class BatchProcessor {
     const backoffFactor = this.config.backoffFactor || 2;
     const initialBackoff = this.config.initialBackoff || 1000;
     
+    // Lista de columnas problemáticas conocidas para eliminar de forma preventiva
+    const knownProblemColumns = [
+      'updated_at', 'tipo_de_unidad_adicional', 'tipo_de_unidad', 'tipo_de_servicio',
+      'tipo_de_gadget', 'tipo_de_carga_adicional', 'tipo_de_carga', 'tiempo_en_punto_de_origen',
+      'tiempo_de_retraso_hhmm', 'telfono_operador_adicional', 'telfono_del_operador',
+      'telfono_de_emergencia', 'telfono_armado', 'telfono', 'presentacin',
+      'placa_de_la_carga', 'placa_de_carga_adicional', 'nombre_del_operador_transporte',
+      'nombre_del_cliente', 'nombre_de_operador_adicional', 'nombre_de_custodio',
+      'localforneo', 'km_terico', 'id_del_servicio', 'id_cotizacin', 'hora_de_presentacin',
+      'hora_de_inicio_de_custodia', 'hora_de_finalizacin', 'folio_del_cliente',
+      'fecha_y_hora_de_cita'
+    ];
+    
+    // Eliminar preventivamente las columnas problemáticas conocidas
+    batchData.forEach(record => {
+      knownProblemColumns.forEach(column => {
+        if (column in record) {
+          delete record[column];
+        }
+      });
+      
+      // Normalizar valores de fecha para evitar problemas de formato
+      const dateFields = ['fecha_primer_servicio', 'fecha_contratacion', 'fecha_hora_cita', 'fecha_hora_asignacion'];
+      dateFields.forEach(field => {
+        if (record[field] !== undefined) {
+          // Si es un encabezado o un valor no válido para fecha, eliminar el campo
+          if (typeof record[field] === 'string' && 
+              (record[field].includes('Fecha') || 
+               record[field].includes('fecha') || 
+               record[field] === '')) {
+            delete record[field];
+          } else {
+            try {
+              // Intentar formatear la fecha correctamente si es una fecha válida
+              const dateValue = new Date(record[field]);
+              if (!isNaN(dateValue.getTime())) {
+                record[field] = dateValue.toISOString();
+              } else {
+                delete record[field];
+              }
+            } catch (e) {
+              delete record[field];
+            }
+          }
+        }
+      });
+      
+      // Normalizar valores de tiempo
+      const timeFields = ['hora_arribo', 'hora_presentacion', 'hora_inicio_custodia', 'hora_finalizacion'];
+      timeFields.forEach(field => {
+        if (record[field] !== undefined) {
+          if (typeof record[field] === 'string' && 
+              (record[field].includes('Hora') || 
+               record[field].includes('hora') || 
+               record[field] === '')) {
+            delete record[field];
+          }
+        }
+      });
+      
+      // Convertir campos numéricos correctamente
+      const numericFields = ['km_teorico', 'km_recorridos', 'km_extras', 'costo_custodio', 'casetas', 'cobro_cliente'];
+      numericFields.forEach(field => {
+        if (record[field] !== undefined && record[field] !== null) {
+          if (typeof record[field] === 'string') {
+            // Eliminar caracteres no numéricos excepto punto decimal
+            const cleanedValue = record[field].replace(/[^0-9.]/g, '');
+            if (cleanedValue === '') {
+              delete record[field];
+            } else {
+              const numValue = parseFloat(cleanedValue);
+              record[field] = isNaN(numValue) ? null : numValue;
+            }
+          }
+        }
+      });
+    });
+    
     // Realizamos un proceso de inserción con reintentos y backoff exponencial
     while (retryCount <= maxRetries) {
       try {
@@ -65,24 +143,61 @@ export class BatchProcessor {
             }
           }
           
-          // Para errores de sintaxis de fecha, podríamos intentar limpiar los campos de fecha
-          if (error.code === "22007" && error.message.includes("invalid input syntax for type date")) {
-            const matches = error.message.match(/invalid input syntax for type date: "(.+?)"/);
-            if (matches && matches[1]) {
-              const badDateValue = matches[1];
-              console.log(`Detectado valor de fecha inválido: ${badDateValue}`);
+          // Para errores de sintaxis de fecha, limpiamos los campos de fecha
+          if (error.code === "22007" && (error.message.includes("date") || error.message.includes("time"))) {
+            const matches = error.message.match(/invalid input syntax for type (date|time): "(.+?)"/);
+            if (matches && matches[2]) {
+              const badValue = matches[2];
+              const fieldType = matches[1];
+              console.log(`Detectado valor de ${fieldType} inválido: ${badValue}`);
               
-              // Limpiar valores de fecha problemáticos en todos los campos de fecha conocidos
-              const dateFields = ['fecha_primer_servicio', 'fecha_contratacion', 'fecha_hora_cita', 'fecha_hora_asignacion'];
+              // Limpiar valores problemáticos en todos los registros
               batchData.forEach(record => {
-                dateFields.forEach(field => {
-                  if (record[field] === badDateValue) {
-                    delete record[field];
-                    console.log(`Eliminado valor de fecha inválido "${badDateValue}" del campo ${field}`);
+                Object.keys(record).forEach(key => {
+                  if (record[key] === badValue) {
+                    console.log(`Eliminado valor de ${fieldType} inválido "${badValue}" del campo ${key}`);
+                    delete record[key];
+                  }
+                  
+                  // También verificar si el campo contiene "fecha" o "hora" en su nombre
+                  if ((fieldType === 'date' && key.includes('fecha')) || 
+                      (fieldType === 'time' && key.includes('hora'))) {
+                    if (typeof record[key] === 'string' && 
+                        (record[key].includes('Fecha') || 
+                         record[key].includes('fecha') ||
+                         record[key].includes('Hora') ||
+                         record[key].includes('hora'))) {
+                      delete record[key];
+                    }
                   }
                 });
               });
+              
+              continue; // Reintentar inmediatamente con los datos corregidos
             }
+          }
+          
+          // Si el error es de tipo de datos, intentamos hacer una limpieza más profunda
+          if (error.code === "22P02" || error.code === "22003") {
+            console.log("Error de conversión de datos, realizando limpieza general de valores");
+            
+            // Limpieza general de tipos de datos
+            batchData.forEach(record => {
+              Object.keys(record).forEach(key => {
+                // Si es un valor vacío o problemático, eliminar
+                if (record[key] === '' || record[key] === undefined || record[key] === 'undefined') {
+                  delete record[key];
+                }
+                
+                // Si parece ser un número pero está como string, convertir
+                if (typeof record[key] === 'string' && !isNaN(Number(record[key]))) {
+                  record[key] = Number(record[key]);
+                }
+              });
+            });
+            
+            // Intentar otra vez inmediatamente
+            continue;
           }
           
           // Aumentar el contador de reintentos y esperar según la estrategia de backoff
