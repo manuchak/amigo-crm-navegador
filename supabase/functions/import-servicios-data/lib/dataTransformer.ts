@@ -4,13 +4,14 @@ export function transformRowData(row: any, columnMapping: Record<string, string>
   const transformedRow: Record<string, any> = {};
   const problematicColumns = [
     'tiempo_estimado', 'hora_de_finalizacion', 'duracion_del_servicio_hh_mm',
-    'fecha_de_contratacion', 'fecha_y_hora_de_asignacion', 'comentarios_adicional',
-    'costo_de_custodio', 'cobro_al_cliente', 'cantidad_de_transportes'
+    'fecha_de_contratacion', 'fecha_y_hora_de_asignacion', 'comentarios_adicional'
+    // Removed 'costo_de_custodio', 'cobro_al_cliente', and 'cantidad_de_transportes' from problematic columns
+    // Now we'll handle them specially instead of skipping them
   ];
 
   // Recorrer cada campo del mapeo de columnas
   Object.entries(columnMapping).forEach(([excelColumn, dbColumn]) => {
-    // Skip problematic columns that are causing server errors
+    // Skip remaining problematic columns that are causing server errors
     if (problematicColumns.includes(dbColumn)) {
       return;
     }
@@ -72,24 +73,44 @@ export function transformRowData(row: any, columnMapping: Record<string, string>
         value = value.replace(/[^0-9:APMapm\s.-]/g, '').trim();
         transformedRow[dbColumn] = value;
       }
-      // Campos numéricos
+      // Enhanced numeric field handling for problematic fields
       else if (
         dbColumn.includes('km') || 
         dbColumn.includes('costo') || 
         dbColumn.includes('cobro') || 
-        dbColumn.includes('casetas')
+        dbColumn.includes('casetas') ||
+        dbColumn === 'cantidad_transportes'
       ) {
-        if (typeof value === 'string') {
-          // Limpiar formato numérico más agresivamente
-          const cleanValue = value.replace(/[^0-9.-]/g, '');
-          if (cleanValue !== '') {
+        // Improved numeric value processing
+        try {
+          if (typeof value === 'string') {
+            // First, normalize the string by removing currency symbols, spaces, and replacing commas with dots
+            const cleanValue = value
+              .replace(/[$€£¥]/g, '') // Remove currency symbols
+              .replace(/\s/g, '') // Remove spaces
+              .replace(/,/g, '.') // Replace commas with dots for decimal
+              .replace(/[^\d.-]/g, ''); // Remove any remaining non-numeric chars except dots and minus
+          
+            // Handle empty string case
+            if (cleanValue === '' || cleanValue === '.') {
+              return; // Skip this field
+            }
+
+            // Parse as float and validate
             const numValue = parseFloat(cleanValue);
+            
             if (!isNaN(numValue)) {
               transformedRow[dbColumn] = numValue;
+              console.log(`Converted numeric value for ${dbColumn}: ${value} -> ${numValue}`);
+            } else {
+              console.log(`Couldn't convert numeric value for ${dbColumn}: ${value}`);
             }
+          } else if (typeof value === 'number') {
+            transformedRow[dbColumn] = value;
           }
-        } else if (typeof value === 'number') {
-          transformedRow[dbColumn] = value;
+        } catch (e) {
+          console.error(`Error processing numeric field ${dbColumn}:`, e);
+          // Skip this field on error
         }
       }
       // Campos booleanos

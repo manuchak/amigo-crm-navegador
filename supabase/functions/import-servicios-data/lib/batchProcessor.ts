@@ -33,21 +33,56 @@ export class BatchProcessor {
     const backoffFactor = this.config.backoffFactor || 2;
     const initialBackoff = this.config.initialBackoff || 1000;
     
-    // Lista de columnas problemáticas conocidas para eliminar de forma preventiva
-    const knownProblemColumns = [
-      'updated_at', 'tipo_de_unidad_adicional', 'tipo_de_unidad', 'tipo_de_servicio',
-      'tipo_de_gadget', 'tipo_de_carga_adicional', 'tipo_de_carga', 'tiempo_en_punto_de_origen',
-      'tiempo_de_retraso_hhmm', 'telfono_operador_adicional', 'telfono_del_operador',
-      'telfono_de_emergencia', 'telfono_armado', 'telfono', 'presentacin',
-      'placa_de_la_carga', 'placa_de_carga_adicional', 'nombre_del_operador_transporte',
-      'nombre_del_cliente', 'nombre_de_operador_adicional', 'nombre_de_custodio',
-      'localforneo', 'km_terico', 'id_del_servicio', 'id_cotizacin', 'hora_de_presentacin',
-      'hora_de_inicio_de_custodia', 'hora_de_finalizacin', 'folio_del_cliente',
-      'fecha_y_hora_de_cita'
-    ];
-    
-    // Eliminar preventivamente las columnas problemáticas conocidas
-    batchData.forEach(record => {
+    // Sanitize numeric fields to ensure they're actually numeric
+    for (const record of batchData) {
+      // Process numeric fields
+      const numericFields = ['km_teorico', 'km_recorridos', 'km_extras', 'costo_custodio', 'casetas', 'cobro_cliente', 'cantidad_transportes'];
+      
+      for (const field of numericFields) {
+        if (record[field] !== undefined && record[field] !== null) {
+          // If the field is a string that represents a number, convert it
+          if (typeof record[field] === 'string') {
+            // Clean the string by removing any non-numeric characters except decimal point
+            const cleanStr = record[field]
+              .replace(/[$€£¥]/g, '') // Remove currency symbols
+              .replace(/\s/g, '') // Remove spaces
+              .replace(/,/g, '.') // Replace comma with dot
+              .replace(/[^\d.-]/g, ''); // Remove anything that's not a digit, dot or minus
+              
+            // Try to convert to number
+            const numValue = parseFloat(cleanStr);
+            
+            // If conversion is successful, use the number value
+            if (!isNaN(numValue)) {
+              record[field] = numValue;
+              console.log(`Converted field ${field} from "${record[field]}" to ${numValue}`);
+            } else {
+              // If conversion failed, remove the field
+              console.log(`Could not convert field ${field} value "${record[field]}" to number - removing field`);
+              delete record[field];
+            }
+          } else if (typeof record[field] !== 'number') {
+            // If it's not a string nor a number, remove it
+            console.log(`Field ${field} is not a number - removing field`);
+            delete record[field];
+          }
+        }
+      }
+      
+      // Lista de columnas problemáticas conocidas para eliminar de forma preventiva
+      const knownProblemColumns = [
+        'updated_at', 'tipo_de_unidad_adicional', 'tipo_de_unidad', 'tipo_de_servicio',
+        'tipo_de_gadget', 'tipo_de_carga_adicional', 'tipo_de_carga', 'tiempo_en_punto_de_origen',
+        'tiempo_de_retraso_hhmm', 'telfono_operador_adicional', 'telfono_del_operador',
+        'telfono_de_emergencia', 'telfono_armado', 'telfono', 'presentacin',
+        'placa_de_la_carga', 'placa_de_carga_adicional', 'nombre_del_operador_transporte',
+        'nombre_del_cliente', 'nombre_de_operador_adicional', 'nombre_de_custodio',
+        'localforneo', 'km_terico', 'id_del_servicio', 'id_cotizacin', 'hora_de_presentacin',
+        'hora_de_inicio_de_custodia', 'hora_de_finalizacin', 'folio_del_cliente',
+        'fecha_y_hora_de_cita'
+      ];
+      
+      // Eliminar preventivamente las columnas problemáticas conocidas
       knownProblemColumns.forEach(column => {
         if (column in record) {
           delete record[column];
@@ -92,24 +127,7 @@ export class BatchProcessor {
           }
         }
       });
-      
-      // Convertir campos numéricos correctamente
-      const numericFields = ['km_teorico', 'km_recorridos', 'km_extras', 'costo_custodio', 'casetas', 'cobro_cliente'];
-      numericFields.forEach(field => {
-        if (record[field] !== undefined && record[field] !== null) {
-          if (typeof record[field] === 'string') {
-            // Eliminar caracteres no numéricos excepto punto decimal
-            const cleanedValue = record[field].replace(/[^0-9.]/g, '');
-            if (cleanedValue === '') {
-              delete record[field];
-            } else {
-              const numValue = parseFloat(cleanedValue);
-              record[field] = isNaN(numValue) ? null : numValue;
-            }
-          }
-        }
-      });
-    });
+    }
     
     // Realizamos un proceso de inserción con reintentos y backoff exponencial
     while (retryCount <= maxRetries) {
@@ -141,6 +159,24 @@ export class BatchProcessor {
               console.log(`Reintentando con ${batchData.length} registros sin la columna ${problematicColumn}`);
               continue; // Reintentar inmediatamente con los datos corregidos
             }
+          }
+          
+          // Si el error está relacionado con un formato numérico, intentamos corregirlo
+          if ((error.code === "22P02" || error.code === "22003") && error.message.includes("cobro_cliente")) {
+            console.log("Error específico con cobro_cliente, realizando limpieza especial");
+            
+            // Limpieza especial para cobro_cliente
+            batchData.forEach(record => {
+              if ('cobro_cliente' in record) {
+                // Si no es un número, eliminamos el campo
+                if (typeof record.cobro_cliente !== 'number') {
+                  delete record.cobro_cliente;
+                }
+              }
+            });
+            
+            // Intentar otra vez inmediatamente
+            continue;
           }
           
           // Para errores de sintaxis de fecha, limpiamos los campos de fecha
