@@ -21,6 +21,7 @@ export async function importServiciosData(
       return { success: false, message: `El archivo excede el tamaño máximo permitido de ${MAX_ALLOWED_FILE_SIZE_MB} MB` };
     }
     
+    // Verificar si es un archivo Excel
     const validExcelTypes = [
       'application/vnd.ms-excel',
       'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
@@ -30,11 +31,20 @@ export async function importServiciosData(
     const fileName = file.name.toLowerCase();
     const hasValidExtension = fileName.endsWith('.xlsx') || fileName.endsWith('.xls');
     
-    if (!validExcelTypes.includes(file.type) && !hasValidExtension) {
+    // Verificar si es un archivo CSV
+    const isCSV = fileName.endsWith('.csv') || file.type === 'text/csv' || file.type === 'application/csv';
+    
+    // Validar el tipo de archivo (Excel o CSV)
+    if (!isCSV && !validExcelTypes.includes(file.type) && !hasValidExtension) {
       toast.error("Tipo de archivo incorrecto", {
-        description: "Por favor seleccione un archivo de Excel (.xls, .xlsx)."
+        description: "Por favor seleccione un archivo de Excel (.xls, .xlsx) o CSV (.csv)."
       });
-      return { success: false, message: "El formato de archivo no es válido. Solo se permiten archivos Excel (.xls, .xlsx)" };
+      return { success: false, message: "El formato de archivo no es válido. Solo se permiten archivos Excel (.xls, .xlsx) o CSV (.csv)" };
+    }
+    
+    // Si es un archivo CSV, redirigir a la función de importación de CSV
+    if (isCSV) {
+      return importCsvData(file, onProgress);
     }
     
     console.log(`Importing file: ${file.name} (${file.size} bytes, type: ${file.type})`);

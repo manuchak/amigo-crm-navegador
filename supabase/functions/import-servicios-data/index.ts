@@ -82,6 +82,7 @@ Deno.serve(async (req) => {
     }
     
     const file = formData.get('file') as File;
+    const format = formData.get('format') as string;
     
     if (!file) {
       return new Response(
@@ -108,16 +109,16 @@ Deno.serve(async (req) => {
       );
     }
 
-    console.log(`Procesando archivo: ${file.name}, tamaño: ${file.size} bytes`);
+    console.log(`Procesando archivo: ${file.name}, tamaño: ${file.size} bytes, formato: ${format || 'excel'}`);
     
     await progressManager.updateProgress(
       'validating',
       0,
       file.size,
-      'Preparando procesamiento del archivo Excel'
+      'Preparando procesamiento del archivo'
     );
     
-    reportMemoryUsage("Antes de procesar Excel");
+    reportMemoryUsage("Antes de procesar archivo");
     
     // Usar el procesador de Excel basado en streaming con micro-lotes
     const processingResult = await processExcelFileStream(
@@ -127,7 +128,7 @@ Deno.serve(async (req) => {
       supabaseClient
     );
     
-    reportMemoryUsage("Después de procesar Excel");
+    reportMemoryUsage("Después de procesar archivo");
     
     return new Response(
       JSON.stringify(processingResult),

@@ -8,7 +8,7 @@ export function validateFile(file: File): { isValid: boolean; message?: string }
     };
   }
   
-  // Validar tipo de archivo (debe ser Excel)
+  // Validar tipo de archivo (debe ser Excel o CSV)
   const validExcelTypes = [
     'application/vnd.ms-excel',
     'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
@@ -18,11 +18,12 @@ export function validateFile(file: File): { isValid: boolean; message?: string }
   // También verificar por extensión por si el tipo MIME no es confiable
   const fileName = file.name.toLowerCase();
   const hasValidExtension = fileName.endsWith('.xlsx') || fileName.endsWith('.xls');
+  const isCSV = fileName.endsWith('.csv') || file.type === 'text/csv' || file.type === 'application/csv';
   
-  if (!validExcelTypes.includes(file.type) && !hasValidExtension) {
+  if (!isCSV && !validExcelTypes.includes(file.type) && !hasValidExtension) {
     return {
       isValid: false,
-      message: "El formato de archivo no es válido. Solo se permiten archivos Excel (.xls, .xlsx)"
+      message: "El formato de archivo no es válido. Solo se permiten archivos Excel (.xls, .xlsx) o CSV (.csv)"
     };
   }
   
