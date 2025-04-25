@@ -343,6 +343,36 @@ export type Database = {
         }
         Relationships: []
       }
+      import_progress: {
+        Row: {
+          created_at: string
+          id: string
+          message: string | null
+          processed: number
+          status: string
+          total: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id: string
+          message?: string | null
+          processed?: number
+          status: string
+          total?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          message?: string | null
+          processed?: number
+          status?: string
+          total?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       leads: {
         Row: {
           anovehiculo: string | null

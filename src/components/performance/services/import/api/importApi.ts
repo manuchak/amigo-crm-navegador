@@ -9,21 +9,27 @@ async function initializeProgressTracking(fileSize: number): Promise<string> {
   const progressId = uuidv4();
   
   try {
-    await supabase
+    const { error } = await supabase
       .from('import_progress')
       .upsert({
         id: progressId,
         status: 'validating',
         processed: 0,
         total: fileSize,
-        message: 'Iniciando proceso de validación',
+        message: 'Iniciando proceso de importación',
         created_at: new Date().toISOString()
       });
+
+    if (error) {
+      console.error("Error initializing progress tracking:", error);
+      toast.error("Error al iniciar seguimiento de progreso", {
+        description: error.message
+      });
+    }
       
     return progressId;
   } catch (error) {
-    console.error("Error initializing progress tracking:", error);
-    // Return ID anyway - tracking will just be unavailable if this fails
+    console.error("Unexpected error initializing progress tracking:", error);
     return progressId;
   }
 }
@@ -34,27 +40,26 @@ export async function callImportApi(
   abortController: AbortController
 ): Promise<ImportResponse> {
   try {
-    // Get the file from formData to determine its size
     const file = formData.get('file') as File;
     if (!file) {
+      toast.error("Error de importación", {
+        description: "No se proporcionó ningún archivo"
+      });
       return { 
         success: false, 
         message: "No file provided in formData" 
       };
     }
     
-    console.log(`Preparing to upload file: ${file.name}, size: ${file.size} bytes`);
+    console.log(`Preparando subir archivo: ${file.name}, tamaño: ${file.size} bytes`);
     
-    // Initialize progress tracking
     const progressId = await initializeProgressTracking(file.size);
-    console.log(`Created progress tracking with ID: ${progressId}`);
+    console.log(`ID de seguimiento de progreso creado: ${progressId}`);
     
-    // Add progress ID to formData
     formData.append('progressId', progressId);
     
-    // Ensure we're using the correct URL and headers
     const apiUrl = 'https://beefjsdgrdeiymzxwxru.supabase.co/functions/v1/import-servicios-data';
-    console.log(`Sending request to: ${apiUrl}`);
+    console.log(`Enviando solicitud a: ${apiUrl}`);
     
     const response = await fetch(
       apiUrl,
@@ -70,19 +75,24 @@ export async function callImportApi(
       }
     );
     
-    console.log(`Response status: ${response.status}`);
+    console.log(`Estado de respuesta: ${response.status}`);
     
     if (!response.ok) {
       let errorMessage = `Error del servidor: ${response.status}`;
       try {
         const errorData = await response.json();
-        console.error("Server error details:", errorData);
+        console.error("Detalles del error del servidor:", errorData);
         if (errorData && errorData.message) {
           errorMessage = errorData.message;
         }
+        
+        toast.error("Error en la importación", {
+          description: errorMessage
+        });
       } catch (parseError) {
-        console.error("Error parsing error response:", parseError);
+        console.error("Error al analizar la respuesta de error:", parseError);
       }
+      
       return { 
         success: false, 
         message: errorMessage,
@@ -91,22 +101,30 @@ export async function callImportApi(
     }
 
     const responseData = await response.json();
-    console.log("API success response:", responseData);
+    console.log("Respuesta exitosa de la API:", responseData);
+    
+    toast.success("Importación iniciada", {
+      description: "El archivo se está procesando"
+    });
+    
     return { ...responseData, progressId };
   } catch (error) {
-    console.error("API call error:", error);
+    console.error("Error en la llamada de API:", error);
+    
+    toast.error("Error en la importación", {
+      description: error instanceof Error ? error.message : "Error desconocido"
+    });
+    
     return { 
       success: false, 
-      message: error instanceof Error ? error.message : "Error desconocido",
-      error
+      message: error instanceof Error ? error.message : "Error desconocido"
     };
   }
 }
 
-// Add a function to check import progress
 export async function checkImportProgress(progressId: string): Promise<ImportProgress> {
   try {
-    console.log(`Checking progress for ID: ${progressId}`);
+    console.log(`Verificando progreso para ID: ${progressId}`);
     
     const { data, error } = await supabase
       .from('import_progress')
@@ -115,7 +133,7 @@ export async function checkImportProgress(progressId: string): Promise<ImportPro
       .single();
       
     if (error) {
-      console.error("Error checking import progress:", error);
+      console.error("Error verificando progreso de importación:", error);
       return {
         id: progressId,
         status: 'error',
@@ -126,7 +144,7 @@ export async function checkImportProgress(progressId: string): Promise<ImportPro
     }
     
     if (!data) {
-      console.warn("No progress data found for ID:", progressId);
+      console.warn("No se encontraron datos de progreso para ID:", progressId);
       return {
         id: progressId,
         status: 'error',
@@ -136,10 +154,10 @@ export async function checkImportProgress(progressId: string): Promise<ImportPro
       };
     }
     
-    console.log("Progress data retrieved:", data);
+    console.log("Datos de progreso recuperados:", data);
     return data as ImportProgress;
   } catch (error) {
-    console.error("Exception checking import progress:", error);
+    console.error("Excepción al verificar progreso de importación:", error);
     return {
       id: progressId,
       status: 'error',
