@@ -18,7 +18,7 @@ import {
 import { calculateScoreCategory, getScoreColorClass } from "../utils/scoreCalculator";
 
 interface DriverBehaviorChartProps {
-  data?: DriverBehaviorScore[];
+  data?: DriverBehaviorScore[] | null;
   isLoading: boolean;
   dateRange: DateRange;
 }
@@ -26,7 +26,7 @@ interface DriverBehaviorChartProps {
 export function DriverBehaviorChart({ data, isLoading, dateRange }: DriverBehaviorChartProps) {
   // Process data for the chart
   const chartData = useMemo(() => {
-    if (!data || data.length === 0) return [];
+    if (!data || !Array.isArray(data) || data.length === 0) return [];
     
     // Group by driver group and calculate average scores
     const groupedData = data.reduce<Record<string, { score: number, count: number, penaltyPoints: number }>>((acc, item) => {
@@ -72,7 +72,7 @@ export function DriverBehaviorChart({ data, isLoading, dateRange }: DriverBehavi
     );
   }
   
-  if (!data || data.length === 0) {
+  if (!data || !Array.isArray(data) || data.length === 0) {
     return (
       <Card className="border-0 shadow-md">
         <CardHeader>

@@ -1,7 +1,8 @@
+
 import { ScoreCalculationResult } from "../types/driver-behavior.types";
 
 /**
- * Calculate driver behavior score category and styling based on score
+ * Calculate driver behavior score category based on score
  * The score is inversely proportional to penalty points - lower penalty points mean better scores
  */
 export function calculateScoreCategory(score: number): ScoreCalculationResult['scoreCategory'] {
@@ -56,53 +57,22 @@ export function getScoreAnalysis(penaltyPoints: number, tripsCount: number): Sco
 
 /**
  * Function to calculate driver behavior score category and color
- * Lower score means more penalty points
  */
-export function calculateDriverBehaviorScore(score: number): { 
-  score: number;
-  penaltyPoints: number;
-  scoreCategory: 'excellent' | 'good' | 'fair' | 'poor' | 'critical';
-  colorClass: string;
-} {
+export function calculateDriverBehaviorScore(score: number): ScoreCalculationResult {
   // Calculate penalty points based on score
   // Lower score means more penalty points
   const penaltyPoints = Math.round((100 - score) * 0.5);
   
-  // Determine score category and color class
-  if (score >= 90) {
-    return {
-      score,
-      penaltyPoints,
-      scoreCategory: 'excellent',
-      colorClass: 'bg-green-500 text-white'
-    };
-  } else if (score >= 80) {
-    return {
-      score,
-      penaltyPoints,
-      scoreCategory: 'good',
-      colorClass: 'bg-green-400 text-white'
-    };
-  } else if (score >= 70) {
-    return {
-      score,
-      penaltyPoints,
-      scoreCategory: 'fair',
-      colorClass: 'bg-yellow-500 text-white'
-    };
-  } else if (score >= 60) {
-    return {
-      score,
-      penaltyPoints,
-      scoreCategory: 'poor',
-      colorClass: 'bg-orange-500 text-white'
-    };
-  } else {
-    return {
-      score,
-      penaltyPoints,
-      scoreCategory: 'critical',
-      colorClass: 'bg-red-500 text-white'
-    };
-  }
+  // Determine score category
+  const scoreCategory = calculateScoreCategory(score);
+  
+  // Get color class for display
+  const colorClass = getScoreColorClass(score);
+  
+  return {
+    score,
+    penaltyPoints,
+    scoreCategory,
+    colorClass
+  };
 }

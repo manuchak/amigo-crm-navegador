@@ -42,7 +42,7 @@ export function DriverBehaviorDashboard({ dateRange, comparisonRange }: DriverBe
       />
       
       <DriverBehaviorChart 
-        data={driverData} 
+        data={driverData?.driverScores} 
         isLoading={isLoading} 
         dateRange={dateRange} 
       />

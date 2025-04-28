@@ -22,13 +22,20 @@ export async function fetchDriverBehaviorData(dateRange: DateRange) {
       .lte('end_date', dateRange.to.toISOString());
 
     if (error) {
+      console.error('Error fetching driver behavior data:', error);
       throw error;
     }
 
     return processDriverBehaviorData(data);
   } catch (error) {
     console.error('Error fetching driver behavior data:', error);
-    return null;
+    return {
+      metrics: [],
+      driverScores: [],
+      averageScore: 0,
+      totalPenaltyPoints: 0,
+      totalTrips: 0,
+    };
   }
 }
 
@@ -82,8 +89,6 @@ export async function importDriverBehaviorData(
   onProgress?: ProgressCallback
 ): Promise<ImportResponse> {
   try {
-    // This function should have similar structure to importServiciosData
-    // but adapted for driver behavior data
     if (onProgress) {
       onProgress("Procesando archivo de comportamiento de conducción", 0, 0);
     }
