@@ -1,7 +1,7 @@
 
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
-import { knownNumericColumns, knownBooleanColumns } from "../import/lib/columnMapping";
+import { knownNumericColumns, knownBooleanColumns } from "../import/lib/columnTypes";
 import { createHeaderRow, createDescriptionRow, createExampleRow, createInstructionsRows } from "./templateUtils";
 
 // Generate the complete CSV template content
