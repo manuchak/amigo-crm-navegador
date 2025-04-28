@@ -15,18 +15,19 @@ import {
 import { Skeleton } from '@/components/ui/skeleton';
 import { fetchDriverBehaviorData } from '../services/driverBehavior/driverBehaviorService';
 import { getScoreColorClass, calculateScoreCategory } from '../utils/scoreCalculator';
-import { DriverBehaviorData } from '../types/driver-behavior.types';
+import { DriverBehaviorData, DriverBehaviorFilters } from '../types/driver-behavior.types';
 
 interface DriverBehaviorTableProps {
   dateRange: DateRange;
+  filters?: DriverBehaviorFilters;
 }
 
-export function DriverBehaviorTable({ dateRange }: DriverBehaviorTableProps) {
+export function DriverBehaviorTable({ dateRange, filters }: DriverBehaviorTableProps) {
   const [searchTerm, setSearchTerm] = useState('');
   
   const { data, isLoading } = useQuery<DriverBehaviorData | null>({
-    queryKey: ['driver-behavior-data', dateRange],
-    queryFn: () => fetchDriverBehaviorData(dateRange),
+    queryKey: ['driver-behavior-data', dateRange, filters],
+    queryFn: () => fetchDriverBehaviorData(dateRange, filters),
   });
   
   // Filter the data based on search term
@@ -64,13 +65,15 @@ export function DriverBehaviorTable({ dateRange }: DriverBehaviorTableProps) {
                   <TableHead>Puntuación</TableHead>
                   <TableHead>Puntos de Penalización</TableHead>
                   <TableHead>Viajes</TableHead>
+                  <TableHead>Tiempo</TableHead>
+                  <TableHead>Distancia</TableHead>
                   <TableHead>Período</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {[...Array(5)].map((_, i) => (
                   <TableRow key={i}>
-                    {[...Array(7)].map((_, j) => (
+                    {[...Array(9)].map((_, j) => (
                       <TableCell key={j}>
                         <Skeleton className="h-4 w-full" />
                       </TableCell>
@@ -109,13 +112,15 @@ export function DriverBehaviorTable({ dateRange }: DriverBehaviorTableProps) {
                 <TableHead>Puntuación</TableHead>
                 <TableHead>Puntos de Penalización</TableHead>
                 <TableHead>Viajes</TableHead>
+                <TableHead>Tiempo</TableHead>
+                <TableHead>Distancia</TableHead>
                 <TableHead>Período</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {filteredData.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={7} className="text-center py-8">
+                  <TableCell colSpan={9} className="text-center py-8">
                     No hay datos disponibles para el período seleccionado
                   </TableCell>
                 </TableRow>
@@ -139,6 +144,8 @@ export function DriverBehaviorTable({ dateRange }: DriverBehaviorTableProps) {
                       </TableCell>
                       <TableCell>{row.penalty_points}</TableCell>
                       <TableCell>{row.trips_count}</TableCell>
+                      <TableCell>{row.duration_text || "N/A"}</TableCell>
+                      <TableCell>{row.distance_text || "N/A"}</TableCell>
                       <TableCell>
                         {startDate} - {endDate}
                       </TableCell>

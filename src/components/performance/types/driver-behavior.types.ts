@@ -1,3 +1,4 @@
+
 export interface DriverBehaviorScore {
   id: number;
   driver_name: string;
@@ -53,4 +54,30 @@ export interface DriverBehaviorData {
   averageScore: number;
   totalPenaltyPoints: number;
   totalTrips: number;
+  totalDrivingTime?: number; // In minutes
+  totalDistance?: number; // In kilometers
+  co2Emissions?: number; // In kg
+  riskAssessment?: RiskAssessment;
+  driverPerformance?: DriverPerformance;
 }
+
+export interface RiskAssessment {
+  level: 'low' | 'moderate' | 'high' | 'critical';
+  score: number;
+  description: string;
+  recommendations: string[];
+}
+
+export interface DriverPerformance {
+  topDrivers: DriverBehaviorScore[];
+  needsImprovement: DriverBehaviorScore[];
+  ecoDrivers: DriverBehaviorScore[];
+}
+
+export interface CO2Calculation {
+  baseEmissions: number; // kg CO2
+  wastage: number; // kg CO2 wasted due to poor driving
+  potentialSavings: number; // kg CO2 that could be saved
+  percentageIncrease: number; // % increase due to poor behavior
+}
+
