@@ -1,40 +1,41 @@
 
 import { ChartConfig } from "./types";
 
+/**
+ * Gets the configuration for a specific payload item from the chart config
+ */
 export function getPayloadConfigFromPayload(
   config: ChartConfig,
-  payload: unknown,
+  payload: any,
   key: string
 ) {
-  if (typeof payload !== "object" || payload === null) {
-    return undefined;
+  let itemConfig: undefined | ChartConfig[keyof ChartConfig];
+
+  // Try to find the config using the given key
+  itemConfig = config[key as keyof typeof config] || 
+               config[payload.dataKey || ""] || 
+               config[payload.name || ""];
+
+  // If still not found, try to match against all available keys in config
+  if (!itemConfig) {
+    const configKey = Object.keys(config).find(
+      (k) => k === key || k === payload.dataKey || k === payload.name
+    );
+    if (configKey) {
+      itemConfig = config[configKey];
+    }
   }
 
-  const payloadPayload =
-    "payload" in payload &&
-    typeof payload.payload === "object" &&
-    payload.payload !== null
-      ? payload.payload
-      : undefined;
+  return itemConfig;
+}
 
-  let configLabelKey: string = key;
-
-  if (
-    key in payload &&
-    typeof payload[key as keyof typeof payload] === "string"
-  ) {
-    configLabelKey = payload[key as keyof typeof payload] as string;
-  } else if (
-    payloadPayload &&
-    key in payloadPayload &&
-    typeof payloadPayload[key as keyof typeof payloadPayload] === "string"
-  ) {
-    configLabelKey = payloadPayload[
-      key as keyof typeof payloadPayload
-    ] as string;
+/**
+ * Helper to format chart data
+ */
+export function formatChartValue(value: any): string {
+  if (typeof value === 'number') {
+    return value.toLocaleString();
   }
-
-  return configLabelKey in config
-    ? config[configLabelKey]
-    : config[key as keyof typeof config];
+  
+  return String(value || '');
 }

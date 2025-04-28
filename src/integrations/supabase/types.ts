@@ -1136,6 +1136,10 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: undefined
       }
+      deduplicate_servicios_custodia: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
       get_all_prospects: {
         Args: Record<PropertyKey, never>
         Returns: {
