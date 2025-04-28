@@ -54,7 +54,7 @@ export function useFileImport({
     setShowLargeFileWarning(false);
 
     try {
-      let result;
+      let result: ImportResponse;
       
       if (importType === 'driver-behavior') {
         result = await importDriverBehaviorData(file, (status, processed, total) => {
