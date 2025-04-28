@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { DateRange } from "react-day-picker";
@@ -247,6 +248,7 @@ export async function importDriverBehaviorData(
     }
     
     console.log("Iniciando importación de datos de comportamiento de conducción");
+    console.log(`Nombre del archivo: ${file.name}, Tamaño: ${file.size} bytes, Tipo: ${file.type}`);
 
     const formData = new FormData();
     formData.append('file', file);
@@ -270,15 +272,21 @@ export async function importDriverBehaviorData(
     
     // Leer el archivo como texto
     const csvText = await file.text();
-    const lines = csvText.split(/\r?\n/);
+    console.log("Contenido CSV leído, primeros 500 caracteres:", csvText.substring(0, 500));
+    
+    const lines = csvText.split(/\r?\n/).filter(line => line.trim() !== '');
+    console.log(`Total de líneas en el CSV: ${lines.length}`);
     
     if (lines.length <= 1) {
       console.error("El archivo está vacío o no contiene datos válidos");
+      toast.error("Error en el archivo", {
+        description: "El archivo está vacío o no contiene datos válidos"
+      });
       return { success: false, message: "El archivo está vacío o no contiene datos válidos" };
     }
     
     // Detectar y procesar cabeceras
-    let headers = lines[0].split(',').map(h => h.trim());
+    const headers = lines[0].split(',').map(h => h.trim().toLowerCase().replace(/[""]/g, ''));
     console.log("Cabeceras detectadas:", headers);
     
     if (onProgress) {
@@ -287,205 +295,176 @@ export async function importDriverBehaviorData(
     
     // Procesar las filas
     const rows = [];
+    const errors = [];
+    
     for (let i = 1; i < lines.length; i++) {
       if (lines[i].trim() === '') continue;
       
-      // Manejar CSV con comillas y comas adecuadamente
-      let currentLine = lines[i];
-      const values = [];
-      let insideQuotes = false;
-      let currentValue = '';
-      
-      for (let j = 0; j < currentLine.length; j++) {
-        const char = currentLine[j];
+      try {
+        // Manejar CSV con comillas y comas adecuadamente
+        const processedLine = processCSVLine(lines[i]);
         
-        if (char === '"') {
-          insideQuotes = !insideQuotes;
-        } else if (char === ',' && !insideQuotes) {
-          values.push(currentValue.trim());
-          currentValue = '';
-        } else {
-          currentValue += char;
+        if (processedLine.length !== headers.length) {
+          console.warn(`La fila ${i} tiene ${processedLine.length} columnas vs ${headers.length} esperadas. Ajustando...`);
+          
+          // Ajustar el array para que coincida con las cabeceras
+          while (processedLine.length < headers.length) {
+            processedLine.push('');
+          }
+          
+          if (processedLine.length > headers.length) {
+            processedLine.length = headers.length;
+          }
         }
+        
+        // Crear objeto con los valores
+        const row: Record<string, any> = {};
+        headers.forEach((header, index) => {
+          if (header) {
+            row[header] = processedLine[index] || '';
+          }
+        });
+        
+        rows.push(row);
+      } catch (err) {
+        console.error(`Error procesando línea ${i}:`, err, "Contenido de la línea:", lines[i]);
+        errors.push({
+          row: i,
+          message: `Error procesando línea: ${(err as Error).message}`,
+          content: lines[i].substring(0, 100) + '...'
+        });
       }
-      
-      values.push(currentValue.trim());
-      
-      if (values.length !== headers.length) {
-        console.warn(`La fila ${i} tiene un número incorrecto de columnas (${values.length} vs ${headers.length} esperadas). Ajustando...`);
-        
-        // Ajustar el array para que coincida con las cabeceras
-        while (values.length < headers.length) {
-          values.push('');
-        }
-        
-        if (values.length > headers.length) {
-          values.length = headers.length;
-        }
-      }
-      
-      // Crear objeto con los valores
-      const row: Record<string, any> = {};
-      headers.forEach((header, index) => {
-        row[header] = values[index] || '';
-      });
-      
-      rows.push(row);
     }
     
+    console.log(`Procesadas ${rows.length} filas válidas, ${errors.length} errores`);
     if (rows.length === 0) {
-      console.error("No se encontraron registros válidos en el archivo");
-      return { success: false, message: "No se encontraron registros válidos en el archivo" };
+      toast.error("Error en los datos", {
+        description: "No se encontraron registros válidos para importar"
+      });
+      return { 
+        success: false, 
+        message: "No se encontraron registros válidos en el archivo",
+        errors
+      };
     }
     
-    console.log(`Procesando ${rows.length} registros`);
     if (onProgress) {
       onProgress(`Procesando ${rows.length} registros`, 50, 100);
     }
     
+    // Mostrar ejemplo de datos para diagnosticar problemas
+    console.log("Ejemplo de fila procesada:", rows[0]);
+    
     // Mapear los datos al formato requerido por la tabla driver_behavior_scores
     const driverBehaviorRecords = rows.map((row, index) => {
-      // Mapeo de nombres de columnas
-      const mappings: Record<string, string> = {
-        'nombre_conductor': 'driver_name',
-        'grupo_conductor': 'driver_group',
-        'cliente': 'client',
-        'puntuacion': 'score',
-        'puntos_penalizacion': 'penalty_points',
-        'viajes': 'trips_count',
-        'fecha_inicio': 'start_date',
-        'fecha_fin': 'end_date',
-        'distancia': 'distance',
-        'tiempo_conduccion': 'duration_text'
-      };
-      
-      // Procesamiento de fechas
-      let startDate: Date, endDate: Date;
-      
-      // Función helper para parsear fechas en diferentes formatos
-      const parseDate = (dateStr: string): Date => {
-        if (!dateStr || dateStr.trim() === '') return new Date();
-        
-        // Intentar varios formatos comunes
-        let result: Date | null = null;
-        
-        // Intentar formato ISO YYYY-MM-DD
-        if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
-          result = new Date(dateStr);
-        } 
-        // Intentar formato DD/MM/YYYY
-        else if (/^\d{1,2}\/\d{1,2}\/\d{4}$/.test(dateStr)) {
-          const parts = dateStr.split('/');
-          result = new Date(`${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`);
-        }
-        // Intentar formato DD-MM-YYYY
-        else if (/^\d{1,2}-\d{1,2}-\d{4}$/.test(dateStr)) {
-          const parts = dateStr.split('-');
-          result = new Date(`${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`);
-        }
-        
-        if (result && !isNaN(result.getTime())) {
-          return result;
-        }
-        
-        // Si nada funciona, usar la fecha actual
-        console.warn(`No se pudo parsear la fecha: "${dateStr}". Usando fecha actual.`);
-        return new Date();
-      };
-      
       try {
-        const startDateStr = row['fecha_inicio'] || row['start_date'] || '';
-        const endDateStr = row['fecha_fin'] || row['end_date'] || '';
+        // Verificar campos obligatorios
+        const requiredFields = ['nombre_conductor', 'grupo_conductor', 'cliente', 'puntuacion'];
+        const missingFields = requiredFields.filter(field => 
+          !row[field] && 
+          !row[translateFieldName(field)] &&
+          row[field] !== 0 && 
+          row[translateFieldName(field)] !== 0
+        );
         
-        startDate = parseDate(startDateStr);
-        endDate = parseDate(endDateStr);
-      } catch (error) {
-        console.error(`Error procesando fechas en fila ${index + 1}:`, error);
-        startDate = new Date();
-        endDate = new Date();
-      }
-      
-      // Función para parsear números con manejo de errores
-      const parseNumber = (value: string | null | undefined, defaultValue: number): number => {
-        if (value === null || value === undefined || value === '') return defaultValue;
-        
-        // Reemplazar comas por puntos para manejar formato europeo
-        const normalizedValue = String(value).replace(',', '.');
-        const parsed = parseFloat(normalizedValue);
-        
-        if (isNaN(parsed)) {
-          console.warn(`Valor numérico inválido: "${value}", usando ${defaultValue}`);
-          return defaultValue;
+        if (missingFields.length > 0) {
+          console.warn(`Fila ${index + 1}: Faltan campos obligatorios: ${missingFields.join(', ')}`);
+          throw new Error(`Faltan campos obligatorios: ${missingFields.join(', ')}`);
         }
         
-        return parsed;
-      };
-      
-      // Tratar de obtener los valores usando diferentes posibles nombres de columnas
-      const score = parseNumber(row['puntuacion'] || row['score'], 0);
-      const penaltyPoints = parseNumber(row['puntos_penalizacion'] || row['penalty_points'], 0);
-      const tripsCount = parseNumber(row['viajes'] || row['trips_count'], 0);
-      
-      let distance: number | null = null;
-      const distanceStr = row['distancia'] || row['distance'];
-      if (distanceStr !== null && distanceStr !== undefined && distanceStr !== '') {
-        distance = parseNumber(distanceStr, 0);
+        // Intentar obtener el nombre del conductor de diferentes campos posibles
+        const driverName = getStringValue(row, ['nombre_conductor', 'driver_name', 'conductor', 'nombre'], 'Sin nombre');
+        const driverGroup = getStringValue(row, ['grupo_conductor', 'driver_group', 'grupo'], 'Sin grupo');
+        const client = getStringValue(row, ['cliente', 'client', 'empresa'], 'Sin cliente');
+        
+        // Parsear valores numéricos
+        const score = getNumericValue(row, ['puntuacion', 'score', 'puntaje'], 0);
+        const penaltyPoints = getNumericValue(row, ['puntos_penalizacion', 'penalty_points', 'penalizacion'], 0);
+        const tripsCount = getNumericValue(row, ['viajes', 'trips', 'trips_count', 'num_viajes'], 0);
+        const distance = getOptionalNumericValue(row, ['distancia', 'distance', 'km']);
+        
+        // Parsear fechas con validación
+        const startDate = parseFlexibleDate(
+          getStringValue(row, ['fecha_inicio', 'start_date', 'inicio']), 
+          new Date(new Date().setMonth(new Date().getMonth() - 1))
+        );
+        
+        const endDate = parseFlexibleDate(
+          getStringValue(row, ['fecha_fin', 'end_date', 'fin']), 
+          new Date()
+        );
+        
+        // Validar que la fecha de fin no sea anterior a la de inicio
+        if (endDate < startDate) {
+          console.warn(`Fila ${index + 1}: La fecha de fin es anterior a la de inicio. Ajustando...`);
+          // Si la fecha fin es anterior, usar la fecha inicio + 1 día
+          const adjustedEndDate = new Date(startDate);
+          adjustedEndDate.setDate(adjustedEndDate.getDate() + 1);
+          endDate.setTime(adjustedEndDate.getTime());
+        }
+        
+        // Formatear tiempo de conducción
+        const durationText = getStringValue(row, ['tiempo_conduccion', 'duration_text', 'duracion', 'tiempo'], null);
+        
+        return {
+          driver_name: driverName.substring(0, 255),  // Limitar longitud a 255 caracteres
+          driver_group: driverGroup.substring(0, 255),
+          client: client.substring(0, 255),
+          score: score,
+          penalty_points: Math.round(penaltyPoints),
+          trips_count: Math.round(tripsCount),
+          start_date: startDate.toISOString(),
+          end_date: endDate.toISOString(),
+          distance: distance,
+          distance_text: distance ? `${distance.toFixed(2)} km` : null,
+          duration_text: durationText,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        };
+      } catch (err) {
+        console.error(`Error procesando fila ${index + 1}:`, err, "Datos:", JSON.stringify(row));
+        errors.push({
+          row: index + 2,  // +2 porque index comienza en 0 y tenemos que sumar 1 para la cabecera
+          message: `Error procesando fila: ${(err as Error).message}`
+        });
+        return null;
       }
-      
-      // Crear objeto para inserción a la base de datos
-      return {
-        driver_name: (row['nombre_conductor'] || row['driver_name'] || 'Sin nombre').trim(),
-        driver_group: (row['grupo_conductor'] || row['driver_group'] || 'Sin grupo').trim(),
-        client: (row['cliente'] || row['client'] || 'Sin cliente').trim(),
-        score: score,
-        penalty_points: Math.round(penaltyPoints), // Asegurar que es entero
-        trips_count: Math.round(tripsCount), // Asegurar que es entero
-        start_date: startDate.toISOString(),
-        end_date: endDate.toISOString(),
-        distance: distance,
-        distance_text: distance ? `${distance.toFixed(2)} km` : null,
-        duration_text: (row['tiempo_conduccion'] || row['duration_text'] || null),
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
+    }).filter(record => record !== null) as any[];
+    
+    console.log(`Registros preparados para inserción: ${driverBehaviorRecords.length}`);
+    console.log("Ejemplo de registro procesado:", driverBehaviorRecords[0]);
+    
+    if (driverBehaviorRecords.length === 0) {
+      toast.error("Error en los datos", {
+        description: "No hay datos válidos para importar después del procesamiento"
+      });
+      return { 
+        success: false, 
+        message: "No hay datos válidos para importar después del procesamiento",
+        errors
       };
-    });
+    }
     
     if (onProgress) {
       onProgress("Guardando registros en la base de datos", 75, 100);
     }
     
     // Insertar los registros en lotes pequeños para evitar errores de tamaño
-    const batchSize = 5; // Reducir el tamaño del lote para mejor manejo
+    const batchSize = 5;
     let insertedCount = 0;
-    const errors: any[] = [];
+    let failedCount = 0;
     
     console.log(`Iniciando inserción de ${driverBehaviorRecords.length} registros en lotes de ${batchSize}`);
     
     for (let i = 0; i < driverBehaviorRecords.length; i += batchSize) {
       const batch = driverBehaviorRecords.slice(i, i + batchSize);
       console.log(`Insertando lote ${Math.floor(i / batchSize) + 1} con ${batch.length} registros`);
+      console.log("Primer registro del lote:", batch[0]);
       
       try {
-        // Limpiar datos para asegurar que cumplen con la estructura de la tabla
-        const cleanBatch = batch.map(record => ({
-          driver_name: String(record.driver_name).substring(0, 255), // Limitar longitud
-          driver_group: String(record.driver_group).substring(0, 255),
-          client: String(record.client).substring(0, 255),
-          score: parseFloat(String(record.score)),
-          penalty_points: parseInt(String(record.penalty_points)),
-          trips_count: parseInt(String(record.trips_count)),
-          start_date: record.start_date,
-          end_date: record.end_date,
-          distance: record.distance,
-          distance_text: record.distance_text,
-          duration_text: record.duration_text,
-          created_at: record.created_at,
-          updated_at: record.updated_at
-        }));
-        
         const { data, error } = await supabase
           .from('driver_behavior_scores')
-          .insert(cleanBatch)
+          .insert(batch)
           .select();
           
         if (error) {
@@ -494,6 +473,7 @@ export async function importDriverBehaviorData(
             message: `Error al insertar lote ${Math.floor(i / batchSize) + 1}: ${error.message}`,
             details: error
           });
+          failedCount += batch.length;
         } else {
           insertedCount += data?.length || 0;
           console.log(`Insertados ${data?.length || 0} registros correctamente. Total: ${insertedCount}`);
@@ -501,9 +481,9 @@ export async function importDriverBehaviorData(
       } catch (error) {
         console.error("Error no controlado al insertar registros:", error);
         errors.push({
-          message: `Error no controlado en lote ${Math.floor(i / batchSize) + 1}`,
-          details: error
+          message: `Error no controlado en lote ${Math.floor(i / batchSize) + 1}: ${(error as Error).message}`,
         });
+        failedCount += batch.length;
       }
       
       if (onProgress) {
@@ -518,6 +498,8 @@ export async function importDriverBehaviorData(
     if (onProgress) {
       onProgress("Finalizando importación", 95, 100);
     }
+
+    console.log(`Resultados finales: ${insertedCount} insertados, ${failedCount} fallidos, ${errors.length} errores`);
 
     const success = insertedCount > 0;
     const message = success
@@ -542,15 +524,170 @@ export async function importDriverBehaviorData(
       success,
       message,
       insertedCount,
-      totalCount: driverBehaviorRecords.length,
+      totalCount: rows.length,
       errors: errors.length > 0 ? errors : undefined
     };
   } catch (error) {
-    console.error("Error procesando archivo:", error);
+    console.error("Error general procesando archivo:", error);
     toast.error("Error en la importación", {
       description: "Ocurrió un error al procesar el archivo. Por favor inténtelo de nuevo."
     });
-    return { success: false, message: "Error al procesar el archivo" };
+    return { 
+      success: false, 
+      message: `Error al procesar el archivo: ${(error as Error).message}` 
+    };
+  }
+}
+
+// Función para procesar líneas CSV considerando campos entre comillas
+function processCSVLine(line: string): string[] {
+  const values: string[] = [];
+  let currentValue = '';
+  let insideQuotes = false;
+  
+  for (let i = 0; i < line.length; i++) {
+    const char = line[i];
+    
+    if ((char === '"' || char === '"' || char === '"') && (i === 0 || line[i-1] !== '\\')) {
+      insideQuotes = !insideQuotes;
+    } else if (char === ',' && !insideQuotes) {
+      values.push(currentValue.trim());
+      currentValue = '';
+    } else {
+      currentValue += char;
+    }
+  }
+  
+  // No olvidar añadir el último valor
+  values.push(currentValue.trim());
+  
+  // Limpiar valores de comillas
+  return values.map(v => v.replace(/^[""]|[""]$/g, '').trim());
+}
+
+// Traducir nombres de campos del español al inglés y viceversa
+function translateFieldName(field: string): string {
+  const translations: Record<string, string> = {
+    'nombre_conductor': 'driver_name',
+    'grupo_conductor': 'driver_group',
+    'cliente': 'client',
+    'puntuacion': 'score',
+    'puntos_penalizacion': 'penalty_points',
+    'viajes': 'trips_count',
+    'fecha_inicio': 'start_date',
+    'fecha_fin': 'end_date',
+    'distancia': 'distance',
+    'tiempo_conduccion': 'duration_text',
+    
+    'driver_name': 'nombre_conductor',
+    'driver_group': 'grupo_conductor',
+    'client': 'cliente',
+    'score': 'puntuacion',
+    'penalty_points': 'puntos_penalizacion',
+    'trips_count': 'viajes',
+    'start_date': 'fecha_inicio',
+    'end_date': 'fecha_fin',
+    'distance': 'distancia',
+    'duration_text': 'tiempo_conduccion'
+  };
+  
+  return translations[field] || field;
+}
+
+// Obtener un valor de texto de diferentes campos posibles
+function getStringValue(row: Record<string, any>, possibleFields: string[], defaultValue: string | null = null): string {
+  for (const field of possibleFields) {
+    if (row[field] !== undefined && row[field] !== null && row[field] !== '') {
+      return String(row[field]).trim();
+    }
+  }
+  return defaultValue !== null ? defaultValue : '';
+}
+
+// Parsear un valor numérico con manejo flexible
+function getNumericValue(row: Record<string, any>, possibleFields: string[], defaultValue: number = 0): number {
+  for (const field of possibleFields) {
+    const value = row[field];
+    
+    if (value !== undefined && value !== null && value !== '') {
+      // Si ya es un número, devolverlo
+      if (typeof value === 'number') return value;
+      
+      // Si es string, intentar convertirlo
+      if (typeof value === 'string') {
+        // Reemplazar comas por puntos para manejar formato europeo
+        const normalizedValue = value.replace(/\./g, '').replace(',', '.');
+        const parsed = parseFloat(normalizedValue);
+        if (!isNaN(parsed)) return parsed;
+      }
+    }
+  }
+  
+  return defaultValue;
+}
+
+// Obtener un valor numérico opcional (puede ser null)
+function getOptionalNumericValue(row: Record<string, any>, possibleFields: string[]): number | null {
+  for (const field of possibleFields) {
+    const value = row[field];
+    
+    if (value !== undefined && value !== null && value !== '') {
+      if (typeof value === 'number') return value;
+      
+      if (typeof value === 'string') {
+        const normalizedValue = value.replace(/\./g, '').replace(',', '.');
+        const parsed = parseFloat(normalizedValue);
+        if (!isNaN(parsed)) return parsed;
+      }
+    }
+  }
+  
+  return null;
+}
+
+// Parsear fechas en múltiples formatos posibles
+function parseFlexibleDate(dateStr: string, defaultDate: Date = new Date()): Date {
+  if (!dateStr || dateStr.trim() === '') return defaultDate;
+  
+  try {
+    // Quitar comillas si existen
+    dateStr = dateStr.replace(/[""]/g, '').trim();
+    
+    // Intentar formato ISO YYYY-MM-DD
+    if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+      const date = new Date(dateStr + 'T00:00:00');
+      if (!isNaN(date.getTime())) return date;
+    }
+    
+    // Intentar formato DD/MM/YYYY
+    if (/^\d{1,2}\/\d{1,2}\/\d{4}$/.test(dateStr)) {
+      const parts = dateStr.split('/');
+      const day = parseInt(parts[0], 10);
+      const month = parseInt(parts[1], 10) - 1;
+      const year = parseInt(parts[2], 10);
+      const date = new Date(year, month, day);
+      if (!isNaN(date.getTime())) return date;
+    }
+    
+    // Intentar formato DD-MM-YYYY
+    if (/^\d{1,2}-\d{1,2}-\d{4}$/.test(dateStr)) {
+      const parts = dateStr.split('-');
+      const day = parseInt(parts[0], 10);
+      const month = parseInt(parts[1], 10) - 1;
+      const year = parseInt(parts[2], 10);
+      const date = new Date(year, month, day);
+      if (!isNaN(date.getTime())) return date;
+    }
+    
+    // Intentar analizar la cadena directamente
+    const directParse = new Date(dateStr);
+    if (!isNaN(directParse.getTime())) return directParse;
+    
+    console.warn(`No se pudo parsear la fecha: "${dateStr}". Usando fecha predeterminada.`);
+    return defaultDate;
+  } catch (error) {
+    console.warn(`Error al parsear fecha "${dateStr}":`, error);
+    return defaultDate;
   }
 }
 

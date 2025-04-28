@@ -33,7 +33,7 @@ export function useTemplateDownload(templateType: 'servicios' | 'driver-behavior
           'tiempo_conduccion'
         ];
         
-        // Ejemplo de datos para la plantilla - asegurarse que los formatos son correctos
+        // Ejemplo de datos con formato correcto para mejor comprensión del usuario
         const today = new Date();
         const lastMonth = new Date(today);
         lastMonth.setMonth(today.getMonth() - 1);
@@ -52,7 +52,19 @@ export function useTemplateDownload(templateType: 'servicios' | 'driver-behavior
             formattedLastMonth,
             formattedToday, 
             '1250.5', 
-            '35:45' // Formato de tiempo más claro
+            '35:45'
+          ],
+          [
+            'María Rodríguez',
+            'Grupo B',
+            'Cliente Demo',
+            '92',
+            '5',
+            '18',
+            formattedLastMonth,
+            formattedToday,
+            '980.2',
+            '28:15'
           ]
         ];
       } else {
@@ -79,6 +91,16 @@ export function useTemplateDownload(templateType: 'servicios' | 'driver-behavior
             'Ciudad de México', 
             'Puebla', 
             'Transporte'
+          ],
+          [
+            'SRV-002',
+            'Pendiente',
+            'Cliente Demo',
+            'Custodio Demo',
+            '2023-02-20 14:30:00',
+            'Guadalajara',
+            'León',
+            'Escolta'
           ]
         ];
       }
