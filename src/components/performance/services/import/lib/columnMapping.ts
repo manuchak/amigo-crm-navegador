@@ -1,4 +1,6 @@
 
+import { knownNumericColumns, knownBooleanColumns } from "./columnTypes";
+
 // Función para determinar el mapeo de columnas según los encabezados detectados
 export function determineHeaderMapping(headerRow: Record<string, any>): Record<string, string> {
   const mapping: Record<string, string> = {};
@@ -126,15 +128,6 @@ export function determineHeaderMapping(headerRow: Record<string, any>): Record<s
     'ID Cotización': 'id_cotizacion',
     'Cotización': 'id_cotizacion'
   };
-  
-  // Lista de columnas conocidas como numéricas
-  const numericColumns = [
-    'km_recorridos', 'km_teorico', 'km_extras',
-    'cobro_cliente', 'costo_custodio', 'casetas'
-  ];
-  
-  // Lista de columnas conocidas como booleanas
-  const booleanColumns = ['armado', 'es_armado'];
   
   // Lista de columnas inválidas o problemáticas que deben ser ignoradas
   const invalidColumns = ['cantidad_de_transportes', 'null', 'undefined', ''];
@@ -273,9 +266,9 @@ export function determineHeaderMapping(headerRow: Record<string, any>): Record<s
   // Añadir información sobre tipos de datos para columnas críticas
   const columnTypes: Record<string, string> = {};
   for (const [excelCol, dbCol] of Object.entries(mapping)) {
-    if (numericColumns.includes(dbCol)) {
+    if (knownNumericColumns.includes(dbCol)) {
       columnTypes[dbCol] = 'numeric';
-    } else if (booleanColumns.includes(dbCol)) {
+    } else if (knownBooleanColumns.includes(dbCol)) {
       columnTypes[dbCol] = 'boolean';
     }
   }
@@ -297,11 +290,4 @@ export function determineHeaderMapping(headerRow: Record<string, any>): Record<s
 }
 
 // Export these arrays for use in template validation
-export const knownNumericColumns = [
-  'km_recorridos', 'km_teorico', 'km_extras',
-  'cobro_cliente', 'costo_custodio', 'casetas'
-];
-
-export const knownBooleanColumns = [
-  'armado', 'es_armado', 'esmilitar', 'tienevehiculo', 'esarmado'
-];
+export { knownNumericColumns, knownBooleanColumns } from './columnTypes';
