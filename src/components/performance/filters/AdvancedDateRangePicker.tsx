@@ -1,5 +1,4 @@
-
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { format, subDays, startOfMonth, endOfMonth, startOfYear, endOfYear, subMonths, subYears, startOfQuarter, endOfQuarter } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Check, CalendarIcon, ChevronDown } from 'lucide-react';
@@ -104,7 +103,10 @@ const AdvancedDateRangePicker: React.FC<AdvancedDateRangePickerProps> = ({
   const [isOpen, setIsOpen] = useState(false);
   const [localValue, setLocalValue] = useState<DateRangeWithComparison>(value);
   
-  // Format date range for display
+  useEffect(() => {
+    setLocalValue(value);
+  }, [value]);
+  
   const formatDateRange = (from: Date | null, to: Date | null) => {
     if (!from) return "Seleccionar rango";
     
@@ -115,13 +117,11 @@ const AdvancedDateRangePicker: React.FC<AdvancedDateRangePickerProps> = ({
     return `${from ? format(from, "d MMM", { locale: es }) : "?"} - ${to ? format(to, "d MMM yyyy", { locale: es }) : "?"}`;
   };
 
-  // Get readable name for the currently selected preset
   const getSelectedRangeName = () => {
     const preset = DATE_RANGE_PRESETS.find(p => p.id === localValue.rangeType);
     return preset ? preset.label : "Personalizado";
   };
 
-  // Apply a preset range
   const applyPreset = (presetId: string) => {
     const preset = DATE_RANGE_PRESETS.find(p => p.id === presetId);
     if (!preset) return;
@@ -134,7 +134,6 @@ const AdvancedDateRangePicker: React.FC<AdvancedDateRangePickerProps> = ({
       rangeType: presetId
     };
 
-    // Update comparison range if needed
     if (localValue.comparisonType !== 'none') {
       newValue.comparison = getComparisonRange(
         primaryRange.from, 
@@ -146,7 +145,6 @@ const AdvancedDateRangePicker: React.FC<AdvancedDateRangePickerProps> = ({
     setLocalValue(newValue);
   };
 
-  // Get comparison date range based on selected primary range
   const getComparisonRange = (from: Date | null, to: Date | null, comparisonType: 'none' | 'previous' | 'year') => {
     if (!from || !to || comparisonType === 'none') {
       return undefined;
@@ -155,13 +153,11 @@ const AdvancedDateRangePicker: React.FC<AdvancedDateRangePickerProps> = ({
     const diffDays = from && to ? Math.round((to.getTime() - from.getTime()) / (1000 * 60 * 60 * 24)) : 0;
     
     if (comparisonType === 'previous') {
-      // Previous period (same length, immediately before the primary range)
       return {
         from: subDays(from, diffDays + 1),
         to: subDays(from, 1)
       };
     } else if (comparisonType === 'year') {
-      // Same period last year
       return {
         from: subYears(from, 1),
         to: subYears(to, 1)
@@ -171,7 +167,6 @@ const AdvancedDateRangePicker: React.FC<AdvancedDateRangePickerProps> = ({
     return undefined;
   };
 
-  // Handle comparison type change
   const handleComparisonChange = (type: 'none' | 'previous' | 'year') => {
     const newValue = {
       ...localValue,
@@ -191,19 +186,16 @@ const AdvancedDateRangePicker: React.FC<AdvancedDateRangePickerProps> = ({
     setLocalValue(newValue);
   };
 
-  // Apply changes and close popover
   const applyChanges = () => {
     onChange(localValue);
     setIsOpen(false);
   };
 
-  // Cancel changes and close popover
   const cancelChanges = () => {
     setLocalValue(value);
     setIsOpen(false);
   };
 
-  // Handle custom date range selection
   const handleCalendarSelect = (range: { from: Date | null; to: Date | null }) => {
     const newValue = {
       ...localValue,
@@ -218,7 +210,6 @@ const AdvancedDateRangePicker: React.FC<AdvancedDateRangePickerProps> = ({
     setLocalValue(newValue);
   };
 
-  // Handle mobile sheet interface
   const renderMobileSheetContent = () => (
     <div className="px-1 py-4 space-y-6">
       {renderContent()}
@@ -229,7 +220,6 @@ const AdvancedDateRangePicker: React.FC<AdvancedDateRangePickerProps> = ({
     </div>
   );
 
-  // Render the main content of the date picker (used in both desktop and mobile views)
   const renderContent = () => (
     <>
       <div className="space-y-4">
@@ -301,7 +291,6 @@ const AdvancedDateRangePicker: React.FC<AdvancedDateRangePickerProps> = ({
     </>
   );
 
-  // For mobile view, use Sheet component
   const renderMobileView = () => (
     <Sheet open={isOpen} onOpenChange={setIsOpen}>
       <SheetTrigger asChild>
@@ -321,7 +310,6 @@ const AdvancedDateRangePicker: React.FC<AdvancedDateRangePickerProps> = ({
     </Sheet>
   );
 
-  // For desktop view, use Popover component
   const renderDesktopView = () => (
     <Popover open={isOpen} onOpenChange={setIsOpen}>
       <PopoverTrigger asChild>
@@ -345,15 +333,12 @@ const AdvancedDateRangePicker: React.FC<AdvancedDateRangePickerProps> = ({
     </Popover>
   );
 
-  // Conditional rendering based on screen size
   return (
     <>
-      {/* Hide on desktop, show on mobile */}
       <div className="sm:hidden">
         {renderMobileView()}
       </div>
       
-      {/* Hide on mobile, show on desktop */}
       <div className="hidden sm:block">
         {renderDesktopView()}
       </div>

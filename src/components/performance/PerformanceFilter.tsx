@@ -11,6 +11,12 @@ interface PerformanceFilterProps {
 }
 
 export function PerformanceFilter({ dateRange, setDateRange }: PerformanceFilterProps) {
+  // Handle date range change
+  const handleDateRangeChange = (newRange: DateRangeWithComparison) => {
+    console.log("Date range changed:", newRange);
+    setDateRange(newRange);
+  };
+  
   return (
     <Card className="border-0 shadow-md bg-white/90">
       <CardContent className="p-4">
@@ -20,7 +26,7 @@ export function PerformanceFilter({ dateRange, setDateRange }: PerformanceFilter
             
             <AdvancedDateRangePicker 
               value={dateRange}
-              onChange={setDateRange}
+              onChange={handleDateRangeChange}
             />
           </div>
 

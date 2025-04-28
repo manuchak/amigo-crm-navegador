@@ -24,10 +24,11 @@ export function ServiciosDashboard({ dateRange, comparisonRange }: ServiciosDash
   const { data: comparisonData } = useQuery({
     queryKey: ['servicios-comparison-data', comparisonRange],
     queryFn: () => comparisonRange ? fetchServiciosData(comparisonRange) : null,
-    enabled: !!comparisonRange,
+    enabled: !!comparisonRange && comparisonRange.from !== null && comparisonRange.to !== null,
   });
 
   if (error) {
+    console.error('Error loading servicios data:', error);
     return (
       <Card className="border-0 shadow-md">
         <CardContent className="p-6">

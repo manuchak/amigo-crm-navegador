@@ -25,7 +25,10 @@ interface ServiciosPerformanceChartProps {
 
 export function ServiciosPerformanceChart({ data = [], comparisonData, isLoading, dateRange }: ServiciosPerformanceChartProps) {
   const chartData = useMemo(() => {
-    if (!data || data.length === 0 || !dateRange.from || !dateRange.to) return [];
+    if (!data || data.length === 0 || !dateRange.from || !dateRange.to) {
+      console.warn('Missing or invalid data for ServiciosPerformanceChart');
+      return [];
+    }
     
     // Create a map to group services by day
     const dailyDataMap = new Map();
@@ -55,60 +58,64 @@ export function ServiciosPerformanceChart({ data = [], comparisonData, isLoading
     data.forEach(servicio => {
       if (!servicio.fecha_hora_cita) return;
       
-      // Check if this service date is within our range
-      const serviceDate = parseISO(servicio.fecha_hora_cita);
-      
-      if (!isWithinInterval(serviceDate, {
-        start: startOfMonth(dateRange.from!),
-        end: endOfMonth(dateRange.to || dateRange.from!)
-      })) {
-        return;
-      }
-      
-      const dayStr = format(serviceDate, 'yyyy-MM-dd');
-      const dayData = dailyDataMap.get(dayStr) || {
-        date: dayStr,
-        servicios: 0,
-        kmPromedio: 0,
-        totalKm: 0,
-        duracionPromedio: 0,
-        totalDuracion: 0,
-        serviciosConKm: 0,
-        serviciosConDuracion: 0
-      };
-      
-      // Update counts and totals
-      dayData.servicios += 1;
-      
-      // Handle KM data
-      if (servicio.km_recorridos) {
-        dayData.totalKm += servicio.km_recorridos;
-        dayData.serviciosConKm += 1;
-      }
-      
-      // Handle duration data - parse from interval format
-      if (servicio.duracion_servicio) {
-        let durationMinutes = 0;
+      try {
+        // Check if this service date is within our range
+        const serviceDate = parseISO(servicio.fecha_hora_cita);
         
-        if (typeof servicio.duracion_servicio === 'string') {
-          // Extract hours
-          const hoursMatch = servicio.duracion_servicio.match(/(\d+)\s*hours?/);
-          if (hoursMatch && hoursMatch[1]) {
-            durationMinutes += parseInt(hoursMatch[1], 10) * 60;
-          }
-          
-          // Extract minutes
-          const minsMatch = servicio.duracion_servicio.match(/(\d+)\s*minutes?/);
-          if (minsMatch && minsMatch[1]) {
-            durationMinutes += parseInt(minsMatch[1], 10);
-          }
+        if (!isWithinInterval(serviceDate, {
+          start: startOfMonth(dateRange.from!),
+          end: endOfMonth(dateRange.to || dateRange.from!)
+        })) {
+          return;
         }
         
-        dayData.totalDuracion += durationMinutes;
-        dayData.serviciosConDuracion += 1;
+        const dayStr = format(serviceDate, 'yyyy-MM-dd');
+        const dayData = dailyDataMap.get(dayStr) || {
+          date: dayStr,
+          servicios: 0,
+          kmPromedio: 0,
+          totalKm: 0,
+          duracionPromedio: 0,
+          totalDuracion: 0,
+          serviciosConKm: 0,
+          serviciosConDuracion: 0
+        };
+        
+        // Update counts and totals
+        dayData.servicios += 1;
+        
+        // Handle KM data
+        if (servicio.km_recorridos) {
+          dayData.totalKm += servicio.km_recorridos;
+          dayData.serviciosConKm += 1;
+        }
+        
+        // Handle duration data - parse from interval format
+        if (servicio.duracion_servicio) {
+          let durationMinutes = 0;
+          
+          if (typeof servicio.duracion_servicio === 'string') {
+            // Extract hours
+            const hoursMatch = servicio.duracion_servicio.match(/(\d+)\s*hours?/);
+            if (hoursMatch && hoursMatch[1]) {
+              durationMinutes += parseInt(hoursMatch[1], 10) * 60;
+            }
+            
+            // Extract minutes
+            const minsMatch = servicio.duracion_servicio.match(/(\d+)\s*minutes?/);
+            if (minsMatch && minsMatch[1]) {
+              durationMinutes += parseInt(minsMatch[1], 10);
+            }
+          }
+          
+          dayData.totalDuracion += durationMinutes;
+          dayData.serviciosConDuracion += 1;
+        }
+        
+        dailyDataMap.set(dayStr, dayData);
+      } catch (error) {
+        console.error('Error processing service data:', error, servicio);
       }
-      
-      dailyDataMap.set(dayStr, dayData);
     });
     
     // Calculate averages and prepare final data array
@@ -124,14 +131,15 @@ export function ServiciosPerformanceChart({ data = [], comparisonData, isLoading
 
   // Process comparison data if available
   const comparisonChartData = useMemo(() => {
-    if (!comparisonData || comparisonData.length === 0) return [];
+    if (!comparisonData || comparisonData.length === 0 || !dateRange.from || !dateRange.to) {
+      return [];
+    }
     
     // Similar processing for comparison data
-    // This would be a duplicate of the above code with comparisonData instead of data
-    // For brevity, I'm omitting the implementation, but it would follow the same pattern
+    // This would need to be implemented based on the structure of your comparison data
     
     return []; // Return processed comparison data here
-  }, [comparisonData]);
+  }, [comparisonData, dateRange]);
 
   if (isLoading) {
     return (
@@ -158,7 +166,14 @@ export function ServiciosPerformanceChart({ data = [], comparisonData, isLoading
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis 
                 dataKey="date" 
-                tickFormatter={(date) => format(parseISO(date), 'dd MMM', { locale: es })} 
+                tickFormatter={(date) => {
+                  try {
+                    return format(parseISO(date), 'dd MMM', { locale: es });
+                  } catch (error) {
+                    console.error('Error formatting date:', error, date);
+                    return date;
+                  }
+                }} 
               />
               <YAxis yAxisId="left" />
               <YAxis yAxisId="right" orientation="right" />
@@ -169,7 +184,14 @@ export function ServiciosPerformanceChart({ data = [], comparisonData, isLoading
                   if (name === 'duracionPromedio') return [`${value} hrs`, 'Duración Promedio'];
                   return [value, name];
                 }}
-                labelFormatter={(date) => format(parseISO(date), 'dd MMM yyyy', { locale: es })}
+                labelFormatter={(date) => {
+                  try {
+                    return format(parseISO(date), 'dd MMM yyyy', { locale: es });
+                  } catch (error) {
+                    console.error('Error formatting tooltip date:', error, date);
+                    return date;
+                  }
+                }}
               />
               <Legend />
               <Line 

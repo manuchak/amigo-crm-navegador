@@ -32,11 +32,17 @@ export default function Performance() {
           </TabsList>
           
           <TabsContent value="servicios" className="mt-2">
-            <ServiciosDashboard dateRange={dateRange.primary} comparisonRange={dateRange.comparison} />
+            <ServiciosDashboard 
+              dateRange={dateRange.primary} 
+              comparisonRange={dateRange.comparisonType !== 'none' ? dateRange.comparison : undefined} 
+            />
           </TabsContent>
           
           <TabsContent value="custodios" className="mt-2">
-            <CustodioPerformanceDashboard dateRange={dateRange.primary} />
+            <CustodioPerformanceDashboard 
+              dateRange={dateRange.primary} 
+              comparisonRange={dateRange.comparisonType !== 'none' ? dateRange.comparison : undefined} 
+            />
           </TabsContent>
         </Tabs>
       </div>
