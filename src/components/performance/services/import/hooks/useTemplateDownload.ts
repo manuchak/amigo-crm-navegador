@@ -21,16 +21,15 @@ export function useTemplateDownload(templateType: 'servicios' | 'driver-behavior
       if (templateType === 'driver-behavior') {
         fileName = 'plantilla_comportamiento_conduccion.csv';
         headers = [
-          'nombre_conductor', 
-          'grupo_conductor', 
-          'cliente', 
-          'puntuacion', 
-          'puntos_penalizacion', 
-          'viajes', 
-          'fecha_inicio', 
-          'fecha_fin', 
-          'distancia', 
-          'tiempo_conduccion'
+          'Agrupación', 
+          'Valoración', 
+          'Multa', 
+          'Cantidad', 
+          'Duración', 
+          'Kilometraje', 
+          'Comienzo', 
+          'Fin', 
+          'Cliente'
         ];
         
         // Ejemplo de datos con formato correcto para mejor comprensión del usuario
@@ -43,28 +42,26 @@ export function useTemplateDownload(templateType: 'servicios' | 'driver-behavior
         
         data = [
           [
-            'Juan Pérez', 
             'Grupo A', 
-            'Cliente Ejemplo', 
-            '85', 
-            '12', 
+            '8.5', 
+            '120', 
             '25', 
-            formattedLastMonth,
-            formattedToday, 
-            '1250.5', 
-            '35:45'
+            '35:45:00', 
+            '1250 km', 
+            `${formattedLastMonth} 09:00`,
+            `${formattedToday} 18:00`, 
+            'Cliente Ejemplo'
           ],
           [
-            'María Rodríguez',
             'Grupo B',
-            'Cliente Demo',
-            '92',
-            '5',
+            '9.2',
+            '50',
             '18',
-            formattedLastMonth,
-            formattedToday,
-            '980.2',
-            '28:15'
+            '28:15:00',
+            '980 km',
+            `${formattedLastMonth} 10:30`,
+            `${formattedToday} 17:15`,
+            'Cliente Demo'
           ]
         ];
       } else {
