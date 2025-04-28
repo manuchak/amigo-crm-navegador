@@ -15,6 +15,7 @@ import {
 import { Skeleton } from '@/components/ui/skeleton';
 import { fetchDriverBehaviorData } from '../services/driverBehavior/driverBehaviorService';
 import { getScoreColorClass, calculateScoreCategory } from '../utils/scoreCalculator';
+import { DriverBehaviorData } from '../types/driver-behavior.types';
 
 interface DriverBehaviorTableProps {
   dateRange: DateRange;
@@ -23,7 +24,7 @@ interface DriverBehaviorTableProps {
 export function DriverBehaviorTable({ dateRange }: DriverBehaviorTableProps) {
   const [searchTerm, setSearchTerm] = useState('');
   
-  const { data, isLoading } = useQuery({
+  const { data, isLoading } = useQuery<DriverBehaviorData | null>({
     queryKey: ['driver-behavior-data', dateRange],
     queryFn: () => fetchDriverBehaviorData(dateRange),
   });

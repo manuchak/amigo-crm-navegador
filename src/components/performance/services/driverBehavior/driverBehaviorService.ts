@@ -5,11 +5,15 @@ import { DateRange } from "react-day-picker";
 import { ProgressCallback, ImportResponse } from "../import/types";
 import { handleImportError } from "../import/utils/errorHandler";
 import { handleImportResponse } from "../import/utils/responseHandler";
-import { DriverBehaviorScore, ScoreCalculationResult } from "../../types/driver-behavior.types";
+import { 
+  DriverBehaviorScore, 
+  ScoreCalculationResult, 
+  DriverBehaviorData 
+} from "../../types/driver-behavior.types";
 import { calculateDriverBehaviorScore } from "../../utils/scoreCalculator";
 
 // Function to fetch driver behavior data for the dashboard
-export async function fetchDriverBehaviorData(dateRange: DateRange) {
+export async function fetchDriverBehaviorData(dateRange: DateRange): Promise<DriverBehaviorData | null> {
   if (!dateRange.from || !dateRange.to) {
     return null;
   }
@@ -40,7 +44,7 @@ export async function fetchDriverBehaviorData(dateRange: DateRange) {
 }
 
 // Process the raw driver behavior data for dashboard display
-function processDriverBehaviorData(data: DriverBehaviorScore[] | null) {
+function processDriverBehaviorData(data: DriverBehaviorScore[] | null): DriverBehaviorData {
   if (!data || data.length === 0) {
     return {
       metrics: [],
@@ -60,7 +64,7 @@ function processDriverBehaviorData(data: DriverBehaviorScore[] | null) {
   const averageScore = data.reduce((sum, item) => sum + item.score, 0) / data.length;
   
   // Group by score ranges for chart data
-  const scoreRanges = {
+  const scoreDistribution = {
     excellent: data.filter(item => item.score >= 90).length,
     good: data.filter(item => item.score >= 80 && item.score < 90).length,
     fair: data.filter(item => item.score >= 70 && item.score < 80).length,
@@ -76,7 +80,7 @@ function processDriverBehaviorData(data: DriverBehaviorScore[] | null) {
       { label: "Promedio de Score", value: averageScore.toFixed(2) },
     ],
     driverScores: data,
-    scoreDistribution: scoreRanges,
+    scoreDistribution,
     averageScore,
     totalPenaltyPoints,
     totalTrips,

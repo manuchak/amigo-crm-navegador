@@ -1,4 +1,3 @@
-
 export interface DriverBehaviorScore {
   id: number;
   driver_name: string;
@@ -32,4 +31,26 @@ export interface DriverBehaviorFilters {
   endDate?: Date;
   minScore?: number;
   maxScore?: number;
+}
+
+export interface DriverBehaviorMetric {
+  label: string;
+  value: number | string;
+}
+
+export interface ScoreDistribution {
+  excellent: number;
+  good: number;
+  fair: number;
+  poor: number;
+  critical: number;
+}
+
+export interface DriverBehaviorData {
+  metrics: DriverBehaviorMetric[];
+  driverScores: DriverBehaviorScore[];
+  scoreDistribution?: ScoreDistribution;
+  averageScore: number;
+  totalPenaltyPoints: number;
+  totalTrips: number;
 }

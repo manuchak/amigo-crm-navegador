@@ -4,7 +4,7 @@ import {
   Card, 
   CardContent 
 } from "@/components/ui/card";
-import { DriverBehaviorScore } from "../types/driver-behavior.types";
+import { DriverBehaviorData } from "../types/driver-behavior.types";
 import { AlertTriangle, Award, Gauge, TrendingDown } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 
@@ -60,8 +60,8 @@ function MetricCard({
 }
 
 interface DriverBehaviorMetricsCardsProps {
-  data?: DriverBehaviorScore[];
-  comparisonData?: DriverBehaviorScore[] | null;
+  data?: DriverBehaviorData | null;
+  comparisonData?: DriverBehaviorData | null;
   isLoading: boolean;
 }
 
@@ -71,37 +71,21 @@ export function DriverBehaviorMetricsCards({
   isLoading 
 }: DriverBehaviorMetricsCardsProps) {
   // Calculate metrics
-  const avgScore = data && data.length > 0
-    ? data.reduce((sum, item) => sum + item.score, 0) / data.length
-    : 0;
+  const avgScore = data ? data.averageScore : 0;
+  const totalPenaltyPoints = data ? data.totalPenaltyPoints : 0;
+  const totalTrips = data ? data.totalTrips : 0;
     
-  const totalPenaltyPoints = data && data.length > 0
-    ? data.reduce((sum, item) => sum + item.penalty_points, 0)
-    : 0;
-    
-  const totalTrips = data && data.length > 0
-    ? data.reduce((sum, item) => sum + item.trips_count, 0)
-    : 0;
-    
-  const criticalDriversCount = data && data.length > 0
-    ? data.filter(d => d.score < 40).length
+  const criticalDriversCount = data && data.driverScores && data.driverScores.length > 0
+    ? data.driverScores.filter(d => d.score < 40).length
     : 0;
     
   // Calculate comparison metrics if available
-  const prevAvgScore = comparisonData && comparisonData.length > 0
-    ? comparisonData.reduce((sum, item) => sum + item.score, 0) / comparisonData.length
-    : 0;
+  const prevAvgScore = comparisonData ? comparisonData.averageScore : 0;
+  const prevPenaltyPoints = comparisonData ? comparisonData.totalPenaltyPoints : 0;
+  const prevTrips = comparisonData ? comparisonData.totalTrips : 0;
     
-  const prevPenaltyPoints = comparisonData && comparisonData.length > 0
-    ? comparisonData.reduce((sum, item) => sum + item.penalty_points, 0)
-    : 0;
-    
-  const prevTrips = comparisonData && comparisonData.length > 0
-    ? comparisonData.reduce((sum, item) => sum + item.trips_count, 0)
-    : 0;
-    
-  const prevCriticalDrivers = comparisonData && comparisonData.length > 0
-    ? comparisonData.filter(d => d.score < 40).length
+  const prevCriticalDrivers = comparisonData && comparisonData.driverScores && comparisonData.driverScores.length > 0
+    ? comparisonData.driverScores.filter(d => d.score < 40).length
     : 0;
     
   // Calculate percentage changes

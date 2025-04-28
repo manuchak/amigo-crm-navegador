@@ -6,6 +6,7 @@ import { fetchDriverBehaviorData } from "../services/driverBehavior/driverBehavi
 import { DriverBehaviorMetricsCards } from './DriverBehaviorMetricsCards';
 import { DriverBehaviorTable } from './DriverBehaviorTable';
 import { DriverBehaviorChart } from './DriverBehaviorChart';
+import { DriverBehaviorData } from '../types/driver-behavior.types';
 
 interface DriverBehaviorDashboardProps {
   dateRange: DateRange;
@@ -13,12 +14,12 @@ interface DriverBehaviorDashboardProps {
 }
 
 export function DriverBehaviorDashboard({ dateRange, comparisonRange }: DriverBehaviorDashboardProps) {
-  const { data: driverData, isLoading, error } = useQuery({
+  const { data: driverData, isLoading, error } = useQuery<DriverBehaviorData | null>({
     queryKey: ['driver-behavior-data', dateRange],
     queryFn: () => fetchDriverBehaviorData(dateRange),
   });
 
-  const { data: comparisonData } = useQuery({
+  const { data: comparisonData } = useQuery<DriverBehaviorData | null>({
     queryKey: ['driver-behavior-comparison-data', comparisonRange],
     queryFn: () => comparisonRange ? fetchDriverBehaviorData(comparisonRange) : null,
     enabled: !!comparisonRange && comparisonRange.from !== null && comparisonRange.to !== null,
