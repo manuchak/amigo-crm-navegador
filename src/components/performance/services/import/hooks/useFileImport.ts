@@ -1,9 +1,9 @@
 
 import { useState } from 'react';
 import { toast } from "sonner";
-import { importServiciosData } from '../../import/importService';
-import { ImportResponse } from '../../import/types';
-import { importDriverBehaviorData } from '../../driverBehavior/driverBehaviorService';
+import { ImportResponse } from '../types';
+import { importData } from '../services/importFactory';
+import { validateImportFile, isLargeFile } from '../api/fileValidation';
 
 interface UseFileImportOptions {
   onShowErrorDialog: (show: boolean) => void;
@@ -32,7 +32,7 @@ export function useFileImport({
     
     setSelectedFile(file);
     
-    if (file.size > 5 * 1024 * 1024) {
+    if (isLargeFile(file)) {
       setShowLargeFileWarning(true);
     } else {
       handleFileImport(file);
@@ -54,29 +54,26 @@ export function useFileImport({
     setShowLargeFileWarning(false);
 
     try {
-      let result: ImportResponse;
-      
-      if (importType === 'driver-behavior') {
-        result = await importDriverBehaviorData(file, (status, processed, total) => {
-          setImportStatus(status);
-          if (total > 0) {
-            setTotalRows(total);
-            setProcessedRows(processed);
-            const progress = Math.min(95, Math.floor((processed / total) * 95));
-            setUploadProgress(progress);
-          }
+      const validation = validateImportFile(file);
+      if (!validation.isValid) {
+        toast.error("Error en el archivo", {
+          description: validation.message
         });
-      } else {
-        result = await importServiciosData(file, (status, processed, total) => {
-          setImportStatus(status);
-          if (total > 0) {
-            setTotalRows(total);
-            setProcessedRows(processed);
-            const progress = Math.min(95, Math.floor((processed / total) * 95));
-            setUploadProgress(progress);
-          }
-        });
+        setIsUploading(false);
+        setUploadProgress(0);
+        setImportStatus('Error de validación');
+        return;
       }
+      
+      const result = await importData(file, importType, (status, processed, total) => {
+        setImportStatus(status);
+        if (total > 0) {
+          setTotalRows(total);
+          setProcessedRows(processed);
+          const progress = Math.min(95, Math.floor((processed / total) * 95));
+          setUploadProgress(progress);
+        }
+      });
 
       if (result.success) {
         setImportStatus('¡Importación completada!');
