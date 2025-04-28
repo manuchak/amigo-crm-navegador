@@ -6,7 +6,9 @@ import { ImportProgressBar } from '../filters/ImportProgressBar';
 import { ImportErrorDialog } from '../filters/ImportErrorDialog';
 import { LargeFileWarningDialog } from '../filters/LargeFileWarningDialog';
 import { Button } from "@/components/ui/button";
-import { FileSpreadsheet, Download } from 'lucide-react';
+import { FileSpreadsheet, Download, RefreshCw } from 'lucide-react';
+import { useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
 
 interface DriverBehaviorImportProps {
   className?: string;
@@ -15,6 +17,7 @@ interface DriverBehaviorImportProps {
 
 export function DriverBehaviorImport({ className, onImportComplete }: DriverBehaviorImportProps) {
   const [showErrorDialog, setShowErrorDialog] = useState(false);
+  const queryClient = useQueryClient();
   
   const {
     isUploading,
@@ -32,13 +35,33 @@ export function DriverBehaviorImport({ className, onImportComplete }: DriverBeha
   } = useFileImport({
     onShowErrorDialog: setShowErrorDialog,
     importType: 'driver-behavior',
-    onComplete: onImportComplete
+    onComplete: () => {
+      // Invalidate queries to refresh data after import
+      queryClient.invalidateQueries({ queryKey: ['driver-behavior-data'] });
+      queryClient.invalidateQueries({ queryKey: ['driver-behavior-clients'] });
+      
+      if (onImportComplete) {
+        onImportComplete();
+      }
+      
+      toast.success("Datos importados correctamente", {
+        description: "El dashboard ha sido actualizado con los nuevos datos"
+      });
+    }
   });
   
   const {
     isDownloading,
     handleDownloadTemplate
   } = useTemplateDownload('driver-behavior');
+  
+  const handleRefreshData = () => {
+    queryClient.invalidateQueries({ queryKey: ['driver-behavior-data'] });
+    queryClient.invalidateQueries({ queryKey: ['driver-behavior-clients'] });
+    toast.success("Datos actualizados", {
+      description: "El dashboard ha sido actualizado"
+    });
+  };
   
   return (
     <>
@@ -65,6 +88,11 @@ export function DriverBehaviorImport({ className, onImportComplete }: DriverBeha
             </span>
           </Button>
         </label>
+        
+        <Button size="sm" variant="outline" onClick={handleRefreshData} className="whitespace-nowrap gap-1">
+          <RefreshCw className="h-4 w-4 mr-1" />
+          Actualizar Datos
+        </Button>
         
         {isUploading && (
           <Button size="sm" variant="destructive" onClick={handleCancelImport}>

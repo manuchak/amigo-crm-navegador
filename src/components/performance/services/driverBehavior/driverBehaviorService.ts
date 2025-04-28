@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { DateRange } from "react-day-picker";
@@ -15,7 +14,6 @@ import {
 } from "../../types/driver-behavior.types";
 import { calculateDriverBehaviorScore } from "../../utils/scoreCalculator";
 
-// Function to fetch driver behavior data for the dashboard
 export async function fetchDriverBehaviorData(
   dateRange: DateRange, 
   filters?: DriverBehaviorFilters
@@ -31,7 +29,6 @@ export async function fetchDriverBehaviorData(
       .gte('start_date', dateRange.from.toISOString())
       .lte('end_date', dateRange.to.toISOString());
     
-    // Apply filters if provided
     if (filters) {
       if (filters.driverName) {
         query = query.ilike('driver_name', `%${filters.driverName}%`);
@@ -74,7 +71,6 @@ export async function fetchDriverBehaviorData(
   }
 }
 
-// Process the raw driver behavior data for dashboard display
 function processDriverBehaviorData(data: DriverBehaviorScore[] | null): DriverBehaviorData {
   if (!data || data.length === 0) {
     return {
@@ -86,19 +82,15 @@ function processDriverBehaviorData(data: DriverBehaviorScore[] | null): DriverBe
     };
   }
 
-  // Calculate overall metrics
   const totalDrivers = new Set(data.map(item => item.driver_name)).size;
   const totalTrips = data.reduce((sum, item) => sum + item.trips_count, 0);
   const totalPenaltyPoints = data.reduce((sum, item) => sum + item.penalty_points, 0);
   
-  // Calculate average score
   const averageScore = data.reduce((sum, item) => sum + item.score, 0) / data.length;
   
-  // Calculate total driving time in minutes from duration_interval strings
   let totalDrivingTime = 0;
   data.forEach(item => {
     if (item.duration_interval) {
-      // Parse PostgreSQL interval string like '2 hours 30 mins'
       const hours = item.duration_interval.match(/(\d+)\s+hour/i);
       const minutes = item.duration_interval.match(/(\d+)\s+min/i);
       
@@ -112,10 +104,8 @@ function processDriverBehaviorData(data: DriverBehaviorScore[] | null): DriverBe
     }
   });
   
-  // Calculate total distance
   const totalDistance = data.reduce((sum, item) => sum + (item.distance || 0), 0);
   
-  // Group by score ranges for chart data
   const scoreDistribution = {
     excellent: data.filter(item => item.score >= 90).length,
     good: data.filter(item => item.score >= 80 && item.score < 90).length,
@@ -124,13 +114,10 @@ function processDriverBehaviorData(data: DriverBehaviorScore[] | null): DriverBe
     critical: data.filter(item => item.score < 60).length,
   };
 
-  // Calculate risk assessment
   const riskAssessment = calculateRiskAssessment(data, averageScore);
 
-  // Calculate CO2 emissions
   const co2Data = calculateCO2Emissions(totalDistance, data, averageScore);
 
-  // Identify top performers and those needing improvement
   const driverPerformance = {
     topDrivers: [...data].sort((a, b) => b.score - a.score).slice(0, 3),
     needsImprovement: [...data].sort((a, b) => a.score - b.score).slice(0, 3),
@@ -167,20 +154,16 @@ function processDriverBehaviorData(data: DriverBehaviorScore[] | null): DriverBe
   };
 }
 
-// Format driving time into hours and minutes
 function formatDrivingTime(minutes: number): string {
   const hours = Math.floor(minutes / 60);
   const mins = minutes % 60;
   return hours > 0 ? `${hours}h ${mins}m` : `${mins}m`;
 }
 
-// Calculate risk assessment based on driver scores
 function calculateRiskAssessment(data: DriverBehaviorScore[], averageScore: number): RiskAssessment {
-  // Calculate risk score - weighted combination of average score and distribution of critical drivers
   const criticalPercentage = data.filter(d => d.score < 60).length / data.length;
   const riskScore = (100 - averageScore) * 0.7 + (criticalPercentage * 100) * 0.3;
   
-  // Determine risk level
   let riskLevel: 'low' | 'moderate' | 'high' | 'critical';
   let description: string;
   let recommendations: string[];
@@ -230,27 +213,20 @@ function calculateRiskAssessment(data: DriverBehaviorScore[], averageScore: numb
   };
 }
 
-// Calculate CO2 emissions based on distance, driving style
 function calculateCO2Emissions(
   totalDistance: number,
   data: DriverBehaviorScore[],
   averageScore: number
 ): CO2Calculation {
-  // Base CO2 emissions calculation
-  // Average passenger vehicle emits about 0.2 kg CO2 per km
   const emissionFactorPerKm = 0.2;
   const baseEmissions = totalDistance * emissionFactorPerKm;
   
-  // Calculate wastage based on penalty points
-  // Research suggests poor driving can increase fuel consumption & emissions by 5-30%
-  // We'll use driver score to estimate the wastage
-  // 100 score = 0% wastage, 0 score = 30% wastage
   const worstPossibleWastagePercentage = 0.3;
   const scoreBasedEfficiency = averageScore / 100;
   const wastagePercentage = worstPossibleWastagePercentage * (1 - scoreBasedEfficiency);
   
   const wastage = baseEmissions * wastagePercentage;
-  const potentialSavings = wastage; // what could be saved with perfect driving
+  const potentialSavings = wastage;
   const percentageIncrease = wastagePercentage * 100;
   
   return {
@@ -261,7 +237,6 @@ function calculateCO2Emissions(
   };
 }
 
-// Import driver behavior data from a file
 export async function importDriverBehaviorData(
   file: File,
   onProgress?: ProgressCallback
@@ -291,67 +266,142 @@ export async function importDriverBehaviorData(
       return { success: false, message: "No se pudo obtener el token de acceso" };
     }
 
-    // Simulate processing steps for CSV parsing
     if (onProgress) {
       onProgress("Validando estructura del archivo", 10, 100);
     }
     
-    // Parse CSV data
     const csvText = await file.text();
     const lines = csvText.split(/\r?\n/);
+    
+    if (lines.length <= 1) {
+      return { success: false, message: "El archivo está vacío o no contiene datos válidos" };
+    }
+    
     const headers = lines[0].split(',').map(h => h.trim());
     
     if (onProgress) {
       onProgress("Procesando registros", 30, 100);
     }
     
-    // Extract rows
     const rows = [];
     for (let i = 1; i < lines.length; i++) {
       if (lines[i].trim() === '') continue;
       
-      const values = lines[i].split(',').map(v => v.trim());
+      let currentLine = lines[i];
+      const values = [];
+      let insideQuotes = false;
+      let currentValue = '';
+      
+      for (let j = 0; j < currentLine.length; j++) {
+        const char = currentLine[j];
+        
+        if (char === '"') {
+          insideQuotes = !insideQuotes;
+        } else if (char === ',' && !insideQuotes) {
+          values.push(currentValue.trim());
+          currentValue = '';
+        } else {
+          currentValue += char;
+        }
+      }
+      
+      values.push(currentValue.trim());
+      
       if (values.length !== headers.length) {
-        console.warn(`La fila ${i} tiene un número incorrecto de columnas`);
-        continue;
+        console.warn(`La fila ${i} tiene un número incorrecto de columnas (${values.length} vs ${headers.length} esperadas)`);
+        
+        while (values.length < headers.length) {
+          values.push('');
+        }
+        
+        if (values.length > headers.length) {
+          values.length = headers.length;
+        }
       }
       
       const row: Record<string, any> = {};
       headers.forEach((header, index) => {
-        row[header] = values[index];
+        row[header] = values[index] || '';
       });
       
       rows.push(row);
+    }
+    
+    if (rows.length === 0) {
+      return { success: false, message: "No se encontraron registros válidos en el archivo" };
     }
     
     if (onProgress) {
       onProgress(`Procesando ${rows.length} registros`, 50, 100);
     }
     
-    // Map CSV data to database structure
     const driverBehaviorRecords = rows.map(row => {
-      // Convert date strings to proper format
-      const startDate = new Date(row['fecha_inicio'] || row['start_date']);
-      const endDate = new Date(row['fecha_fin'] || row['end_date']);
+      const mappings: Record<string, string> = {
+        'nombre_conductor': 'driver_name',
+        'grupo_conductor': 'driver_group',
+        'cliente': 'client',
+        'puntuacion': 'score',
+        'puntos_penalizacion': 'penalty_points',
+        'viajes': 'trips_count',
+        'fecha_inicio': 'start_date',
+        'fecha_fin': 'end_date',
+        'distancia': 'distance',
+        'tiempo_conduccion': 'duration_text'
+      };
       
-      // Parse numeric values
-      const score = parseFloat(row['puntuacion'] || row['score'] || '0');
-      const penaltyPoints = parseInt(row['puntos_penalizacion'] || row['penalty_points'] || '0', 10);
-      const tripsCount = parseInt(row['viajes'] || row['trips_count'] || '0', 10);
-      const distance = row['distancia'] || row['distance'] ? parseFloat(row['distancia'] || row['distance']) : null;
+      let startDate: Date, endDate: Date;
       
-      // Create the record
+      try {
+        const startDateStr = row['fecha_inicio'] || row['start_date'] || '';
+        const endDateStr = row['fecha_fin'] || row['end_date'] || '';
+        
+        startDate = new Date(startDateStr);
+        endDate = new Date(endDateStr);
+        
+        if (isNaN(startDate.getTime())) {
+          const parts = startDateStr.split('/');
+          if (parts.length === 3) {
+            startDate = new Date(`${parts[2]}-${parts[1]}-${parts[0]}`);
+          } else {
+            startDate = new Date();
+          }
+        }
+        
+        if (isNaN(endDate.getTime())) {
+          const parts = endDateStr.split('/');
+          if (parts.length === 3) {
+            endDate = new Date(`${parts[2]}-${parts[1]}-${parts[0]}`);
+          } else {
+            endDate = new Date();
+          }
+        }
+      } catch (error) {
+        console.error("Error parsing dates:", error);
+        startDate = new Date();
+        endDate = new Date();
+      }
+      
+      const score = parseFloat(String(row['puntuacion'] || row['score'] || '0').replace(',', '.'));
+      const penaltyPoints = parseInt(String(row['puntos_penalizacion'] || row['penalty_points'] || '0').replace(',', '.'), 10);
+      const tripsCount = parseInt(String(row['viajes'] || row['trips_count'] || '0').replace(',', '.'), 10);
+      
+      let distance: number | null = null;
+      const distanceStr = row['distancia'] || row['distance'] || null;
+      if (distanceStr !== null && distanceStr !== '') {
+        distance = parseFloat(String(distanceStr).replace(',', '.'));
+      }
+      
       return {
-        driver_name: row['nombre_conductor'] || row['driver_name'],
-        driver_group: row['grupo_conductor'] || row['driver_group'],
-        client: row['cliente'] || row['client'],
-        score: score,
-        penalty_points: penaltyPoints,
-        trips_count: tripsCount,
+        driver_name: row['nombre_conductor'] || row['driver_name'] || 'Sin nombre',
+        driver_group: row['grupo_conductor'] || row['driver_group'] || 'Sin grupo',
+        client: row['cliente'] || row['client'] || 'Sin cliente',
+        score: isNaN(score) ? 0 : score,
+        penalty_points: isNaN(penaltyPoints) ? 0 : penaltyPoints,
+        trips_count: isNaN(tripsCount) ? 0 : tripsCount,
         start_date: startDate.toISOString(),
         end_date: endDate.toISOString(),
-        distance: distance,
-        distance_text: distance ? `${distance.toFixed(2)} km` : null,
+        distance: isNaN(Number(distance)) ? null : distance,
+        distance_text: distance ? `${Number(distance).toFixed(2)} km` : null,
         duration_text: row['tiempo_conduccion'] || row['duration_text'] || null,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
@@ -363,39 +413,49 @@ export async function importDriverBehaviorData(
     }
     
     let insertedCount = 0;
-    const batchSize = 25;
-    const errors = [];
+    const batchSize = 10;
+    const errors: any[] = [];
     
-    // Insert records in batches
     for (let i = 0; i < driverBehaviorRecords.length; i += batchSize) {
       const batch = driverBehaviorRecords.slice(i, i + batchSize);
+      console.log(`Insertando lote ${Math.floor(i / batchSize) + 1} con ${batch.length} registros`);
       
-      const { data, error } = await supabase
-        .from('driver_behavior_scores')
-        .insert(batch)
-        .select();
-        
-      if (error) {
-        console.error("Error al insertar lote de registros:", error);
+      try {
+        const { data, error } = await supabase
+          .from('driver_behavior_scores')
+          .insert(batch)
+          .select();
+          
+        if (error) {
+          console.error("Error al insertar lote de registros:", error);
+          errors.push({
+            message: `Error al insertar lote ${Math.floor(i / batchSize) + 1}: ${error.message}`,
+            details: error
+          });
+        } else {
+          insertedCount += data?.length || 0;
+          console.log(`Insertados ${data?.length || 0} registros correctamente`);
+        }
+      } catch (error) {
+        console.error("Error no controlado al insertar registros:", error);
         errors.push({
-          message: `Error al insertar lote ${Math.floor(i / batchSize) + 1}: ${error.message}`,
+          message: `Error no controlado en lote ${Math.floor(i / batchSize) + 1}`,
           details: error
         });
-      } else {
-        insertedCount += data?.length || 0;
       }
       
       if (onProgress) {
         const progress = Math.min(75 + 20 * ((i + batch.length) / driverBehaviorRecords.length), 95);
         onProgress(`Insertados ${insertedCount} de ${driverBehaviorRecords.length} registros`, Math.floor(progress), 100);
       }
+      
+      await new Promise(resolve => setTimeout(resolve, 500));
     }
     
     if (onProgress) {
       onProgress("Finalizando importación", 95, 100);
     }
 
-    // Prepare the response
     const success = insertedCount > 0;
     const message = success
       ? `Se importaron ${insertedCount} registros de comportamiento de conducción correctamente`
@@ -423,16 +483,18 @@ export async function importDriverBehaviorData(
       errors: errors.length > 0 ? errors : undefined
     };
   } catch (error) {
-    return handleImportError(error, "import-toast");
+    console.error("Error procesando archivo:", error);
+    toast.error("Error en la importación", {
+      description: "Ocurrió un error al procesar el archivo. Por favor inténtelo de nuevo."
+    });
+    return { success: false, message: "Error al procesar el archivo" };
   }
 }
 
-// Calculate the score category and corresponding color class
 export function getScoreCategory(score: number): ScoreCalculationResult {
   return calculateDriverBehaviorScore(score);
 }
 
-// Get the list of clients for the filter component
 export async function fetchClientList(): Promise<string[]> {
   try {
     const { data, error } = await supabase
@@ -445,7 +507,6 @@ export async function fetchClientList(): Promise<string[]> {
       return [];
     }
 
-    // Extract unique client names
     const uniqueClients = new Set<string>();
     data.forEach(item => {
       if (item.client) {
