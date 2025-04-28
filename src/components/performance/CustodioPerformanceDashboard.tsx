@@ -1,9 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import React from 'react';
 import { DateRange } from "react-day-picker";
 import { 
   PerformanceMetricsCards,
@@ -18,9 +14,10 @@ import { useCustodioPerformanceData } from "@/components/performance/hooks/useCu
 
 interface CustodioPerformanceDashboardProps {
   dateRange: DateRange;
+  comparisonRange?: DateRange;
 }
 
-export function CustodioPerformanceDashboard({ dateRange }: CustodioPerformanceDashboardProps) {
+export function CustodioPerformanceDashboard({ dateRange, comparisonRange }: CustodioPerformanceDashboardProps) {
   const { data, isLoading } = useCustodioPerformanceData(dateRange);
   
   return (

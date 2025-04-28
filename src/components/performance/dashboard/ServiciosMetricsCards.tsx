@@ -6,10 +6,11 @@ import { ChartBarIcon, ClockIcon, TrendingUpIcon, UsersIcon } from "lucide-react
 
 interface ServiciosMetricsCardsProps {
   data?: any[];
+  comparisonData?: any[];
   isLoading: boolean;
 }
 
-export function ServiciosMetricsCards({ data = [], isLoading }: ServiciosMetricsCardsProps) {
+export function ServiciosMetricsCards({ data = [], comparisonData = [], isLoading }: ServiciosMetricsCardsProps) {
   const metrics = useMemo(() => {
     if (!data || data.length === 0) return null;
     
@@ -53,6 +54,46 @@ export function ServiciosMetricsCards({ data = [], isLoading }: ServiciosMetrics
       activeCustodios
     };
   }, [data]);
+  
+  // Calculate comparison metrics if available
+  const comparisonMetrics = useMemo(() => {
+    if (!comparisonData || comparisonData.length === 0) return null;
+    
+    const totalServicios = comparisonData.length;
+    
+    const duracionData = comparisonData.filter(item => item.duracion_servicio);
+    const avgDuracion = duracionData.length > 0 
+      ? duracionData.reduce((acc, curr) => acc + (typeof curr.duracion_servicio === 'string' 
+          ? parseDurationToMinutes(curr.duracion_servicio) 
+          : 0), 0) / duracionData.length
+      : 0;
+    
+    const kmData = comparisonData
+      .filter(item => item.km_recorridos)
+      .map(item => item.km_recorridos || 0)
+      .sort((a, b) => a - b);
+    
+    const medianKm = calculateMedian(kmData);
+    
+    const cobroData = comparisonData.filter(item => item.cobro_cliente);
+    const avgCobro = cobroData.length > 0
+      ? cobroData.reduce((acc, curr) => acc + (curr.cobro_cliente || 0), 0) / cobroData.length
+      : 0;
+      
+    const activeCustodios = new Set(
+      comparisonData
+        .filter(item => item.nombre_custodio)
+        .map(item => item.nombre_custodio)
+    ).size;
+    
+    return {
+      totalServicios,
+      avgDuracion,
+      medianKm,
+      avgCobro,
+      activeCustodios
+    };
+  }, [comparisonData]);
   
   // Helper function to calculate median value
   function calculateMedian(values: number[]): number {
@@ -99,6 +140,30 @@ export function ServiciosMetricsCards({ data = [], isLoading }: ServiciosMetrics
     return `${hours}h ${mins}m`;
   }
 
+  // Helper function to calculate percent change with comparison data
+  function calculatePercentChange(current: number, previous: number): number {
+    if (previous === 0) return current > 0 ? 100 : 0;
+    return ((current - previous) / previous) * 100;
+  }
+  
+  // Render comparison indicator with arrow and percentage
+  function renderComparison(current: number, previous: number | undefined) {
+    if (previous === undefined) return null;
+    
+    const percentChange = calculatePercentChange(current, previous);
+    const isPositive = percentChange > 0;
+    const isNeutral = percentChange === 0;
+    
+    return (
+      <div className={`text-xs flex items-center mt-1 ${
+        isNeutral ? 'text-gray-500' : (isPositive ? 'text-green-600' : 'text-red-600')
+      }`}>
+        {isPositive ? '↑' : isNeutral ? '→' : '↓'} 
+        <span className="ml-1">{Math.abs(Math.round(percentChange))}%</span>
+      </div>
+    );
+  }
+
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
       <Card className="border-0 shadow-md bg-white/90">
@@ -112,9 +177,15 @@ export function ServiciosMetricsCards({ data = [], isLoading }: ServiciosMetrics
               {isLoading ? (
                 <Skeleton className="h-8 w-24 mt-1" />
               ) : (
-                <h3 className="text-2xl font-semibold mt-1">
-                  {metrics?.totalServicios || 0}
-                </h3>
+                <div>
+                  <h3 className="text-2xl font-semibold mt-1">
+                    {metrics?.totalServicios || 0}
+                  </h3>
+                  {comparisonMetrics && renderComparison(
+                    metrics?.totalServicios || 0, 
+                    comparisonMetrics?.totalServicios
+                  )}
+                </div>
               )}
             </div>
           </div>
@@ -132,9 +203,15 @@ export function ServiciosMetricsCards({ data = [], isLoading }: ServiciosMetrics
               {isLoading ? (
                 <Skeleton className="h-8 w-24 mt-1" />
               ) : (
-                <h3 className="text-2xl font-semibold mt-1">
-                  {metrics ? formatMinutesToHours(metrics.avgDuracion) : '0h 0m'}
-                </h3>
+                <div>
+                  <h3 className="text-2xl font-semibold mt-1">
+                    {metrics ? formatMinutesToHours(metrics.avgDuracion) : '0h 0m'}
+                  </h3>
+                  {comparisonMetrics && renderComparison(
+                    metrics?.avgDuracion || 0, 
+                    comparisonMetrics?.avgDuracion
+                  )}
+                </div>
               )}
             </div>
           </div>
@@ -152,9 +229,15 @@ export function ServiciosMetricsCards({ data = [], isLoading }: ServiciosMetrics
               {isLoading ? (
                 <Skeleton className="h-8 w-24 mt-1" />
               ) : (
-                <h3 className="text-2xl font-semibold mt-1">
-                  {metrics ? `${Math.round(metrics.medianKm)} km` : '0 km'}
-                </h3>
+                <div>
+                  <h3 className="text-2xl font-semibold mt-1">
+                    {metrics ? `${Math.round(metrics.medianKm)} km` : '0 km'}
+                  </h3>
+                  {comparisonMetrics && renderComparison(
+                    metrics?.medianKm || 0, 
+                    comparisonMetrics?.medianKm
+                  )}
+                </div>
               )}
             </div>
           </div>
@@ -172,9 +255,15 @@ export function ServiciosMetricsCards({ data = [], isLoading }: ServiciosMetrics
               {isLoading ? (
                 <Skeleton className="h-8 w-24 mt-1" />
               ) : (
-                <h3 className="text-2xl font-semibold mt-1">
-                  {metrics?.activeCustodios || 0}
-                </h3>
+                <div>
+                  <h3 className="text-2xl font-semibold mt-1">
+                    {metrics?.activeCustodios || 0}
+                  </h3>
+                  {comparisonMetrics && renderComparison(
+                    metrics?.activeCustodios || 0, 
+                    comparisonMetrics?.activeCustodios
+                  )}
+                </div>
               )}
             </div>
           </div>

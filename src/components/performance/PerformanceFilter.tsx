@@ -1,22 +1,18 @@
+
 import React, { useState } from 'react';
 import { Card, CardContent } from "@/components/ui/card";
-import { Calendar } from 'lucide-react';
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Button } from "@/components/ui/button";
-import { Calendar as CalendarComponent } from "@/components/ui/calendar";
-import { DateRange } from "react-day-picker";
-import { format } from "date-fns";
-import { es } from "date-fns/locale";
 import { Input } from "@/components/ui/input";
-import { importServiciosData } from './services/import/importService';
+import { Button } from "@/components/ui/button";
+import { Progress } from "@/components/ui/progress";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { AlertCircle, FileWarning } from "lucide-react";
-import { Progress } from "@/components/ui/progress";
+import { importServiciosData } from './services/import/importService';
+import AdvancedDateRangePicker, { DateRangeWithComparison } from './filters/AdvancedDateRangePicker';
 
 interface PerformanceFilterProps {
-  dateRange: DateRange;
-  setDateRange: React.Dispatch<React.SetStateAction<DateRange>>;
+  dateRange: DateRangeWithComparison;
+  setDateRange: React.Dispatch<React.SetStateAction<DateRangeWithComparison>>;
 }
 
 export function PerformanceFilter({ dateRange, setDateRange }: PerformanceFilterProps) {
@@ -115,35 +111,10 @@ export function PerformanceFilter({ dateRange, setDateRange }: PerformanceFilter
             <div className="flex items-center gap-4">
               <span className="font-medium text-sm text-muted-foreground whitespace-nowrap">Filtros:</span>
               
-              <Popover>
-                <PopoverTrigger asChild>
-                  <Button variant="outline" size="sm" className="h-9 border-dashed flex items-center gap-2 min-w-[200px]">
-                    <Calendar className="h-4 w-4" />
-                    {dateRange.from ? (
-                      dateRange.to ? (
-                        <>
-                          {format(dateRange.from, "d MMM", { locale: es })} -{" "}
-                          {format(dateRange.to, "d MMM, yyyy", { locale: es })}
-                        </>
-                      ) : (
-                        format(dateRange.from, "d MMM, yyyy", { locale: es })
-                      )
-                    ) : (
-                      <span>Seleccionar fechas</span>
-                    )}
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
-                  <CalendarComponent
-                    initialFocus
-                    mode="range"
-                    defaultMonth={dateRange.from}
-                    selected={dateRange}
-                    onSelect={setDateRange as (range: DateRange | undefined) => void}
-                    numberOfMonths={2}
-                  />
-                </PopoverContent>
-              </Popover>
+              <AdvancedDateRangePicker 
+                value={dateRange}
+                onChange={setDateRange}
+              />
             </div>
 
             <div className="flex items-center gap-3">

@@ -12,12 +12,19 @@ import { DateRange } from "react-day-picker";
 
 interface ServiciosDashboardProps {
   dateRange: DateRange;
+  comparisonRange?: DateRange;
 }
 
-export function ServiciosDashboard({ dateRange }: ServiciosDashboardProps) {
+export function ServiciosDashboard({ dateRange, comparisonRange }: ServiciosDashboardProps) {
   const { data: serviciosData, isLoading, error } = useQuery({
-    queryKey: ['servicios-data', dateRange],
-    queryFn: fetchServiciosData,
+    queryKey: ['servicios-data', dateRange, comparisonRange],
+    queryFn: () => fetchServiciosData(dateRange, comparisonRange),
+  });
+
+  const { data: comparisonData } = useQuery({
+    queryKey: ['servicios-comparison-data', comparisonRange],
+    queryFn: () => comparisonRange ? fetchServiciosData(comparisonRange) : null,
+    enabled: !!comparisonRange,
   });
 
   if (error) {
@@ -34,14 +41,31 @@ export function ServiciosDashboard({ dateRange }: ServiciosDashboardProps) {
 
   return (
     <div className="space-y-6">
-      <ServiciosMetricsCards data={serviciosData} isLoading={isLoading} />
+      <ServiciosMetricsCards 
+        data={serviciosData} 
+        comparisonData={comparisonData}
+        isLoading={isLoading} 
+      />
       
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <ServiciosPerformanceChart data={serviciosData} isLoading={isLoading} dateRange={dateRange} />
-        <ServiciosCohortChart data={serviciosData} isLoading={isLoading} dateRange={dateRange} />
+        <ServiciosPerformanceChart 
+          data={serviciosData} 
+          comparisonData={comparisonData}
+          isLoading={isLoading} 
+          dateRange={dateRange} 
+        />
+        <ServiciosCohortChart 
+          data={serviciosData} 
+          isLoading={isLoading} 
+          dateRange={dateRange} 
+        />
       </div>
       
-      <CustodioRetentionTable data={serviciosData} isLoading={isLoading} dateRange={dateRange} />
+      <CustodioRetentionTable 
+        data={serviciosData} 
+        isLoading={isLoading} 
+        dateRange={dateRange} 
+      />
     </div>
   );
 }
