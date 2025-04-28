@@ -306,35 +306,100 @@ export class BatchProcessor {
     }
     
     // Handle date/time format errors
-    if (error.code === "22007" && (error.message.includes("date") || error.message.includes("time"))) {
-      const matches = error.message.match(/invalid input syntax for type (date|time): "(.+?)"/);
-      if (matches && matches[2]) {
-        const badValue = matches[2];
-        const fieldType = matches[1];
-        console.log(`Detected invalid ${fieldType} value: ${badValue}`);
+    if (error.code === "22007") {
+      // Special handling for fecha_contratacion
+      if (error.message.includes("fecha_contratacion")) {
+        console.log("Error específico con fecha_contratacion, realizando limpieza especial");
         
         data.forEach(record => {
-          Object.keys(record).forEach(key => {
-            if (record[key] === badValue) {
-              console.log(`Removing invalid ${fieldType} value "${badValue}" from field ${key}`);
-              delete record[key];
+          if ('fecha_contratacion' in record) {
+            // Try to fix the date format or remove if not fixable
+            try {
+              if (typeof record.fecha_contratacion === 'string') {
+                // Clean the value and try to parse as a date
+                const cleanValue = record.fecha_contratacion.replace(/[^0-9\/\-\.]/g, '');
+                let dateValue = null;
+                
+                if (cleanValue.includes('/')) {
+                  const parts = cleanValue.split('/');
+                  if (parts.length === 3) {
+                    let day = parseInt(parts[0], 10);
+                    let month = parseInt(parts[1], 10);
+                    let year = parseInt(parts[2], 10);
+                    
+                    // Add century if year is two digits
+                    if (year < 100) year += 2000;
+                    
+                    if (day > 0 && day <= 31 && month > 0 && month <= 12) {
+                      dateValue = new Date(year, month - 1, day);
+                      record.fecha_contratacion = dateValue.toISOString().split('T')[0];
+                      console.log(`Fixed fecha_contratacion: ${cleanValue} -> ${record.fecha_contratacion}`);
+                      fixApplied = true;
+                    } else {
+                      delete record.fecha_contratacion;
+                      fixApplied = true;
+                    }
+                  } else {
+                    delete record.fecha_contratacion;
+                    fixApplied = true;
+                  }
+                } else if (cleanValue.includes('-')) {
+                  // Try to parse as ISO format
+                  const testDate = new Date(cleanValue);
+                  if (!isNaN(testDate.getTime())) {
+                    record.fecha_contratacion = testDate.toISOString().split('T')[0];
+                    fixApplied = true;
+                  } else {
+                    delete record.fecha_contratacion;
+                    fixApplied = true;
+                  }
+                } else {
+                  delete record.fecha_contratacion;
+                  fixApplied = true;
+                }
+              } else {
+                delete record.fecha_contratacion;
+                fixApplied = true;
+              }
+            } catch (e) {
+              console.log(`Error fixing fecha_contratacion: ${e}`);
+              delete record.fecha_contratacion;
               fixApplied = true;
             }
-            
-            // Also check fields with "fecha" or "hora" in their name
-            if ((fieldType === 'date' && key.includes('fecha')) || 
-                (fieldType === 'time' && key.includes('hora'))) {
-              if (typeof record[key] === 'string' && 
-                  (record[key].includes('Fecha') || 
-                   record[key].includes('fecha') ||
-                   record[key].includes('Hora') ||
-                   record[key].includes('hora'))) {
+          }
+        });
+      }
+      // General date/time format errors
+      else if (error.message.includes("date") || error.message.includes("time")) {
+        const matches = error.message.match(/invalid input syntax for type (date|time): "(.+?)"/);
+        if (matches && matches[2]) {
+          const badValue = matches[2];
+          const fieldType = matches[1];
+          console.log(`Detected invalid ${fieldType} value: ${badValue}`);
+          
+          data.forEach(record => {
+            Object.keys(record).forEach(key => {
+              if (record[key] === badValue) {
+                console.log(`Removing invalid ${fieldType} value "${badValue}" from field ${key}`);
                 delete record[key];
                 fixApplied = true;
               }
-            }
+              
+              // Also check fields with "fecha" or "hora" in their name
+              if ((fieldType === 'date' && key.includes('fecha')) || 
+                  (fieldType === 'time' && key.includes('hora'))) {
+                if (typeof record[key] === 'string' && 
+                    (record[key].includes('Fecha') || 
+                     record[key].includes('fecha') ||
+                     record[key].includes('Hora') ||
+                     record[key].includes('hora'))) {
+                  delete record[key];
+                  fixApplied = true;
+                }
+              }
+            });
           });
-        });
+        }
       }
     }
     
