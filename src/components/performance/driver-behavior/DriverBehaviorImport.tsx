@@ -5,7 +5,6 @@ import { useTemplateDownload } from '../services/import/hooks/useTemplateDownloa
 import { ImportProgressBar } from '../filters/ImportProgressBar';
 import { ImportErrorDialog } from '../filters/ImportErrorDialog';
 import { LargeFileWarningDialog } from '../filters/LargeFileWarningDialog';
-import { ImportButtons } from '../filters/import/ImportButtons';
 import { Button } from "@/components/ui/button";
 import { FileSpreadsheet, Download } from 'lucide-react';
 
@@ -32,18 +31,18 @@ export function DriverBehaviorImport({ className, onImportComplete }: DriverBeha
     handleCancelImport
   } = useFileImport({
     onShowErrorDialog: setShowErrorDialog,
-    importType: 'driver-behavior', // Added importType to differentiate from servicios import
+    importType: 'driver-behavior',
     onComplete: onImportComplete
   });
   
   const {
     isDownloading,
     handleDownloadTemplate
-  } = useTemplateDownload('driver-behavior'); // Add support for driver behavior template
+  } = useTemplateDownload('driver-behavior');
   
   return (
     <>
-      <div className="flex items-center gap-3">
+      <div className="flex flex-wrap items-center gap-3">
         <Button size="sm" variant="outline" onClick={handleDownloadTemplate} disabled={isDownloading} className="whitespace-nowrap gap-1">
           <Download className="h-4 w-4 mr-1" />
           Descargar Plantilla

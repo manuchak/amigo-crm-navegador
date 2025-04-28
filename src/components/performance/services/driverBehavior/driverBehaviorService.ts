@@ -271,7 +271,6 @@ export async function importDriverBehaviorData(
       onProgress("Procesando archivo de comportamiento de conducción", 0, 0);
     }
 
-    // For now, we'll use a simplified version since the focus is fixing the type error
     const formData = new FormData();
     formData.append('file', file);
     formData.append('type', 'driver-behavior');
@@ -292,21 +291,136 @@ export async function importDriverBehaviorData(
       return { success: false, message: "No se pudo obtener el token de acceso" };
     }
 
-    // Simulate processing steps
+    // Simulate processing steps for CSV parsing
     if (onProgress) {
-      onProgress("Validando estructura del archivo", 0, 100);
-      setTimeout(() => onProgress("Procesando registros", 50, 100), 1000);
-      setTimeout(() => onProgress("Finalizando importación", 95, 100), 2000);
+      onProgress("Validando estructura del archivo", 10, 100);
+    }
+    
+    // Parse CSV data
+    const csvText = await file.text();
+    const lines = csvText.split(/\r?\n/);
+    const headers = lines[0].split(',').map(h => h.trim());
+    
+    if (onProgress) {
+      onProgress("Procesando registros", 30, 100);
+    }
+    
+    // Extract rows
+    const rows = [];
+    for (let i = 1; i < lines.length; i++) {
+      if (lines[i].trim() === '') continue;
+      
+      const values = lines[i].split(',').map(v => v.trim());
+      if (values.length !== headers.length) {
+        console.warn(`La fila ${i} tiene un número incorrecto de columnas`);
+        continue;
+      }
+      
+      const row: Record<string, any> = {};
+      headers.forEach((header, index) => {
+        row[header] = values[index];
+      });
+      
+      rows.push(row);
+    }
+    
+    if (onProgress) {
+      onProgress(`Procesando ${rows.length} registros`, 50, 100);
+    }
+    
+    // Map CSV data to database structure
+    const driverBehaviorRecords = rows.map(row => {
+      // Convert date strings to proper format
+      const startDate = new Date(row['fecha_inicio'] || row['start_date']);
+      const endDate = new Date(row['fecha_fin'] || row['end_date']);
+      
+      // Parse numeric values
+      const score = parseFloat(row['puntuacion'] || row['score'] || '0');
+      const penaltyPoints = parseInt(row['puntos_penalizacion'] || row['penalty_points'] || '0', 10);
+      const tripsCount = parseInt(row['viajes'] || row['trips_count'] || '0', 10);
+      const distance = row['distancia'] || row['distance'] ? parseFloat(row['distancia'] || row['distance']) : null;
+      
+      // Create the record
+      return {
+        driver_name: row['nombre_conductor'] || row['driver_name'],
+        driver_group: row['grupo_conductor'] || row['driver_group'],
+        client: row['cliente'] || row['client'],
+        score: score,
+        penalty_points: penaltyPoints,
+        trips_count: tripsCount,
+        start_date: startDate.toISOString(),
+        end_date: endDate.toISOString(),
+        distance: distance,
+        distance_text: distance ? `${distance.toFixed(2)} km` : null,
+        duration_text: row['tiempo_conduccion'] || row['duration_text'] || null,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      };
+    });
+    
+    if (onProgress) {
+      onProgress("Guardando registros en la base de datos", 75, 100);
+    }
+    
+    let insertedCount = 0;
+    const batchSize = 25;
+    const errors = [];
+    
+    // Insert records in batches
+    for (let i = 0; i < driverBehaviorRecords.length; i += batchSize) {
+      const batch = driverBehaviorRecords.slice(i, i + batchSize);
+      
+      const { data, error } = await supabase
+        .from('driver_behavior_scores')
+        .insert(batch)
+        .select();
+        
+      if (error) {
+        console.error("Error al insertar lote de registros:", error);
+        errors.push({
+          message: `Error al insertar lote ${Math.floor(i / batchSize) + 1}: ${error.message}`,
+          details: error
+        });
+      } else {
+        insertedCount += data?.length || 0;
+      }
+      
+      if (onProgress) {
+        const progress = Math.min(75 + 20 * ((i + batch.length) / driverBehaviorRecords.length), 95);
+        onProgress(`Insertados ${insertedCount} de ${driverBehaviorRecords.length} registros`, Math.floor(progress), 100);
+      }
+    }
+    
+    if (onProgress) {
+      onProgress("Finalizando importación", 95, 100);
     }
 
-    // This would normally call an API endpoint to process the file
-    // For now, we'll return a success response
+    // Prepare the response
+    const success = insertedCount > 0;
+    const message = success
+      ? `Se importaron ${insertedCount} registros de comportamiento de conducción correctamente`
+      : "No se pudo importar ningún registro. Por favor revise el formato del archivo.";
+      
+    if (errors.length > 0 && success) {
+      toast.warning("Importación completada con advertencias", {
+        description: `Se importaron ${insertedCount} registros, pero ocurrieron ${errors.length} errores.`
+      });
+    } else if (success) {
+      toast.success("Importación exitosa", {
+        description: message
+      });
+    } else {
+      toast.error("Error en la importación", {
+        description: "No se pudo procesar el archivo. Verifique el formato."
+      });
+    }
+
     return {
-      success: true,
-      message: "Datos de comportamiento de conducción importados correctamente",
-      insertedCount: 0,
-      totalCount: 0,
-      errors: []
+      success,
+      message,
+      insertedCount,
+      totalCount: driverBehaviorRecords.length,
+      errors: errors.length > 0 ? errors : undefined
     };
   } catch (error) {
     return handleImportError(error, "import-toast");
@@ -345,4 +459,3 @@ export async function fetchClientList(): Promise<string[]> {
     return [];
   }
 }
-

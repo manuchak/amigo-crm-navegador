@@ -1,6 +1,6 @@
 
-import React, { useState } from 'react';
-import { useQuery } from "@tanstack/react-query";
+import React, { useState, useCallback } from 'react';
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { DateRange } from "react-day-picker";
 import { fetchDriverBehaviorData, fetchClientList } from "../services/driverBehavior/driverBehaviorService";
 import { DriverBehaviorMetricsCards } from './DriverBehaviorMetricsCards';
@@ -20,18 +20,19 @@ interface DriverBehaviorDashboardProps {
 
 export function DriverBehaviorDashboard({ dateRange, comparisonRange }: DriverBehaviorDashboardProps) {
   const [filters, setFilters] = useState<DriverBehaviorFilters>({});
+  const queryClient = useQueryClient();
 
-  const { data: clientList } = useQuery<string[]>({
+  const { data: clientList } = useQuery({
     queryKey: ['driver-behavior-clients'],
     queryFn: () => fetchClientList(),
   });
 
-  const { data: driverData, isLoading, error } = useQuery<DriverBehaviorData | null>({
+  const { data: driverData, isLoading, error } = useQuery({
     queryKey: ['driver-behavior-data', dateRange, filters],
     queryFn: () => fetchDriverBehaviorData(dateRange, filters),
   });
 
-  const { data: comparisonData } = useQuery<DriverBehaviorData | null>({
+  const { data: comparisonData } = useQuery({
     queryKey: ['driver-behavior-comparison-data', comparisonRange, filters],
     queryFn: () => comparisonRange ? fetchDriverBehaviorData(comparisonRange, filters) : null,
     enabled: !!comparisonRange && comparisonRange.from !== null && comparisonRange.to !== null,
@@ -40,6 +41,12 @@ export function DriverBehaviorDashboard({ dateRange, comparisonRange }: DriverBe
   const handleFilterChange = (newFilters: DriverBehaviorFilters) => {
     setFilters(newFilters);
   };
+  
+  const handleImportComplete = useCallback(() => {
+    // Invalidate queries to refresh data after import
+    queryClient.invalidateQueries({ queryKey: ['driver-behavior-data'] });
+    queryClient.invalidateQueries({ queryKey: ['driver-behavior-clients'] });
+  }, [queryClient]);
 
   if (error) {
     console.error('Error loading driver behavior data:', error);
