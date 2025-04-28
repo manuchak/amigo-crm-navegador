@@ -4,10 +4,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useQuery } from "@tanstack/react-query";
 import { fetchServiciosData } from "../services/servicios/serviciosDataService";
-import { ServiciosCohortChart } from './charts/ServiciosCohortChart';
 import { ServiciosMetricsCards } from './ServiciosMetricsCards';
 import { ServiciosPerformanceChart } from './charts/ServiciosPerformanceChart';
 import { CustodioRetentionTable } from './CustodioRetentionTable';
+import { CohortAnalysisViewer } from './CohortAnalysisViewer';
 import { DateRange } from "react-day-picker";
 
 interface ServiciosDashboardProps {
@@ -48,19 +48,18 @@ export function ServiciosDashboard({ dateRange, comparisonRange }: ServiciosDash
         isLoading={isLoading} 
       />
       
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <ServiciosPerformanceChart 
-          data={serviciosData} 
-          comparisonData={comparisonData}
-          isLoading={isLoading} 
-          dateRange={dateRange} 
-        />
-        <ServiciosCohortChart 
-          data={serviciosData} 
-          isLoading={isLoading} 
-          dateRange={dateRange} 
-        />
-      </div>
+      <ServiciosPerformanceChart 
+        data={serviciosData} 
+        comparisonData={comparisonData}
+        isLoading={isLoading} 
+        dateRange={dateRange} 
+      />
+      
+      <CohortAnalysisViewer
+        data={serviciosData}
+        isLoading={isLoading}
+        dateRange={dateRange}
+      />
       
       <CustodioRetentionTable 
         data={serviciosData} 
