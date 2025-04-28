@@ -18,6 +18,7 @@ export function determineHeaderMapping(headerRow: Record<string, any>): Record<s
     'Nombre del Cliente': 'nombre_cliente',
     'Custodio': 'nombre_custodio',
     'Nombre del Custodio': 'nombre_custodio',
+    'ID Custodio': 'id_custodio',
     
     // Unidad y kilometraje
     'Unidad': 'unidad',
@@ -27,6 +28,7 @@ export function determineHeaderMapping(headerRow: Record<string, any>): Record<s
     'Kilometraje': 'km_recorridos',
     'KM': 'km_recorridos',
     'KM Recorrido': 'km_recorridos',
+    'KM Recorridos': 'km_recorridos',
     'Km': 'km_recorridos',
     
     // Origen y destino
@@ -71,7 +73,58 @@ export function determineHeaderMapping(headerRow: Record<string, any>): Record<s
     'Cobro casetas': 'casetas',
     'Costo casetas': 'casetas',
     'Costo Custodio': 'costo_custodio',
-    'Costo del Custodio': 'costo_custodio'
+    'Costo del Custodio': 'costo_custodio',
+    
+    // ID y referencias
+    'ID Servicio': 'id_servicio',
+    'ID': 'id_servicio',
+    'Folio Cliente': 'folio_cliente',
+    'Folio': 'folio_cliente',
+    
+    // Datos del vehículo
+    'Placa': 'placa',
+    'Auto': 'auto',
+    'Tipo Unidad': 'tipo_unidad',
+    
+    // Operadores y contactos
+    'Teléfono': 'telefono',
+    'Tel': 'telefono',
+    'Nombre Operador': 'nombre_operador_transporte',
+    'Operador': 'nombre_operador_transporte',
+    'Teléfono Operador': 'telefono_operador',
+    'Placa Carga': 'placa_carga',
+    'Tipo Carga': 'tipo_carga',
+    'Contacto Emergencia': 'contacto_emergencia',
+    'Teléfono Emergencia': 'telefono_emergencia',
+    
+    // Operador adicional
+    'Nombre Operador Adicional': 'nombre_operador_adicional',
+    'Operador Adicional': 'nombre_operador_adicional',
+    'Teléfono Operador Adicional': 'telefono_operador_adicional',
+    'Tel Operador Adicional': 'telefono_operador_adicional',
+    'Placa Carga Adicional': 'placa_carga_adicional',
+    'Tipo Unidad Adicional': 'tipo_unidad_adicional',
+    'Tipo Carga Adicional': 'tipo_carga_adicional',
+    
+    // Datos adicionales
+    'Local/Foráneo': 'local_foraneo',
+    'Local Foráneo': 'local_foraneo',
+    'Ruta': 'ruta',
+    'Proveedor': 'proveedor',
+    'Presentación': 'presentacion',
+    'Gadget Solicitado': 'gadget_solicitado',
+    'Gadget': 'gadget',
+    'Tipo Gadget': 'tipo_gadget',
+    
+    // Datos de armado
+    'Nombre Armado': 'nombre_armado',
+    'Teléfono Armado': 'telefono_armado',
+    
+    // Información administrativa
+    'Creado Por': 'creado_por',
+    'Creado Vía': 'creado_via',
+    'ID Cotización': 'id_cotizacion',
+    'Cotización': 'id_cotizacion'
   };
   
   // Lista de columnas conocidas como numéricas
