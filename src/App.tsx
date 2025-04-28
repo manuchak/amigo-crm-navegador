@@ -1,3 +1,4 @@
+
 import React, { Suspense } from 'react';
 import { BrowserRouter as Router, Route, Routes, Navigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -13,6 +14,7 @@ const queryClient = new QueryClient();
 
 // Import pages that need direct imports to address dynamic import issues
 import Index from './pages/Index';
+import Dashboard from './pages/Dashboard'; // Import directly instead of lazy loading
 import UserManagement from './pages/UserManagement';
 import InstalacionGPS from './pages/InstalacionGPS';
 import InstalacionesAgendadas from './pages/InstalacionesAgendadas';
@@ -20,7 +22,6 @@ import InstalacionGPSInstallers from './pages/InstalacionGPSInstallers';
 import InstaladorRegistro from './pages/InstaladorRegistro';
 
 // Lazy load other routes for better performance
-const Dashboard = React.lazy(() => import('./pages/Dashboard'));
 const Auth = React.lazy(() => import('./pages/Auth'));
 const Login = React.lazy(() => import('./pages/Login')); 
 const Leads = React.lazy(() => import('./pages/Leads'));

@@ -11,11 +11,11 @@ const Dashboard = () => {
   
   // Count clients per stage
   const stageData = [
-    { name: 'Prospecto', value: mockClients.filter(c => c.etapa === 'Prospecto').length, color: '#3b82f6' },
-    { name: 'Contactado', value: mockClients.filter(c => c.etapa === 'Contactado').length, color: '#6366f1' },
-    { name: 'Negociación', value: mockClients.filter(c => c.etapa === 'Negociación').length, color: '#f59e0b' },
-    { name: 'Ganado', value: mockClients.filter(c => c.etapa === 'Ganado').length, color: '#10b981' },
-    { name: 'Perdido', value: mockClients.filter(c => c.etapa === 'Perdido').length, color: '#f43f5e' }
+    { name: "Prospecto", value: mockClients.filter(c => c.etapa === 'Prospecto').length, color: '#3b82f6' },
+    { name: "Contactado", value: mockClients.filter(c => c.etapa === 'Contactado').length, color: '#6366f1' },
+    { name: "Negociación", value: mockClients.filter(c => c.etapa === 'Negociación').length, color: '#f59e0b' },
+    { name: "Ganado", value: mockClients.filter(c => c.etapa === 'Ganado').length, color: '#10b981' },
+    { name: "Perdido", value: mockClients.filter(c => c.etapa === 'Perdido').length, color: '#f43f5e' }
   ];
   
   // Calculate value per stage
