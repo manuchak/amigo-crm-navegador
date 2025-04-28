@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { format, subDays, startOfMonth, endOfMonth, startOfYear, endOfYear, subMonths, subYears, startOfQuarter, endOfQuarter } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -5,25 +6,27 @@ import { Check, CalendarIcon, ChevronDown } from 'lucide-react';
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { 
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger
+} from "@/components/ui/popover";
+import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { 
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuGroup,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { Switch } from "@/components/ui/switch";
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 
 // Type definitions
 export interface DateRangeWithComparison {
@@ -101,12 +104,30 @@ const AdvancedDateRangePicker: React.FC<AdvancedDateRangePickerProps> = ({
   className
 }) => {
   const [isOpen, setIsOpen] = useState(false);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [localValue, setLocalValue] = useState<DateRangeWithComparison>(value);
+  const [isMobile, setIsMobile] = useState(false);
   
+  // Check if screen is mobile size
+  useEffect(() => {
+    const checkIfMobile = () => {
+      setIsMobile(window.innerWidth < 640);
+    };
+    
+    checkIfMobile();
+    window.addEventListener('resize', checkIfMobile);
+    
+    return () => {
+      window.removeEventListener('resize', checkIfMobile);
+    };
+  }, []);
+  
+  // Sync with parent component value
   useEffect(() => {
     setLocalValue(value);
   }, [value]);
   
+  // Format date range for display
   const formatDateRange = (from: Date | null, to: Date | null) => {
     if (!from) return "Seleccionar rango";
     
@@ -117,183 +138,207 @@ const AdvancedDateRangePicker: React.FC<AdvancedDateRangePickerProps> = ({
     return `${from ? format(from, "d MMM", { locale: es }) : "?"} - ${to ? format(to, "d MMM yyyy", { locale: es }) : "?"}`;
   };
 
+  // Get selected range name for display
   const getSelectedRangeName = () => {
     const preset = DATE_RANGE_PRESETS.find(p => p.id === localValue.rangeType);
     return preset ? preset.label : "Personalizado";
   };
 
+  // Apply preset date range
   const applyPreset = (presetId: string) => {
-    const preset = DATE_RANGE_PRESETS.find(p => p.id === presetId);
-    if (!preset) return;
+    try {
+      console.log(`Applying preset: ${presetId}`);
+      const preset = DATE_RANGE_PRESETS.find(p => p.id === presetId);
+      if (!preset) return;
 
-    const primaryRange = preset.getRange();
-    
-    const newValue = {
-      ...localValue,
-      primary: primaryRange,
-      rangeType: presetId
-    };
+      const primaryRange = preset.getRange();
+      
+      const newValue = {
+        ...localValue,
+        primary: primaryRange,
+        rangeType: presetId
+      };
 
-    if (localValue.comparisonType !== 'none') {
-      newValue.comparison = getComparisonRange(
-        primaryRange.from, 
-        primaryRange.to, 
-        localValue.comparisonType
-      );
+      if (localValue.comparisonType !== 'none') {
+        newValue.comparison = getComparisonRange(
+          primaryRange.from, 
+          primaryRange.to, 
+          localValue.comparisonType
+        );
+      }
+
+      console.log("New value after preset:", newValue);
+      setLocalValue(newValue);
+    } catch (error) {
+      console.error("Error applying preset:", error);
     }
-
-    setLocalValue(newValue);
   };
 
+  // Generate comparison date range based on primary range
   const getComparisonRange = (from: Date | null, to: Date | null, comparisonType: 'none' | 'previous' | 'year') => {
     if (!from || !to || comparisonType === 'none') {
       return undefined;
     }
     
-    const diffDays = from && to ? Math.round((to.getTime() - from.getTime()) / (1000 * 60 * 60 * 24)) : 0;
-    
-    if (comparisonType === 'previous') {
-      return {
-        from: subDays(from, diffDays + 1),
-        to: subDays(from, 1)
-      };
-    } else if (comparisonType === 'year') {
-      return {
-        from: subYears(from, 1),
-        to: subYears(to, 1)
-      };
+    try {
+      const diffDays = Math.round((to.getTime() - from.getTime()) / (1000 * 60 * 60 * 24));
+      
+      if (comparisonType === 'previous') {
+        return {
+          from: subDays(from, diffDays + 1),
+          to: subDays(from, 1)
+        };
+      } else if (comparisonType === 'year') {
+        return {
+          from: subYears(from, 1),
+          to: subYears(to, 1)
+        };
+      }
+    } catch (error) {
+      console.error("Error generating comparison range:", error);
     }
     
     return undefined;
   };
 
+  // Handle comparison type change
   const handleComparisonChange = (type: 'none' | 'previous' | 'year') => {
-    const newValue = {
-      ...localValue,
-      comparisonType: type
-    };
-    
-    if (type !== 'none' && localValue.primary.from && localValue.primary.to) {
-      newValue.comparison = getComparisonRange(
-        localValue.primary.from,
-        localValue.primary.to,
-        type
-      );
-    } else {
-      newValue.comparison = undefined;
+    try {
+      console.log(`Changing comparison type to: ${type}`);
+      const newValue = {
+        ...localValue,
+        comparisonType: type
+      };
+      
+      if (type !== 'none' && localValue.primary.from && localValue.primary.to) {
+        newValue.comparison = getComparisonRange(
+          localValue.primary.from,
+          localValue.primary.to,
+          type
+        );
+      } else {
+        newValue.comparison = undefined;
+      }
+      
+      console.log("New value after comparison change:", newValue);
+      setLocalValue(newValue);
+    } catch (error) {
+      console.error("Error changing comparison type:", error);
     }
-    
-    setLocalValue(newValue);
   };
 
+  // Apply changes and close popover/dialog
   const applyChanges = () => {
+    console.log("Applying changes:", localValue);
     onChange(localValue);
     setIsOpen(false);
+    setIsDialogOpen(false);
   };
 
+  // Cancel changes and close popover/dialog
   const cancelChanges = () => {
     setLocalValue(value);
     setIsOpen(false);
+    setIsDialogOpen(false);
   };
 
+  // Handle calendar date selection
   const handleCalendarSelect = (range: { from: Date | null; to: Date | null }) => {
-    const newValue = {
-      ...localValue,
-      primary: range,
-      rangeType: 'custom'
-    };
-    
-    if (localValue.comparisonType !== 'none' && range.from && range.to) {
-      newValue.comparison = getComparisonRange(range.from, range.to, localValue.comparisonType);
+    try {
+      console.log("Calendar selection:", range);
+      const newValue = {
+        ...localValue,
+        primary: range,
+        rangeType: 'custom'
+      };
+      
+      if (localValue.comparisonType !== 'none' && range.from && range.to) {
+        newValue.comparison = getComparisonRange(range.from, range.to, localValue.comparisonType);
+      }
+      
+      console.log("New value after calendar selection:", newValue);
+      setLocalValue(newValue);
+    } catch (error) {
+      console.error("Error handling calendar selection:", error);
     }
-    
-    setLocalValue(newValue);
   };
-
-  const renderMobileSheetContent = () => (
-    <div className="px-1 py-4 space-y-6">
-      {renderContent()}
-      <div className="flex justify-end gap-2 pt-2 border-t">
-        <Button variant="outline" onClick={cancelChanges}>Cancelar</Button>
-        <Button onClick={applyChanges}>Aplicar</Button>
-      </div>
-    </div>
-  );
-
+  
+  // Render date picker content (shared between popover and dialog)
   const renderContent = () => (
-    <>
-      <div className="space-y-4">
-        <div>
-          <h4 className="mb-2 text-sm font-medium">Seleccionar periodo</h4>
-          <div className="grid grid-cols-2 gap-2">
-            {DATE_RANGE_PRESETS.map((preset) => (
-              <Button
-                key={preset.id}
-                variant={localValue.rangeType === preset.id ? "default" : "outline"}
-                size="sm"
-                className="justify-start"
-                onClick={() => applyPreset(preset.id)}
-              >
-                <span className="truncate">{preset.label}</span>
-                {localValue.rangeType === preset.id && (
-                  <Check className="w-4 h-4 ml-auto" />
-                )}
-              </Button>
-            ))}
-          </div>
+    <div className="space-y-4">
+      <div>
+        <h4 className="mb-2 text-sm font-medium">Seleccionar periodo</h4>
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+          {DATE_RANGE_PRESETS.map((preset) => (
+            <Button
+              key={preset.id}
+              variant={localValue.rangeType === preset.id ? "default" : "outline"}
+              size="sm"
+              className="justify-start"
+              onClick={() => applyPreset(preset.id)}
+            >
+              <span className="truncate">{preset.label}</span>
+              {localValue.rangeType === preset.id && (
+                <Check className="w-4 h-4 ml-auto" />
+              )}
+            </Button>
+          ))}
         </div>
-        
-        {localValue.rangeType === 'custom' && (
-          <div className="pt-2">
-            <h4 className="mb-2 text-sm font-medium">Rango personalizado</h4>
+      </div>
+      
+      {localValue.rangeType === 'custom' && (
+        <div className="pt-2">
+          <h4 className="mb-2 text-sm font-medium">Rango personalizado</h4>
+          <div className="bg-white dark:bg-zinc-900 rounded-md overflow-hidden">
             <Calendar
               initialFocus
               mode="range"
               defaultMonth={localValue.primary.from || undefined}
               selected={localValue.primary}
               onSelect={handleCalendarSelect}
-              numberOfMonths={2}
-              className={cn("p-3 pointer-events-auto")}
+              numberOfMonths={isMobile ? 1 : 2}
+              className={cn("p-3 pointer-events-auto bg-white dark:bg-zinc-900")}
             />
           </div>
-        )}
-
-        <div className="pt-2 border-t">
-          <h4 className="mb-2 text-sm font-medium">Opciones de comparación</h4>
-          <div className="flex items-center justify-between">
-            <span className="text-sm">Comparar con</span>
-            <div className="flex items-center space-x-2">
-              <Switch
-                checked={localValue.comparisonType !== 'none'}
-                onCheckedChange={(checked) => {
-                  handleComparisonChange(checked ? 'previous' : 'none');
-                }}
-              />
-            </div>
-          </div>
-
-          {localValue.comparisonType !== 'none' && (
-            <Select
-              value={localValue.comparisonType}
-              onValueChange={(value: any) => handleComparisonChange(value)}
-            >
-              <SelectTrigger className="mt-2 w-full">
-                <SelectValue placeholder="Tipo de comparación" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="previous">Periodo anterior</SelectItem>
-                <SelectItem value="year">Mismo periodo año pasado</SelectItem>
-              </SelectContent>
-            </Select>
-          )}
         </div>
+      )}
+
+      <div className="pt-2 border-t">
+        <h4 className="mb-2 text-sm font-medium">Opciones de comparación</h4>
+        <div className="flex items-center justify-between">
+          <span className="text-sm">Comparar con</span>
+          <div className="flex items-center space-x-2">
+            <Switch
+              checked={localValue.comparisonType !== 'none'}
+              onCheckedChange={(checked) => {
+                handleComparisonChange(checked ? 'previous' : 'none');
+              }}
+            />
+          </div>
+        </div>
+
+        {localValue.comparisonType !== 'none' && (
+          <Select
+            value={localValue.comparisonType}
+            onValueChange={(value: any) => handleComparisonChange(value)}
+          >
+            <SelectTrigger className="mt-2 w-full bg-white dark:bg-zinc-900 border-gray-200 dark:border-gray-700">
+              <SelectValue placeholder="Tipo de comparación" />
+            </SelectTrigger>
+            <SelectContent className="bg-white dark:bg-zinc-900 border-gray-200 dark:border-gray-700">
+              <SelectItem value="previous">Periodo anterior</SelectItem>
+              <SelectItem value="year">Mismo periodo año pasado</SelectItem>
+            </SelectContent>
+          </Select>
+        )}
       </div>
-    </>
+    </div>
   );
 
+  // Mobile view uses Dialog component
   const renderMobileView = () => (
-    <Sheet open={isOpen} onOpenChange={setIsOpen}>
-      <SheetTrigger asChild>
+    <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+      <DialogTrigger asChild>
         <Button
           variant="outline"
           size="sm"
@@ -303,13 +348,23 @@ const AdvancedDateRangePicker: React.FC<AdvancedDateRangePickerProps> = ({
           <span className="text-sm truncate">{getSelectedRangeName()}: {formatDateRange(value.primary.from, value.primary.to)}</span>
           <ChevronDown className="w-4 h-4 ml-auto" />
         </Button>
-      </SheetTrigger>
-      <SheetContent side="bottom" className="max-h-[85vh] overflow-y-auto">
-        {renderMobileSheetContent()}
-      </SheetContent>
-    </Sheet>
+      </DialogTrigger>
+      <DialogContent className="bg-white dark:bg-zinc-900 border-gray-200 dark:border-gray-700 p-4 max-w-md max-h-[85vh] overflow-y-auto" onInteractOutside={(e) => e.preventDefault()}>
+        <DialogHeader>
+          <DialogTitle>Seleccionar rango de fechas</DialogTitle>
+        </DialogHeader>
+        <div className="py-4">
+          {renderContent()}
+        </div>
+        <DialogFooter className="flex justify-end gap-2 pt-2 border-t">
+          <Button variant="outline" onClick={cancelChanges}>Cancelar</Button>
+          <Button onClick={applyChanges}>Aplicar</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 
+  // Desktop view uses Popover component
   const renderDesktopView = () => (
     <Popover open={isOpen} onOpenChange={setIsOpen}>
       <PopoverTrigger asChild>
@@ -323,7 +378,11 @@ const AdvancedDateRangePicker: React.FC<AdvancedDateRangePickerProps> = ({
           <ChevronDown className="w-4 h-4 ml-auto" />
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-auto p-4" align="start">
+      <PopoverContent 
+        className="w-auto p-4 bg-white dark:bg-zinc-900 border border-gray-200 dark:border-gray-700 shadow-lg z-50" 
+        align="start"
+        sideOffset={4}
+      >
         {renderContent()}
         <div className="flex justify-end gap-2 pt-4 mt-4 border-t">
           <Button variant="outline" onClick={cancelChanges} size="sm">Cancelar</Button>
@@ -335,13 +394,7 @@ const AdvancedDateRangePicker: React.FC<AdvancedDateRangePickerProps> = ({
 
   return (
     <>
-      <div className="sm:hidden">
-        {renderMobileView()}
-      </div>
-      
-      <div className="hidden sm:block">
-        {renderDesktopView()}
-      </div>
+      {isMobile ? renderMobileView() : renderDesktopView()}
     </>
   );
 };

@@ -10,6 +10,8 @@ export function useCustodioPerformanceData(dateRange: DateRange, comparisonRange
     queryKey: ['custodio-performance-data', dateRange, comparisonRange],
     queryFn: async (): Promise<CustodioPerformanceData> => {
       try {
+        console.log("Fetching custodio performance data with:", { dateRange, comparisonRange });
+        
         // Make sure dateRange has valid dates
         if (!dateRange.from || !dateRange.to) {
           console.warn('Invalid date range provided to useCustodioPerformanceData');
@@ -24,7 +26,10 @@ export function useCustodioPerformanceData(dateRange: DateRange, comparisonRange
         
         // Fetch and process data with the provided date range
         const jsonData = await fetchExcelData();
-        return processExcelData(jsonData, dateRange);
+        const result = processExcelData(jsonData, dateRange);
+        
+        console.log("Successfully processed custodio performance data");
+        return result;
       } catch (error) {
         console.error('Error in useCustodioPerformanceData:', error);
         throw error;
