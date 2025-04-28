@@ -20,7 +20,7 @@ export function PerformanceFilter({ dateRange, setDateRange }: PerformanceFilter
   return (
     <Card className="border-0 shadow-md bg-white/90">
       <CardContent className="p-4">
-        <div className="flex flex-col sm:flex-row justify-between gap-4">
+        <div className="flex flex-col sm:flex-row justify-between gap-4 items-start">
           <div className="flex items-center gap-4">
             <span className="font-medium text-sm text-muted-foreground whitespace-nowrap">Filtros:</span>
             
