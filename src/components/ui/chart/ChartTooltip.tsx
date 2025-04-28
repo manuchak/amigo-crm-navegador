@@ -3,6 +3,7 @@ import * as React from "react";
 import * as RechartsPrimitive from "recharts";
 import { cn } from "@/lib/utils";
 import { useChart } from "./ChartContext";
+import { getPayloadConfigFromPayload } from "./utils";
 
 export const ChartTooltip = RechartsPrimitive.Tooltip;
 
