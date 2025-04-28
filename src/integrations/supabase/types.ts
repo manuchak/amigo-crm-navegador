@@ -188,6 +188,60 @@ export type Database = {
           },
         ]
       }
+      driver_behavior_scores: {
+        Row: {
+          client: string
+          created_at: string
+          distance: number | null
+          distance_text: string | null
+          driver_group: string
+          driver_name: string
+          duration_interval: unknown | null
+          duration_text: string | null
+          end_date: string
+          id: number
+          penalty_points: number
+          score: number
+          start_date: string
+          trips_count: number
+          updated_at: string
+        }
+        Insert: {
+          client: string
+          created_at?: string
+          distance?: number | null
+          distance_text?: string | null
+          driver_group: string
+          driver_name: string
+          duration_interval?: unknown | null
+          duration_text?: string | null
+          end_date: string
+          id?: number
+          penalty_points: number
+          score: number
+          start_date: string
+          trips_count: number
+          updated_at?: string
+        }
+        Update: {
+          client?: string
+          created_at?: string
+          distance?: number | null
+          distance_text?: string | null
+          driver_group?: string
+          driver_name?: string
+          duration_interval?: unknown | null
+          duration_text?: string | null
+          end_date?: string
+          id?: number
+          penalty_points?: number
+          score?: number
+          start_date?: string
+          trips_count?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       gps_installations: {
         Row: {
           created_at: string

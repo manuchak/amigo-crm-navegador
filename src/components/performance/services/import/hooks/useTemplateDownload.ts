@@ -3,13 +3,13 @@ import { useState } from 'react';
 import { toast } from "sonner";
 import { downloadCsvTemplate } from '../../export/csvTemplateGenerator';
 
-export function useTemplateDownload() {
+export function useTemplateDownload(type?: string) {
   const [isDownloading, setIsDownloading] = useState(false);
   
   const handleDownloadTemplate = () => {
     try {
       setIsDownloading(true);
-      downloadCsvTemplate();
+      downloadCsvTemplate(type);
       toast.success("Plantilla descargada", {
         description: "La plantilla CSV ha sido descargada exitosamente."
       });

@@ -3,12 +3,19 @@ import { useState } from 'react';
 import { toast } from "sonner";
 import { importServiciosData } from '../../import/importService';
 import { ImportResponse } from '../../import/types';
+import { importDriverBehaviorData } from '../../driverBehavior/driverBehaviorService';
 
 interface UseFileImportOptions {
   onShowErrorDialog: (show: boolean) => void;
+  importType?: 'servicios' | 'driver-behavior';
+  onComplete?: () => void;
 }
 
-export function useFileImport({ onShowErrorDialog }: UseFileImportOptions) {
+export function useFileImport({ 
+  onShowErrorDialog, 
+  importType = 'servicios',
+  onComplete 
+}: UseFileImportOptions) {
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [importErrors, setImportErrors] = useState<any[]>([]);
@@ -47,15 +54,29 @@ export function useFileImport({ onShowErrorDialog }: UseFileImportOptions) {
     setShowLargeFileWarning(false);
 
     try {
-      const result = await importServiciosData(file, (status, processed, total) => {
-        setImportStatus(status);
-        if (total > 0) {
-          setTotalRows(total);
-          setProcessedRows(processed);
-          const progress = Math.min(95, Math.floor((processed / total) * 95));
-          setUploadProgress(progress);
-        }
-      });
+      let result;
+      
+      if (importType === 'driver-behavior') {
+        result = await importDriverBehaviorData(file, (status, processed, total) => {
+          setImportStatus(status);
+          if (total > 0) {
+            setTotalRows(total);
+            setProcessedRows(processed);
+            const progress = Math.min(95, Math.floor((processed / total) * 95));
+            setUploadProgress(progress);
+          }
+        });
+      } else {
+        result = await importServiciosData(file, (status, processed, total) => {
+          setImportStatus(status);
+          if (total > 0) {
+            setTotalRows(total);
+            setProcessedRows(processed);
+            const progress = Math.min(95, Math.floor((processed / total) * 95));
+            setUploadProgress(progress);
+          }
+        });
+      }
 
       if (result.success) {
         setImportStatus('¡Importación completada!');
@@ -64,6 +85,14 @@ export function useFileImport({ onShowErrorDialog }: UseFileImportOptions) {
         if (result.errors?.length > 0) {
           setImportErrors(result.errors);
           setTimeout(() => onShowErrorDialog(true), 1000);
+        } else {
+          toast.success("Importación exitosa", {
+            description: `Los datos han sido importados correctamente.`
+          });
+          
+          if (onComplete) {
+            setTimeout(onComplete, 2000);
+          }
         }
       } else {
         setImportStatus('Error en la importación');
