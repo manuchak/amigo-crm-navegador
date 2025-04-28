@@ -23,11 +23,14 @@ export function ServiciosMetricsCards({ data = [], isLoading }: ServiciosMetrics
           : 0), 0) / duracionData.length
       : 0;
     
-    // Calculate average km per service
-    const kmData = data.filter(item => item.km_recorridos);
-    const avgKm = kmData.length > 0
-      ? kmData.reduce((acc, curr) => acc + (curr.km_recorridos || 0), 0) / kmData.length
-      : 0;
+    // Calculate median km per service
+    const kmData = data
+      .filter(item => item.km_recorridos)
+      .map(item => item.km_recorridos || 0)
+      .sort((a, b) => a - b);
+    
+    // Calculate median value
+    const medianKm = calculateMedian(kmData);
     
     // Calculate average income per service
     const cobroData = data.filter(item => item.cobro_cliente);
@@ -45,11 +48,26 @@ export function ServiciosMetricsCards({ data = [], isLoading }: ServiciosMetrics
     return {
       totalServicios,
       avgDuracion,
-      avgKm,
+      medianKm,
       avgCobro,
       activeCustodios
     };
   }, [data]);
+  
+  // Helper function to calculate median value
+  function calculateMedian(values: number[]): number {
+    if (values.length === 0) return 0;
+    
+    const half = Math.floor(values.length / 2);
+    
+    if (values.length % 2 === 0) {
+      // For even length, average the two middle values
+      return (values[half - 1] + values[half]) / 2;
+    }
+    
+    // For odd length, return the middle value
+    return values[half];
+  }
   
   // Helper function to parse duration strings like "2 hours 30 minutes" into minutes
   function parseDurationToMinutes(durationStr: string): number {
@@ -130,12 +148,12 @@ export function ServiciosMetricsCards({ data = [], isLoading }: ServiciosMetrics
               <TrendingUpIcon className="w-6 h-6" />
             </div>
             <div>
-              <p className="text-sm text-muted-foreground">KM Promedio</p>
+              <p className="text-sm text-muted-foreground">KM Mediana</p>
               {isLoading ? (
                 <Skeleton className="h-8 w-24 mt-1" />
               ) : (
                 <h3 className="text-2xl font-semibold mt-1">
-                  {metrics ? `${Math.round(metrics.avgKm)} km` : '0 km'}
+                  {metrics ? `${Math.round(metrics.medianKm)} km` : '0 km'}
                 </h3>
               )}
             </div>
