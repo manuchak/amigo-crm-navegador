@@ -33,10 +33,13 @@ export function useTemplateDownload(templateType: 'servicios' | 'driver-behavior
           'tiempo_conduccion'
         ];
         
-        // Ejemplo de datos
+        // Ejemplo de datos para la plantilla - asegurarse que los formatos son correctos
         const today = new Date();
-        const lastMonth = new Date();
-        lastMonth.setMonth(lastMonth.getMonth() - 1);
+        const lastMonth = new Date(today);
+        lastMonth.setMonth(today.getMonth() - 1);
+        
+        const formattedToday = today.toISOString().split('T')[0];
+        const formattedLastMonth = lastMonth.toISOString().split('T')[0];
         
         data = [
           [
@@ -46,10 +49,10 @@ export function useTemplateDownload(templateType: 'servicios' | 'driver-behavior
             '85', 
             '12', 
             '25', 
-            lastMonth.toISOString().split('T')[0], 
-            today.toISOString().split('T')[0], 
+            formattedLastMonth,
+            formattedToday, 
             '1250.5', 
-            '35h 45m'
+            '35:45' // Formato de tiempo más claro
           ]
         ];
       } else {
@@ -80,8 +83,9 @@ export function useTemplateDownload(templateType: 'servicios' | 'driver-behavior
         ];
       }
       
-      // Crear contenido CSV
-      const csvContent = [
+      // Crear contenido CSV con BOM para compatibilidad con Excel
+      const BOM = '\uFEFF';
+      const csvContent = BOM + [
         headers.join(','),
         ...data.map(row => row.join(','))
       ].join('\n');

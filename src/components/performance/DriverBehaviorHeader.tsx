@@ -10,7 +10,6 @@ export function DriverBehaviorHeader() {
     // Invalidate queries to refresh data after import
     queryClient.invalidateQueries({ queryKey: ['driver-behavior-data'] });
     queryClient.invalidateQueries({ queryKey: ['driver-behavior-clients'] });
-    window.location.reload();
   };
   
   return (

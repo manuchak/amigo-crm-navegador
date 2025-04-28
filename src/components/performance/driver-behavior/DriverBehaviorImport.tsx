@@ -6,9 +6,15 @@ import { ImportProgressBar } from '../filters/ImportProgressBar';
 import { ImportErrorDialog } from '../filters/ImportErrorDialog';
 import { LargeFileWarningDialog } from '../filters/LargeFileWarningDialog';
 import { Button } from "@/components/ui/button";
-import { FileSpreadsheet, Download, RefreshCw } from 'lucide-react';
+import { FileSpreadsheet, Download, RefreshCw, Upload } from 'lucide-react';
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 interface DriverBehaviorImportProps {
   className?: string;
@@ -65,41 +71,45 @@ export function DriverBehaviorImport({ className, onImportComplete }: DriverBeha
   
   return (
     <>
-      <div className="flex flex-wrap items-center gap-3">
-        <Button size="sm" variant="outline" onClick={handleDownloadTemplate} disabled={isDownloading} className="whitespace-nowrap gap-1">
-          <Download className="h-4 w-4 mr-1" />
-          Descargar Plantilla
-        </Button>
-        
-        <input
-          type="file"
-          accept=".xlsx,.xls,.csv"
-          onChange={handleFileSelected}
-          className="hidden"
-          id="driver-behavior-file-upload"
-          disabled={isUploading}
-        />
-        
-        <label htmlFor="driver-behavior-file-upload">
-          <Button variant="outline" size="sm" className="whitespace-nowrap gap-1" asChild disabled={isUploading}>
-            <span>
-              <FileSpreadsheet className="h-4 w-4 mr-1" />
-              Importar Datos
-            </span>
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button variant="outline" size="sm" className="gap-1">
+            <Upload className="h-4 w-4 mr-1" />
+            Gestionar Datos
           </Button>
-        </label>
-        
-        <Button size="sm" variant="outline" onClick={handleRefreshData} className="whitespace-nowrap gap-1">
-          <RefreshCw className="h-4 w-4 mr-1" />
-          Actualizar Datos
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end">
+          <DropdownMenuItem onClick={handleDownloadTemplate} disabled={isDownloading}>
+            <Download className="h-4 w-4 mr-2" />
+            Descargar Plantilla
+          </DropdownMenuItem>
+          
+          <DropdownMenuItem onClick={() => document.getElementById('driver-behavior-file-upload')?.click()} disabled={isUploading}>
+            <FileSpreadsheet className="h-4 w-4 mr-2" />
+            Importar Datos
+          </DropdownMenuItem>
+          
+          <DropdownMenuItem onClick={handleRefreshData}>
+            <RefreshCw className="h-4 w-4 mr-2" />
+            Actualizar Datos
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+      
+      <input
+        type="file"
+        accept=".xlsx,.xls,.csv"
+        onChange={handleFileSelected}
+        className="hidden"
+        id="driver-behavior-file-upload"
+        disabled={isUploading}
+      />
+      
+      {isUploading && (
+        <Button size="sm" variant="destructive" onClick={handleCancelImport} className="mt-2">
+          Cancelar
         </Button>
-        
-        {isUploading && (
-          <Button size="sm" variant="destructive" onClick={handleCancelImport}>
-            Cancelar
-          </Button>
-        )}
-      </div>
+      )}
       
       <ImportProgressBar 
         importStatus={importStatus}

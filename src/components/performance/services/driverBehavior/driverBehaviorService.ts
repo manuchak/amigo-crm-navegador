@@ -245,6 +245,8 @@ export async function importDriverBehaviorData(
     if (onProgress) {
       onProgress("Procesando archivo de comportamiento de conducción", 0, 0);
     }
+    
+    console.log("Iniciando importación de datos de comportamiento de conducción");
 
     const formData = new FormData();
     formData.append('file', file);
@@ -253,40 +255,42 @@ export async function importDriverBehaviorData(
     const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
     
     if (sessionError) {
+      console.error("Error de sesión:", sessionError);
       return { success: false, message: "Error al obtener la sesión: " + sessionError.message };
     }
     
     if (!sessionData.session) {
+      console.error("No hay sesión activa");
       return { success: false, message: "No hay sesión activa" };
     }
     
-    const accessToken = sessionData.session.access_token;
-    
-    if (!accessToken) {
-      return { success: false, message: "No se pudo obtener el token de acceso" };
-    }
-
     if (onProgress) {
       onProgress("Validando estructura del archivo", 10, 100);
     }
     
+    // Leer el archivo como texto
     const csvText = await file.text();
     const lines = csvText.split(/\r?\n/);
     
     if (lines.length <= 1) {
+      console.error("El archivo está vacío o no contiene datos válidos");
       return { success: false, message: "El archivo está vacío o no contiene datos válidos" };
     }
     
-    const headers = lines[0].split(',').map(h => h.trim());
+    // Detectar y procesar cabeceras
+    let headers = lines[0].split(',').map(h => h.trim());
+    console.log("Cabeceras detectadas:", headers);
     
     if (onProgress) {
       onProgress("Procesando registros", 30, 100);
     }
     
+    // Procesar las filas
     const rows = [];
     for (let i = 1; i < lines.length; i++) {
       if (lines[i].trim() === '') continue;
       
+      // Manejar CSV con comillas y comas adecuadamente
       let currentLine = lines[i];
       const values = [];
       let insideQuotes = false;
@@ -308,8 +312,9 @@ export async function importDriverBehaviorData(
       values.push(currentValue.trim());
       
       if (values.length !== headers.length) {
-        console.warn(`La fila ${i} tiene un número incorrecto de columnas (${values.length} vs ${headers.length} esperadas)`);
+        console.warn(`La fila ${i} tiene un número incorrecto de columnas (${values.length} vs ${headers.length} esperadas). Ajustando...`);
         
+        // Ajustar el array para que coincida con las cabeceras
         while (values.length < headers.length) {
           values.push('');
         }
@@ -319,6 +324,7 @@ export async function importDriverBehaviorData(
         }
       }
       
+      // Crear objeto con los valores
       const row: Record<string, any> = {};
       headers.forEach((header, index) => {
         row[header] = values[index] || '';
@@ -328,14 +334,18 @@ export async function importDriverBehaviorData(
     }
     
     if (rows.length === 0) {
+      console.error("No se encontraron registros válidos en el archivo");
       return { success: false, message: "No se encontraron registros válidos en el archivo" };
     }
     
+    console.log(`Procesando ${rows.length} registros`);
     if (onProgress) {
       onProgress(`Procesando ${rows.length} registros`, 50, 100);
     }
     
-    const driverBehaviorRecords = rows.map(row => {
+    // Mapear los datos al formato requerido por la tabla driver_behavior_scores
+    const driverBehaviorRecords = rows.map((row, index) => {
+      // Mapeo de nombres de columnas
       const mappings: Record<string, string> = {
         'nombre_conductor': 'driver_name',
         'grupo_conductor': 'driver_group',
@@ -349,60 +359,92 @@ export async function importDriverBehaviorData(
         'tiempo_conduccion': 'duration_text'
       };
       
+      // Procesamiento de fechas
       let startDate: Date, endDate: Date;
+      
+      // Función helper para parsear fechas en diferentes formatos
+      const parseDate = (dateStr: string): Date => {
+        if (!dateStr || dateStr.trim() === '') return new Date();
+        
+        // Intentar varios formatos comunes
+        let result: Date | null = null;
+        
+        // Intentar formato ISO YYYY-MM-DD
+        if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+          result = new Date(dateStr);
+        } 
+        // Intentar formato DD/MM/YYYY
+        else if (/^\d{1,2}\/\d{1,2}\/\d{4}$/.test(dateStr)) {
+          const parts = dateStr.split('/');
+          result = new Date(`${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`);
+        }
+        // Intentar formato DD-MM-YYYY
+        else if (/^\d{1,2}-\d{1,2}-\d{4}$/.test(dateStr)) {
+          const parts = dateStr.split('-');
+          result = new Date(`${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`);
+        }
+        
+        if (result && !isNaN(result.getTime())) {
+          return result;
+        }
+        
+        // Si nada funciona, usar la fecha actual
+        console.warn(`No se pudo parsear la fecha: "${dateStr}". Usando fecha actual.`);
+        return new Date();
+      };
       
       try {
         const startDateStr = row['fecha_inicio'] || row['start_date'] || '';
         const endDateStr = row['fecha_fin'] || row['end_date'] || '';
         
-        startDate = new Date(startDateStr);
-        endDate = new Date(endDateStr);
-        
-        if (isNaN(startDate.getTime())) {
-          const parts = startDateStr.split('/');
-          if (parts.length === 3) {
-            startDate = new Date(`${parts[2]}-${parts[1]}-${parts[0]}`);
-          } else {
-            startDate = new Date();
-          }
-        }
-        
-        if (isNaN(endDate.getTime())) {
-          const parts = endDateStr.split('/');
-          if (parts.length === 3) {
-            endDate = new Date(`${parts[2]}-${parts[1]}-${parts[0]}`);
-          } else {
-            endDate = new Date();
-          }
-        }
+        startDate = parseDate(startDateStr);
+        endDate = parseDate(endDateStr);
       } catch (error) {
-        console.error("Error parsing dates:", error);
+        console.error(`Error procesando fechas en fila ${index + 1}:`, error);
         startDate = new Date();
         endDate = new Date();
       }
       
-      const score = parseFloat(String(row['puntuacion'] || row['score'] || '0').replace(',', '.'));
-      const penaltyPoints = parseInt(String(row['puntos_penalizacion'] || row['penalty_points'] || '0').replace(',', '.'), 10);
-      const tripsCount = parseInt(String(row['viajes'] || row['trips_count'] || '0').replace(',', '.'), 10);
+      // Función para parsear números con manejo de errores
+      const parseNumber = (value: string | null | undefined, defaultValue: number): number => {
+        if (value === null || value === undefined || value === '') return defaultValue;
+        
+        // Reemplazar comas por puntos para manejar formato europeo
+        const normalizedValue = String(value).replace(',', '.');
+        const parsed = parseFloat(normalizedValue);
+        
+        if (isNaN(parsed)) {
+          console.warn(`Valor numérico inválido: "${value}", usando ${defaultValue}`);
+          return defaultValue;
+        }
+        
+        return parsed;
+      };
+      
+      // Tratar de obtener los valores usando diferentes posibles nombres de columnas
+      const score = parseNumber(row['puntuacion'] || row['score'], 0);
+      const penaltyPoints = parseNumber(row['puntos_penalizacion'] || row['penalty_points'], 0);
+      const tripsCount = parseNumber(row['viajes'] || row['trips_count'], 0);
       
       let distance: number | null = null;
-      const distanceStr = row['distancia'] || row['distance'] || null;
-      if (distanceStr !== null && distanceStr !== '') {
-        distance = parseFloat(String(distanceStr).replace(',', '.'));
+      const distanceStr = row['distancia'] || row['distance'];
+      if (distanceStr !== null && distanceStr !== undefined && distanceStr !== '') {
+        distance = parseNumber(distanceStr, 0);
       }
       
+      // Crear objeto para inserción a la base de datos
       return {
-        driver_name: row['nombre_conductor'] || row['driver_name'] || 'Sin nombre',
-        driver_group: row['grupo_conductor'] || row['driver_group'] || 'Sin grupo',
-        client: row['cliente'] || row['client'] || 'Sin cliente',
-        score: isNaN(score) ? 0 : score,
-        penalty_points: isNaN(penaltyPoints) ? 0 : penaltyPoints,
-        trips_count: isNaN(tripsCount) ? 0 : tripsCount,
+        driver_name: (row['nombre_conductor'] || row['driver_name'] || 'Sin nombre').trim(),
+        driver_group: (row['grupo_conductor'] || row['driver_group'] || 'Sin grupo').trim(),
+        client: (row['cliente'] || row['client'] || 'Sin cliente').trim(),
+        score: score,
+        penalty_points: Math.round(penaltyPoints), // Asegurar que es entero
+        trips_count: Math.round(tripsCount), // Asegurar que es entero
         start_date: startDate.toISOString(),
         end_date: endDate.toISOString(),
-        distance: isNaN(Number(distance)) ? null : distance,
-        distance_text: distance ? `${Number(distance).toFixed(2)} km` : null,
-        duration_text: row['tiempo_conduccion'] || row['duration_text'] || null,
+        distance: distance,
+        distance_text: distance ? `${distance.toFixed(2)} km` : null,
+        duration_text: (row['tiempo_conduccion'] || row['duration_text'] || null),
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
       };
@@ -412,18 +454,38 @@ export async function importDriverBehaviorData(
       onProgress("Guardando registros en la base de datos", 75, 100);
     }
     
+    // Insertar los registros en lotes pequeños para evitar errores de tamaño
+    const batchSize = 5; // Reducir el tamaño del lote para mejor manejo
     let insertedCount = 0;
-    const batchSize = 10;
     const errors: any[] = [];
+    
+    console.log(`Iniciando inserción de ${driverBehaviorRecords.length} registros en lotes de ${batchSize}`);
     
     for (let i = 0; i < driverBehaviorRecords.length; i += batchSize) {
       const batch = driverBehaviorRecords.slice(i, i + batchSize);
       console.log(`Insertando lote ${Math.floor(i / batchSize) + 1} con ${batch.length} registros`);
       
       try {
+        // Limpiar datos para asegurar que cumplen con la estructura de la tabla
+        const cleanBatch = batch.map(record => ({
+          driver_name: String(record.driver_name).substring(0, 255), // Limitar longitud
+          driver_group: String(record.driver_group).substring(0, 255),
+          client: String(record.client).substring(0, 255),
+          score: parseFloat(String(record.score)),
+          penalty_points: parseInt(String(record.penalty_points)),
+          trips_count: parseInt(String(record.trips_count)),
+          start_date: record.start_date,
+          end_date: record.end_date,
+          distance: record.distance,
+          distance_text: record.distance_text,
+          duration_text: record.duration_text,
+          created_at: record.created_at,
+          updated_at: record.updated_at
+        }));
+        
         const { data, error } = await supabase
           .from('driver_behavior_scores')
-          .insert(batch)
+          .insert(cleanBatch)
           .select();
           
         if (error) {
@@ -434,7 +496,7 @@ export async function importDriverBehaviorData(
           });
         } else {
           insertedCount += data?.length || 0;
-          console.log(`Insertados ${data?.length || 0} registros correctamente`);
+          console.log(`Insertados ${data?.length || 0} registros correctamente. Total: ${insertedCount}`);
         }
       } catch (error) {
         console.error("Error no controlado al insertar registros:", error);
@@ -449,7 +511,8 @@ export async function importDriverBehaviorData(
         onProgress(`Insertados ${insertedCount} de ${driverBehaviorRecords.length} registros`, Math.floor(progress), 100);
       }
       
-      await new Promise(resolve => setTimeout(resolve, 500));
+      // Pequeña pausa entre lotes para no sobrecargar la base de datos
+      await new Promise(resolve => setTimeout(resolve, 300));
     }
     
     if (onProgress) {
