@@ -2,11 +2,10 @@
 import React from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { DownloadIcon } from "lucide-react";
 
-interface TemplateHelpDialogProps {
+export interface TemplateHelpDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   templateType: string;

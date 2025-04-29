@@ -174,13 +174,11 @@ export function DriverBehaviorImport({ onImportComplete }: DriverBehaviorImportP
       />
       
       {/* Help dialog for template format */}
-      {showHelpDialog && (
-        <TemplateHelpDialog
-          open={showHelpDialog}
-          onOpenChange={setShowHelpDialog}
-          templateType="driver-behavior"
-        />
-      )}
+      <TemplateHelpDialog
+        open={showHelpDialog}
+        onOpenChange={setShowHelpDialog}
+        templateType="driver-behavior"
+      />
       
       {/* Error dialog */}
       {importErrors && (

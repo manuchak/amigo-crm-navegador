@@ -12,62 +12,65 @@ export const fetchDriverBehaviorData = async (dateRange: DateRange, filters?: Dr
     to: dateRange.to ? dateRange.to.toISOString() : null
   } : 'No date range provided');
   
+  if (!dateRange.from || !dateRange.to) {
+    console.warn("Invalid date range provided");
+    return createEmptyDriverBehaviorData();
+  }
+  
   try {
     let query = supabase
       .from('driver_behavior_scores')
       .select('*');
-      
-    // Aplicar filtro de rango de fechas si se proporciona
-    // Modificado para asegurar que los registros estén dentro del rango de fechas seleccionado
-    // Un registro está dentro del rango si:
-    // - Su fecha de inicio está dentro del rango de fechas
-    // - O su fecha de fin está dentro del rango de fechas
-    // - O el rango de fechas está completamente dentro del período del registro
-    if (dateRange.from) {
-      // La fecha de inicio o final del registro está después de la fecha "from" del filtro
-      query = query.or(`start_date.gte.${dateRange.from.toISOString()},end_date.gte.${dateRange.from.toISOString()}`);
-    }
     
-    if (dateRange.to) {
-      // La fecha de inicio o final del registro está antes de la fecha "to" del filtro
-      query = query.or(`start_date.lte.${dateRange.to.toISOString()},end_date.lte.${dateRange.to.toISOString()}`);
-    }
+    // Apply date range filter - records must overlap with the selected date range
+    // A record overlaps if:
+    // 1. Its start date is within the selected range, OR
+    // 2. Its end date is within the selected range, OR
+    // 3. It completely spans the selected range (starts before and ends after)
+    const fromDate = dateRange.from.toISOString();
+    const toDate = dateRange.to.toISOString();
     
-    // Aplicar filtro de cliente si se proporciona
+    query = query.or(
+      `start_date.lte.${toDate},end_date.gte.${fromDate}`
+    );
+    
+    // Apply client filter if provided
     if (filters?.selectedClients && filters.selectedClients.length > 0) {
-      console.log("Applying client filter:", filters.selectedClients);
       query = query.in('client', filters.selectedClients);
     }
     
-    // Aplicar filtro de nombre de conductor si se proporciona
+    // Apply driver name filter if provided
     if (filters?.driverName && filters.driverName.trim() !== '') {
-      console.log("Applying driver name filter:", filters.driverName);
-      query = query.ilike('driver_name', `%${filters.driverName}%`);
+      query = query.ilike('driver_name', `%${filters.driverName.trim()}%`);
     }
     
-    // Ejecutar la consulta
+    // Execute the query
     const { data: driverScores, error } = await query;
     
     if (error) {
       console.error("Error fetching driver behavior data:", error);
-      throw error;
+      return createEmptyDriverBehaviorData();
     }
     
     if (!driverScores || driverScores.length === 0) {
       console.log("No driver behavior data found with applied filters");
-      // Devolver estructura de datos vacía
       return createEmptyDriverBehaviorData();
     }
     
     console.log(`Found ${driverScores.length} driver behavior records`);
-    console.log("First record sample:", driverScores[0]);
+    if (driverScores.length > 0) {
+      console.log("Sample record:", {
+        driver: driverScores[0].driver_name,
+        score: driverScores[0].score,
+        period: `${new Date(driverScores[0].start_date).toLocaleDateString()} - ${new Date(driverScores[0].end_date).toLocaleDateString()}`
+      });
+    }
     
-    // Procesar los datos para crear la estructura DriverBehaviorData
+    // Process the data to create the DriverBehaviorData structure
     return processDriverBehaviorData(driverScores);
     
   } catch (err) {
     console.error("Exception when fetching driver data:", err);
-    // En caso de cualquier excepción, devolver datos vacíos
     return createEmptyDriverBehaviorData();
   }
 };
@@ -89,9 +92,9 @@ export const fetchClientList = async (): Promise<string[]> => {
     }
     
     if (data && data.length > 0) {
-      // Extraer nombres únicos de clientes
+      // Extract unique client names
       const uniqueClients = Array.from(new Set(data.map(item => item.client))).filter(Boolean) as string[];
-      console.log("Found client list from database:", uniqueClients);
+      console.log(`Found ${uniqueClients.length} unique clients`);
       return uniqueClients.sort();
     } else {
       console.log("No client data found");
