@@ -69,6 +69,18 @@ export function DriverBehaviorDashboard({ dateRange, comparisonRange }: DriverBe
     );
   }
 
+  // Información de debug importante para verificar fechas
+  console.log('DateRange in dashboard:', dateRange);
+  if (driverData) {
+    console.log(`Datos cargados: ${driverData.driverScores?.length || 0} registros de conductores`);
+    if (driverData.driverScores && driverData.driverScores.length > 0) {
+      console.log('Muestra de fechas:', {
+        start: new Date(driverData.driverScores[0].start_date).toLocaleDateString(),
+        end: new Date(driverData.driverScores[0].end_date).toLocaleDateString()
+      });
+    }
+  }
+
   return (
     <div className="space-y-6 animate-fade-in">
       <div className="flex items-center justify-between mb-6">

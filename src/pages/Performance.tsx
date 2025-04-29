@@ -35,6 +35,11 @@ export default function Performance() {
 
   // Handle date range changes with validation
   const handleDateRangeChange = (newRange: DateRangeWithComparison) => {
+    console.log("Date range changed:", {
+      from: newRange.primary.from ? newRange.primary.from.toLocaleDateString() : 'undefined',
+      to: newRange.primary.to ? newRange.primary.to.toLocaleDateString() : 'undefined'
+    });
+    
     // Validate that the date range is not too large (e.g., more than 1 year)
     if (newRange.primary.from && newRange.primary.to) {
       const diffTime = Math.abs(newRange.primary.to.getTime() - newRange.primary.from.getTime());
@@ -43,6 +48,14 @@ export default function Performance() {
       if (diffDays > 365) {
         toast.warning("Rango de fechas demasiado amplio", {
           description: "Por favor seleccione un rango menor a un año para un mejor rendimiento"
+        });
+        return;
+      }
+      
+      // Ensure the start date is before the end date
+      if (newRange.primary.from > newRange.primary.to) {
+        toast.warning("Rango de fechas inválido", {
+          description: "La fecha de inicio debe ser anterior a la fecha final"
         });
         return;
       }

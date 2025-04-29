@@ -70,49 +70,52 @@ export function DriverBehaviorMetricsCards({
   comparisonData,
   isLoading 
 }: DriverBehaviorMetricsCardsProps) {
-  // Calculate metrics directly from driver scores
+  // Ensure we're working with valid data from driver_behavior_scores
   const driverScores = data?.driverScores || [];
   
-  // Calculate average score (actual average from records)
+  // Log what we're getting for debugging
+  console.log(`DriverBehaviorMetricsCards: Processing ${driverScores.length} driver records`);
+  
+  // Calculate average score from all driver records in the period
   const avgScore = driverScores.length > 0
-    ? driverScores.reduce((sum, driver) => sum + Number(driver.score), 0) / driverScores.length
+    ? driverScores.reduce((sum, driver) => sum + Number(driver.score || 0), 0) / driverScores.length
     : 0;
     
-  // Calculate total penalty points (sum from records)
+  // Calculate total penalty points from all driver records in the period
   const totalPenaltyPoints = driverScores.reduce(
-    (sum, driver) => sum + Number(driver.penalty_points), 
+    (sum, driver) => sum + Number(driver.penalty_points || 0), 
     0
   );
   
-  // Calculate total trips (sum from records)
+  // Calculate total trips from all driver records in the period
   const totalTrips = driverScores.reduce(
-    (sum, driver) => sum + Number(driver.trips_count), 
+    (sum, driver) => sum + Number(driver.trips_count || 0), 
     0
   );
   
-  // Count drivers with critical scores (below 40)
-  const criticalDriversCount = driverScores.filter(d => d.score < 40).length;
+  // Count drivers with critical scores (below 40) in the period
+  const criticalDriversCount = driverScores.filter(d => Number(d.score) < 40).length;
   
-  // Calculate comparison metrics if available
+  // For comparison metrics, use the same calculations on comparison data
   const prevDriverScores = comparisonData?.driverScores || [];
   
   const prevAvgScore = prevDriverScores.length > 0
-    ? prevDriverScores.reduce((sum, driver) => sum + Number(driver.score), 0) / prevDriverScores.length
+    ? prevDriverScores.reduce((sum, driver) => sum + Number(driver.score || 0), 0) / prevDriverScores.length
     : 0;
     
   const prevPenaltyPoints = prevDriverScores.reduce(
-    (sum, driver) => sum + Number(driver.penalty_points), 
+    (sum, driver) => sum + Number(driver.penalty_points || 0), 
     0
   );
     
   const prevTrips = prevDriverScores.reduce(
-    (sum, driver) => sum + Number(driver.trips_count), 
+    (sum, driver) => sum + Number(driver.trips_count || 0), 
     0
   );
     
-  const prevCriticalDrivers = prevDriverScores.filter(d => d.score < 40).length;
+  const prevCriticalDrivers = prevDriverScores.filter(d => Number(d.score) < 40).length;
     
-  // Calculate percentage changes
+  // Calculate percentage changes only when comparison data exists
   const scoreChange = prevAvgScore > 0 
     ? ((avgScore - prevAvgScore) / prevAvgScore) * 100
     : 0;
@@ -129,11 +132,22 @@ export function DriverBehaviorMetricsCards({
     ? ((criticalDriversCount - prevCriticalDrivers) / prevCriticalDrivers) * 100
     : 0;
   
+  // Debug information
+  if (!isLoading) {
+    console.log('Metrics calculated:', {
+      avgScore: avgScore.toFixed(1),
+      totalPenaltyPoints,
+      totalTrips,
+      criticalDriversCount,
+      hasComparison: prevDriverScores.length > 0
+    });
+  }
+  
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
       <MetricCard
         title="Puntuación Promedio"
-        value={avgScore.toFixed(1)}
+        value={isLoading ? 0 : avgScore.toFixed(1)}
         icon={Gauge}
         colorClass="bg-blue-50 text-blue-600"
         change={Math.round(scoreChange)}
@@ -143,7 +157,7 @@ export function DriverBehaviorMetricsCards({
       
       <MetricCard
         title="Puntos de Penalización"
-        value={totalPenaltyPoints}
+        value={isLoading ? 0 : totalPenaltyPoints}
         icon={TrendingDown}
         colorClass="bg-amber-50 text-amber-600"
         change={Math.round(penaltyChange)}
@@ -153,7 +167,7 @@ export function DriverBehaviorMetricsCards({
       
       <MetricCard
         title="Total de Viajes"
-        value={totalTrips}
+        value={isLoading ? 0 : totalTrips}
         icon={Award}
         colorClass="bg-emerald-50 text-emerald-600"
         change={Math.round(tripsChange)}
@@ -163,7 +177,7 @@ export function DriverBehaviorMetricsCards({
       
       <MetricCard
         title="Conductores Críticos"
-        value={criticalDriversCount}
+        value={isLoading ? 0 : criticalDriversCount}
         icon={AlertTriangle}
         colorClass="bg-red-50 text-red-600"
         change={Math.round(criticalChange)}

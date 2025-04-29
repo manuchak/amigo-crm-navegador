@@ -1,3 +1,4 @@
+
 import { DateRange } from "react-day-picker";
 import { DriverBehaviorData, DriverBehaviorFilters, DriverScore } from "../../types/driver-behavior.types";
 import { ImportResponse, ProgressCallback } from "../import/types";
@@ -6,6 +7,10 @@ import { supabase } from "@/integrations/supabase/client";
 // Fetch driver behavior data with optional filters
 export const fetchDriverBehaviorData = async (dateRange: DateRange, filters?: DriverBehaviorFilters): Promise<DriverBehaviorData> => {
   console.log("Fetching driver behavior data with filters:", filters);
+  console.log("Date range:", dateRange ? {
+    from: dateRange.from ? dateRange.from.toISOString() : null,
+    to: dateRange.to ? dateRange.to.toISOString() : null
+  } : 'No date range provided');
   
   try {
     let query = supabase
@@ -13,12 +18,19 @@ export const fetchDriverBehaviorData = async (dateRange: DateRange, filters?: Dr
       .select('*');
       
     // Aplicar filtro de rango de fechas si se proporciona
+    // Modificado para asegurar que los registros estén dentro del rango de fechas seleccionado
+    // Un registro está dentro del rango si:
+    // - Su fecha de inicio está dentro del rango de fechas
+    // - O su fecha de fin está dentro del rango de fechas
+    // - O el rango de fechas está completamente dentro del período del registro
     if (dateRange.from) {
-      query = query.gte('start_date', dateRange.from.toISOString());
+      // La fecha de inicio o final del registro está después de la fecha "from" del filtro
+      query = query.or(`start_date.gte.${dateRange.from.toISOString()},end_date.gte.${dateRange.from.toISOString()}`);
     }
     
     if (dateRange.to) {
-      query = query.lte('end_date', dateRange.to.toISOString());
+      // La fecha de inicio o final del registro está antes de la fecha "to" del filtro
+      query = query.or(`start_date.lte.${dateRange.to.toISOString()},end_date.lte.${dateRange.to.toISOString()}`);
     }
     
     // Aplicar filtro de cliente si se proporciona
@@ -48,6 +60,7 @@ export const fetchDriverBehaviorData = async (dateRange: DateRange, filters?: Dr
     }
     
     console.log(`Found ${driverScores.length} driver behavior records`);
+    console.log("First record sample:", driverScores[0]);
     
     // Procesar los datos para crear la estructura DriverBehaviorData
     return processDriverBehaviorData(driverScores);
@@ -103,23 +116,23 @@ const processDriverBehaviorData = (driverScores: any[]): DriverBehaviorData => {
     else critical++;
   }
   
-  // Calculate totals and averages
-  const totalPenaltyPoints = driverScores.reduce((sum, d) => sum + Number(d.penalty_points), 0);
-  const totalTrips = driverScores.reduce((sum, d) => sum + Number(d.trips_count), 0);
+  // Calculate totals and averages across all records in the time period
+  const totalPenaltyPoints = driverScores.reduce((sum, d) => sum + Number(d.penalty_points || 0), 0);
+  const totalTrips = driverScores.reduce((sum, d) => sum + Number(d.trips_count || 0), 0);
   const totalDistance = driverScores.reduce((sum, d) => sum + (Number(d.distance) || 0), 0);
   
   // Calculate average score
-  const sumScores = driverScores.reduce((sum, d) => sum + Number(d.score), 0);
+  const sumScores = driverScores.reduce((sum, d) => sum + Number(d.score || 0), 0);
   const averageScore = driverScores.length > 0 ? sumScores / driverScores.length : 0;
   
   // Group drivers by performance categories
-  const sortedByScore = [...driverScores].sort((a, b) => Number(b.score) - Number(a.score));
-  const sortedByPenalty = [...driverScores].sort((a, b) => Number(a.penalty_points) - Number(b.penalty_points));
+  const sortedByScore = [...driverScores].sort((a, b) => Number(b.score || 0) - Number(a.score || 0));
+  const sortedByPenalty = [...driverScores].sort((a, b) => Number(a.penalty_points || 0) - Number(b.penalty_points || 0));
   
   const topDrivers = sortedByScore.slice(0, 3);
   const needsImprovement = [...driverScores]
-    .filter(d => Number(d.score) < 50)
-    .sort((a, b) => Number(a.score) - Number(b.score))
+    .filter(d => Number(d.score || 0) < 50)
+    .sort((a, b) => Number(a.score || 0) - Number(b.score || 0))
     .slice(0, 3);
   
   const ecoDrivers = sortedByPenalty.slice(0, 3);
@@ -181,6 +194,15 @@ const processDriverBehaviorData = (driverScores: any[]): DriverBehaviorData => {
     { label: "Conductores Activos", value: driverScores.filter(d => d.trips_count > 0).length },
     { label: "Alertas de Seguridad", value: totalPenaltyPoints }
   ];
+  
+  // Log the processed data summary
+  console.log("Processed driver data summary:", {
+    totalDrivers: driverScores.length,
+    averageScore: averageScore.toFixed(1),
+    totalTrips,
+    totalPenaltyPoints,
+    riskLevel
+  });
   
   return {
     metrics,
