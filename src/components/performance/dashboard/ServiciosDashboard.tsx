@@ -5,6 +5,7 @@ import { useQuery } from "@tanstack/react-query";
 import { fetchServiciosData } from '../services/servicios';
 import { ServiciosMetricsCards } from './ServiciosMetricsCards';
 import { ServiciosPerformanceChart } from './charts/ServiciosPerformanceChart';
+import { ServiciosHourDistributionChart } from './charts/ServiciosHourDistributionChart';
 import { ServiciosClientesActivos } from './ServiciosClientesActivos';
 import { ServiciosAlertas } from './ServiciosAlertas';
 import { ServiciosTipoChart } from './ServiciosTipoChart';
@@ -49,6 +50,13 @@ export function ServiciosDashboard({ dateRange, comparisonRange }: ServiciosDash
         <ServiciosTipoChart 
           data={data?.serviciosPorTipo || []} 
           isLoading={isLoading} 
+        />
+      </div>
+      
+      <div className="grid grid-cols-1 gap-6">
+        <ServiciosHourDistributionChart 
+          data={data?.serviciosData}
+          isLoading={isLoading}
         />
       </div>
       

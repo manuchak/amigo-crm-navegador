@@ -11,3 +11,4 @@ export { ServiciosAlertas } from './ServiciosAlertas';
 export { ServiciosClientesActivos } from './ServiciosClientesActivos';
 export { ServiciosTipoChart } from './ServiciosTipoChart';
 export { CustodioRetentionTable } from './CustodioRetentionTable';
+export { ServiciosHourDistributionChart } from './charts/ServiciosHourDistributionChart';

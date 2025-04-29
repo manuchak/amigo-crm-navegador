@@ -13,7 +13,7 @@ import {
   Legend,
   ResponsiveContainer 
 } from 'recharts';
-import { format, parseISO, startOfMonth, endOfMonth, eachDayOfInterval, isWithinInterval } from 'date-fns';
+import { format, parseISO, eachDayOfInterval, addDays } from 'date-fns';
 import { es } from 'date-fns/locale';
 
 interface ServiciosPerformanceChartProps {
@@ -25,7 +25,7 @@ interface ServiciosPerformanceChartProps {
 
 export function ServiciosPerformanceChart({ data = [], comparisonData, isLoading, dateRange }: ServiciosPerformanceChartProps) {
   const chartData = useMemo(() => {
-    if (!data || data.length === 0 || !dateRange.from || !dateRange.to) {
+    if (!data || data.length === 0 || !dateRange.from) {
       console.warn('Missing or invalid data for ServiciosPerformanceChart');
       return [];
     }
@@ -34,12 +34,21 @@ export function ServiciosPerformanceChart({ data = [], comparisonData, isLoading
     const dailyDataMap = new Map();
     
     // Generate all days in the date range to ensure we have entries for days without services
-    const allDays = eachDayOfInterval({
-      start: startOfMonth(dateRange.from),
-      end: endOfMonth(dateRange.to || dateRange.from)
-    });
+    let allDays = [];
+    if (dateRange.from && dateRange.to) {
+      allDays = eachDayOfInterval({
+        start: dateRange.from,
+        end: dateRange.to
+      });
+    } else if (dateRange.from) {
+      // If only from date is provided, use 90 days range
+      allDays = eachDayOfInterval({
+        start: dateRange.from,
+        end: addDays(dateRange.from, 90)
+      });
+    }
     
-    // Initialize map with all days
+    // Initialize map with all days in range
     allDays.forEach(day => {
       const dayStr = format(day, 'yyyy-MM-dd');
       dailyDataMap.set(dayStr, {
@@ -48,41 +57,34 @@ export function ServiciosPerformanceChart({ data = [], comparisonData, isLoading
       });
     });
     
+    console.log(`Processing ${data.length} services for chart with ${allDays.length} days in range`);
+    
     // Populate with actual data
     data.forEach(servicio => {
       if (!servicio.fecha_hora_cita) return;
       
       try {
-        // Check if this service date is within our range
         const serviceDate = parseISO(servicio.fecha_hora_cita);
-        
-        if (!isWithinInterval(serviceDate, {
-          start: startOfMonth(dateRange.from!),
-          end: endOfMonth(dateRange.to || dateRange.from!)
-        })) {
-          return;
-        }
-        
         const dayStr = format(serviceDate, 'yyyy-MM-dd');
-        const dayData = dailyDataMap.get(dayStr) || {
-          date: dayStr,
-          servicios: 0
-        };
+        
+        // Skip if outside our date range
+        if (!dailyDataMap.has(dayStr)) return;
         
         // Update counts
+        const dayData = dailyDataMap.get(dayStr);
         dayData.servicios += 1;
-        
         dailyDataMap.set(dayStr, dayData);
       } catch (error) {
         console.error('Error processing service data:', error, servicio);
       }
     });
     
-    // Prepare final data array
-    const result = Array.from(dailyDataMap.values());
+    // Prepare final data array sorted by date
+    const result = Array.from(dailyDataMap.values()).sort((a, b) => a.date.localeCompare(b.date));
     
-    // Sort by date
-    return result.sort((a, b) => a.date.localeCompare(b.date));
+    console.log(`Chart data prepared with ${result.length} days, sample:`, result.slice(0, 5));
+    
+    return result;
   }, [data, dateRange]);
 
   if (isLoading) {
@@ -138,7 +140,7 @@ export function ServiciosPerformanceChart({ data = [], comparisonData, isLoading
               <Line 
                 type="monotone" 
                 dataKey="servicios" 
-                stroke="#8884d8" 
+                stroke="#8B5CF6" 
                 name="Servicios"
                 activeDot={{ r: 6 }} 
               />

@@ -10,12 +10,11 @@ interface ServiciosTipoChartProps {
   isLoading: boolean;
 }
 
-// Colores para las categorías específicas
+// Updated color map with distinct colors from the site palette
 const COLOR_MAP = {
-  "Foraneo": "#0088FE",
-  "Local": "#00C49F",
-  "Reparto": "#FFBB28",
-  "Otro": "#FF8042"
+  "Foráneo": "#8B5CF6", // Vivid Purple
+  "Local": "#00C49F",  // Existing green
+  "Reparto": "#F97316"  // Bright Orange
 };
 
 const COLORS = Object.values(COLOR_MAP);
@@ -48,7 +47,9 @@ export function ServiciosTipoChart({ data = [], isLoading }: ServiciosTipoChartP
 
   // Create proper chart config
   const chartConfig = {};
-  COLORS.forEach((color, index) => {
+  chartDataWithPercentage.forEach((item, index) => {
+    // Use specific color if available, otherwise fall back to index-based color
+    const color = COLOR_MAP[item.tipo] || COLORS[index % COLORS.length];
     chartConfig[`item-${index}`] = { color };
   });
 
@@ -75,7 +76,7 @@ export function ServiciosTipoChart({ data = [], isLoading }: ServiciosTipoChartP
                 nameKey="tipo"
               >
                 {chartDataWithPercentage.map((entry, index) => {
-                  // Usar color específico si está en el mapa, de lo contrario usar el índice
+                  // Use specific color for this tipo
                   const color = COLOR_MAP[entry.tipo] || COLORS[index % COLORS.length];
                   return <Cell key={`cell-${index}`} fill={color} />;
                 })}
