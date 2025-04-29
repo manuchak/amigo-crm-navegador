@@ -39,6 +39,7 @@ export function DriverBehaviorFiltersPanel({
   };
   
   const handleClientToggle = (client: string) => {
+    console.log("Client toggled:", client);
     // Initialize selectedClients if it doesn't exist
     const currentSelected = filters.selectedClients || [];
     
@@ -52,6 +53,8 @@ export function DriverBehaviorFiltersPanel({
       // Add client if not selected
       newSelectedClients = [...currentSelected, client];
     }
+    
+    console.log("New selected clients:", newSelectedClients);
     
     // Update filters with new selection
     onFilterChange({ 
@@ -76,7 +79,6 @@ export function DriverBehaviorFiltersPanel({
     return `${selectedClients.length} clientes seleccionados`;
   };
 
-  // Log data to help debug the issue
   console.log("Client list in filters panel:", clientList);
   console.log("Current filters:", filters);
   
@@ -120,15 +122,24 @@ export function DriverBehaviorFiltersPanel({
                         <CommandItem
                           key={client}
                           value={client}
-                          onSelect={() => handleClientToggle(client)}
-                          className="cursor-pointer hover:bg-gray-100 flex items-center gap-2"
+                          className="cursor-pointer hover:bg-gray-100 flex items-center gap-2 py-2"
+                          onSelect={() => {
+                            handleClientToggle(client);
+                          }}
                         >
-                          <Checkbox
-                            checked={(filters.selectedClients || []).includes(client)}
-                            className="mr-2 h-4 w-4"
-                            onCheckedChange={() => handleClientToggle(client)}
-                          />
-                          {client}
+                          <div 
+                            className="flex items-center gap-2"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleClientToggle(client);
+                            }}
+                          >
+                            <Checkbox
+                              checked={(filters.selectedClients || []).includes(client)}
+                              className="mr-2 h-4 w-4"
+                            />
+                            {client}
+                          </div>
                         </CommandItem>
                       ))
                     ) : (

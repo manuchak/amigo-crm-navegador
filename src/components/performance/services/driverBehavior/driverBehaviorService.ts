@@ -8,13 +8,18 @@ const mockClients = ["Aquasteam", "Servprot", "Shellpride", "Logitrade", "TransG
 
 // Mock driver behavior data generator
 const generateMockDriverBehaviorData = (dateRange: DateRange, filters?: DriverBehaviorFilters): DriverBehaviorData => {
+  console.log("Generating mock data with filters:", filters);
+  
   // Filter based on selected clients
   const selectedClients = filters?.selectedClients || [];
   const useClientFilter = selectedClients.length > 0;
   
+  console.log("Selected clients:", selectedClients);
+  console.log("Using client filter:", useClientFilter);
+  
   // Generate driver scores filtered by client if specified
-  const driverScores = Array(10).fill(null).map((_, i) => {
-    const client = i % mockClients.length === 0 ? mockClients[0] : mockClients[i % mockClients.length];
+  const allDriverScores = Array(10).fill(null).map((_, i) => {
+    const client = mockClients[i % mockClients.length];
     
     return {
       id: i + 1,
@@ -32,18 +37,22 @@ const generateMockDriverBehaviorData = (dateRange: DateRange, filters?: DriverBe
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString()
     };
-  }).filter(driver => {
-    if (!useClientFilter) return true;
-    return selectedClients.includes(driver.client);
   });
   
+  // Apply client filter if needed
+  const driverScores = useClientFilter 
+    ? allDriverScores.filter(driver => selectedClients.includes(driver.client))
+    : allDriverScores;
+    
+  console.log("Filtered driver scores count:", driverScores.length);
+  
   // Generate top drivers filtered by client if specified
-  const generateDrivers = (prefix: string, scoreBase: number, count: number = 3) => {
-    return Array(count).fill(null).map((_, i) => {
+  const generateDrivers = (prefix: string, scoreBase: number, count: number = 3): DriverScore[] => {
+    const allDrivers = Array(count).fill(null).map((_, i) => {
       const client = mockClients[i % mockClients.length];
       
       return {
-        id: i + 100,
+        id: i + 100 + (prefix === "Top Driver" ? 0 : prefix === "Improvement Needed" ? 10 : 20),
         driver_name: `${prefix} ${i + 1}`,
         driver_group: prefix === "Top Driver" ? "Elite Drivers" : 
                       prefix === "Improvement Needed" ? "Risk Group" : "Green Team",
@@ -60,32 +69,44 @@ const generateMockDriverBehaviorData = (dateRange: DateRange, filters?: DriverBe
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
       };
-    }).filter(driver => {
-      if (!useClientFilter) return true;
-      return selectedClients.includes(driver.client);
     });
+    
+    // Apply client filter if needed
+    return useClientFilter 
+      ? allDrivers.filter(driver => selectedClients.includes(driver.client))
+      : allDrivers;
   };
+  
+  const topDrivers = generateDrivers("Top Driver", 90);
+  const needsImprovementDrivers = generateDrivers("Improvement Needed", 40);
+  const ecoDrivers = generateDrivers("Eco Driver", 80);
+  
+  console.log("Top drivers count:", topDrivers.length);
+  console.log("Needs improvement drivers count:", needsImprovementDrivers.length);
+  console.log("Eco drivers count:", ecoDrivers.length);
+  
+  const filteredDriversCount = driverScores.length;
   
   return {
     metrics: [
-      { label: "Total Conductores", value: useClientFilter ? driverScores.length + 2 : 42 },
-      { label: "Conductores Activos", value: useClientFilter ? driverScores.length : 38 },
-      { label: "Alertas de Seguridad", value: useClientFilter ? Math.floor(driverScores.length * 4.1) : 156 }
+      { label: "Total Conductores", value: useClientFilter ? filteredDriversCount + 2 : 42 },
+      { label: "Conductores Activos", value: useClientFilter ? filteredDriversCount : 38 },
+      { label: "Alertas de Seguridad", value: useClientFilter ? Math.floor(filteredDriversCount * 4.1) : 156 }
     ],
     driverScores,
     scoreDistribution: {
-      excellent: useClientFilter ? Math.floor(15 * (driverScores.length / 10)) : 15,
-      good: useClientFilter ? Math.floor(45 * (driverScores.length / 10)) : 45,
-      fair: useClientFilter ? Math.floor(30 * (driverScores.length / 10)) : 30,
-      poor: useClientFilter ? Math.floor(8 * (driverScores.length / 10)) : 8,
-      critical: useClientFilter ? Math.floor(2 * (driverScores.length / 10)) : 2
+      excellent: useClientFilter ? Math.floor(15 * (filteredDriversCount / 10)) : 15,
+      good: useClientFilter ? Math.floor(45 * (filteredDriversCount / 10)) : 45,
+      fair: useClientFilter ? Math.floor(30 * (filteredDriversCount / 10)) : 30,
+      poor: useClientFilter ? Math.floor(8 * (filteredDriversCount / 10)) : 8,
+      critical: useClientFilter ? Math.floor(2 * (filteredDriversCount / 10)) : 2
     },
     averageScore: 5.1,
     totalPenaltyPoints: useClientFilter ? driverScores.reduce((sum, d) => sum + d.penalty_points, 0) : 450,
     totalTrips: useClientFilter ? driverScores.reduce((sum, d) => sum + d.trips_count, 0) : 1495,
-    totalDrivingTime: useClientFilter ? Math.floor(12450 * (driverScores.length / 10)) : 12450,
-    totalDistance: useClientFilter ? Math.floor(28750 * (driverScores.length / 10)) : 28750,
-    co2Emissions: useClientFilter ? Math.floor(5842 * (driverScores.length / 10)) : 5842,
+    totalDrivingTime: useClientFilter ? Math.floor(12450 * (filteredDriversCount / 10)) : 12450,
+    totalDistance: useClientFilter ? Math.floor(28750 * (filteredDriversCount / 10)) : 28750,
+    co2Emissions: useClientFilter ? Math.floor(5842 * (filteredDriversCount / 10)) : 5842,
     riskAssessment: {
       level: "moderate",
       score: 65,
@@ -97,16 +118,15 @@ const generateMockDriverBehaviorData = (dateRange: DateRange, filters?: DriverBe
       ]
     },
     driverPerformance: {
-      topDrivers: generateDrivers("Top Driver", 90),
-      needsImprovement: generateDrivers("Improvement Needed", 40),
-      ecoDrivers: generateDrivers("Eco Driver", 80)
+      topDrivers,
+      needsImprovement: needsImprovementDrivers,
+      ecoDrivers
     }
   };
 };
 
 // Fetch driver behavior data with optional filters
 export const fetchDriverBehaviorData = async (dateRange: DateRange, filters?: DriverBehaviorFilters): Promise<DriverBehaviorData> => {
-  // This would be an API call in a real application
   console.log("Fetching driver behavior data with filters:", filters);
   
   // Simulate API delay
@@ -150,7 +170,7 @@ export const importDriverBehaviorData = async (
     onProgress("Finalizado", 100, 100);
   }
   
-  // Return a successful import response with properties that match ImportResponse type
+  // Return a successful import response
   return {
     success: true,
     message: "Datos de comportamiento de conductores importados correctamente",

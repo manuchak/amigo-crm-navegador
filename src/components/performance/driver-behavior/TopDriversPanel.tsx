@@ -42,7 +42,7 @@ export function TopDriversPanel({ data, isLoading }: TopDriversPanelProps) {
     );
   }
 
-  if (!data || (!data.topDrivers.length && !data.needsImprovement.length)) {
+  if (!data || (!data.topDrivers?.length && !data.needsImprovement?.length)) {
     return (
       <Card className="border-0 shadow-md">
         <CardHeader>
@@ -66,7 +66,7 @@ export function TopDriversPanel({ data, isLoading }: TopDriversPanelProps) {
     const scoreColorClass = getScoreColorClass(driver.score);
     
     return (
-      <div className="p-4 hover:bg-gray-50 transition-colors">
+      <div key={driver.id} className="p-4 hover:bg-gray-50 transition-colors">
         <div className="flex justify-between items-center">
           <div className="space-y-1">
             <h4 className="text-sm font-medium">{driver.driver_name}</h4>
@@ -100,7 +100,7 @@ export function TopDriversPanel({ data, isLoading }: TopDriversPanelProps) {
               <Award className="h-4 w-4" /> 
               Conductores Destacados
             </h3>
-            {data.topDrivers.length > 0 ? (
+            {data.topDrivers && data.topDrivers.length > 0 ? (
               data.topDrivers.map(driver => 
                 renderDriverEntry(driver, Award, "bg-green-50 text-green-600")
               )
@@ -114,7 +114,7 @@ export function TopDriversPanel({ data, isLoading }: TopDriversPanelProps) {
               <TrendingDown className="h-4 w-4" /> 
               Oportunidades de Mejora
             </h3>
-            {data.needsImprovement.length > 0 ? (
+            {data.needsImprovement && data.needsImprovement.length > 0 ? (
               data.needsImprovement.map(driver => 
                 renderDriverEntry(driver, TrendingDown, "bg-amber-50 text-amber-600")
               )
@@ -128,7 +128,7 @@ export function TopDriversPanel({ data, isLoading }: TopDriversPanelProps) {
               <Gauge className="h-4 w-4" /> 
               Conductores más Ecológicos
             </h3>
-            {data.ecoDrivers.length > 0 ? (
+            {data.ecoDrivers && data.ecoDrivers.length > 0 ? (
               data.ecoDrivers.map(driver => 
                 renderDriverEntry(driver, Gauge, "bg-blue-50 text-blue-600")
               )
