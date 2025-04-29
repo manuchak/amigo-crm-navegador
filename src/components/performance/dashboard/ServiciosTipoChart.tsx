@@ -10,10 +10,10 @@ interface ServiciosTipoChartProps {
   isLoading: boolean;
 }
 
-// Updated color map with more distinct colors from the site palette
+// Color map with completely distinct colors for each service type
 const COLOR_MAP = {
   "Foráneo": "#8B5CF6", // Vivid Purple
-  "Local": "#00C49F",   // Mint Green
+  "Local": "#00C49F",   // Mint Green  
   "Reparto": "#F97316"  // Bright Orange
 };
 
@@ -46,8 +46,8 @@ export function ServiciosTipoChart({ data = [], isLoading }: ServiciosTipoChartP
   // Create proper chart config with distinct colors
   const chartConfig = {};
   chartDataWithPercentage.forEach((item) => {
-    // Use specific color from our map
-    const color = COLOR_MAP[item.tipo] || "#CCCCCC"; // Default gray for unknown types
+    // Use color from our map or default gray
+    const color = COLOR_MAP[item.tipo] || "#CCCCCC";
     chartConfig[item.tipo] = { color };
   });
 
@@ -59,35 +59,37 @@ export function ServiciosTipoChart({ data = [], isLoading }: ServiciosTipoChartP
       <CardContent>
         <div className="h-[300px]">
           <ChartContainer config={chartConfig}>
-            <PieChart>
-              <Pie
-                data={chartDataWithPercentage}
-                cx="50%"
-                cy="50%"
-                labelLine={true}
-                label={({ tipo, percentage }) => `${tipo}: ${percentage}%`}
-                outerRadius={100}
-                fill="#8884d8"
-                dataKey="count"
-                nameKey="tipo"
-              >
-                {chartDataWithPercentage.map((entry) => {
-                  // Use specific color for this tipo
-                  const color = COLOR_MAP[entry.tipo] || "#CCCCCC";
-                  return <Cell key={`cell-${entry.tipo}`} fill={color} />;
-                })}
-              </Pie>
-              <Tooltip 
-                formatter={(value, name, props) => [`${value} (${props.payload.percentage}%)`, props.payload.tipo]}
-              />
-              <Legend payload={
-                chartDataWithPercentage.map(item => ({
-                  value: item.tipo,
-                  type: "square",
-                  color: COLOR_MAP[item.tipo] || "#CCCCCC"
-                }))
-              }/>
-            </PieChart>
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie
+                  data={chartDataWithPercentage}
+                  cx="50%"
+                  cy="50%"
+                  labelLine={true}
+                  label={({ tipo, percentage }) => `${tipo}: ${percentage}%`}
+                  outerRadius={100}
+                  fill="#8884d8"
+                  dataKey="count"
+                  nameKey="tipo"
+                >
+                  {chartDataWithPercentage.map((entry) => {
+                    // Use specific color for this tipo
+                    const color = COLOR_MAP[entry.tipo] || "#CCCCCC";
+                    return <Cell key={`cell-${entry.tipo}`} fill={color} />;
+                  })}
+                </Pie>
+                <Tooltip 
+                  formatter={(value, name, props) => [`${value} (${props.payload.percentage}%)`, props.payload.tipo]}
+                />
+                <Legend payload={
+                  chartDataWithPercentage.map(item => ({
+                    value: item.tipo,
+                    type: "square",
+                    color: COLOR_MAP[item.tipo] || "#CCCCCC"
+                  }))
+                }/>
+              </PieChart>
+            </ResponsiveContainer>
           </ChartContainer>
         </div>
       </CardContent>

@@ -13,7 +13,7 @@ import {
   Legend,
   ResponsiveContainer 
 } from 'recharts';
-import { format, parseISO, eachDayOfInterval, addDays } from 'date-fns';
+import { format, parseISO, eachDayOfInterval, addDays, isValid } from 'date-fns';
 import { es } from 'date-fns/locale';
 
 interface ServiciosPerformanceChartProps {
@@ -63,29 +63,55 @@ export function ServiciosPerformanceChart({ data = [], comparisonData, isLoading
       to: dateRange.to ? dateRange.to.toISOString() : 'undefined'
     });
     
-    // Populate with actual data
+    // First pass: Process all data to identify date ranges actually in data
+    const allServiceDates = new Set();
     data.forEach(servicio => {
       if (!servicio.fecha_hora_cita) return;
       
       try {
         const serviceDate = parseISO(servicio.fecha_hora_cita);
-        const dayStr = format(serviceDate, 'yyyy-MM-dd');
-        
-        // Debug April dates specifically
-        if (dayStr.startsWith('2024-04')) {
-          console.log('Found April service:', dayStr, servicio.fecha_hora_cita);
+        if (!isValid(serviceDate)) {
+          console.error('Invalid date format:', servicio.fecha_hora_cita);
+          return;
         }
+        
+        const dayStr = format(serviceDate, 'yyyy-MM-dd');
+        allServiceDates.add(dayStr);
+      } catch (error) {
+        console.error('Error processing service date:', error, servicio);
+      }
+    });
+    
+    // Debug: Log all unique dates found in data
+    console.log(`Found ${allServiceDates.size} unique dates in data`);
+    console.log('First 10 dates in data:', Array.from(allServiceDates).slice(0, 10));
+    
+    // Process all services and count them by day
+    data.forEach(servicio => {
+      if (!servicio.fecha_hora_cita) return;
+      
+      try {
+        const serviceDate = parseISO(servicio.fecha_hora_cita);
+        if (!isValid(serviceDate)) return;
+        
+        const dayStr = format(serviceDate, 'yyyy-MM-dd');
         
         // Add to our map whether it's in our initialized range or not
         if (!dailyDataMap.has(dayStr)) {
           // This might happen if the data contains dates outside our specified range
-          console.log(`Service date outside initialized range: ${dayStr}`);
+          // We'll add it anyway to ensure complete data representation
+          console.log(`Adding service outside initialized range: ${dayStr}`);
           dailyDataMap.set(dayStr, { date: dayStr, servicios: 1 });
         } else {
           // Update counts for dates within range
           const dayData = dailyDataMap.get(dayStr);
           dayData.servicios += 1;
           dailyDataMap.set(dayStr, dayData);
+        }
+        
+        // Debug March and April dates specifically
+        if (dayStr.startsWith('2024-03') || dayStr.startsWith('2024-04')) {
+          console.log(`Found service for ${dayStr}:`, servicio.fecha_hora_cita);
         }
       } catch (error) {
         console.error('Error processing service data:', error, servicio);
@@ -96,12 +122,21 @@ export function ServiciosPerformanceChart({ data = [], comparisonData, isLoading
     const result = Array.from(dailyDataMap.values()).sort((a, b) => a.date.localeCompare(b.date));
     
     console.log(`Chart data prepared with ${result.length} days`);
-    console.log('First 5 entries:', result.slice(0, 5));
-    console.log('Last 5 entries:', result.slice(-5));
+    if (result.length > 0) {
+      console.log('Date range in chart:', { 
+        first: result[0].date, 
+        last: result[result.length-1].date
+      });
+    }
     
-    // Specifically check for April entries
-    const aprilEntries = result.filter(entry => entry.date.startsWith('2024-04'));
-    console.log(`April entries: ${aprilEntries.length}`, aprilEntries);
+    // Debug: Check for specific dates - March 20 onwards
+    const march20onwards = result.filter(entry => 
+      entry.date >= '2024-03-20' && entry.servicios > 0
+    );
+    console.log(`Entries from March 20 onwards with services: ${march20onwards.length}`);
+    if (march20onwards.length > 0) {
+      console.log('Sample entries:', march20onwards.slice(0, 5));
+    }
     
     return result;
   }, [data, dateRange]);
