@@ -65,13 +65,13 @@ export function DriverBehaviorFiltersPanel({
                   variant="outline"
                   role="combobox"
                   aria-expanded={open}
-                  className="w-48 h-9 justify-between"
+                  className="w-48 h-9 justify-between bg-white text-foreground"
                 >
                   {filters.client || "Seleccionar Cliente"}
                   <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                 </Button>
               </PopoverTrigger>
-              <PopoverContent className="w-48 p-0">
+              <PopoverContent className="w-48 p-0 bg-white">
                 <Command>
                   <CommandInput placeholder="Buscar cliente..." />
                   <CommandEmpty>No se encontraron clientes.</CommandEmpty>
@@ -82,6 +82,7 @@ export function DriverBehaviorFiltersPanel({
                           key={client}
                           value={client}
                           onSelect={() => handleClientSelect(client)}
+                          className="cursor-pointer"
                         >
                           <Check
                             className={cn(
@@ -93,7 +94,7 @@ export function DriverBehaviorFiltersPanel({
                         </CommandItem>
                       ))
                     ) : (
-                      <CommandItem value="no-clients" disabled>
+                      <CommandItem disabled className="opacity-50 cursor-default">
                         No hay clientes disponibles
                       </CommandItem>
                     )}

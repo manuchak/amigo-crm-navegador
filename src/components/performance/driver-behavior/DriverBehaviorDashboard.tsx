@@ -25,6 +25,8 @@ export function DriverBehaviorDashboard({ dateRange, comparisonRange }: DriverBe
   const { data: clientList = [], isLoading: isClientsLoading } = useQuery({
     queryKey: ['driver-behavior-clients'],
     queryFn: fetchClientList,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    retry: 2,
   });
 
   const { data: driverData, isLoading, error } = useQuery({
@@ -63,7 +65,7 @@ export function DriverBehaviorDashboard({ dateRange, comparisonRange }: DriverBe
   return (
     <div className="space-y-6">
       <DriverBehaviorFiltersPanel 
-        clientList={clientList || []} 
+        clientList={Array.isArray(clientList) ? clientList : []} 
         onFilterChange={handleFilterChange} 
         filters={filters} 
       />
