@@ -6,7 +6,8 @@
 
 import { importServiciosData } from './services/serviciosImportService';
 import { importData } from './services/importFactory';
-import { validateImportFile, isLargeFile } from './api/fileValidation';
+import { validateFile, isLargeFile } from './api/fileValidation';
 
 // Re-export for backward compatibility
-export { importServiciosData, importData, validateImportFile, isLargeFile };
+export { importServiciosData, importData, validateFile, isLargeFile };
+
