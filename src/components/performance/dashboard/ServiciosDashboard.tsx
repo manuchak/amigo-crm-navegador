@@ -1,14 +1,15 @@
 
 import React from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Skeleton } from "@/components/ui/skeleton";
+import { DateRange } from "react-day-picker";
 import { useQuery } from "@tanstack/react-query";
 import { fetchServiciosData } from "../services/servicios/serviciosDataService";
 import { ServiciosMetricsCards } from './ServiciosMetricsCards';
 import { ServiciosPerformanceChart } from './charts/ServiciosPerformanceChart';
-import { CustodioRetentionTable } from './CustodioRetentionTable';
+import { ServiciosAlertas } from './ServiciosAlertas';
+import { ServiciosClientesActivos } from './ServiciosClientesActivos';
+import { ServiciosTipoChart } from './ServiciosTipoChart';
 import { CohortAnalysisViewer } from './CohortAnalysisViewer';
-import { DateRange } from "react-day-picker";
+import { CustodioRetentionTable } from './CustodioRetentionTable';
 
 interface ServiciosDashboardProps {
   dateRange: DateRange;
@@ -30,37 +31,59 @@ export function ServiciosDashboard({ dateRange, comparisonRange }: ServiciosDash
   if (error) {
     console.error('Error loading servicios data:', error);
     return (
-      <Card className="border-0 shadow-md">
-        <CardContent className="p-6">
-          <div className="text-center p-4">
-            <p className="text-red-500">Error al cargar los datos de servicios</p>
-          </div>
-        </CardContent>
-      </Card>
+      <div className="p-4 bg-red-50 text-red-700 rounded-lg">
+        <p className="font-semibold">Error al cargar los datos de servicios</p>
+        <p className="text-sm">{String(error)}</p>
+      </div>
     );
   }
 
   return (
     <div className="space-y-6">
+      {/* Métricas principales */}
       <ServiciosMetricsCards 
         data={serviciosData} 
-        comparisonData={comparisonData}
         isLoading={isLoading} 
       />
       
-      <ServiciosPerformanceChart 
-        data={serviciosData} 
-        comparisonData={comparisonData}
-        isLoading={isLoading} 
-        dateRange={dateRange} 
-      />
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {/* Gráfico principal de rendimiento */}
+        <ServiciosPerformanceChart 
+          data={serviciosData?.serviciosPorCliente} 
+          comparisonData={comparisonData?.serviciosPorCliente}
+          isLoading={isLoading} 
+          dateRange={dateRange} 
+        />
+        
+        {/* Gráfico de distribución por tipo */}
+        <ServiciosTipoChart 
+          data={serviciosData?.serviciosPorTipo || []} 
+          isLoading={isLoading} 
+        />
+      </div>
       
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Alertas */}
+        <ServiciosAlertas 
+          alertas={serviciosData?.alertas || []} 
+          isLoading={isLoading} 
+        />
+        
+        {/* Clientes más activos */}
+        <ServiciosClientesActivos 
+          clientes={serviciosData?.serviciosPorCliente || []} 
+          isLoading={isLoading} 
+        />
+      </div>
+      
+      {/* Análisis de cohortes */}
       <CohortAnalysisViewer
         data={serviciosData}
         isLoading={isLoading}
         dateRange={dateRange}
       />
       
+      {/* Tabla de retención de custodios */}
       <CustodioRetentionTable 
         data={serviciosData} 
         isLoading={isLoading} 
