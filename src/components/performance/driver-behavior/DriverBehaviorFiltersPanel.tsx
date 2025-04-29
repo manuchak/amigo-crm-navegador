@@ -1,21 +1,9 @@
 
 import React, { useState } from 'react';
-import { Check, ChevronsUpDown, X, Search } from "lucide-react";
-import { Card, CardContent } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
+import { Check, ChevronsUpDown, X } from "lucide-react";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from "@/components/ui/command";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
-import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-} from "@/components/ui/command";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 import { DriverBehaviorFilters } from '../types/driver-behavior.types';
 import { Checkbox } from "@/components/ui/checkbox";
@@ -35,10 +23,6 @@ export function DriverBehaviorFiltersPanel({
 }: DriverBehaviorFiltersPanelProps) {
   const [open, setOpen] = useState(false);
   const [searchValue, setSearchValue] = useState('');
-  
-  const handleDriverNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    onFilterChange({ ...filters, driverName: e.target.value });
-  };
   
   const handleClientToggle = (client: string) => {
     // Initialize selectedClients si no existe
@@ -85,26 +69,6 @@ export function DriverBehaviorFiltersPanel({
 
   return (
     <div className="flex flex-wrap gap-3 items-center">
-      <div className="relative">
-        <Search className="w-4 h-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground" />
-        <Input
-          placeholder="Buscar conductor"
-          value={filters.driverName || ''}
-          onChange={handleDriverNameChange}
-          className="w-56 pl-9 h-9 rounded-full bg-background border-muted"
-        />
-        {filters.driverName && (
-          <Button 
-            variant="ghost" 
-            size="sm" 
-            onClick={() => onFilterChange({ ...filters, driverName: undefined })}
-            className="absolute right-1 top-1/2 transform -translate-y-1/2 h-7 w-7 p-0 rounded-full"
-          >
-            <X className="h-3 w-3" />
-          </Button>
-        )}
-      </div>
-      
       <Popover open={open} onOpenChange={setOpen}>
         <PopoverTrigger asChild>
           <Button
@@ -185,7 +149,7 @@ export function DriverBehaviorFiltersPanel({
         </div>
       }
       
-      {(filters.driverName || (filters.selectedClients && filters.selectedClients.length > 0)) && (
+      {(filters.selectedClients && filters.selectedClients.length > 0) && (
         <Button 
           variant="ghost" 
           size="sm" 

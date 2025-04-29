@@ -39,11 +39,6 @@ export const fetchDriverBehaviorData = async (dateRange: DateRange, filters?: Dr
       query = query.in('client', filters.selectedClients);
     }
     
-    // Apply driver name filter if provided
-    if (filters?.driverName && filters.driverName.trim() !== '') {
-      query = query.ilike('driver_name', `%${filters.driverName.trim()}%`);
-    }
-    
     // Execute the query
     const { data: driverScores, error } = await query;
     
