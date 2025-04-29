@@ -8,6 +8,7 @@ import { callImportApi, checkImportProgress, testEdgeFunctionConnection } from "
 
 const MAX_FILE_SIZE_MB = 5;
 const MAX_ALLOWED_FILE_SIZE_MB = 15;
+const CONNECTION_TIMEOUT_MS = 20000; // 20 seconds timeout for connection verification
 
 export async function importServiciosData(
   file: File, 
@@ -70,11 +71,17 @@ export async function importServiciosData(
       });
     }
     
-    const isConnected = await testEdgeFunctionConnection();
+    // Add connection timeout with Promise.race
+    const connectionPromise = testEdgeFunctionConnection();
+    const timeoutPromise = new Promise<boolean>((resolve) => {
+      setTimeout(() => resolve(false), CONNECTION_TIMEOUT_MS);
+    });
+    
+    const isConnected = await Promise.race([connectionPromise, timeoutPromise]);
     
     if (!isConnected) {
       toast.error("Error de conexión", {
-        description: "No se pudo conectar con el servidor de importación. Verifique su conexión a internet.",
+        description: "No se pudo conectar con el servidor de importación. Verifique su conexión a internet o inténtelo más tarde.",
         id: toastId
       });
       
@@ -88,7 +95,7 @@ export async function importServiciosData(
     });
 
     if (onProgress) {
-      onProgress("Validando estructura del archivo", 0, 0);
+      onProgress("Validando estructura del archivo", 10, 100);
     }
 
     const { data, error: sessionError } = await supabase.auth.getSession();
@@ -123,7 +130,7 @@ export async function importServiciosData(
     }
     
     if (onProgress) {
-      onProgress("Subiendo archivo al servidor", 0, file.size);
+      onProgress("Subiendo archivo al servidor", 15, 100);
     }
     
     return await processFileUpload(formData, accessToken, onProgress, toastId);
@@ -140,6 +147,8 @@ async function processFileUpload(
   toastId: string = "import-toast"
 ): Promise<ImportResponse> {
   const abortController = new AbortController();
+  
+  // Increase timeout to 15 minutes for large files
   const timeoutId = setTimeout(() => {
     console.warn("Timeout alcanzado, abortando operación");
     abortController.abort();
@@ -147,7 +156,18 @@ async function processFileUpload(
   
   try {
     console.log("Llamando a importar...");
-    const initialResponse = await callImportApi(formData, accessToken, abortController);
+    
+    // Add client-side timeout handling for the initial API call
+    const uploadTimeout = new Promise<ImportResponse>((_, reject) => {
+      setTimeout(() => {
+        reject(new Error("La conexión con el servidor está tardando demasiado. Verifique su conexión a internet e inténtelo nuevamente."));
+      }, 60000); // 1 minute timeout for initial upload
+    });
+    
+    const uploadPromise = callImportApi(formData, accessToken, abortController);
+    
+    // Race between the upload and timeout
+    const initialResponse = await Promise.race([uploadPromise, uploadTimeout]);
     clearTimeout(timeoutId);
     
     console.log("Initial import response:", initialResponse);
@@ -159,6 +179,15 @@ async function processFileUpload(
     return handleImportResponse(initialResponse);
   } catch (fetchError) {
     clearTimeout(timeoutId);
+    if (fetchError instanceof Error && fetchError.name === "AbortError") {
+      return {
+        success: false,
+        message: "La operación fue cancelada debido a que tardó demasiado tiempo",
+        errors: [{
+          message: "Timeout de conexión. Por favor intente con un archivo más pequeño o verifique su conexión."
+        }]
+      };
+    }
     return handleImportError(fetchError, toastId);
   }
 }
@@ -172,6 +201,7 @@ async function monitorImportProgress(
   let errorOccurred = false;
   let lastProcessedValue = 0;
   let stuckCounter = 0;
+  let noProgressCounter = 0;
   
   console.log("Starting progress polling for ID:", initialResponse.progressId);
   
@@ -182,30 +212,74 @@ async function monitorImportProgress(
         const progressData = await checkImportProgress(initialResponse.progressId!);
         console.log("Progress update:", progressData);
         
+        // Check if progress is stuck
         if (progressData.processed === lastProcessedValue && progressData.processed > 0) {
           stuckCounter++;
           console.log(`Progreso potencialmente estancado: ${stuckCounter} verificaciones sin cambios`);
           
-          if (stuckCounter >= 10 && progressData.processed > 0) {
-            console.log("Detectado estancamiento prolongado, asumiendo completado");
+          if (stuckCounter >= 5 && progressData.processed > 0) {
+            console.log("Detectado estancamiento prolongado, verificando si el servidor sigue procesando");
             
-            toast.warning("Importación completada parcialmente", {
-              description: `Se procesaron ${progressData.processed} registros. La importación se detuvo posiblemente debido a limitaciones del servidor.`,
-              id: toastId
-            });
+            // After 5 stuck checks (10 seconds), we'll show a warning but continue
+            if (stuckCounter === 5) {
+              toast.warning("Procesamiento lento detectado", {
+                description: `El servidor está tomando más tiempo del esperado para procesar los datos. Por favor espere...`,
+                id: toastId
+              });
+            }
             
-            clearInterval(pollInterval);
-            isComplete = true;
-            resolve({ 
-              success: true, 
-              message: "Importación completada parcialmente", 
-              errors: initialResponse.errors 
-            });
-            return;
+            // After 10 stuck checks (20 seconds), assume completion if some progress was made
+            if (stuckCounter >= 10 && progressData.processed > 0) {
+              console.log("Detectado estancamiento prolongado, asumiendo completado");
+              
+              toast.warning("Importación completada parcialmente", {
+                description: `Se procesaron ${progressData.processed} registros. La importación se detuvo posiblemente debido a limitaciones del servidor.`,
+                id: toastId
+              });
+              
+              clearInterval(pollInterval);
+              isComplete = true;
+              resolve({ 
+                success: true, 
+                message: "Importación completada parcialmente", 
+                errors: initialResponse.errors 
+              });
+              return;
+            }
           }
         } else {
           lastProcessedValue = progressData.processed;
           stuckCounter = 0;
+        }
+        
+        // Check for no progress at all (stuck at 0%)
+        if (progressData.processed === 0 && progressData.status !== 'completed' && progressData.status !== 'completed_with_errors') {
+          noProgressCounter++;
+          
+          // After 15 checks with no progress (30 seconds), show warning
+          if (noProgressCounter === 15) {
+            toast.warning("Conexión lenta con el servidor", {
+              description: "El servidor está tardando en responder. Espere un momento o intente con un archivo más pequeño.",
+              id: toastId
+            });
+          }
+          
+          // After 30 checks with no progress (60 seconds), cancel the import
+          if (noProgressCounter >= 30) {
+            clearInterval(pollInterval);
+            toast.error("Error en la importación", {
+              description: "La importación se ha estancado y no muestra progreso. Por favor intente con un archivo más pequeño.",
+              id: toastId
+            });
+            
+            resolve({ 
+              success: false, 
+              message: "La importación se ha estancado sin mostrar progreso." 
+            });
+            return;
+          }
+        } else {
+          noProgressCounter = 0;
         }
         
         if (progressData && progressData.status) {
@@ -263,7 +337,7 @@ async function monitorImportProgress(
       } catch (pollError) {
         console.error("Error polling for progress:", pollError);
       }
-    }, 2000);
+    }, 2000); // Poll every 2 seconds
     
     // Timeout safety checker
     let timeoutCounter = 0;

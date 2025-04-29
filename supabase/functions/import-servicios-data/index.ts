@@ -8,7 +8,7 @@ import { initializeMemoryUsageMonitoring } from "./lib/memoryMonitor.ts";
 initializeMemoryUsageMonitoring();
 
 serve(async (req) => {
-  // Handle CORS preflight requests
+  // Handle CORS preflight requests with a quick response
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
   }
@@ -54,7 +54,7 @@ serve(async (req) => {
     // Generate a unique ID for this import process
     const progressId = crypto.randomUUID();
     
-    // Create initial progress record
+    // Create initial progress record with immediate response
     const { error: progressError } = await fetch(`${Deno.env.get("SUPABASE_URL")}/rest/v1/import_progress`, {
       method: 'POST',
       headers: {
@@ -75,91 +75,112 @@ serve(async (req) => {
       console.error('Error creating progress record:', progressError);
     }
 
-    // Process the file content
-    const fileContent = await file.text();
+    // Send initial response to client with progressId
+    // This allows the client to check progress while processing continues
+    const initialResponse = {
+      success: true,
+      message: "Importación iniciada, procesando datos...",
+      progressId,
+    };
     
-    // Update progress record with total lines
-    const lines = fileContent.split('\n');
-    const totalLines = lines.length > 0 ? lines.length - 1 : 0; // Subtract header row
+    // Use background processing to avoid timeouts
+    EdgeRuntime.waitUntil((async () => {
+      try {
+        // Process the file content
+        const fileContent = await file.text();
+        
+        // Update progress record with total lines
+        const lines = fileContent.split('\n');
+        const totalLines = lines.length > 0 ? lines.length - 1 : 0; // Subtract header row
+        
+        await fetch(`${Deno.env.get("SUPABASE_URL")}/rest/v1/import_progress`, {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${Deno.env.get("SUPABASE_SERVICE_KEY")}`,
+            'apikey': Deno.env.get("SUPABASE_SERVICE_KEY") || '',
+            'Prefer': 'return=minimal',
+          },
+          body: JSON.stringify({
+            id: progressId,
+            status: 'processing',
+            message: 'Analizando datos',
+            total: totalLines,
+          }),
+        });
+        
+        // Call the SQL function to import the data
+        const { data, error } = await fetch(`${Deno.env.get("SUPABASE_URL")}/rest/v1/rpc/import_servicios_custodia_data`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${Deno.env.get("SUPABASE_SERVICE_KEY")}`,
+            'apikey': Deno.env.get("SUPABASE_SERVICE_KEY") || '',
+          },
+          body: JSON.stringify({ file_content: fileContent }),
+        }).then(r => r.json());
+        
+        if (error) {
+          console.error('Error importing data:', error);
+          
+          // Update progress record with error
+          await fetch(`${Deno.env.get("SUPABASE_URL")}/rest/v1/import_progress`, {
+            method: 'PATCH',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${Deno.env.get("SUPABASE_SERVICE_KEY")}`,
+              'apikey': Deno.env.get("SUPABASE_SERVICE_KEY") || '',
+              'Prefer': 'return=minimal',
+            },
+            body: JSON.stringify({
+              id: progressId,
+              status: 'error',
+              message: `Error: ${error.message || 'Unknown error'}`,
+            }),
+          });
+        } else {
+          // Update progress record with success
+          await fetch(`${Deno.env.get("SUPABASE_URL")}/rest/v1/import_progress`, {
+            method: 'PATCH',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${Deno.env.get("SUPABASE_SERVICE_KEY")}`,
+              'apikey': Deno.env.get("SUPABASE_SERVICE_KEY") || '',
+              'Prefer': 'return=minimal',
+            },
+            body: JSON.stringify({
+              id: progressId,
+              status: data.error_count > 0 ? 'completed_with_errors' : 'completed',
+              message: `Importación completada: ${data.inserted_count} registros importados, ${data.error_count} errores`,
+              processed: totalLines,
+            }),
+          });
+        }
+      } catch (bgError) {
+        console.error("Background processing error:", bgError);
+        
+        // Update progress with error
+        await fetch(`${Deno.env.get("SUPABASE_URL")}/rest/v1/import_progress`, {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${Deno.env.get("SUPABASE_SERVICE_KEY")}`,
+            'apikey': Deno.env.get("SUPABASE_SERVICE_KEY") || '',
+            'Prefer': 'return=minimal',
+          },
+          body: JSON.stringify({
+            id: progressId,
+            status: 'error',
+            message: `Error de procesamiento: ${bgError instanceof Error ? bgError.message : 'Error desconocido'}`,
+          }),
+        });
+      }
+    })());
     
-    await fetch(`${Deno.env.get("SUPABASE_URL")}/rest/v1/import_progress`, {
-      method: 'PATCH',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${Deno.env.get("SUPABASE_SERVICE_KEY")}`,
-        'apikey': Deno.env.get("SUPABASE_SERVICE_KEY") || '',
-        'Prefer': 'return=minimal',
-      },
-      body: JSON.stringify({
-        status: 'processing',
-        message: 'Analizando datos',
-        total: totalLines,
-      }),
-    });
-    
-    // Call the SQL function to import the data
-    const { data, error } = await fetch(`${Deno.env.get("SUPABASE_URL")}/rest/v1/rpc/import_servicios_custodia_data`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${Deno.env.get("SUPABASE_SERVICE_KEY")}`,
-        'apikey': Deno.env.get("SUPABASE_SERVICE_KEY") || '',
-      },
-      body: JSON.stringify({ file_content: fileContent }),
-    }).then(r => r.json());
-    
-    if (error) {
-      console.error('Error importing data:', error);
-      
-      // Update progress record with error
-      await fetch(`${Deno.env.get("SUPABASE_URL")}/rest/v1/import_progress`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${Deno.env.get("SUPABASE_SERVICE_KEY")}`,
-          'apikey': Deno.env.get("SUPABASE_SERVICE_KEY") || '',
-          'Prefer': 'return=minimal',
-        },
-        body: JSON.stringify({
-          id: progressId,
-          status: 'error',
-          message: `Error: ${error.message || 'Unknown error'}`,
-        }),
-      });
-      
-      return new Response(
-        JSON.stringify({ success: false, message: error.message || 'Error importing data', progressId }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-    
-    // Update progress record with success
-    await fetch(`${Deno.env.get("SUPABASE_URL")}/rest/v1/import_progress`, {
-      method: 'PATCH',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${Deno.env.get("SUPABASE_SERVICE_KEY")}`,
-        'apikey': Deno.env.get("SUPABASE_SERVICE_KEY") || '',
-        'Prefer': 'return=minimal',
-      },
-      body: JSON.stringify({
-        id: progressId,
-        status: data.error_count > 0 ? 'completed_with_errors' : 'completed',
-        message: `Importación completada: ${data.inserted_count} registros importados, ${data.error_count} errores`,
-        processed: totalLines,
-      }),
-    });
-    
+    // Return the initial response immediately
     return new Response(
-      JSON.stringify({
-        success: true,
-        message: `Importación completada: ${data.inserted_count} registros importados, ${data.error_count} errores`,
-        insertedCount: data.inserted_count,
-        errorCount: data.error_count,
-        errors: data.errors,
-        progressId,
-      }),
-      { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      JSON.stringify(initialResponse),
+      { status: 202, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
     
   } catch (error) {

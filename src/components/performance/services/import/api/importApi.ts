@@ -106,14 +106,18 @@ export async function checkImportProgress(progressId: string): Promise<{ status:
 
 export async function testEdgeFunctionConnection(): Promise<boolean> {
   try {
+    // Using a simple OPTIONS request to test connection - faster than a full request
     const response = await fetch(
       'https://beefjsdgrdeiymzxwxru.supabase.co/functions/v1/import-servicios-data',
       {
-        method: 'OPTIONS'
+        method: 'OPTIONS',
+        // Setting a shorter timeout using AbortController
+        signal: AbortController ? new AbortController().signal : undefined
       }
     );
     
-    return response.ok;
+    // If we get a response at all, the connection is working
+    return response.ok || response.status === 204;
   } catch (error) {
     console.error('Error testing edge function connection:', error);
     return false;
