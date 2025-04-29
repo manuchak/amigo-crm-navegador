@@ -10,22 +10,22 @@ interface ServiciosTipoChartProps {
   isLoading: boolean;
 }
 
-// Color map with completely distinct colors for each service type
+// Color map with Apple-inspired colors for each service type
 const COLOR_MAP = {
   "Foráneo": "#8B5CF6", // Vivid Purple
-  "Local": "#00C49F",   // Mint Green  
+  "Local": "#0EA5E9",   // Ocean Blue  
   "Reparto": "#F97316"  // Bright Orange
 };
 
 export function ServiciosTipoChart({ data = [], isLoading }: ServiciosTipoChartProps) {
   if (isLoading) {
     return (
-      <Card className="border-0 shadow-md">
+      <Card className="border-0 shadow-sm">
         <CardHeader className="pb-2">
           <CardTitle className="text-lg font-medium">Distribución por Tipo de Servicio</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="h-[300px] flex items-center justify-center">
+          <div className="h-[250px] flex items-center justify-center">
             <Skeleton className="w-full h-full rounded-lg" />
           </div>
         </CardContent>
@@ -52,12 +52,12 @@ export function ServiciosTipoChart({ data = [], isLoading }: ServiciosTipoChartP
   });
 
   return (
-    <Card className="border-0 shadow-md">
+    <Card className="border-0 shadow-sm">
       <CardHeader className="pb-2">
         <CardTitle className="text-lg font-medium">Distribución por Tipo de Servicio</CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="h-[300px]">
+        <div className="h-[250px]">
           <ChartContainer config={chartConfig}>
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
@@ -65,12 +65,14 @@ export function ServiciosTipoChart({ data = [], isLoading }: ServiciosTipoChartP
                   data={chartDataWithPercentage}
                   cx="50%"
                   cy="50%"
-                  labelLine={true}
-                  label={({ tipo, percentage }) => `${tipo}: ${percentage}%`}
-                  outerRadius={100}
+                  labelLine={false}
+                  label={({ tipo, percentage }) => `${percentage}%`}
+                  outerRadius={90}
+                  innerRadius={50} // Add a donut hole
                   fill="#8884d8"
                   dataKey="count"
                   nameKey="tipo"
+                  paddingAngle={2}
                 >
                   {chartDataWithPercentage.map((entry) => {
                     // Use specific color for this tipo
@@ -80,14 +82,20 @@ export function ServiciosTipoChart({ data = [], isLoading }: ServiciosTipoChartP
                 </Pie>
                 <Tooltip 
                   formatter={(value, name, props) => [`${value} (${props.payload.percentage}%)`, props.payload.tipo]}
+                  contentStyle={{ 
+                    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                    borderRadius: '8px',
+                    boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
+                    border: 'none'
+                  }}
                 />
-                <Legend payload={
-                  chartDataWithPercentage.map(item => ({
-                    value: item.tipo,
-                    type: "square",
-                    color: COLOR_MAP[item.tipo] || "#CCCCCC"
-                  }))
-                }/>
+                <Legend 
+                  layout="horizontal"
+                  verticalAlign="bottom" 
+                  align="center"
+                  iconType="circle"
+                  iconSize={8}
+                />
               </PieChart>
             </ResponsiveContainer>
           </ChartContainer>

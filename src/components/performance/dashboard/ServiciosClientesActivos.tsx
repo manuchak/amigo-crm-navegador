@@ -2,7 +2,7 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Users } from "lucide-react";
-import { ClienteServicios } from '../services/servicios'; // Updated import
+import { ClienteServicios } from '../services/servicios';
 import {
   Table,
   TableBody,
@@ -34,8 +34,8 @@ export function ServiciosClientesActivos({ clientes = [], isLoading }: Servicios
   
   if (isLoading) {
     return (
-      <Card className="border-0 shadow-md">
-        <CardHeader className="flex flex-row items-center justify-between pb-2">
+      <Card className="border-0 shadow-sm">
+        <CardHeader className="pb-2">
           <CardTitle className="text-lg font-medium flex items-center">
             <Users className="h-5 w-5 mr-2 text-blue-500" />
             Clientes Más Activos
@@ -54,8 +54,8 @@ export function ServiciosClientesActivos({ clientes = [], isLoading }: Servicios
 
   if (clientesOrdenados.length === 0) {
     return (
-      <Card className="border-0 shadow-md">
-        <CardHeader className="flex flex-row items-center justify-between pb-2">
+      <Card className="border-0 shadow-sm">
+        <CardHeader className="pb-2">
           <CardTitle className="text-lg font-medium flex items-center">
             <Users className="h-5 w-5 mr-2 text-blue-500" />
             Clientes Más Activos
@@ -71,8 +71,8 @@ export function ServiciosClientesActivos({ clientes = [], isLoading }: Servicios
   }
   
   return (
-    <Card className="border-0 shadow-md">
-      <CardHeader className="flex flex-row items-center justify-between pb-2">
+    <Card className="border-0 shadow-sm">
+      <CardHeader className="pb-2">
         <CardTitle className="text-lg font-medium flex items-center">
           <Users className="h-5 w-5 mr-2 text-blue-500" />
           Clientes Más Activos
@@ -83,16 +83,18 @@ export function ServiciosClientesActivos({ clientes = [], isLoading }: Servicios
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Cliente</TableHead>
-                <TableHead className="text-right">Total Servicios</TableHead>
-                <TableHead className="text-right">Km Promedio</TableHead>
-                <TableHead className="text-right">Costo Promedio</TableHead>
+                <TableHead className="font-medium text-xs">Cliente</TableHead>
+                <TableHead className="text-right font-medium text-xs">Total Servicios</TableHead>
+                <TableHead className="text-right font-medium text-xs">Km Promedio</TableHead>
+                <TableHead className="text-right font-medium text-xs">Costo Promedio</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {clientesOrdenados.map((cliente, index) => (
-                <TableRow key={index}>
-                  <TableCell className="font-medium">{cliente.nombre_cliente || `Cliente ${index + 1}`}</TableCell>
+                <TableRow key={index} className="hover:bg-gray-50">
+                  <TableCell className="font-medium">
+                    {cliente.nombre_cliente || `Cliente ${index + 1}`}
+                  </TableCell>
                   <TableCell className="text-right">{formatNumber(cliente.totalServicios)}</TableCell>
                   <TableCell className="text-right">{formatNumber(cliente.kmPromedio)}</TableCell>
                   <TableCell className="text-right">{formatCurrency(cliente.costoPromedio)}</TableCell>

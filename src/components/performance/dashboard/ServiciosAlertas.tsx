@@ -1,8 +1,8 @@
 
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { AlertTriangle } from "lucide-react";
-import { ClienteAlerta } from '../services/servicios'; // Updated import
+import { AlertTriangle, ChevronDown, ChevronUp } from "lucide-react";
+import { ClienteAlerta } from '../services/servicios';
 import { Button } from '@/components/ui/button';
 import {
   Table,
@@ -33,8 +33,8 @@ export function ServiciosAlertas({ alertas = [], isLoading }: ServiciosAlertasPr
   // Si está cargando o no hay alertas, mostrar estados apropiados
   if (isLoading) {
     return (
-      <Card className="border-0 shadow-md">
-        <CardHeader className="flex flex-row items-center justify-between pb-2">
+      <Card className="border-0 shadow-sm">
+        <CardHeader className="pb-2">
           <CardTitle className="text-lg font-medium flex items-center">
             <AlertTriangle className="h-5 w-5 mr-2 text-amber-500" />
             Alertas de Servicio
@@ -53,8 +53,8 @@ export function ServiciosAlertas({ alertas = [], isLoading }: ServiciosAlertasPr
 
   if (alertasProcesadas.length === 0) {
     return (
-      <Card className="border-0 shadow-md">
-        <CardHeader className="flex flex-row items-center justify-between pb-2">
+      <Card className="border-0 shadow-sm">
+        <CardHeader className="pb-2">
           <CardTitle className="text-lg font-medium flex items-center">
             <AlertTriangle className="h-5 w-5 mr-2 text-gray-400" />
             Alertas de Servicio
@@ -73,8 +73,8 @@ export function ServiciosAlertas({ alertas = [], isLoading }: ServiciosAlertasPr
   const alertasVisibles = expandido ? alertasProcesadas : alertasProcesadas.slice(0, 3);
   
   return (
-    <Card className="border-0 shadow-md overflow-hidden">
-      <CardHeader className="flex flex-row items-center justify-between pb-2">
+    <Card className="border-0 shadow-sm overflow-hidden">
+      <CardHeader className="pb-2">
         <CardTitle className="text-lg font-medium flex items-center">
           <AlertTriangle className="h-5 w-5 mr-2 text-amber-500" />
           Alertas de Servicio ({alertasProcesadas.length})
@@ -85,25 +85,21 @@ export function ServiciosAlertas({ alertas = [], isLoading }: ServiciosAlertasPr
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Cliente</TableHead>
-                <TableHead className="text-right">Servicios Actual</TableHead>
-                <TableHead className="text-right">Servicios Anterior</TableHead>
-                <TableHead className="text-right">Variación</TableHead>
-                <TableHead className="text-right">Km Promedio</TableHead>
-                <TableHead className="text-right">Costo Promedio</TableHead>
+                <TableHead className="font-medium text-xs">Cliente</TableHead>
+                <TableHead className="text-right font-medium text-xs">Servicios Actual</TableHead>
+                <TableHead className="text-right font-medium text-xs">Anterior</TableHead>
+                <TableHead className="text-right font-medium text-xs">Variación</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {alertasVisibles.map((alerta, index) => (
-                <TableRow key={index}>
+                <TableRow key={index} className="hover:bg-gray-50">
                   <TableCell className="font-medium">{alerta.nombre}</TableCell>
                   <TableCell className="text-right">{formatNumber(alerta.servicios_actual)}</TableCell>
                   <TableCell className="text-right">{formatNumber(alerta.servicios_anterior)}</TableCell>
                   <TableCell className="text-right font-medium text-red-600">
                     +{alerta.variacion.toFixed(1)}%
                   </TableCell>
-                  <TableCell className="text-right">{formatNumber(alerta.kmPromedio)}</TableCell>
-                  <TableCell className="text-right">{formatCurrency(alerta.costoPromedio)}</TableCell>
                 </TableRow>
               ))}
             </TableBody>
@@ -113,11 +109,20 @@ export function ServiciosAlertas({ alertas = [], isLoading }: ServiciosAlertasPr
         {alertasProcesadas.length > 3 && (
           <div className="mt-4 text-center">
             <Button 
-              variant="outline" 
+              variant="ghost" 
               size="sm" 
               onClick={() => setExpandido(!expandido)}
+              className="text-xs hover:bg-gray-100"
             >
-              {expandido ? "Ver menos" : `Ver ${alertasProcesadas.length - 3} más`}
+              {expandido ? (
+                <>
+                  Ver menos <ChevronUp className="h-3 w-3 ml-1" />
+                </>
+              ) : (
+                <>
+                  Ver {alertasProcesadas.length - 3} más <ChevronDown className="h-3 w-3 ml-1" />
+                </>
+              )}
             </Button>
           </div>
         )}

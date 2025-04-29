@@ -10,10 +10,10 @@ import {
   CartesianGrid,
   Tooltip,
   Legend,
-  ResponsiveContainer 
+  ResponsiveContainer,
+  Cell
 } from 'recharts';
-import { parseISO, format } from 'date-fns';
-import { es } from 'date-fns/locale';
+import { parseISO } from 'date-fns';
 import { ChartContainer } from "@/components/ui/chart";
 
 interface ServiciosHourDistributionChartProps {
@@ -48,57 +48,76 @@ export function ServiciosHourDistributionChart({ data = [], isLoading }: Servici
         console.error('Error processing service hour data:', error, servicio);
       }
     });
-
-    console.log('Hourly distribution data prepared:', hourCounts);
     
     return hourCounts;
   }, [data]);
 
   if (isLoading) {
     return (
-      <Card className="border-0 shadow-md">
-        <CardHeader>
+      <Card className="border-0 shadow-sm">
+        <CardHeader className="pb-2">
           <CardTitle className="text-lg font-medium">Distribución por Hora del Día</CardTitle>
         </CardHeader>
         <CardContent>
-          <Skeleton className="h-[300px] w-full" />
+          <Skeleton className="h-[250px] w-full" />
         </CardContent>
       </Card>
     );
   }
 
   const chartConfig = {
-    count: { color: "#0EA5E9" } // Ocean Blue
+    count: { color: "#0EA5E9" }
   };
 
+  // Find peak hours for highlighting
+  const maxCount = Math.max(...hourlyData.map(item => item.count));
+  
   return (
-    <Card className="border-0 shadow-md w-full">
-      <CardHeader>
+    <Card className="border-0 shadow-sm w-full">
+      <CardHeader className="pb-2">
         <CardTitle className="text-lg font-medium">Distribución por Hora del Día</CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="h-[350px]"> {/* Increased height for better visibility */}
+        <div className="h-[250px]">
           <ChartContainer config={chartConfig}>
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={hourlyData} margin={{ top: 10, right: 30, left: 10, bottom: 20 }}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} />
+              <BarChart data={hourlyData} margin={{ top: 10, right: 5, left: 5, bottom: 20 }}>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
                 <XAxis 
                   dataKey="label" 
-                  interval={2} /* Show every 3rd label to avoid crowding */
+                  interval={2}
                   tick={{ fontSize: 10 }}
-                  height={40}
+                  tickMargin={10}
+                  axisLine={{ stroke: '#e5e5e5' }}
                 />
-                <YAxis />
+                <YAxis 
+                  tick={{ fontSize: 10 }}
+                  axisLine={{ stroke: '#e5e5e5' }}
+                  tickLine={false}
+                />
                 <Tooltip 
-                  formatter={(value, name) => [value, 'Servicios']}
+                  formatter={(value) => [`${value}`, 'Servicios']}
                   labelFormatter={(label) => `Hora: ${label}`}
+                  contentStyle={{ 
+                    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                    borderRadius: '8px',
+                    boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
+                    border: 'none'
+                  }}
                 />
-                <Legend />
+                <Legend iconType="circle" iconSize={8} />
                 <Bar 
                   dataKey="count" 
                   name="Servicios" 
-                  fill="#0EA5E9"
-                />
+                >
+                  {hourlyData.map((entry, index) => (
+                    <Cell 
+                      key={`cell-${index}`} 
+                      fill={entry.count === maxCount ? '#8B5CF6' : '#0EA5E9'} 
+                      fillOpacity={entry.count / maxCount * 0.9 + 0.1}
+                    />
+                  ))}
+                </Bar>
               </BarChart>
             </ResponsiveContainer>
           </ChartContainer>

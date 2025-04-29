@@ -6,7 +6,7 @@ import {
   ArrowUp, ArrowDown, Calendar, TrendingUp, 
   Users, AlertTriangle, BarChart3, MapPin
 } from "lucide-react";
-import { ServiciosMetricData } from '../services/servicios'; // Updated import
+import { ServiciosMetricData } from '../services/servicios'; 
 import { formatNumber, formatCurrency } from '../utils/formatters';
 import { getValidNumberOrZero } from '../services/servicios/utils';
 
@@ -18,10 +18,10 @@ interface ServiciosMetricsCardsProps {
 export function ServiciosMetricsCards({ data, isLoading }: ServiciosMetricsCardsProps) {
   if (isLoading) {
     return (
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {Array.from({ length: 8 }).map((_, i) => (
-          <Card key={i} className="border-0 shadow-md">
-            <CardContent className="p-6">
+          <Card key={i} className="border-0 shadow-sm">
+            <CardContent className="p-5">
               <Skeleton className="h-4 w-1/3 mb-2" />
               <Skeleton className="h-8 w-1/2 mb-4" />
               <Skeleton className="h-4 w-2/3" />
@@ -36,18 +36,6 @@ export function ServiciosMetricsCards({ data, isLoading }: ServiciosMetricsCards
     console.log("No data available for ServiciosMetricsCards");
     return null;
   }
-
-  // Debug - log KM values to console
-  console.log("KM values in metrics cards:", {
-    kmTotales: data.kmTotales,
-    kmPromedioCurrent: data.kmPromedioMoM.current,
-    kmPromedioPrevious: data.kmPromedioMoM.previous,
-    kmPromedioPercentChange: data.kmPromedioMoM.percentChange,
-    rawData: {
-      kmTotales: data.kmTotales,
-      kmPromedioMoM: data.kmPromedioMoM
-    }
-  });
 
   // Process km data to avoid NaN values
   const kmTotales = getValidNumberOrZero(data.kmTotales);
@@ -113,13 +101,13 @@ export function ServiciosMetricsCards({ data, isLoading }: ServiciosMetricsCards
   ];
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
       {metrics.map((metric, i) => (
-        <Card key={i} className="border-0 shadow-md bg-white/90 hover:shadow-lg transition-shadow duration-200">
-          <CardContent className="p-6">
+        <Card key={i} className="border-0 shadow-sm bg-white/95 hover:shadow-md transition-shadow duration-200">
+          <CardContent className="p-5">
             <div className="flex items-center justify-between">
-              <div className={`${metric.color} p-3 rounded-xl`}>
-                <metric.icon className="w-5 h-5" />
+              <div className={`${metric.color} p-2.5 rounded-lg`}>
+                <metric.icon className="w-4 h-4" />
               </div>
               
               {typeof metric.change !== 'undefined' && (
@@ -137,12 +125,12 @@ export function ServiciosMetricsCards({ data, isLoading }: ServiciosMetricsCards
               )}
             </div>
             
-            <div className="mt-4">
-              <p className="text-sm text-muted-foreground">{metric.title}</p>
-              <h3 className="text-2xl font-bold mt-1">{metric.value}</h3>
+            <div className="mt-3">
+              <p className="text-xs text-muted-foreground">{metric.title}</p>
+              <h3 className="text-xl font-semibold mt-0.5">{metric.value}</h3>
               
               {metric.comparison && (
-                <p className="text-xs text-muted-foreground mt-1">{metric.comparison}</p>
+                <p className="text-xs text-muted-foreground mt-0.5">{metric.comparison}</p>
               )}
             </div>
           </CardContent>

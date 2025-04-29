@@ -9,6 +9,9 @@ import { ServiciosHourDistributionChart } from './charts/ServiciosHourDistributi
 import { ServiciosClientesActivos } from './ServiciosClientesActivos';
 import { ServiciosAlertas } from './ServiciosAlertas';
 import { ServiciosTipoChart } from './ServiciosTipoChart';
+import { CohortAnalysisViewer } from './CohortAnalysisViewer';
+import { Card, CardContent } from '@/components/ui/card';
+import { Loader2 } from "lucide-react";
 
 interface ServiciosDashboardProps {
   dateRange: DateRange;
@@ -43,47 +46,60 @@ export function ServiciosDashboard({ dateRange, comparisonRange }: ServiciosDash
 
   if (isError) {
     return (
-      <div className="p-8 text-center">
-        <h3 className="text-xl font-medium mb-2">Error al cargar datos</h3>
-        <p className="text-muted-foreground">
-          Ocurrió un error al cargar los datos de servicios. Por favor, inténtelo de nuevo.
-        </p>
+      <Card className="p-8 text-center border-0 shadow-sm bg-white/90">
+        <CardContent className="pt-6">
+          <h3 className="text-xl font-medium mb-2 text-gray-800">Error al cargar datos</h3>
+          <p className="text-muted-foreground">
+            Ocurrió un error al cargar los datos de servicios. Por favor, inténtelo de nuevo.
+          </p>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (isLoading) {
+    return (
+      <div className="flex flex-col items-center justify-center h-[50vh]">
+        <Loader2 className="h-10 w-10 text-primary animate-spin mb-4" />
+        <p className="text-muted-foreground">Cargando datos de servicios...</p>
       </div>
     );
   }
 
   return (
-    <div className="space-y-10"> {/* Increased spacing between sections for better separation */}
-      {/* Metrics cards at the top */}
-      <ServiciosMetricsCards 
-        data={data} 
-        isLoading={isLoading} 
-      />
+    <div className="space-y-8"> 
+      {/* Metrics cards at the top with subtle shadows */}
+      <div className="animate-fade-in">
+        <ServiciosMetricsCards 
+          data={data} 
+          isLoading={isLoading} 
+        />
+      </div>
       
-      {/* Performance and Type charts in first row with increased gap */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+      {/* Performance chart with full width for better visibility */}
+      <div className="animate-fade-in animate-delay-100">
         <ServiciosPerformanceChart 
           data={data?.serviciosData} 
           isLoading={isLoading}
           dateRange={dateRange}
         />
-        
+      </div>
+      
+      {/* Type and Hour distribution charts in a row */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 animate-fade-in animate-delay-200">
         <ServiciosTipoChart 
           data={data?.serviciosPorTipo || []} 
           isLoading={isLoading} 
         />
-      </div>
-      
-      {/* Hour distribution in its own row with full width and increased height */}
-      <div className="mt-10">
+        
         <ServiciosHourDistributionChart 
           data={data?.serviciosData}
           isLoading={isLoading}
         />
       </div>
       
-      {/* Clients and alerts in third row with increased gap */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+      {/* Clients and alerts in a row */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 animate-fade-in animate-delay-300">
         <ServiciosClientesActivos 
           clientes={data?.serviciosPorCliente || []}
           isLoading={isLoading}
@@ -92,6 +108,15 @@ export function ServiciosDashboard({ dateRange, comparisonRange }: ServiciosDash
         <ServiciosAlertas 
           alertas={data?.alertas || []}
           isLoading={isLoading}
+        />
+      </div>
+
+      {/* Optional cohort analysis section */}
+      <div className="animate-fade-in animate-delay-400">
+        <CohortAnalysisViewer
+          data={data}
+          isLoading={isLoading}
+          dateRange={dateRange}
         />
       </div>
     </div>

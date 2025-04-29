@@ -11,9 +11,10 @@ import {
   CartesianGrid,
   Tooltip,
   Legend,
-  ResponsiveContainer 
+  ResponsiveContainer,
+  ReferenceLine
 } from 'recharts';
-import { format, parseISO, eachDayOfInterval, addDays, isValid, isBefore, isAfter } from 'date-fns';
+import { format, parseISO, eachDayOfInterval, addDays, isValid, isBefore, isAfter, isWithinInterval } from 'date-fns';
 import { es } from 'date-fns/locale';
 
 interface ServiciosPerformanceChartProps {
@@ -36,18 +37,40 @@ export function ServiciosPerformanceChart({ data = [], comparisonData, isLoading
       to: dateRange.to ? dateRange.to.toISOString() : 'undefined'
     });
     
-    if (data.length > 0) {
-      // Log a few sample dates to verify data
-      const sampleDates = data.slice(0, 5).map(s => s.fecha_hora_cita);
-      console.log('Sample service dates:', sampleDates);
+    // Generate continuous date range including days with no services
+    let allDays: Date[] = [];
+    
+    if (dateRange.from && dateRange.to) {
+      // Use the provided date range
+      allDays = eachDayOfInterval({
+        start: dateRange.from,
+        end: dateRange.to
+      });
+    } else {
+      // Fallback: Use default 90 days
+      const today = new Date();
+      allDays = eachDayOfInterval({
+        start: addDays(today, -89),
+        end: today
+      });
     }
     
-    // Create a map to group services by day
+    console.log(`Generated ${allDays.length} days for chart from ${format(allDays[0], 'yyyy-MM-dd')} to ${format(allDays[allDays.length-1], 'yyyy-MM-dd')}`);
+    
+    // Initialize map with all days
     const dailyDataMap = new Map();
     
-    // First pass: Process all data to collect date range
-    const allServiceDates = new Set<string>();
+    allDays.forEach(day => {
+      const dayStr = format(day, 'yyyy-MM-dd');
+      dailyDataMap.set(dayStr, {
+        date: dayStr,
+        servicios: 0,
+        // Add formatted date for display
+        displayDate: format(day, 'd MMM', { locale: es })
+      });
+    });
     
+    // Process all services and count them by day
     data.forEach(servicio => {
       if (!servicio.fecha_hora_cita) return;
       
@@ -70,96 +93,10 @@ export function ServiciosPerformanceChart({ data = [], comparisonData, isLoading
         }
         
         const dayStr = format(serviceDate, 'yyyy-MM-dd');
-        allServiceDates.add(dayStr);
-      } catch (error) {
-        console.error('Error processing date:', error, servicio.fecha_hora_cita);
-      }
-    });
-    
-    console.log(`Found ${allServiceDates.size} unique dates in data`);
-    if (allServiceDates.size > 0) {
-      console.log('Date range in data:', {
-        min: Array.from(allServiceDates).sort()[0],
-        max: Array.from(allServiceDates).sort()[allServiceDates.size - 1]
-      });
-    }
-    
-    // Generate continuous date range including days with no services
-    let allDays: Date[] = [];
-    
-    if (dateRange.from && dateRange.to) {
-      // Use the provided date range
-      allDays = eachDayOfInterval({
-        start: dateRange.from,
-        end: dateRange.to
-      });
-    } else if (allServiceDates.size > 0) {
-      // Fallback: Use min/max dates from the actual data
-      const sortedDates = Array.from(allServiceDates).sort();
-      const minDate = parseISO(sortedDates[0]);
-      const maxDate = parseISO(sortedDates[sortedDates.length - 1]);
-      
-      allDays = eachDayOfInterval({
-        start: minDate,
-        end: maxDate
-      });
-    } else {
-      // Last resort: Use default 90 days
-      const today = new Date();
-      allDays = eachDayOfInterval({
-        start: addDays(today, -89),
-        end: today
-      });
-    }
-    
-    console.log(`Generated ${allDays.length} days for chart from ${allDays[0].toISOString()} to ${allDays[allDays.length-1].toISOString()}`);
-    
-    // Initialize map with all days
-    allDays.forEach(day => {
-      const dayStr = format(day, 'yyyy-MM-dd');
-      dailyDataMap.set(dayStr, {
-        date: dayStr,
-        servicios: 0,
-        // Add formatted date for display
-        displayDate: format(day, 'dd MMM', { locale: es })
-      });
-    });
-    
-    // Process all services and count them by day
-    data.forEach(servicio => {
-      if (!servicio.fecha_hora_cita) return;
-      
-      try {
-        let serviceDate;
-        
-        // Handle both ISO string and Date object formats
-        if (typeof servicio.fecha_hora_cita === 'string') {
-          serviceDate = parseISO(servicio.fecha_hora_cita);
-        } else if (servicio.fecha_hora_cita instanceof Date) {
-          serviceDate = servicio.fecha_hora_cita;
-        } else {
-          return;
-        }
-        
-        if (!isValid(serviceDate)) return;
-        
-        const dayStr = format(serviceDate, 'yyyy-MM-dd');
-        
-        // Only count if it's within our display range
-        if (dateRange.from && isBefore(serviceDate, dateRange.from)) return;
-        if (dateRange.to && isAfter(serviceDate, dateRange.to)) return;
         
         if (dailyDataMap.has(dayStr)) {
           const dayData = dailyDataMap.get(dayStr);
           dayData.servicios += 1;
-        } else {
-          // This shouldn't happen if our day generation is working correctly
-          console.warn(`Found service for date outside generated range: ${dayStr}`);
-          dailyDataMap.set(dayStr, { 
-            date: dayStr, 
-            servicios: 1,
-            displayDate: format(serviceDate, 'dd MMM', { locale: es })
-          });
         }
       } catch (error) {
         console.error('Error processing service:', error, servicio);
@@ -170,22 +107,18 @@ export function ServiciosPerformanceChart({ data = [], comparisonData, isLoading
     const result = Array.from(dailyDataMap.values())
       .sort((a, b) => a.date.localeCompare(b.date));
     
-    console.log(`Chart data prepared with ${result.length} days`);
-    
-    // Check for specific dates like March and April
-    const marchData = result.filter(entry => entry.date.startsWith('2024-03') && entry.servicios > 0);
-    const aprilData = result.filter(entry => entry.date.startsWith('2024-04') && entry.servicios > 0);
-    
-    console.log(`March data with services: ${marchData.length}, April data with services: ${aprilData.length}`);
-    
-    // Verify March 20 onwards data
-    const march20Data = result.filter(entry => 
-      (entry.date >= '2024-03-20' && entry.date < '2024-04-01') && entry.servicios > 0
-    );
-    
-    console.log(`Services from March 20-31: ${march20Data.length}`);
-    if (march20Data.length > 0) {
-      console.log('March 20+ data sample:', march20Data.slice(0, 5));
+    // Add 7-day moving average
+    const windowSize = 7;
+    for (let i = 0; i < result.length; i++) {
+      let sum = 0;
+      let count = 0;
+      
+      for (let j = Math.max(0, i - windowSize + 1); j <= i; j++) {
+        sum += result[j].servicios;
+        count++;
+      }
+      
+      result[i].promedio = count > 0 ? Math.round((sum / count) * 10) / 10 : 0;
     }
     
     return result;
@@ -193,8 +126,8 @@ export function ServiciosPerformanceChart({ data = [], comparisonData, isLoading
 
   if (isLoading) {
     return (
-      <Card className="border-0 shadow-md">
-        <CardHeader>
+      <Card className="border-0 shadow-sm">
+        <CardHeader className="pb-2">
           <CardTitle className="text-lg font-medium">Rendimiento de Servicios</CardTitle>
         </CardHeader>
         <CardContent>
@@ -204,44 +137,92 @@ export function ServiciosPerformanceChart({ data = [], comparisonData, isLoading
     );
   }
 
+  // Get min and max values for better Y-axis
+  const maxServicios = Math.max(...chartData.map(item => item.servicios), 0);
+  const yAxisMax = Math.ceil(maxServicios * 1.1); // Add 10% padding
+
+  // Calculate average for reference line
+  const average = chartData.length > 0 
+    ? chartData.reduce((sum, item) => sum + item.servicios, 0) / chartData.length
+    : 0;
+
   return (
-    <Card className="border-0 shadow-md">
-      <CardHeader>
+    <Card className="border-0 shadow-sm">
+      <CardHeader className="pb-2">
         <CardTitle className="text-lg font-medium">Rendimiento de Servicios</CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="h-[300px]">
+        <div className="h-[350px]">
           <ResponsiveContainer width="100%" height="100%">
             <LineChart data={chartData}>
-              <CartesianGrid strokeDasharray="3 3" />
+              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
               <XAxis 
                 dataKey="displayDate" 
-                tick={{ fontSize: 10 }}
-                interval={"preserveStartEnd"}
+                tick={{ fontSize: 11 }}
+                interval="preserveStartEnd"
+                tickMargin={10}
+                axisLine={{ stroke: '#e5e5e5' }}
               />
-              <YAxis />
+              <YAxis 
+                domain={[0, yAxisMax]}
+                axisLine={{ stroke: '#e5e5e5' }}
+                tickLine={false}
+              />
               <Tooltip
+                contentStyle={{ 
+                  backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                  borderRadius: '8px',
+                  boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
+                  border: 'none' 
+                }}
                 formatter={(value, name) => {
-                  if (name === 'servicios') return [value, 'Servicios'];
+                  if (name === 'servicios') return [`${value}`, 'Servicios'];
+                  if (name === 'promedio') return [`${value}`, 'Promedio (7 días)'];
                   return [value, name];
                 }}
-                labelFormatter={(displayDate, entry) => {
-                  // Use the original date from the data point for better formatting
-                  const dataPoint = entry && entry.length > 0 ? entry[0].payload : null;
-                  if (dataPoint && dataPoint.date) {
-                    return format(parseISO(dataPoint.date), 'dd MMM yyyy', { locale: es });
+                labelFormatter={(displayDate) => {
+                  const matchingData = chartData.find(item => item.displayDate === displayDate);
+                  if (matchingData) {
+                    return format(parseISO(matchingData.date), 'dd MMM yyyy', { locale: es });
                   }
                   return displayDate;
                 }}
               />
-              <Legend />
+              <Legend 
+                verticalAlign="top" 
+                height={40}
+                iconType="circle"
+                iconSize={8}
+              />
+              <ReferenceLine 
+                y={average} 
+                stroke="#9b87f5" 
+                strokeDasharray="3 3" 
+                label={{ 
+                  value: `Promedio: ${average.toFixed(1)}`, 
+                  fill: '#9b87f5',
+                  fontSize: 11,
+                  position: 'right'
+                }} 
+              />
               <Line 
                 type="monotone" 
                 dataKey="servicios" 
-                stroke="#8B5CF6" 
+                stroke="#0EA5E9" 
                 name="Servicios"
-                activeDot={{ r: 6 }} 
-                connectNulls
+                strokeWidth={2}
+                dot={false} 
+                activeDot={{ r: 6, fill: '#0EA5E9', stroke: '#fff', strokeWidth: 2 }}
+              />
+              <Line 
+                type="monotone" 
+                dataKey="promedio" 
+                stroke="#8B5CF6" 
+                name="Promedio (7 días)"
+                strokeWidth={2}
+                strokeDasharray="4 2"
+                dot={false}
+                activeDot={{ r: 6, fill: '#8B5CF6', stroke: '#fff', strokeWidth: 2 }}
               />
             </LineChart>
           </ResponsiveContainer>
