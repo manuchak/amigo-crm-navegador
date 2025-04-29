@@ -5,6 +5,7 @@ import * as XLSX from 'xlsx';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { templateColumns } from '../../export/columnDefinitions';
+import { knownNumericColumns, knownBooleanColumns, knownTimeColumns, knownIntervalColumns } from '../lib/columnTypes';
 
 interface UseTemplateDownloadResult {
   isDownloading: boolean;
@@ -22,6 +23,7 @@ export function useTemplateDownload(templateType: 'servicios' | 'driver-behavior
       const workbook = XLSX.utils.book_new();
       let headers: string[] = [];
       let descriptions: string[] = [];
+      let formats: string[] = [];
       let exampleData: any[] = [];
       
       if (templateType === 'servicios') {
@@ -30,6 +32,21 @@ export function useTemplateDownload(templateType: 'servicios' | 'driver-behavior
         descriptions = templateColumns.map(col => {
           const requiredText = col.required ? '[Requerido] ' : '[Opcional] ';
           return requiredText + (col.description || '');
+        });
+        
+        // Add format information for different column types
+        formats = templateColumns.map(col => {
+          if (knownNumericColumns.includes(col.name)) {
+            return "Número (ej: 123.45)";
+          } else if (knownBooleanColumns.includes(col.name)) {
+            return "Booleano (Sí/No, True/False)";
+          } else if (knownTimeColumns.includes(col.name)) {
+            return "Hora (HH:MM:SS o HH:MM)";
+          } else if (knownIntervalColumns.includes(col.name)) {
+            return "Intervalo (HH:MM:SS)";
+          } else {
+            return "";
+          }
         });
         
         // Prepare example data row from the template definitions
@@ -68,19 +85,49 @@ export function useTemplateDownload(templateType: 'servicios' | 'driver-behavior
         ];
       }
       
-      // Create headers and descriptions worksheet
+      // Create worksheets
       const ws = XLSX.utils.json_to_sheet([]);
+      
+      // Add headers
       XLSX.utils.sheet_add_aoa(ws, [headers], { origin: 'A1' });
+      
+      // Add descriptions
       XLSX.utils.sheet_add_aoa(ws, [descriptions], { origin: 'A2' });
+      
+      // Add format information if available
+      if (formats.some(f => f !== "")) {
+        XLSX.utils.sheet_add_aoa(ws, [formats], { origin: 'A3' });
+      }
       
       // Add example data
       if (exampleData.length > 0) {
         const exampleValues = Object.values(exampleData[0]);
-        XLSX.utils.sheet_add_aoa(ws, [exampleValues], { origin: 'A3' });
+        const startRow = formats.some(f => f !== "") ? 4 : 3;
+        XLSX.utils.sheet_add_aoa(ws, [exampleValues], { origin: `A${startRow}` });
       }
       
-      // Add worksheet to workbook
-      XLSX.utils.book_append_sheet(workbook, ws, "Template");
+      // Add instructions to a different sheet
+      const instructionsWs = XLSX.utils.aoa_to_sheet([
+        ['INSTRUCCIONES PARA LA IMPORTACIÓN DE DATOS'],
+        [''],
+        ['1. No modifique la estructura de columnas del archivo.'],
+        ['2. Las columnas marcadas como [Requerido] son obligatorias.'],
+        ['3. Los campos de tiempo (hora_presentacion, hora_inicio_custodia, hora_arribo, hora_finalizacion) pueden dejarse vacíos si no tiene la información.'],
+        ['4. Los campos de intervalo (tiempo_retraso, tiempo_punto_origen, duracion_servicio, tiempo_estimado) también pueden dejarse vacíos.'],
+        ['5. Formatos recomendados:'],
+        ['   - Fechas y horas: YYYY-MM-DD HH:MM:SS o DD/MM/YYYY HH:MM:SS'],
+        ['   - Horas: HH:MM:SS o HH:MM'],
+        ['   - Intervalos: HH:MM:SS'],
+        ['   - Valores booleanos: Sí/No, True/False, 1/0'],
+        ['   - Números: Utilice punto como separador decimal (123.45)'],
+        [''],
+        ['6. Si un campo no tiene valor, puede dejarlo vacío o escribir NULL.'],
+        ['7. Para campos de tiempo o intervalo vacíos, el sistema utilizará valores predeterminados (NULL o 00:00:00).']
+      ]);
+      
+      // Add worksheets to workbook
+      XLSX.utils.book_append_sheet(workbook, ws, "Plantilla");
+      XLSX.utils.book_append_sheet(workbook, instructionsWs, "Instrucciones");
       
       // Generate filename with current date
       const date = format(new Date(), 'yyyyMMdd', { locale: es });

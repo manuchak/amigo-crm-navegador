@@ -1,6 +1,7 @@
 
 import { utils, writeFile } from "xlsx";
 import { templateColumns } from './columnDefinitions';
+import { knownNumericColumns, knownTimeColumns, knownIntervalColumns, knownBooleanColumns } from '../import/lib/columnTypes';
 
 /**
  * Generate a template CSV file for data imports
@@ -8,76 +9,46 @@ import { templateColumns } from './columnDefinitions';
  */
 export const generateTemplateCSV = (templateType: string) => {
   let headers: string[] = [];
+  let descriptions: string[] = [];
+  let formats: string[] = [];
   let sampleData: any[] = [];
 
   // Define headers and sample data based on template type
   if (templateType === 'servicios') {
-    headers = [
-      'id_servicio',
-      'nombre_cliente',
-      'folio_cliente',
-      'tipo_servicio',
-      'estado',
-      'fecha_hora_cita',
-      'origen',
-      'destino',
-      'nombre_custodio',
-      'telefono',
-      'nombre_operador_transporte',
-      'telefono_operador',
-      'placa_carga',
-      'tipo_unidad',
-      'comentarios_adicionales'
-    ];
-
-    // Add some sample rows
-    sampleData = [
-      {
-        id_servicio: 'SERV-001',
-        nombre_cliente: 'Empresa Ejemplo',
-        folio_cliente: 'CL-12345',
-        tipo_servicio: 'Custodia',
-        estado: 'Programado',
-        fecha_hora_cita: '2025-05-10 08:00:00',
-        origen: 'Ciudad de México',
-        destino: 'Querétaro',
-        nombre_custodio: 'Juan Pérez',
-        telefono: '5551234567',
-        nombre_operador_transporte: 'Carlos Rodríguez',
-        telefono_operador: '5559876543',
-        placa_carga: 'ABC-123',
-        tipo_unidad: 'Sedán',
-        comentarios_adicionales: 'Cliente preferente'
-      },
-      {
-        id_servicio: 'SERV-002',
-        nombre_cliente: 'Corporativo XYZ',
-        folio_cliente: 'CL-67890',
-        tipo_servicio: 'Instalación',
-        estado: 'Completado',
-        fecha_hora_cita: '2025-05-12 14:30:00',
-        origen: 'Guadalajara',
-        destino: 'Guadalajara',
-        nombre_custodio: 'Ana López',
-        telefono: '5551112233',
-        nombre_operador_transporte: '',
-        telefono_operador: '',
-        placa_carga: '',
-        tipo_unidad: '',
-        comentarios_adicionales: 'Instalación de GPS'
+    // Use template columns for headers
+    headers = templateColumns.map(col => col.name);
+    descriptions = templateColumns.map(col => {
+      const requiredText = col.required ? '[Requerido] ' : '[Opcional] ';
+      return requiredText + (col.description || '');
+    });
+    
+    // Add format information for different column types
+    formats = templateColumns.map(col => {
+      if (knownNumericColumns.includes(col.name)) {
+        return "Número (ej: 123.45)";
+      } else if (knownBooleanColumns.includes(col.name)) {
+        return "Booleano (Sí/No, True/False)";
+      } else if (knownTimeColumns.includes(col.name)) {
+        return "Hora (HH:MM:SS o HH:MM)";
+      } else if (knownIntervalColumns.includes(col.name)) {
+        return "Intervalo (HH:MM:SS)";
+      } else {
+        return "";
       }
-    ];
+    });
+    
+    // Prepare example data row from the template definitions
+    const exampleRow: Record<string, any> = {};
+    templateColumns.forEach(col => {
+      exampleRow[col.name] = col.example || "";
+    });
+    
+    sampleData = [exampleRow];
   } else if (templateType === 'driver-behavior') {
+    // Driver behavior headers and sample data
     headers = [
-      'Agrupación',
-      'Valoración',
-      'Multa',
-      'Cantidad',
-      'Kilometraje',
-      'Duración',
-      'Cliente',
-      'Comienzo',
-      'Fin'
+      'Agrupación', 'Valoración', 'Multa', 'Cantidad', 
+      'Kilometraje', 'Duración', 'Cliente', 'Comienzo', 'Fin'
     ];
 
     // Add some sample rows
@@ -116,10 +87,53 @@ export const generateTemplateCSV = (templateType: string) => {
 
   // Create workbook and worksheet
   const workbook = utils.book_new();
-  const worksheet = utils.json_to_sheet(sampleData, { header: headers });
+  const worksheet = utils.json_to_sheet([]);
+  
+  // Add headers
+  utils.sheet_add_aoa(worksheet, [headers], { origin: 'A1' });
+  
+  // Add descriptions if available
+  if (descriptions.length > 0) {
+    utils.sheet_add_aoa(worksheet, [descriptions], { origin: 'A2' });
+  }
+  
+  // Add format information if available
+  if (formats.length > 0) {
+    utils.sheet_add_aoa(worksheet, [formats], { origin: 'A3' });
+  }
+  
+  // Add sample data with appropriate offset
+  const dataOffset = 1 + (descriptions.length > 0 ? 1 : 0) + (formats.length > 0 ? 1 : 0);
+  
+  if (sampleData.length > 0) {
+    for (let i = 0; i < sampleData.length; i++) {
+      const rowData = headers.map(header => sampleData[i][header] || "");
+      utils.sheet_add_aoa(worksheet, [rowData], { origin: `A${dataOffset + i + 1}` });
+    }
+  }
 
   // Add worksheet to workbook
-  utils.book_append_sheet(workbook, worksheet, 'Template');
+  utils.book_append_sheet(workbook, worksheet, "Template");
+
+  // Add instructions worksheet
+  const instructionsWs = utils.aoa_to_sheet([
+    ['INSTRUCCIONES PARA LA IMPORTACIÓN DE DATOS'],
+    [''],
+    ['1. No modifique la estructura de columnas del archivo.'],
+    ['2. Las columnas marcadas como [Requerido] son obligatorias.'],
+    ['3. Los campos de tiempo (hora_presentacion, hora_inicio_custodia, hora_arribo, hora_finalizacion) pueden dejarse vacíos si no tiene la información.'],
+    ['4. Los campos de intervalo (tiempo_retraso, tiempo_punto_origen, duracion_servicio, tiempo_estimado) también pueden dejarse vacíos.'],
+    ['5. Formatos recomendados:'],
+    ['   - Fechas y horas: YYYY-MM-DD HH:MM:SS o DD/MM/YYYY HH:MM:SS'],
+    ['   - Horas: HH:MM:SS o HH:MM'],
+    ['   - Intervalos: HH:MM:SS'],
+    ['   - Valores booleanos: Sí/No, True/False, 1/0'],
+    ['   - Números: Utilice punto como separador decimal (123.45)'],
+    [''],
+    ['6. Si un campo no tiene valor, puede dejarlo vacío o escribir NULL.'],
+    ['7. Para campos de tiempo o intervalo vacíos, el sistema utilizará valores predeterminados (NULL o 00:00:00).']
+  ]);
+  utils.book_append_sheet(workbook, instructionsWs, "Instrucciones");
 
   // Generate filename
   const filename = `template_${templateType}_${new Date().toISOString().split('T')[0]}.xlsx`;
@@ -170,7 +184,8 @@ export const createInstructionsRows = (): string => {
     '"# 4. Para fechas use el formato YYYY-MM-DD HH:MM:SS"',
     '"# 5. Para intervalos de tiempo use el formato HH:MM:SS"',
     '"# 6. Para campos booleanos use Sí/No o Verdadero/Falso"',
-    '"# 7. Elimine estas líneas de instrucciones antes de importar"',
+    '"# 7. Los campos de tiempo e intervalos pueden dejarse vacíos"',
+    '"# 8. Elimine estas líneas de instrucciones antes de importar"',
     '"# --------------------------------------------------------------------------"'
   ].join('\n');
 };

@@ -1,39 +1,30 @@
 
 export function validateFile(file: File): { isValid: boolean; message: string } {
-  // Check file size (limit to 15MB for Edge Functions)
-  const MAX_SIZE_MB = 15;
-  const maxSizeBytes = MAX_SIZE_MB * 1024 * 1024;
-  
-  if (file.size > maxSizeBytes) {
+  // Check file extension
+  const allowedExtensions = ['.csv', '.xlsx', '.xls'];
+  let validExtension = false;
+  for (const ext of allowedExtensions) {
+    if (file.name.toLowerCase().endsWith(ext)) {
+      validExtension = true;
+      break;
+    }
+  }
+
+  if (!validExtension) {
     return {
       isValid: false,
-      message: `El archivo es demasiado grande. El tamaño máximo permitido es de ${MAX_SIZE_MB}MB.`
+      message: `Formato de archivo no válido. Solo se permiten archivos ${allowedExtensions.join(', ')}`
     };
   }
-  
-  // Check file type
-  const validExcelTypes = [
-    'application/vnd.ms-excel',
-    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-    'application/vnd.ms-excel.sheet.macroEnabled.12'
-  ];
-  
-  const validCsvTypes = [
-    'text/csv',
-    'application/csv',
-    'text/comma-separated-values'
-  ];
-  
-  const fileName = file.name.toLowerCase();
-  const isExcel = fileName.endsWith('.xlsx') || fileName.endsWith('.xls') || validExcelTypes.includes(file.type);
-  const isCsv = fileName.endsWith('.csv') || validCsvTypes.includes(file.type);
-  
-  if (!isExcel && !isCsv) {
+
+  // Check file size (max 15MB)
+  const MAX_SIZE = 15 * 1024 * 1024; // 15MB in bytes
+  if (file.size > MAX_SIZE) {
     return {
       isValid: false,
-      message: 'Formato de archivo no válido. Por favor, suba un archivo Excel (.xlsx, .xls) o CSV (.csv).'
+      message: `El archivo es demasiado grande. El tamaño máximo permitido es ${MAX_SIZE / (1024 * 1024)}MB`
     };
   }
-  
+
   return { isValid: true, message: 'Archivo válido' };
 }
