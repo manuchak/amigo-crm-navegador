@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { Check, ChevronsUpDown, X } from "lucide-react";
+import { Check, ChevronsUpDown, X, Search } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -19,6 +19,8 @@ import {
 import { cn } from "@/lib/utils";
 import { DriverBehaviorFilters } from '../types/driver-behavior.types';
 import { Checkbox } from "@/components/ui/checkbox";
+import { DriverBehaviorImport } from './DriverBehaviorImport';
+import { Badge } from '@/components/ui/badge';
 
 interface DriverBehaviorFiltersPanelProps {
   clientList: string[];
@@ -39,7 +41,6 @@ export function DriverBehaviorFiltersPanel({
   };
   
   const handleClientToggle = (client: string) => {
-    console.log("Client toggled:", client);
     // Initialize selectedClients if it doesn't exist
     const currentSelected = filters.selectedClients || [];
     
@@ -54,8 +55,6 @@ export function DriverBehaviorFiltersPanel({
       newSelectedClients = [...currentSelected, client];
     }
     
-    console.log("New selected clients:", newSelectedClients);
-    
     // Update filters with new selection
     onFilterChange({ 
       ...filters, 
@@ -69,110 +68,132 @@ export function DriverBehaviorFiltersPanel({
   
   const handleClearFilters = () => {
     onFilterChange({});
+    setSearchValue('');
   };
   
   // Get a summary of selected clients for display
   const getSelectedClientsDisplay = () => {
     const selectedClients = filters.selectedClients || [];
-    if (selectedClients.length === 0) return "Seleccionar Cliente(s)";
+    if (selectedClients.length === 0) return "Todos los clientes";
     if (selectedClients.length === 1) return selectedClients[0];
-    return `${selectedClients.length} clientes seleccionados`;
+    return `${selectedClients.length} clientes`;
   };
 
-  console.log("Client list in filters panel:", clientList);
-  console.log("Current filters:", filters);
-  
-  return (
-    <Card className="border-0 shadow-md bg-white">
-      <CardContent className="p-4">
-        <div className="flex flex-wrap gap-4 items-center">
-          <div className="text-sm text-muted-foreground">Filtrar por:</div>
-          
-          <div className="flex items-center gap-2">
-            <Input
-              placeholder="Nombre de conductor"
-              value={filters.driverName || ''}
-              onChange={handleDriverNameChange}
-              className="w-48 h-9"
-            />
-            
-            <Popover open={open} onOpenChange={setOpen}>
-              <PopoverTrigger asChild>
-                <Button
-                  variant="outline"
-                  role="combobox"
-                  aria-expanded={open}
-                  className="w-64 h-9 justify-between bg-white text-foreground border-gray-200 hover:bg-gray-50"
-                >
-                  {getSelectedClientsDisplay()}
-                  <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-64 p-0 z-50 bg-white border border-gray-200 shadow-md">
-                <Command>
-                  <CommandInput 
-                    placeholder="Buscar cliente..." 
-                    value={searchValue}
-                    onValueChange={setSearchValue}
-                  />
-                  <CommandEmpty>No se encontraron clientes.</CommandEmpty>
-                  <CommandGroup className="max-h-64 overflow-y-auto">
-                    {Array.isArray(clientList) && clientList.length > 0 ? (
-                      clientList.map((client) => (
-                        <CommandItem
-                          key={client}
-                          value={client}
-                          className="flex items-center gap-2 py-2 cursor-pointer hover:bg-gray-100"
-                          onSelect={() => handleClientToggle(client)}
-                        >
-                          <Checkbox
-                            id={`client-${client}`}
-                            checked={(filters.selectedClients || []).includes(client)}
-                            onCheckedChange={() => handleClientToggle(client)}
-                            className="mr-2 h-4 w-4"
-                          />
-                          <label 
-                            htmlFor={`client-${client}`}
-                            className="flex-1 cursor-pointer"
-                          >
-                            {client}
-                          </label>
-                        </CommandItem>
-                      ))
-                    ) : (
-                      <CommandItem disabled className="opacity-50 cursor-default">
-                        No hay clientes disponibles
-                      </CommandItem>
-                    )}
-                  </CommandGroup>
-                </Command>
-              </PopoverContent>
-            </Popover>
+  const handleImportComplete = () => {
+    // Refresh data after import
+  };
 
-            {filters.selectedClients && filters.selectedClients.length > 0 && (
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                onClick={clearClientFilter}
-                className="h-9 px-2"
+  return (
+    <div className="flex flex-wrap gap-3 items-center">
+      <div className="relative">
+        <Search className="w-4 h-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground" />
+        <Input
+          placeholder="Buscar conductor"
+          value={filters.driverName || ''}
+          onChange={handleDriverNameChange}
+          className="w-56 pl-9 h-9 rounded-full bg-background border-muted"
+        />
+        {filters.driverName && (
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            onClick={() => onFilterChange({ ...filters, driverName: undefined })}
+            className="absolute right-1 top-1/2 transform -translate-y-1/2 h-7 w-7 p-0 rounded-full"
+          >
+            <X className="h-3 w-3" />
+          </Button>
+        )}
+      </div>
+      
+      <Popover open={open} onOpenChange={setOpen}>
+        <PopoverTrigger asChild>
+          <Button
+            variant="outline"
+            role="combobox"
+            aria-expanded={open}
+            className="h-9 justify-between rounded-full border-muted"
+          >
+            <span className="truncate max-w-[150px]">{getSelectedClientsDisplay()}</span>
+            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent className="w-[250px] p-0 z-50 bg-white border border-gray-200 shadow-md">
+          <Command>
+            <CommandInput 
+              placeholder="Buscar cliente..." 
+              value={searchValue}
+              onValueChange={setSearchValue}
+            />
+            <CommandEmpty>No se encontraron clientes.</CommandEmpty>
+            <CommandGroup className="max-h-[250px] overflow-y-auto">
+              {Array.isArray(clientList) && clientList.length > 0 ? (
+                clientList.map((client) => (
+                  <CommandItem
+                    key={client}
+                    value={client}
+                    className="flex items-center gap-2 py-2 cursor-pointer hover:bg-gray-100"
+                    onSelect={() => handleClientToggle(client)}
+                  >
+                    <Checkbox
+                      id={`client-${client}`}
+                      checked={(filters.selectedClients || []).includes(client)}
+                      onCheckedChange={() => handleClientToggle(client)}
+                      className="mr-2 h-4 w-4"
+                    />
+                    <label 
+                      htmlFor={`client-${client}`}
+                      className="flex-1 cursor-pointer truncate"
+                    >
+                      {client}
+                    </label>
+                  </CommandItem>
+                ))
+              ) : (
+                <CommandItem disabled className="opacity-50 cursor-default">
+                  No hay clientes disponibles
+                </CommandItem>
+              )}
+            </CommandGroup>
+          </Command>
+        </PopoverContent>
+      </Popover>
+
+      {(filters.selectedClients && filters.selectedClients.length > 0) &&
+        <div className="flex flex-wrap gap-1 max-w-[400px]">
+          {filters.selectedClients.map(client => (
+            <Badge 
+              key={client} 
+              variant="outline" 
+              className="h-7 px-2 gap-1"
+            >
+              {client}
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-4 w-4 p-0 ml-1"
+                onClick={() => handleClientToggle(client)}
               >
-                <X className="h-4 w-4" />
+                <X className="h-3 w-3" />
               </Button>
-            )}
-            
-            {(filters.driverName || filters.selectedClients) && (
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                onClick={handleClearFilters}
-                className="h-9"
-              >
-                Limpiar filtros
-              </Button>
-            )}
-          </div>
+            </Badge>
+          ))}
         </div>
-      </CardContent>
-    </Card>
+      }
+      
+      {(filters.driverName || (filters.selectedClients && filters.selectedClients.length > 0)) && (
+        <Button 
+          variant="ghost" 
+          size="sm" 
+          onClick={handleClearFilters}
+          className="h-9"
+        >
+          Limpiar filtros
+        </Button>
+      )}
+      
+      <div className="ml-auto">
+        <DriverBehaviorImport onImportComplete={handleImportComplete} />
+      </div>
+    </div>
   );
 }

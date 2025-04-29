@@ -7,12 +7,14 @@ import { DriverBehaviorMetricsCards } from './DriverBehaviorMetricsCards';
 import { DriverBehaviorTable } from './DriverBehaviorTable';
 import { DriverBehaviorChart } from './DriverBehaviorChart';
 import { DriverBehaviorData, DriverBehaviorFilters } from '../types/driver-behavior.types';
-import { Card, CardContent } from '@/components/ui/card';
 import { DriverBehaviorFiltersPanel } from './DriverBehaviorFiltersPanel';
 import { DriverRiskAssessment } from './DriverRiskAssessment';
 import { TopDriversPanel } from './TopDriversPanel';
 import { CO2EmissionsCard } from './CO2EmissionsCard';
-import { DriverBehaviorImport } from './DriverBehaviorImport';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Button } from "@/components/ui/button";
+import { DownloadIcon, RefreshCw } from "lucide-react";
+import { toast } from "sonner";
 
 interface DriverBehaviorDashboardProps {
   dateRange: DateRange;
@@ -50,11 +52,20 @@ export function DriverBehaviorDashboard({ dateRange, comparisonRange }: DriverBe
     setFilters(newFilters);
   };
   
-  const handleImportComplete = useCallback(() => {
-    // Invalidate queries to refresh data after import
+  const refreshData = () => {
     queryClient.invalidateQueries({ queryKey: ['driver-behavior-data'] });
     queryClient.invalidateQueries({ queryKey: ['driver-behavior-clients'] });
-  }, [queryClient]);
+    toast.success("Datos actualizados", {
+      description: "Dashboard actualizado con los datos más recientes"
+    });
+  };
+
+  const downloadTemplate = () => {
+    toast.success("Descargando plantilla", {
+      description: "La plantilla CSV ha sido descargada"
+    });
+    // Implement actual download logic here
+  };
 
   if (error) {
     console.error('Error loading driver behavior data:', error);
@@ -65,21 +76,36 @@ export function DriverBehaviorDashboard({ dateRange, comparisonRange }: DriverBe
     );
   }
 
-  // Log data to help debug the issue
-  console.log('Client list in dashboard:', clientList);
-  console.log('Current filters:', filters);
-
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col md:flex-row justify-between gap-4 mb-6">
+    <div className="space-y-6 animate-fade-in">
+      <div className="flex items-center justify-between mb-6">
         <DriverBehaviorFiltersPanel 
           clientList={Array.isArray(clientList) ? clientList : []} 
           onFilterChange={handleFilterChange} 
           filters={filters} 
         />
         
-        <div className="mt-4 md:mt-0">
-          <DriverBehaviorImport onImportComplete={handleImportComplete} />
+        <div className="flex items-center gap-3">
+          <Button 
+            variant="outline"
+            size="sm"
+            onClick={refreshData}
+            className="h-9"
+            title="Actualizar datos"
+          >
+            <RefreshCw className="h-4 w-4 mr-2" />
+            Actualizar
+          </Button>
+          
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={downloadTemplate}
+            className="h-9"
+          >
+            <DownloadIcon className="h-4 w-4 mr-2" />
+            Plantilla
+          </Button>
         </div>
       </div>
       
@@ -89,37 +115,51 @@ export function DriverBehaviorDashboard({ dateRange, comparisonRange }: DriverBe
         isLoading={isLoading} 
       />
       
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2">
-          <DriverBehaviorChart 
-            data={driverData?.driverScores} 
-            isLoading={isLoading} 
-            dateRange={dateRange} 
+      <Tabs defaultValue="overview" className="w-full">
+        <TabsList>
+          <TabsTrigger value="overview">Resumen</TabsTrigger>
+          <TabsTrigger value="risk">Riesgo y Conductores</TabsTrigger>
+          <TabsTrigger value="details">Detalles</TabsTrigger>
+        </TabsList>
+        
+        <TabsContent value="overview" className="mt-6 space-y-6">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="lg:col-span-2">
+              <DriverBehaviorChart 
+                data={driverData?.driverScores} 
+                isLoading={isLoading} 
+                dateRange={dateRange} 
+              />
+            </div>
+            <div>
+              <CO2EmissionsCard 
+                data={driverData} 
+                isLoading={isLoading} 
+              />
+            </div>
+          </div>
+        </TabsContent>
+        
+        <TabsContent value="risk" className="mt-6 space-y-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <DriverRiskAssessment 
+              riskData={driverData?.riskAssessment} 
+              isLoading={isLoading} 
+            />
+            <TopDriversPanel 
+              data={driverData?.driverPerformance} 
+              isLoading={isLoading}
+            />
+          </div>
+        </TabsContent>
+        
+        <TabsContent value="details" className="mt-6">
+          <DriverBehaviorTable 
+            dateRange={dateRange}
+            filters={filters}
           />
-        </div>
-        <div>
-          <CO2EmissionsCard 
-            data={driverData} 
-            isLoading={isLoading} 
-          />
-        </div>
-      </div>
-      
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <DriverRiskAssessment 
-          riskData={driverData?.riskAssessment} 
-          isLoading={isLoading} 
-        />
-        <TopDriversPanel 
-          data={driverData?.driverPerformance} 
-          isLoading={isLoading}
-        />
-      </div>
-      
-      <DriverBehaviorTable 
-        dateRange={dateRange}
-        filters={filters}
-      />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }

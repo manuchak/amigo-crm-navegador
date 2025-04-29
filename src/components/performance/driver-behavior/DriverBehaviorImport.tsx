@@ -6,7 +6,7 @@ import { ImportProgressBar } from '../filters/ImportProgressBar';
 import { ImportErrorDialog } from '../filters/ImportErrorDialog';
 import { LargeFileWarningDialog } from '../filters/LargeFileWarningDialog';
 import { Button } from "@/components/ui/button";
-import { RefreshCw, Download, Upload } from 'lucide-react';
+import { Upload } from 'lucide-react';
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 
@@ -50,54 +50,18 @@ export function DriverBehaviorImport({ className, onImportComplete }: DriverBeha
     }
   });
   
-  const {
-    isDownloading,
-    handleDownloadTemplate
-  } = useTemplateDownload('driver-behavior');
-  
-  const handleRefreshData = () => {
-    queryClient.invalidateQueries({ queryKey: ['driver-behavior-data'] });
-    queryClient.invalidateQueries({ queryKey: ['driver-behavior-clients'] });
-    toast.success("Datos actualizados", {
-      description: "El dashboard ha sido actualizado"
-    });
-  };
-  
   return (
     <>
-      <div className="flex items-center gap-2">
-        <Button 
-          variant="outline"
-          size="sm"
-          onClick={handleRefreshData}
-          className="h-9 px-3"
-          title="Actualizar datos"
-        >
-          <RefreshCw className="h-4 w-4" />
-        </Button>
-        
-        <Button 
-          variant="default" 
-          size="sm" 
-          className="h-9"
-          onClick={() => document.getElementById('driver-behavior-file-upload')?.click()}
-          disabled={isUploading}
-        >
-          <Upload className="h-4 w-4 mr-2" />
-          {isUploading ? "Subiendo..." : "Importar datos"}
-        </Button>
-
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={handleDownloadTemplate}
-          disabled={isDownloading}
-          className="h-9"
-        >
-          <Download className="h-4 w-4 mr-2" />
-          Plantilla
-        </Button>
-      </div>
+      <Button 
+        variant="default" 
+        size="sm" 
+        className="h-9"
+        onClick={() => document.getElementById('driver-behavior-file-upload')?.click()}
+        disabled={isUploading}
+      >
+        <Upload className="h-4 w-4 mr-2" />
+        {isUploading ? "Importando..." : "Importar datos"}
+      </Button>
       
       <input
         type="file"
