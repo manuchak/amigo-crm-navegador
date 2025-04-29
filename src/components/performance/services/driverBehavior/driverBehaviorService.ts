@@ -1,6 +1,7 @@
 
 import { DateRange } from "react-day-picker";
 import { DriverBehaviorData, DriverBehaviorFilters } from "../../types/driver-behavior.types";
+import { ImportResponse, ProgressCallback } from "../import/types";
 
 // Mock data for development
 const mockClients = ["Aquasteam", "Servprot", "Shellpride", "Logitrade", "TransGlobal"];
@@ -118,4 +119,37 @@ export const fetchClientList = async (): Promise<string[]> => {
   
   // Return a consistent list of clients for selection
   return mockClients;
+};
+
+// Add the missing import function that was referenced in importFactory.ts
+export const importDriverBehaviorData = async (
+  file: File,
+  onProgress?: ProgressCallback
+): Promise<ImportResponse> => {
+  console.log("Importing driver behavior data from file:", file.name);
+
+  // Simulate file processing and reporting progress
+  if (onProgress) {
+    onProgress("Analizando archivo...", 0, 100);
+    await new Promise(resolve => setTimeout(resolve, 500));
+    
+    onProgress("Procesando datos...", 25, 100);
+    await new Promise(resolve => setTimeout(resolve, 800));
+    
+    onProgress("Validando datos...", 50, 100);
+    await new Promise(resolve => setTimeout(resolve, 600));
+    
+    onProgress("Guardando datos...", 75, 100);
+    await new Promise(resolve => setTimeout(resolve, 700));
+    
+    onProgress("Finalizado", 100, 100);
+  }
+  
+  // Return a successful import response
+  return {
+    success: true,
+    message: "Datos de comportamiento de conductores importados correctamente",
+    rowsProcessed: 150,
+    errors: [] // No errors in this mock implementation
+  };
 };
