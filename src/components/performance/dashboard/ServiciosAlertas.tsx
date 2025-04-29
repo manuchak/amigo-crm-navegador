@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { AlertTriangle } from "lucide-react";
-import { ClienteAlerta } from '../services/servicios/serviciosDataService';
+import { ClienteAlerta } from '../services/servicios'; // Updated import
 import { Button } from '@/components/ui/button';
 import {
   Table,

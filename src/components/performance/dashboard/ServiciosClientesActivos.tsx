@@ -2,7 +2,7 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Users } from "lucide-react";
-import { ClienteServicios } from '../services/servicios/serviciosDataService';
+import { ClienteServicios } from '../services/servicios'; // Updated import
 import {
   Table,
   TableBody,

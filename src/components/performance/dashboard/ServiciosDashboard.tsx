@@ -2,7 +2,7 @@
 import React from 'react';
 import { DateRange } from "react-day-picker";
 import { useQuery } from "@tanstack/react-query";
-import { fetchServiciosData } from "../services/servicios/serviciosDataService";
+import { fetchServiciosData } from "../services/servicios"; // Updated import
 import { ServiciosMetricsCards } from './ServiciosMetricsCards';
 import { ServiciosPerformanceChart } from './charts/ServiciosPerformanceChart';
 import { ServiciosAlertas } from './ServiciosAlertas';

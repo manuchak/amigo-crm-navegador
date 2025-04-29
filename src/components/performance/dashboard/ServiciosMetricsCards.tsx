@@ -6,7 +6,7 @@ import {
   ArrowUp, ArrowDown, Calendar, TrendingUp, 
   Users, AlertTriangle, BarChart3, MapPin
 } from "lucide-react";
-import { ServiciosMetricData } from '../services/servicios/serviciosDataService';
+import { ServiciosMetricData } from '../services/servicios'; // Updated import
 import { formatNumber, formatCurrency } from '../utils/formatters';
 
 interface ServiciosMetricsCardsProps {
