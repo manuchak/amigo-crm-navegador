@@ -67,7 +67,7 @@ export function ServiciosTipoChart({ data = [], isLoading }: ServiciosTipoChartP
                   cy="50%"
                   labelLine={false}
                   label={({ tipo, percentage }) => `${percentage}%`}
-                  outerRadius={90}
+                  outerRadius={85} 
                   innerRadius={50} // Add a donut hole
                   fill="#8884d8"
                   dataKey="count"
@@ -89,12 +89,20 @@ export function ServiciosTipoChart({ data = [], isLoading }: ServiciosTipoChartP
                     border: 'none'
                   }}
                 />
+                {/* FIX 2: Position the legend at the bottom and limit its width to avoid overflow */}
                 <Legend 
                   layout="horizontal"
                   verticalAlign="bottom" 
                   align="center"
                   iconType="circle"
                   iconSize={8}
+                  wrapperStyle={{ 
+                    paddingTop: 10,
+                    width: '100%', 
+                    fontSize: '12px',
+                    display: 'flex',
+                    justifyContent: 'center'
+                  }}
                 />
               </PieChart>
             </ResponsiveContainer>

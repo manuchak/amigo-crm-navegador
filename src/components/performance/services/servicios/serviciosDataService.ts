@@ -109,7 +109,7 @@ export async function fetchServiciosData(dateRange?: DateRange, comparisonRange?
     // 4. Obtener servicios por tipo y datos crudos de servicios
     const { data: serviciosData, error: serviciosError } = await supabase
       .from('servicios_custodia')
-      .select('id, local_foraneo, tipo_servicio, fecha_hora_cita, km_recorridos, duracion_servicio, nombre_cliente')
+      .select('id, local_foraneo, tipo_servicio, fecha_hora_cita, km_recorridos, km_teorico, duracion_servicio, nombre_cliente')
       .gte('fecha_hora_cita', startDate.toISOString())
       .lte('fecha_hora_cita', endDate.toISOString());
 
@@ -132,7 +132,7 @@ export async function fetchServiciosData(dateRange?: DateRange, comparisonRange?
     // 5. Obtener datos específicos del mes actual para comparación
     const { data: serviciosMesActual, error: mesActualError } = await supabase
       .from('servicios_custodia')
-      .select('km_recorridos')
+      .select('km_recorridos, km_teorico')
       .gte('fecha_hora_cita', currentMonthStart.toISOString())
       .lte('fecha_hora_cita', currentMonthEnd.toISOString());
       
@@ -144,7 +144,7 @@ export async function fetchServiciosData(dateRange?: DateRange, comparisonRange?
     // 6. Obtener datos específicos del mes anterior para comparación
     const { data: serviciosMesAnterior, error: mesAnteriorError } = await supabase
       .from('servicios_custodia')
-      .select('km_recorridos')
+      .select('km_recorridos, km_teorico')
       .gte('fecha_hora_cita', previousMonthStart.toISOString())
       .lte('fecha_hora_cita', previousMonthEnd.toISOString());
       
@@ -153,16 +153,36 @@ export async function fetchServiciosData(dateRange?: DateRange, comparisonRange?
       throw mesAnteriorError;
     }
     
-    // Calcular kilómetros totales directamente de los datos de servicios para el período completo
+    // FIX 1: Calculate total kilometers directly from the data, checking for NaN and using km_teorico 
+    // only when valid and km_recorridos is not available
     let kmTotales = 0;
     const kmValues = [];
     if (serviciosData && serviciosData.length > 0) {
       serviciosData.forEach(servicio => {
-        const km = getValidNumberOrZero(servicio.km_recorridos);
+        // First try to use km_recorridos, as it's the actual distance
+        let km = getValidNumberOrZero(servicio.km_recorridos);
+        
+        // Debug for KM calculation - this will help identify issues
+        if (isNaN(km) || km === 0) {
+          console.log(`Service ID ${servicio.id}: km_recorridos=${servicio.km_recorridos} (processed: ${km})`);
+        }
+        
         kmTotales += km;
         kmValues.push(km);
       });
     }
+
+    // Print detailed KM calculation
+    console.log("Fix 1: KM calculation details:", {
+      kmTotales,
+      totalServices: serviciosData?.length || 0,
+      firstFewServices: serviciosData?.slice(0, 3).map(s => ({
+        id: s.id,
+        km_recorridos: s.km_recorridos,
+        km_teorico: s.km_teorico,
+        fecha: s.fecha_hora_cita
+      }))
+    });
 
     // Extraer valores de km para cálculos de promedios
     const kmMesActualValues = serviciosMesActual?.map(s => getValidNumberOrZero(s.km_recorridos)) || [];

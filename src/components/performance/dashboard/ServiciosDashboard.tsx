@@ -39,6 +39,7 @@ export function ServiciosDashboard({ dateRange, comparisonRange }: ServiciosDash
         totalServicios: data.totalServicios,
         serviciosDataLength: data.serviciosData?.length || 0,
         clientesActivos: data.clientesActivos,
+        kmTotales: data.kmTotales,
         hasMockData: !data.serviciosData || data.serviciosData.length === 0
       });
     }
@@ -85,13 +86,16 @@ export function ServiciosDashboard({ dateRange, comparisonRange }: ServiciosDash
         />
       </div>
       
-      {/* Type and Hour distribution charts in a row */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 animate-fade-in animate-delay-200">
+      {/* Type distribution chart in its own row for better visibility */}
+      <div className="animate-fade-in animate-delay-150">
         <ServiciosTipoChart 
           data={data?.serviciosPorTipo || []} 
           isLoading={isLoading} 
         />
-        
+      </div>
+      
+      {/* Hour distribution chart in its own row */}
+      <div className="animate-fade-in animate-delay-200">
         <ServiciosHourDistributionChart 
           data={data?.serviciosData}
           isLoading={isLoading}

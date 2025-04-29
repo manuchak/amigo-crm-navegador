@@ -37,7 +37,7 @@ export function ServiciosPerformanceChart({ data = [], comparisonData, isLoading
       to: dateRange.to ? dateRange.to.toISOString() : 'undefined'
     });
     
-    // Generate continuous date range including days with no services
+    // FIX 3: Generate continuous date range including days with no services
     let allDays: Date[] = [];
     
     if (dateRange.from && dateRange.to) {
@@ -46,6 +46,9 @@ export function ServiciosPerformanceChart({ data = [], comparisonData, isLoading
         start: dateRange.from,
         end: dateRange.to
       });
+      
+      // Log the first and last day to verify the range is correctly set
+      console.log(`Date range from ${format(dateRange.from, 'yyyy-MM-dd')} to ${format(dateRange.to, 'yyyy-MM-dd')}`);
     } else {
       // Fallback: Use default 90 days
       const today = new Date();
@@ -72,7 +75,10 @@ export function ServiciosPerformanceChart({ data = [], comparisonData, isLoading
     
     // Process all services and count them by day
     data.forEach(servicio => {
-      if (!servicio.fecha_hora_cita) return;
+      if (!servicio.fecha_hora_cita) {
+        console.log("Skipping service with missing fecha_hora_cita");
+        return;
+      }
       
       try {
         let serviceDate;
@@ -92,16 +98,32 @@ export function ServiciosPerformanceChart({ data = [], comparisonData, isLoading
           return;
         }
         
+        // Debug log for March 20+ data
+        if (serviceDate >= parseISO('2024-03-20')) {
+          console.log(`Found service after March 20: ${format(serviceDate, 'yyyy-MM-dd')}`);
+        }
+        
         const dayStr = format(serviceDate, 'yyyy-MM-dd');
         
         if (dailyDataMap.has(dayStr)) {
           const dayData = dailyDataMap.get(dayStr);
           dayData.servicios += 1;
+        } else {
+          console.log(`Service date ${dayStr} not in range ${format(allDays[0], 'yyyy-MM-dd')} to ${format(allDays[allDays.length-1], 'yyyy-MM-dd')}`);
         }
       } catch (error) {
-        console.error('Error processing service:', error, servicio);
+        console.error('Error processing service date:', error, servicio.fecha_hora_cita);
       }
     });
+    
+    // Log days with data to verify distribution
+    let daysWithData = 0;
+    dailyDataMap.forEach((value, key) => {
+      if (value.servicios > 0) {
+        daysWithData++;
+      }
+    });
+    console.log(`Days with data: ${daysWithData} out of ${allDays.length} days`);
     
     // Prepare final data array sorted by date
     const result = Array.from(dailyDataMap.values())
