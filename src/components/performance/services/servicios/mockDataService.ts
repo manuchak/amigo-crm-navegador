@@ -1,6 +1,7 @@
 
 import { DateRange } from "react-day-picker";
 import { ServiciosMetricData } from "./types";
+import { calculateAverage } from "./utils";
 
 /**
  * Generates mock service data for development or fallback purposes
@@ -26,6 +27,7 @@ export function getMockServiciosData(dateRange?: DateRange): ServiciosMetricData
   
   // Calculate total KM for the mock dataset
   let totalKm = 0;
+  const kmValues = [];
   
   for (let i = 0; i < count; i++) {
     // Generate random date within range
@@ -47,6 +49,7 @@ export function getMockServiciosData(dateRange?: DateRange): ServiciosMetricData
     }
     
     totalKm += km;
+    kmValues.push(km);
     
     // Random cost (between 500-1500)
     const cost = Math.floor(Math.random() * 1000) + 500;
@@ -66,16 +69,20 @@ export function getMockServiciosData(dateRange?: DateRange): ServiciosMetricData
     });
   }
   
-  // Calculate average KM for the current month
-  const avgKm = count > 0 ? Math.floor(totalKm / count) : 0;
+  // Calculate average KM
+  const avgKm = calculateAverage(kmValues);
   
   console.log("Mock data KM values:", {
     totalKm,
     avgKm,
-    mockItemCount: count
+    mockItemCount: count,
+    kmValues: kmValues.slice(0, 5) // Log first few values for debugging
   });
   
-  // Datos simulados para el nuevo formato
+  // Previous month data for comparison
+  const prevMonthAvgKm = Math.max(30, avgKm - (Math.random() * 20 - 10));
+  const kmPromedioPercentChange = ((avgKm - prevMonthAvgKm) / prevMonthAvgKm * 100).toFixed(1);
+  
   return {
     totalServicios: count,
     serviciosMoM: {
@@ -88,11 +95,11 @@ export function getMockServiciosData(dateRange?: DateRange): ServiciosMetricData
       previous: Math.floor(Math.random() * 10) + 5,
       percentChange: Math.floor(Math.random() * 40) - 5
     },
-    kmTotales: totalKm, // Use the calculated total KM
+    kmTotales: totalKm,
     kmPromedioMoM: {
       current: avgKm, // Use the calculated average KM
-      previous: Math.floor(Math.random() * 100) + 70,
-      percentChange: Math.floor(Math.random() * 20) - 5
+      previous: prevMonthAvgKm,
+      percentChange: Number(kmPromedioPercentChange)
     },
     clientesActivos: Math.floor(Math.random() * 20) + 10,
     clientesNuevos: Math.floor(Math.random() * 5) + 1,
@@ -115,6 +122,6 @@ export function getMockServiciosData(dateRange?: DateRange): ServiciosMetricData
       { tipo: "Local", count: Math.floor(Math.random() * 40) + 20 },
       { tipo: "Reparto", count: Math.floor(Math.random() * 30) + 15 }
     ],
-    serviciosData: data  // Added missing property
+    serviciosData: data
   };
 }

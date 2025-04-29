@@ -16,7 +16,14 @@ export function calcularPorcentajeCambio(actual: number, anterior: number): numb
  * @returns True if the value is a valid number, false otherwise
  */
 export function isValidNumber(value: any): boolean {
-  return value !== undefined && value !== null && !isNaN(Number(value));
+  // Handle undefined objects with _type property (seen in console logs)
+  if (value && typeof value === 'object' && value._type === 'undefined') {
+    return false;
+  }
+  
+  // Convert to number first to handle string numbers
+  const num = Number(value);
+  return value !== undefined && value !== null && !isNaN(num) && isFinite(num);
 }
 
 /**
@@ -31,4 +38,25 @@ export function getValidNumberOrZero(value: any): number {
     return 0;
   }
   return Number(value);
+}
+
+/**
+ * Calculate the average of an array of numbers, handling invalid values
+ * @param values Array of values to average
+ * @returns Average value or 0 if no valid values
+ */
+export function calculateAverage(values: any[]): number {
+  if (!values || values.length === 0) return 0;
+  
+  let sum = 0;
+  let count = 0;
+  
+  for (const value of values) {
+    if (isValidNumber(value)) {
+      sum += Number(value);
+      count++;
+    }
+  }
+  
+  return count > 0 ? Number((sum / count).toFixed(1)) : 0;
 }

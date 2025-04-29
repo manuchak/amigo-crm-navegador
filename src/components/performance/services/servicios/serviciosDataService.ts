@@ -3,7 +3,7 @@ import { DateRange } from "react-day-picker";
 import { supabase } from "@/integrations/supabase/client";
 import { format, subMonths, subWeeks, startOfMonth, endOfMonth, startOfWeek, endOfWeek } from "date-fns";
 import { ServiciosMetricData } from "./types";
-import { calcularPorcentajeCambio, getValidNumberOrZero } from "./utils";
+import { calcularPorcentajeCambio, getValidNumberOrZero, calculateAverage } from "./utils";
 import { getMockServiciosData } from "./mockDataService";
 
 /**
@@ -36,7 +36,9 @@ export async function fetchServiciosData(dateRange?: DateRange, comparisonRange?
 
     console.log("Date ranges for KM calculation:", {
       startDate: startDate.toISOString(),
-      endDate: endDate.toISOString()
+      endDate: endDate.toISOString(),
+      currentMonth: {start: currentMonthStart.toISOString(), end: currentMonthEnd.toISOString()},
+      previousMonth: {start: previousMonthStart.toISOString(), end: previousMonthEnd.toISOString()}
     });
 
     // 1. Obtener métricas generales
@@ -80,38 +82,64 @@ export async function fetchServiciosData(dateRange?: DateRange, comparisonRange?
     // 4. Obtener servicios por tipo y datos crudos de servicios
     const { data: serviciosData, error: serviciosError } = await supabase
       .from('servicios_custodia')
-      .select('id, local_foraneo, tipo_servicio, fecha_hora_cita, km_recorridos, duracion_servicio')
+      .select('id, local_foraneo, tipo_servicio, fecha_hora_cita, km_recorridos, duracion_servicio, nombre_cliente')
       .gte('fecha_hora_cita', startDate.toISOString())
       .lte('fecha_hora_cita', endDate.toISOString());
 
     if (serviciosError) throw serviciosError;
+
+    // 5. Obtener datos específicos del mes actual para comparación
+    const { data: serviciosMesActual, error: mesActualError } = await supabase
+      .from('servicios_custodia')
+      .select('km_recorridos')
+      .gte('fecha_hora_cita', currentMonthStart.toISOString())
+      .lte('fecha_hora_cita', currentMonthEnd.toISOString());
+      
+    if (mesActualError) throw mesActualError;
+      
+    // 6. Obtener datos específicos del mes anterior para comparación
+    const { data: serviciosMesAnterior, error: mesAnteriorError } = await supabase
+      .from('servicios_custodia')
+      .select('km_recorridos')
+      .gte('fecha_hora_cita', previousMonthStart.toISOString())
+      .lte('fecha_hora_cita', previousMonthEnd.toISOString());
+      
+    if (mesAnteriorError) throw mesAnteriorError;
+    
+    // Calcular kilómetros totales directamente de los datos de servicios para el período completo
+    let kmTotales = 0;
+    const kmValues = [];
+    if (serviciosData && serviciosData.length > 0) {
+      serviciosData.forEach(servicio => {
+        const km = getValidNumberOrZero(servicio.km_recorridos);
+        kmTotales += km;
+        kmValues.push(km);
+      });
+    }
+
+    // Extraer valores de km para cálculos de promedios
+    const kmMesActualValues = serviciosMesActual?.map(s => getValidNumberOrZero(s.km_recorridos)) || [];
+    const kmMesAnteriorValues = serviciosMesAnterior?.map(s => getValidNumberOrZero(s.km_recorridos)) || [];
+    
+    // Calcular promedios de KM por mes
+    const kmPromedioMesActual = calculateAverage(kmMesActualValues);
+    const kmPromedioMesAnterior = calculateAverage(kmMesAnteriorValues);
+    
+    console.log("Detailed KM calculations:", {
+      kmTotales,
+      totalServices: serviciosData?.length || 0,
+      kmPromedioMesActual,
+      kmPromedioMesAnterior,
+      kmMesActualLength: kmMesActualValues.length,
+      kmMesAnteriorLength: kmMesAnteriorValues.length,
+      sampleKmValues: kmValues.slice(0, 5) // First few values for debugging
+    });
     
     // Procesar servicios por tipo (Foraneo, Local o Reparto)
     const serviciosPorTipo = procesarServiciosPorTipo(serviciosData || []);
 
-    // Calcular kilómetros totales directamente de los datos de servicios
-    let kmTotales = 0;
-    if (serviciosData && serviciosData.length > 0) {
-      kmTotales = serviciosData.reduce((total, servicio) => {
-        const km = getValidNumberOrZero(servicio.km_recorridos);
-        return total + km;
-      }, 0);
-    }
-
-    console.log("Calculando KM totales desde servicios:", {
-      kmTotalesCalculados: kmTotales,
-      numServicios: serviciosData?.length || 0,
-      muestraServicios: serviciosData?.slice(0, 3).map(s => ({
-        id: s.id,
-        km: s.km_recorridos
-      }))
-    });
-
     // Calcular cambios porcentuales
     const metrics = generalMetrics?.[0] || {};
-    
-    // Log métricas generales para depurar
-    console.log("General metrics received:", metrics);
     
     const serviciosMoM = {
       current: metrics.servicios_mes_actual || 0,
@@ -131,30 +159,20 @@ export async function fetchServiciosData(dateRange?: DateRange, comparisonRange?
       )
     };
     
-    // Calcular km promedio del mes actual y anterior
-    const kmPromedioMesActual = getValidNumberOrZero(metrics.km_promedio_mes_actual);
-    const kmPromedioMesAnterior = getValidNumberOrZero(metrics.km_promedio_mes_anterior);
-    
-    console.log("KM promedio values:", {
-      mesActual: kmPromedioMesActual,
-      mesAnterior: kmPromedioMesAnterior,
-      original: {
-        mesActual: metrics.km_promedio_mes_actual,
-        mesAnterior: metrics.km_promedio_mes_anterior
-      }
-    });
+    // Calcular cambio porcentual para KM promedio
+    const kmPercentChange = calcularPorcentajeCambio(kmPromedioMesActual, kmPromedioMesAnterior);
     
     const kmPromedioMoM = {
       current: kmPromedioMesActual,
       previous: kmPromedioMesAnterior,
-      percentChange: calcularPorcentajeCambio(kmPromedioMesActual, kmPromedioMesAnterior)
+      percentChange: kmPercentChange
     };
 
     return {
       totalServicios: metrics.total_servicios || 0,
       serviciosMoM,
       serviciosWoW,
-      kmTotales: kmTotales, // Utilizar los kilómetros calculados directamente de los datos de servicios
+      kmTotales,
       kmPromedioMoM,
       clientesActivos: metrics.clientes_activos || 0,
       clientesNuevos: metrics.clientes_nuevos || 0,
@@ -190,6 +208,7 @@ function procesarServiciosPorTipo(servicios: any[]): { tipo: string; count: numb
       ? servicio.tipo_servicio.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "") 
       : '';
     
+    // Clasificar el servicio según palabras clave
     if (localForaneo.includes('foraneo') || tipoServicio.includes('foraneo')) {
       tipoMap["Foráneo"]++;
     } else if (localForaneo.includes('local') || tipoServicio.includes('local')) {
@@ -204,7 +223,6 @@ function procesarServiciosPorTipo(servicios: any[]): { tipo: string; count: numb
   
   // Convertir a array de objetos y filtrar categorías vacías
   return Object.entries(tipoMap)
-    .filter(([_, count]) => count > 0)
     .map(([tipo, count]) => ({ tipo, count }))
     .sort((a, b) => b.count - a.count);
 }
