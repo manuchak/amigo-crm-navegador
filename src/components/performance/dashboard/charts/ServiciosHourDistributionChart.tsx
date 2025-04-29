@@ -45,7 +45,7 @@ export function ServiciosHourDistributionChart({ data = [], isLoading }: Servici
       if (!servicio.fecha_hora_cita) return;
       
       try {
-        // FIXED: Parse ISO dates properly to ensure timezone handling
+        // Parse ISO dates properly to ensure timezone handling
         const date = servicio.fecha_hora_cita;
         let serviceDate;
         
@@ -65,11 +65,6 @@ export function ServiciosHourDistributionChart({ data = [], isLoading }: Servici
         
         const hour = serviceDate.getHours();
         
-        // Debug log
-        if (hour === 21 || hour === 22 || hour === 20) {
-          console.log(`Service at hour ${hour}:`, servicio.fecha_hora_cita);
-        }
-        
         if (hour >= 0 && hour < 24) {
           hourCounts[hour].count++;
         }
@@ -80,7 +75,7 @@ export function ServiciosHourDistributionChart({ data = [], isLoading }: Servici
 
     // Log data for debugging
     console.log('Hourly distribution data:', 
-      hourCounts.map(h => `Hour ${h.hour}: ${h.count} services`).join(', ')
+      hourCounts.filter(h => h.count > 0).map(h => `Hour ${h.hour}: ${h.count} services`).join(', ')
     );
     
     return hourCounts;
@@ -88,7 +83,7 @@ export function ServiciosHourDistributionChart({ data = [], isLoading }: Servici
 
   if (isLoading) {
     return (
-      <Card className="border shadow-sm bg-white">
+      <Card className="border shadow-sm bg-white h-full">
         <CardHeader className="pb-2">
           <CardTitle className="text-lg font-medium">Distribución por Hora del Día</CardTitle>
         </CardHeader>

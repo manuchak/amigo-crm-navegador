@@ -77,25 +77,27 @@ export function ServiciosDashboard({ dateRange, comparisonRange }: ServiciosDash
         />
       </div>
       
-      {/* Performance chart with full width for better visibility */}
+      {/* Performance chart in its own row for better visibility and no overlapping */}
       <div className="animate-fade-in animate-delay-100 duration-300">
-        <ServiciosPerformanceChart 
-          data={data?.serviciosData} 
-          isLoading={isLoading}
-          dateRange={dateRange}
-        />
+        <div className="w-full h-[460px]">
+          <ServiciosPerformanceChart 
+            data={data?.serviciosData} 
+            isLoading={isLoading}
+            dateRange={dateRange}
+          />
+        </div>
       </div>
       
-      {/* FIXED: Added proper heights to ensure charts don't overlap and are consistently sized */}
+      {/* Services type and hour distribution charts in a grid with fixed heights */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 animate-fade-in animate-delay-150 duration-300">
-        <div className="h-full">
+        <div className="h-[400px]">
           <ServiciosTipoChart 
             data={data?.serviciosPorTipo || []} 
             isLoading={isLoading} 
           />
         </div>
         
-        <div className="h-full">
+        <div className="h-[400px]">
           <ServiciosHourDistributionChart 
             data={data?.serviciosData}
             isLoading={isLoading}
@@ -103,16 +105,16 @@ export function ServiciosDashboard({ dateRange, comparisonRange }: ServiciosDash
         </div>
       </div>
       
-      {/* Clients and alerts in a row */}
+      {/* Clients and alerts in a row with fixed heights */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 animate-fade-in animate-delay-200 duration-300">
-        <div className="h-full">
+        <div className="h-[500px]">
           <ServiciosClientesActivos 
             clientes={data?.serviciosPorCliente || []}
             isLoading={isLoading}
           />
         </div>
         
-        <div className="h-full">
+        <div className="h-[500px]">
           <ServiciosAlertas 
             alertas={data?.alertas || []}
             isLoading={isLoading}

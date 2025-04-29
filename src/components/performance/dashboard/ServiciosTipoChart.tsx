@@ -51,35 +51,13 @@ export function ServiciosTipoChart({ data = [], isLoading }: ServiciosTipoChartP
     chartConfig[item.tipo] = { color };
   });
 
-  // Custom render for the labels to ensure they don't overflow
-  const renderCustomizedLabel = ({ tipo, percentage, cx, cy, midAngle, innerRadius, outerRadius }) => {
-    const RADIAN = Math.PI / 180;
-    const radius = innerRadius + (outerRadius - innerRadius) * 0.5;
-    const x = cx + radius * Math.cos(-midAngle * RADIAN);
-    const y = cy + radius * Math.sin(-midAngle * RADIAN);
-
-    return (
-      <text 
-        x={x} 
-        y={y} 
-        fill="white" 
-        textAnchor="middle" 
-        dominantBaseline="central"
-        fontSize={12}
-        fontWeight={500}
-      >
-        {`${percentage}%`}
-      </text>
-    );
-  };
-
   return (
     <Card className="border shadow-sm bg-white h-full">
       <CardHeader className="pb-2">
         <CardTitle className="text-lg font-medium">Distribución por Tipo de Servicio</CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="h-[250px] mb-2">
+        <div className="h-[250px]">
           <ChartContainer config={chartConfig}>
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
@@ -88,7 +66,26 @@ export function ServiciosTipoChart({ data = [], isLoading }: ServiciosTipoChartP
                   cx="50%"
                   cy="50%"
                   labelLine={false}
-                  label={renderCustomizedLabel}
+                  label={({ tipo, percentage, cx, cy, midAngle, innerRadius, outerRadius }) => {
+                    const RADIAN = Math.PI / 180;
+                    const radius = innerRadius + (outerRadius - innerRadius) * 0.5;
+                    const x = cx + radius * Math.cos(-midAngle * RADIAN);
+                    const y = cy + radius * Math.sin(-midAngle * RADIAN);
+
+                    return (
+                      <text 
+                        x={x} 
+                        y={y} 
+                        fill="white" 
+                        textAnchor="middle" 
+                        dominantBaseline="central"
+                        fontSize={12}
+                        fontWeight={500}
+                      >
+                        {`${percentage}%`}
+                      </text>
+                    );
+                  }}
                   outerRadius={85} 
                   innerRadius={50}
                   fill="#8884d8"
@@ -117,8 +114,8 @@ export function ServiciosTipoChart({ data = [], isLoading }: ServiciosTipoChartP
           </ChartContainer>
         </div>
         
-        {/* FIXED: Move legend to center-bottom with better spacing */}
-        <div className="flex justify-center items-center gap-6 mt-4">
+        {/* Compact legend with horizontal layout */}
+        <div className="flex flex-wrap justify-center gap-4 mt-4">
           {chartDataWithPercentage.map(entry => (
             <div key={entry.tipo} className="flex items-center gap-2">
               <div 

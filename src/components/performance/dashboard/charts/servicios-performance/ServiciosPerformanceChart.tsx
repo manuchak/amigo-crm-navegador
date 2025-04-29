@@ -40,7 +40,7 @@ export function ServiciosPerformanceChart({
       <CardHeader className="pb-2">
         <CardTitle className="text-lg font-medium">Rendimiento de Servicios</CardTitle>
       </CardHeader>
-      <CardContent>
+      <CardContent className="p-2">
         <div className="h-[350px] w-full">
           <PerformanceChart 
             chartData={chartData}
