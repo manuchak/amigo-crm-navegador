@@ -1186,6 +1186,17 @@ export type Database = {
       }
     }
     Functions: {
+      calcular_kpi_cliente: {
+        Args: { p_cliente: string; fecha_inicio: string; fecha_fin: string }
+        Returns: {
+          nombre_cliente: string
+          total_servicios: number
+          km_totales: number
+          costo_total: number
+          duracion_promedio: unknown
+          servicios_por_dia: number
+        }[]
+      }
       deduplicate_leads: {
         Args: Record<PropertyKey, never>
         Returns: undefined
@@ -1310,6 +1321,65 @@ export type Database = {
       invoke_deduplicate_function: {
         Args: Record<PropertyKey, never>
         Returns: undefined
+      }
+      obtener_alertas_clientes: {
+        Args: {
+          mes_actual_inicio: string
+          mes_actual_fin: string
+          mes_anterior_inicio: string
+          mes_anterior_fin: string
+          umbral_variacion: number
+        }
+        Returns: {
+          nombre: string
+          servicios_actual: number
+          servicios_anterior: number
+          variacion: number
+          kmpromedio: number
+          costopromedio: number
+        }[]
+      }
+      obtener_metricas_generales: {
+        Args: {
+          fecha_inicio: string
+          fecha_fin: string
+          mes_actual_inicio: string
+          mes_actual_fin: string
+          mes_anterior_inicio: string
+          mes_anterior_fin: string
+          semana_actual_inicio: string
+          semana_actual_fin: string
+          semana_anterior_inicio: string
+          semana_anterior_fin: string
+        }
+        Returns: {
+          total_servicios: number
+          km_totales: number
+          servicios_mes_actual: number
+          servicios_mes_anterior: number
+          servicios_semana_actual: number
+          servicios_semana_anterior: number
+          km_promedio_mes_actual: number
+          km_promedio_mes_anterior: number
+          clientes_activos: number
+          clientes_nuevos: number
+        }[]
+      }
+      obtener_servicios_por_cliente: {
+        Args: { fecha_inicio: string; fecha_fin: string }
+        Returns: {
+          nombre_cliente: string
+          totalservicios: number
+          kmpromedio: number
+          costopromedio: number
+        }[]
+      }
+      obtener_servicios_por_tipo: {
+        Args: { fecha_inicio: string; fecha_fin: string }
+        Returns: {
+          tipo: string
+          count: number
+        }[]
       }
       update_user_role: {
         Args: { target_user_id: string; new_role: string }

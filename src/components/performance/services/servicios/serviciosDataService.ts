@@ -1,3 +1,4 @@
+
 import { DateRange } from "react-day-picker";
 import { supabase } from "@/integrations/supabase/client";
 import { format, subMonths, subWeeks, startOfMonth, endOfMonth, startOfWeek, endOfWeek } from "date-fns";

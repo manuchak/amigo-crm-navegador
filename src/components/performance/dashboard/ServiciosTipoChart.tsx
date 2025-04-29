@@ -38,6 +38,12 @@ export function ServiciosTipoChart({ data = [], isLoading }: ServiciosTipoChartP
     percentage: ((item.count / total) * 100).toFixed(1)
   }));
 
+  // Create proper chart config
+  const chartConfig = {};
+  COLORS.forEach((color, index) => {
+    chartConfig[`item-${index}`] = { color };
+  });
+
   return (
     <Card className="border-0 shadow-md">
       <CardHeader className="pb-2">
@@ -46,13 +52,7 @@ export function ServiciosTipoChart({ data = [], isLoading }: ServiciosTipoChartP
       <CardContent>
         <div className="h-[300px]">
           <ChartContainer 
-            config={{ 
-              colors: COLORS,
-              theme: {
-                backgroundColor: 'transparent',
-                fontSize: 12,
-              }
-            }}
+            config={chartConfig}
           >
             <PieChart>
               <Pie

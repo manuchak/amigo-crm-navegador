@@ -49,8 +49,8 @@ export function ServiciosDashboard({ dateRange, comparisonRange }: ServiciosDash
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Gráfico principal de rendimiento */}
         <ServiciosPerformanceChart 
-          data={serviciosData?.serviciosPorCliente} 
-          comparisonData={comparisonData?.serviciosPorCliente}
+          data={serviciosData?.serviciosPorCliente || []} 
+          comparisonData={comparisonData?.serviciosPorCliente || []}
           isLoading={isLoading} 
           dateRange={dateRange} 
         />

@@ -30,3 +30,42 @@ export function formatPercentage(value: number | undefined | null, decimals: num
   
   return `${value.toFixed(decimals)}%`;
 }
+
+/**
+ * Formatea una duración (en minutos) como texto legible
+ */
+export function formatDuration(minutes: number | undefined | null): string {
+  if (minutes === undefined || minutes === null) return '0 min';
+  
+  if (minutes < 60) {
+    return `${Math.round(minutes)} min`;
+  } else {
+    const hours = Math.floor(minutes / 60);
+    const remainingMinutes = Math.round(minutes % 60);
+    return remainingMinutes > 0 ? 
+      `${hours}h ${remainingMinutes}m` : 
+      `${hours}h`;
+  }
+}
+
+/**
+ * Formatea una fecha en formato corto
+ */
+export function formatShortDate(date: Date | string | undefined | null): string {
+  if (!date) return '';
+  
+  const dateObj = typeof date === 'string' ? new Date(date) : date;
+  return new Intl.DateTimeFormat('es-MX', {
+    day: 'numeric',
+    month: 'short'
+  }).format(dateObj);
+}
+
+/**
+ * Formatea una cantidad de km
+ */
+export function formatDistance(km: number | undefined | null): string {
+  if (km === undefined || km === null) return '0 km';
+  
+  return `${formatNumber(km)} km`;
+}
