@@ -10,6 +10,7 @@ import { DateRangeWithComparison } from "@/components/performance/filters/Advanc
 import { subDays } from "date-fns";
 import { PerformanceDateFilter } from '@/components/performance/PerformanceDateFilter';
 import { Card } from '@/components/ui/card';
+import { toast } from 'sonner';
 
 export default function Performance() {
   // Initialize with the "last 90 days" preset
@@ -32,6 +33,24 @@ export default function Performance() {
     return <PerformanceHeader />;
   };
 
+  // Handle date range changes with validation
+  const handleDateRangeChange = (newRange: DateRangeWithComparison) => {
+    // Validate that the date range is not too large (e.g., more than 1 year)
+    if (newRange.primary.from && newRange.primary.to) {
+      const diffTime = Math.abs(newRange.primary.to.getTime() - newRange.primary.from.getTime());
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+      
+      if (diffDays > 365) {
+        toast.warning("Rango de fechas demasiado amplio", {
+          description: "Por favor seleccione un rango menor a un año para un mejor rendimiento"
+        });
+        return;
+      }
+    }
+    
+    setDateRange(newRange);
+  };
+
   return (
     <div className="container mx-auto space-y-8 py-8 px-4 md:px-6">
       <div>
@@ -39,7 +58,7 @@ export default function Performance() {
       </div>
       
       <Card className="border shadow-sm p-4">
-        <PerformanceDateFilter dateRange={dateRange} setDateRange={setDateRange} />
+        <PerformanceDateFilter dateRange={dateRange} setDateRange={handleDateRangeChange} />
       </Card>
       
       <div className="mt-8">

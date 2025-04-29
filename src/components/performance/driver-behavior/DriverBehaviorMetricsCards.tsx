@@ -70,23 +70,47 @@ export function DriverBehaviorMetricsCards({
   comparisonData,
   isLoading 
 }: DriverBehaviorMetricsCardsProps) {
-  // Calculate metrics
-  const avgScore = data ? data.averageScore : 0;
-  const totalPenaltyPoints = data ? data.totalPenaltyPoints : 0;
-  const totalTrips = data ? data.totalTrips : 0;
-    
-  const criticalDriversCount = data && data.driverScores && data.driverScores.length > 0
-    ? data.driverScores.filter(d => d.score < 40).length
+  // Calculate metrics directly from driver scores
+  const driverScores = data?.driverScores || [];
+  
+  // Calculate average score (actual average from records)
+  const avgScore = driverScores.length > 0
+    ? driverScores.reduce((sum, driver) => sum + Number(driver.score), 0) / driverScores.length
     : 0;
     
+  // Calculate total penalty points (sum from records)
+  const totalPenaltyPoints = driverScores.reduce(
+    (sum, driver) => sum + Number(driver.penalty_points), 
+    0
+  );
+  
+  // Calculate total trips (sum from records)
+  const totalTrips = driverScores.reduce(
+    (sum, driver) => sum + Number(driver.trips_count), 
+    0
+  );
+  
+  // Count drivers with critical scores (below 40)
+  const criticalDriversCount = driverScores.filter(d => d.score < 40).length;
+  
   // Calculate comparison metrics if available
-  const prevAvgScore = comparisonData ? comparisonData.averageScore : 0;
-  const prevPenaltyPoints = comparisonData ? comparisonData.totalPenaltyPoints : 0;
-  const prevTrips = comparisonData ? comparisonData.totalTrips : 0;
-    
-  const prevCriticalDrivers = comparisonData && comparisonData.driverScores && comparisonData.driverScores.length > 0
-    ? comparisonData.driverScores.filter(d => d.score < 40).length
+  const prevDriverScores = comparisonData?.driverScores || [];
+  
+  const prevAvgScore = prevDriverScores.length > 0
+    ? prevDriverScores.reduce((sum, driver) => sum + Number(driver.score), 0) / prevDriverScores.length
     : 0;
+    
+  const prevPenaltyPoints = prevDriverScores.reduce(
+    (sum, driver) => sum + Number(driver.penalty_points), 
+    0
+  );
+    
+  const prevTrips = prevDriverScores.reduce(
+    (sum, driver) => sum + Number(driver.trips_count), 
+    0
+  );
+    
+  const prevCriticalDrivers = prevDriverScores.filter(d => d.score < 40).length;
     
   // Calculate percentage changes
   const scoreChange = prevAvgScore > 0 
