@@ -10,7 +10,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { ServiciosMetricData } from "../services/servicios/serviciosDataService";
+import { ServiciosMetricData } from "../services/servicios/types";
 
 interface CustodioRetentionTableProps {
   data: ServiciosMetricData;

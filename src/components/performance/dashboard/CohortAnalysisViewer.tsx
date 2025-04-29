@@ -1,9 +1,8 @@
-
 import React from 'react';
 import { DateRange } from "react-day-picker";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ServiciosMetricData } from "../services/servicios/serviciosDataService";
+import { ServiciosMetricData } from "../services/servicios/types";
 
 interface CohortAnalysisViewerProps {
   data: ServiciosMetricData;
