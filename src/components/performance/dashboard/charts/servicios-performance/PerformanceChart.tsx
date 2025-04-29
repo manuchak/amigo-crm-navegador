@@ -44,12 +44,12 @@ export const PerformanceChart: React.FC<PerformanceChartProps> = ({
       <ResponsiveContainer width="100%" height="100%">
         <LineChart 
           data={chartData}
-          margin={{ top: 20, right: 30, left: 0, bottom: 20 }}
+          margin={{ top: 15, right: 25, left: 0, bottom: 25 }}
         >
           <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
           <XAxis 
             dataKey="displayDate" 
-            tick={{ fontSize: 11 }}
+            tick={{ fontSize: 10 }}
             interval="preserveStartEnd"
             tickMargin={10}
             axisLine={{ stroke: '#e5e5e5' }}
@@ -59,6 +59,7 @@ export const PerformanceChart: React.FC<PerformanceChartProps> = ({
             axisLine={{ stroke: '#e5e5e5' }}
             tickLine={false}
             width={30}
+            fontSize={10}
           />
           <Tooltip
             contentStyle={{ 
@@ -87,6 +88,7 @@ export const PerformanceChart: React.FC<PerformanceChartProps> = ({
             iconType="circle"
             iconSize={8}
             wrapperStyle={{ paddingTop: 5 }}
+            fontSize={12}
           />
           <ReferenceLine 
             y={average} 
@@ -95,7 +97,7 @@ export const PerformanceChart: React.FC<PerformanceChartProps> = ({
             label={{ 
               value: `Prom: ${average.toFixed(1)}`, 
               fill: '#9b87f5',
-              fontSize: 11,
+              fontSize: 10,
               position: 'right'
             }} 
           />

@@ -22,7 +22,7 @@ export async function fetchServiciosData(dateRange?: DateRange, comparisonRange?
   try {
     // Only use mock data if explicitly in development mode without any date range
     const useMockData = process.env.NODE_ENV === 'development' && 
-                        (!dateRange || !dateRange.from || !dateRange.to);
+                      (!dateRange || !dateRange.from || !dateRange.to);
     
     if (useMockData) {
       console.log("Using mock data because no date range provided in development mode");
@@ -110,7 +110,22 @@ export async function fetchServiciosData(dateRange?: DateRange, comparisonRange?
 
     console.log(`Fetched ${serviciosData?.length || 0} services from database`);
     if (serviciosData && serviciosData.length > 0) {
-      console.log("Sample service dates:", serviciosData.slice(0, 5).map(s => s.fecha_hora_cita));
+      // Log a sample of the data to verify date formats and April data
+      const sample = serviciosData.slice(0, 5);
+      console.log("Sample service dates:", sample.map(s => ({
+        id: s.id,
+        fecha: s.fecha_hora_cita,
+        month: s.fecha_hora_cita ? new Date(s.fecha_hora_cita).getMonth() + 1 : 'unknown'
+      })));
+      
+      // Check specifically for April data
+      const aprilData = serviciosData.filter(s => {
+        if (!s.fecha_hora_cita) return false;
+        const date = new Date(s.fecha_hora_cita);
+        return date.getMonth() === 3; // April is month 3 (0-indexed)
+      });
+      
+      console.log(`Found ${aprilData.length} services in April`);
     }
 
     // 5. Obtener datos específicos del mes actual para comparación
@@ -137,26 +152,30 @@ export async function fetchServiciosData(dateRange?: DateRange, comparisonRange?
       throw mesAnteriorError;
     }
     
-    // FIXED: Calculate KM totales using km_teorico instead of km_recorridos
+    // Calculate KM totales using km_teorico instead of km_recorridos
     let kmTotales = 0;
     
     if (serviciosData && serviciosData.length > 0) {
+      let validKmCount = 0;
       serviciosData.forEach(servicio => {
-        // Use km_teorico instead of km_recorridos for the total calculation
-        // This fixes the issue with showing 464K instead of 190K
-        const km = getValidNumberOrZero(servicio.km_teorico);
+        // Use km_teorico or fallback to km_recorridos if teorico is not available
+        const km = getValidNumberOrZero(servicio.km_teorico || servicio.km_recorridos);
+        if (km > 0) {
+          validKmCount++;
+        }
         kmTotales += km;
+      });
+
+      console.log("KM calculation:", {
+        kmTotales,
+        totalServices: serviciosData.length,
+        servicesWithValidKm: validKmCount
       });
     }
 
-    console.log("KM calculation:", {
-      kmTotales,
-      totalServices: serviciosData?.length || 0,
-    });
-
     // Extraer valores de km para cálculos de promedios
-    const kmMesActualValues = serviciosMesActual?.map(s => getValidNumberOrZero(s.km_teorico)) || [];
-    const kmMesAnteriorValues = serviciosMesAnterior?.map(s => getValidNumberOrZero(s.km_teorico)) || [];
+    const kmMesActualValues = serviciosMesActual?.map(s => getValidNumberOrZero(s.km_teorico || s.km_recorridos)) || [];
+    const kmMesAnteriorValues = serviciosMesAnterior?.map(s => getValidNumberOrZero(s.km_teorico || s.km_recorridos)) || [];
     
     // Calcular promedios de KM por mes
     const kmPromedioMesActual = calculateAverage(kmMesActualValues);

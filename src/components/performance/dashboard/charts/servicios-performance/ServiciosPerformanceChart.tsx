@@ -40,8 +40,8 @@ export function ServiciosPerformanceChart({
       <CardHeader className="pb-2">
         <CardTitle className="text-lg font-medium">Rendimiento de Servicios</CardTitle>
       </CardHeader>
-      <CardContent className="p-2">
-        <div className="h-[350px] w-full">
+      <CardContent className="p-0 pb-2">
+        <div className="h-[360px] w-full">
           <PerformanceChart 
             chartData={chartData}
             average={average}

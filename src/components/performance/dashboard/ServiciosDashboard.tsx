@@ -4,7 +4,7 @@ import { DateRange } from "react-day-picker";
 import { useQuery } from "@tanstack/react-query";
 import { fetchServiciosData } from '../services/servicios';
 import { ServiciosMetricsCards } from './ServiciosMetricsCards';
-import { ServiciosPerformanceChart } from './charts/ServiciosPerformanceChart';
+import { ServiciosPerformanceChart } from './charts/servicios-performance';
 import { ServiciosHourDistributionChart } from './charts/ServiciosHourDistributionChart';
 import { ServiciosClientesActivos } from './ServiciosClientesActivos';
 import { ServiciosAlertas } from './ServiciosAlertas';
@@ -42,6 +42,16 @@ export function ServiciosDashboard({ dateRange, comparisonRange }: ServiciosDash
         kmTotales: data.kmTotales,
         hasMockData: !data.serviciosData || data.serviciosData.length === 0
       });
+      
+      // Analyze April data specifically
+      if (data.serviciosData && data.serviciosData.length > 0) {
+        const aprilData = data.serviciosData.filter(service => {
+          if (!service.fecha_hora_cita) return false;
+          return service.fecha_hora_cita.includes('2025-04');
+        });
+        
+        console.log(`April services in dataset: ${aprilData.length}`);
+      }
     }
   }, [data]);
 
@@ -77,9 +87,9 @@ export function ServiciosDashboard({ dateRange, comparisonRange }: ServiciosDash
         />
       </div>
       
-      {/* Performance chart in its own row for better visibility and no overlapping */}
+      {/* Performance chart in its own row with proper height */}
       <div className="animate-fade-in animate-delay-100 duration-300">
-        <div className="w-full h-[460px]">
+        <div className="w-full h-[420px]">
           <ServiciosPerformanceChart 
             data={data?.serviciosData} 
             isLoading={isLoading}
@@ -89,15 +99,15 @@ export function ServiciosDashboard({ dateRange, comparisonRange }: ServiciosDash
       </div>
       
       {/* Services type and hour distribution charts in a grid with fixed heights */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 animate-fade-in animate-delay-150 duration-300">
-        <div className="h-[400px]">
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-2 animate-fade-in animate-delay-150 duration-300">
+        <div className="h-[400px] flex">
           <ServiciosTipoChart 
             data={data?.serviciosPorTipo || []} 
             isLoading={isLoading} 
           />
         </div>
         
-        <div className="h-[400px]">
+        <div className="h-[400px] flex">
           <ServiciosHourDistributionChart 
             data={data?.serviciosData}
             isLoading={isLoading}
@@ -106,15 +116,15 @@ export function ServiciosDashboard({ dateRange, comparisonRange }: ServiciosDash
       </div>
       
       {/* Clients and alerts in a row with fixed heights */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 animate-fade-in animate-delay-200 duration-300">
-        <div className="h-[500px]">
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-2 animate-fade-in animate-delay-200 duration-300">
+        <div className="h-[500px] flex">
           <ServiciosClientesActivos 
             clientes={data?.serviciosPorCliente || []}
             isLoading={isLoading}
           />
         </div>
         
-        <div className="h-[500px]">
+        <div className="h-[500px] flex">
           <ServiciosAlertas 
             alertas={data?.alertas || []}
             isLoading={isLoading}

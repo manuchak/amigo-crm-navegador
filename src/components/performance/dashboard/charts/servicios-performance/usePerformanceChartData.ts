@@ -1,7 +1,7 @@
 
 import { useMemo } from 'react';
 import { DateRange } from "react-day-picker";
-import { format, parseISO, eachDayOfInterval, addDays, isValid } from 'date-fns';
+import { format, parseISO, eachDayOfInterval, addDays, isValid, isSameMonth } from 'date-fns';
 import { es } from 'date-fns/locale';
 
 interface ChartDataPoint {
@@ -65,8 +65,31 @@ export function usePerformanceChartData(data: any[] = [], dateRange: DateRange) 
       });
     });
     
+    // Log what months are in the date range for debugging
+    const uniqueMonths = new Set(allDays.map(date => format(date, 'yyyy-MM')));
+    console.log("Months in date range:", Array.from(uniqueMonths));
+    
     // Process all services and count them by day
     if (data && data.length > 0) {
+      // First, log a sample of services from April to verify data
+      const aprilServices = data.filter(service => {
+        if (!service.fecha_hora_cita) return false;
+        try {
+          const date = parseISO(service.fecha_hora_cita);
+          return isValid(date) && format(date, 'yyyy-MM') === '2025-04';
+        } catch {
+          return false;
+        }
+      });
+      
+      console.log(`Found ${aprilServices.length} services in April 2025. Sample:`, 
+        aprilServices.slice(0, 5).map(s => ({
+          id: s.id,
+          fecha: s.fecha_hora_cita,
+          id_servicio: s.id_servicio
+        }))
+      );
+      
       data.forEach(servicio => {
         if (!servicio.fecha_hora_cita) {
           return;
@@ -74,15 +97,14 @@ export function usePerformanceChartData(data: any[] = [], dateRange: DateRange) 
         
         try {
           // Parse the service date correctly from ISO string
-          const date = servicio.fecha_hora_cita;
           let serviceDate;
           
-          if (typeof date === 'string') {
-            serviceDate = parseISO(date);
-          } else if (date instanceof Date) {
-            serviceDate = date;
+          if (typeof servicio.fecha_hora_cita === 'string') {
+            serviceDate = parseISO(servicio.fecha_hora_cita);
+          } else if (servicio.fecha_hora_cita instanceof Date) {
+            serviceDate = servicio.fecha_hora_cita;
           } else {
-            console.error('Invalid date format:', date);
+            console.error('Invalid date format:', servicio.fecha_hora_cita);
             return;
           }
           
@@ -93,20 +115,18 @@ export function usePerformanceChartData(data: any[] = [], dateRange: DateRange) 
           
           const dayStr = format(serviceDate, 'yyyy-MM-dd');
           
-          // Debug logging for date issues
-          const month = serviceDate.getMonth();
-          if (month === 2) { // March (0-indexed)
-            console.log(`March service: ${dayStr}, ID: ${servicio.id}`);
-          } else if (month === 3) { // April (0-indexed)
-            console.log(`April service: ${dayStr}, ID: ${servicio.id}`);
-          }
-          
           // Only count if the day exists in our map (within date range)
           if (dailyDataMap.has(dayStr)) {
             const dayData = dailyDataMap.get(dayStr)!;
             dayData.servicios += 1;
+            
+            // Debug for April data
+            if (isSameMonth(serviceDate, new Date(2025, 3, 1))) { // April is month 3 (zero-indexed)
+              console.log(`Counting April service: ${dayStr}, ID: ${servicio.id}, ID_servicio: ${servicio.id_servicio}`);
+            }
           } else {
-            console.warn(`Service date ${dayStr} outside charting range`);
+            // This helps identify if data exists outside the selected date range
+            console.log(`Service date ${dayStr} (ID: ${servicio.id}) outside charting range`);
           }
         } catch (error) {
           console.error('Error processing service date:', error, servicio.fecha_hora_cita);
