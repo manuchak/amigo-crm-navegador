@@ -25,32 +25,32 @@ export function DriverBehaviorDashboard({ dateRange, comparisonRange }: DriverBe
   const [filters, setFilters] = useState<DriverBehaviorFilters>({});
   const queryClient = useQueryClient();
 
-  // Fetch the client list for filtering
+  // Obtener la lista de clientes para el filtrado
   const { data: clientList = [], isLoading: isClientsLoading } = useQuery({
     queryKey: ['driver-behavior-clients'],
     queryFn: fetchClientList,
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: 5 * 60 * 1000, // 5 minutos
     retry: 2,
   });
 
-  // Fetch the driver behavior data with applied filters
+  // Obtener los datos de comportamiento del conductor con filtros aplicados
   const { data: driverData, isLoading, error } = useQuery({
     queryKey: ['driver-behavior-data', dateRange, filters],
     queryFn: () => fetchDriverBehaviorData(dateRange, filters),
   });
 
-  // Fetch comparison data if a comparison range is provided
+  // Obtener datos de comparación si se proporciona un rango de comparación
   const { data: comparisonData } = useQuery({
     queryKey: ['driver-behavior-comparison-data', comparisonRange, filters],
     queryFn: () => comparisonRange ? fetchDriverBehaviorData(comparisonRange, filters) : null,
     enabled: !!comparisonRange && comparisonRange.from !== null && comparisonRange.to !== null,
   });
 
-  // Handle filter changes
-  const handleFilterChange = (newFilters: DriverBehaviorFilters) => {
-    console.log('Applying filters:', newFilters);
+  // Manejar cambios de filtro
+  const handleFilterChange = useCallback((newFilters: DriverBehaviorFilters) => {
+    console.log('Aplicando filtros:', newFilters);
     setFilters(newFilters);
-  };
+  }, []);
   
   const refreshData = () => {
     queryClient.invalidateQueries({ queryKey: ['driver-behavior-data'] });

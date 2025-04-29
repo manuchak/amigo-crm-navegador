@@ -12,7 +12,7 @@ export const fetchDriverBehaviorData = async (dateRange: DateRange, filters?: Dr
       .from('driver_behavior_scores')
       .select('*');
       
-    // Apply date range filter if provided
+    // Aplicar filtro de rango de fechas si se proporciona
     if (dateRange.from) {
       query = query.gte('start_date', dateRange.from.toISOString());
     }
@@ -21,17 +21,19 @@ export const fetchDriverBehaviorData = async (dateRange: DateRange, filters?: Dr
       query = query.lte('end_date', dateRange.to.toISOString());
     }
     
-    // Apply client filter if provided
+    // Aplicar filtro de cliente si se proporciona
     if (filters?.selectedClients && filters.selectedClients.length > 0) {
+      console.log("Applying client filter:", filters.selectedClients);
       query = query.in('client', filters.selectedClients);
     }
     
-    // Apply driver name filter if provided
+    // Aplicar filtro de nombre de conductor si se proporciona
     if (filters?.driverName && filters.driverName.trim() !== '') {
+      console.log("Applying driver name filter:", filters.driverName);
       query = query.ilike('driver_name', `%${filters.driverName}%`);
     }
     
-    // Execute the query
+    // Ejecutar la consulta
     const { data: driverScores, error } = await query;
     
     if (error) {
@@ -40,19 +42,19 @@ export const fetchDriverBehaviorData = async (dateRange: DateRange, filters?: Dr
     }
     
     if (!driverScores || driverScores.length === 0) {
-      console.log("No driver behavior data found");
-      // Return empty data structure
+      console.log("No driver behavior data found with applied filters");
+      // Devolver estructura de datos vacía
       return createEmptyDriverBehaviorData();
     }
     
     console.log(`Found ${driverScores.length} driver behavior records`);
     
-    // Process the data to create the DriverBehaviorData structure
+    // Procesar los datos para crear la estructura DriverBehaviorData
     return processDriverBehaviorData(driverScores);
     
   } catch (err) {
     console.error("Exception when fetching driver data:", err);
-    // In case of any exception, return empty data
+    // En caso de cualquier excepción, devolver datos vacíos
     return createEmptyDriverBehaviorData();
   }
 };
@@ -212,6 +214,7 @@ export const fetchClientList = async (): Promise<string[]> => {
     const { data, error } = await supabase
       .from('driver_behavior_scores')
       .select('client')
+      .order('client')
       .limit(100);
     
     if (error) {
@@ -220,10 +223,10 @@ export const fetchClientList = async (): Promise<string[]> => {
     }
     
     if (data && data.length > 0) {
-      // Extract unique client names
+      // Extraer nombres únicos de clientes
       const uniqueClients = Array.from(new Set(data.map(item => item.client))).filter(Boolean) as string[];
       console.log("Found client list from database:", uniqueClients);
-      return uniqueClients;
+      return uniqueClients.sort();
     } else {
       console.log("No client data found");
       return [];

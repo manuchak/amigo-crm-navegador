@@ -41,21 +41,21 @@ export function DriverBehaviorFiltersPanel({
   };
   
   const handleClientToggle = (client: string) => {
-    // Initialize selectedClients if it doesn't exist
+    // Initialize selectedClients si no existe
     const currentSelected = filters.selectedClients || [];
     
-    // Toggle client selection
+    // Toggle de la selección del cliente
     let newSelectedClients: string[];
     
     if (currentSelected.includes(client)) {
-      // Remove client if already selected
+      // Eliminar cliente si ya está seleccionado
       newSelectedClients = currentSelected.filter(c => c !== client);
     } else {
-      // Add client if not selected
+      // Añadir cliente si no está seleccionado
       newSelectedClients = [...currentSelected, client];
     }
     
-    // Update filters with new selection
+    // Actualizar filtros con la nueva selección
     onFilterChange({ 
       ...filters, 
       selectedClients: newSelectedClients.length > 0 ? newSelectedClients : undefined 
@@ -71,7 +71,7 @@ export function DriverBehaviorFiltersPanel({
     setSearchValue('');
   };
   
-  // Get a summary of selected clients for display
+  // Obtener un resumen de los clientes seleccionados para mostrar
   const getSelectedClientsDisplay = () => {
     const selectedClients = filters.selectedClients || [];
     if (selectedClients.length === 0) return "Todos los clientes";
@@ -80,7 +80,7 @@ export function DriverBehaviorFiltersPanel({
   };
 
   const handleImportComplete = () => {
-    // Refresh data after import
+    // Actualizar datos después de importar
   };
 
   return (
@@ -126,26 +126,31 @@ export function DriverBehaviorFiltersPanel({
             />
             <CommandEmpty>No se encontraron clientes.</CommandEmpty>
             <CommandGroup className="max-h-[250px] overflow-y-auto">
-              {Array.isArray(clientList) && clientList.length > 0 ? (
+              {clientList && clientList.length > 0 ? (
                 clientList.map((client) => (
                   <CommandItem
                     key={client}
                     value={client}
+                    onSelect={() => {
+                      handleClientToggle(client);
+                      // No cerramos el popover para permitir selección múltiple
+                    }}
                     className="flex items-center gap-2 py-2 cursor-pointer hover:bg-gray-100"
-                    onSelect={() => handleClientToggle(client)}
                   >
-                    <Checkbox
-                      id={`client-${client}`}
-                      checked={(filters.selectedClients || []).includes(client)}
-                      onCheckedChange={() => handleClientToggle(client)}
-                      className="mr-2 h-4 w-4"
-                    />
-                    <label 
-                      htmlFor={`client-${client}`}
-                      className="flex-1 cursor-pointer truncate"
-                    >
-                      {client}
-                    </label>
+                    <div className="flex items-center gap-2 w-full">
+                      <Checkbox
+                        id={`client-${client}`}
+                        checked={(filters.selectedClients || []).includes(client)}
+                        onCheckedChange={() => handleClientToggle(client)}
+                        className="mr-2 h-4 w-4"
+                      />
+                      <label 
+                        htmlFor={`client-${client}`}
+                        className="flex-1 cursor-pointer truncate"
+                      >
+                        {client}
+                      </label>
+                    </div>
                   </CommandItem>
                 ))
               ) : (
