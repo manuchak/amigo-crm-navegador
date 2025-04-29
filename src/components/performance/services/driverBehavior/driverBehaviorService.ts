@@ -228,10 +228,12 @@ export const importDriverBehaviorData = async (
     
     await updateProgress("Procesando datos...", 30, 100);
     console.log(`Extracted ${fileData.length} records from file`);
+    console.log("Sample data:", fileData.slice(0, 2));
     
-    // Validate data before insertion
-    const validRecords = validateDriverRecords(fileData);
+    // Validate and map data before insertion
+    const validRecords = mapCsvToDriverRecords(fileData);
     if (validRecords.length === 0) {
+      console.error("No valid records found after mapping");
       return {
         success: false,
         message: "No hay registros válidos para importar",
@@ -239,7 +241,7 @@ export const importDriverBehaviorData = async (
         totalCount: fileData.length,
         errors: [{
           row: 0,
-          message: "No se encontraron registros válidos en el archivo"
+          message: "No se encontraron registros válidos en el archivo. Verifique que el formato coincide con la plantilla."
         }]
       };
     }
@@ -319,6 +321,7 @@ export const importDriverBehaviorData = async (
 // Helper function to read file content
 const readFileContent = async (file: File): Promise<any[]> => {
   try {
+    console.log("Reading file content...");
     const text = await file.text();
     
     // Determine if CSV or Excel by extension
@@ -339,30 +342,221 @@ const readFileContent = async (file: File): Promise<any[]> => {
   }
 };
 
-// Process CSV content
+// Process CSV content with improved parsing
 const processCSV = (content: string): any[] => {
-  const lines = content.split('\n');
-  if (lines.length < 2) return []; // Need at least header + 1 data row
+  console.log("Processing CSV content...");
+  // Split by lines and remove empty lines
+  const lines = content.split('\n').filter(line => line.trim() !== '');
   
-  const headers = lines[0].split(',').map(h => h.trim());
+  if (lines.length < 2) {
+    console.error("CSV has less than 2 lines (no header or data)");
+    return [];
+  }
+  
+  // Extract headers and handle potential BOM character
+  let headers = lines[0].replace(/^\uFEFF/, '').split(',').map(h => h.trim());
+  console.log("CSV Headers:", headers);
+  
   const result = [];
+  let rowErrors = 0;
   
+  // Process each data row
   for (let i = 1; i < lines.length; i++) {
     const line = lines[i].trim();
     if (!line) continue;
     
-    const values = line.split(',');
-    if (values.length !== headers.length) continue;
-    
-    const record: any = {};
-    headers.forEach((header, index) => {
-      record[header] = values[index].trim();
-    });
-    
-    result.push(record);
+    try {
+      // Handle quoted values with commas properly
+      const values: string[] = [];
+      let currentValue = '';
+      let inQuotes = false;
+      
+      for (let j = 0; j < line.length; j++) {
+        const char = line[j];
+        
+        if (char === '"' && (j === 0 || line[j-1] !== '\\')) {
+          inQuotes = !inQuotes;
+        } else if (char === ',' && !inQuotes) {
+          values.push(currentValue);
+          currentValue = '';
+        } else {
+          currentValue += char;
+        }
+      }
+      
+      // Don't forget the last value
+      values.push(currentValue);
+      
+      // Create record mapping headers to values
+      if (values.length !== headers.length) {
+        console.warn(`Row ${i+1} has incorrect number of columns. Expected ${headers.length}, got ${values.length}`);
+        rowErrors++;
+        continue;
+      }
+      
+      const record: Record<string, any> = {};
+      headers.forEach((header, index) => {
+        if (index < values.length) {
+          // Remove quotes if present
+          const value = values[index].replace(/^"|"$/g, '').trim();
+          record[header] = value;
+        }
+      });
+      
+      result.push(record);
+    } catch (error) {
+      console.error(`Error parsing row ${i+1}:`, error);
+      rowErrors++;
+    }
+  }
+  
+  console.log(`CSV processing complete. Extracted ${result.length} records with ${rowErrors} errors.`);
+  if (result.length > 0) {
+    console.log("First record sample:", result[0]);
   }
   
   return result;
+};
+
+// Map CSV data to driver behavior records format
+const mapCsvToDriverRecords = (records: any[]): any[] => {
+  console.log("Mapping CSV records to driver behavior format...");
+  const validRecords = [];
+  
+  // Define column mappings (based on your CSV structure shown in the image)
+  const columnMappings: Record<string, string> = {
+    'Agrupación': 'driver_name',
+    'Valoración': 'score',
+    'Multa': 'penalty_points',
+    'Cantidad': 'trips_count',
+    'Duración': 'duration_text',
+    'Kilometraje': 'distance_text',
+    'Comienzo': 'start_date',
+    'Fin': 'end_date',
+    'Cliente': 'client'
+  };
+  
+  // Convert each record using the mappings
+  for (const record of records) {
+    try {
+      const mappedRecord: Record<string, any> = {
+        driver_name: '',
+        driver_group: 'Default Group', // Default value
+        score: 0,
+        penalty_points: 0,
+        trips_count: 1,
+        distance: 0,
+        client: 'Default Client',
+        start_date: new Date().toISOString(),
+        end_date: new Date().toISOString(),
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      };
+      
+      // Map fields based on headers in the CSV
+      let hasValidData = false;
+      
+      for (const [csvField, dbField] of Object.entries(columnMappings)) {
+        if (record[csvField] !== undefined && record[csvField] !== null) {
+          hasValidData = true;
+          
+          // Process each field according to its expected type
+          switch (dbField) {
+            case 'driver_name':
+              mappedRecord[dbField] = String(record[csvField]).trim();
+              // Use Agrupación as driver_group too if no specific group field exists
+              mappedRecord['driver_group'] = String(record[csvField]).trim();
+              break;
+              
+            case 'score':
+              // Parse decimal number
+              const scoreValue = parseFloat(String(record[csvField]).replace(',', '.'));
+              mappedRecord[dbField] = isNaN(scoreValue) ? 0 : Math.min(100, Math.max(0, scoreValue * 10)); // Scale 0-10 to 0-100
+              break;
+              
+            case 'penalty_points':
+              // Parse integer
+              mappedRecord[dbField] = parseInt(String(record[csvField]), 10) || 0;
+              break;
+              
+            case 'trips_count':
+              // Parse integer
+              mappedRecord[dbField] = parseInt(String(record[csvField]), 10) || 1;
+              break;
+              
+            case 'duration_text':
+              // Store as is
+              mappedRecord[dbField] = String(record[csvField]);
+              break;
+              
+            case 'distance_text':
+              // Store as is
+              mappedRecord[dbField] = String(record[csvField]);
+              // Try to extract numeric distance if possible
+              const distanceMatch = String(record[csvField]).match(/(\d+(?:[.,]\d+)?)/);
+              if (distanceMatch) {
+                mappedRecord['distance'] = parseFloat(distanceMatch[1].replace(',', '.'));
+              }
+              break;
+              
+            case 'start_date':
+            case 'end_date':
+              // Parse date with flexible format
+              try {
+                let dateString = String(record[csvField]);
+                // Check if date is in format DD.MM.YYYY HH:MM
+                let dateParts = dateString.split(' ');
+                if (dateParts.length === 2) {
+                  let [datePart, timePart] = dateParts;
+                  if (datePart.includes('.')) {
+                    // Convert DD.MM.YYYY to YYYY-MM-DD
+                    let [day, month, year] = datePart.split('.');
+                    dateString = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}T${timePart}:00`;
+                  }
+                }
+                const date = new Date(dateString);
+                if (!isNaN(date.getTime())) {
+                  mappedRecord[dbField] = date.toISOString();
+                }
+              } catch (e) {
+                console.warn(`Could not parse date in field ${csvField}:`, record[csvField]);
+              }
+              break;
+              
+            case 'client':
+              // Store as is
+              mappedRecord[dbField] = String(record[csvField]).trim();
+              break;
+              
+            default:
+              // For any other fields, store as is
+              mappedRecord[dbField] = record[csvField];
+          }
+        }
+      }
+      
+      // Only include record if it has a valid driver name and some data
+      if (mappedRecord.driver_name && mappedRecord.driver_name.length > 0 && hasValidData) {
+        // Fix any missing required fields
+        if (!mappedRecord.score || isNaN(mappedRecord.score)) {
+          mappedRecord.score = 50; // Default score
+        }
+        
+        validRecords.push(mappedRecord);
+      } else {
+        console.warn("Skipping invalid record due to missing driver_name:", record);
+      }
+    } catch (error) {
+      console.error("Error mapping record:", error, record);
+    }
+  }
+  
+  console.log(`Mapping complete. Found ${validRecords.length} valid records.`);
+  if (validRecords.length > 0) {
+    console.log("First mapped record:", validRecords[0]);
+  }
+  
+  return validRecords;
 };
 
 // Generate sample data based on filename for testing
