@@ -16,7 +16,7 @@ export function calcularPorcentajeCambio(actual: number, anterior: number): numb
  * @returns True if the value is a valid number, false otherwise
  */
 export function isValidNumber(value: any): boolean {
-  return value !== undefined && value !== null && !isNaN(value);
+  return value !== undefined && value !== null && !isNaN(Number(value));
 }
 
 /**
