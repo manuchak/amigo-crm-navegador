@@ -71,15 +71,18 @@ export async function fetchServiciosData(dateRange?: DateRange, comparisonRange?
       });
 
     if (clientesError) throw clientesError;
+    
+    // 4. Obtener servicios por tipo - Modificado para simplificar categorías
+    const { data: serviciosData, error: serviciosError } = await supabase
+      .from('servicios_custodia')
+      .select('id, local_foraneo, tipo_servicio, fecha_hora_cita, km_recorridos, duracion_servicio')
+      .gte('fecha_hora_cita', startDate.toISOString())
+      .lte('fecha_hora_cita', endDate.toISOString());
 
-    // 4. Obtener servicios por tipo
-    const { data: serviciosPorTipo, error: tipoError } = await supabase
-      .rpc('obtener_servicios_por_tipo', {
-        fecha_inicio: startDate.toISOString(),
-        fecha_fin: endDate.toISOString()
-      });
-
-    if (tipoError) throw tipoError;
+    if (serviciosError) throw serviciosError;
+    
+    // Procesar servicios por tipo (Foraneo, Local o Reparto)
+    const serviciosPorTipo = procesarServiciosPorTipo(serviciosData || []);
 
     // Calcular cambios porcentuales
     const metrics = generalMetrics[0] || {};
@@ -122,11 +125,51 @@ export async function fetchServiciosData(dateRange?: DateRange, comparisonRange?
       clientesNuevos: metrics.clientes_nuevos || 0,
       alertas: alertas || [],
       serviciosPorCliente: clientesData || [],
-      serviciosPorTipo: serviciosPorTipo || []
+      serviciosPorTipo,
+      serviciosData: serviciosData || []
     };
   } catch (error) {
     console.error("Error fetching servicios data:", error);
     // En caso de error, devolver datos simulados
     return getMockServiciosData(dateRange);
   }
+}
+
+/**
+ * Procesa los servicios y los clasifica en categorías simplificadas
+ */
+function procesarServiciosPorTipo(servicios: any[]): { tipo: string; count: number }[] {
+  const tipoMap: Record<string, number> = {
+    "Foraneo": 0,
+    "Local": 0,
+    "Reparto": 0,
+    "Otro": 0
+  };
+  
+  servicios.forEach(servicio => {
+    // Normalizar a minúsculas y eliminar acentos para hacer coincidencias más robustas
+    const localForaneo = servicio.local_foraneo 
+      ? servicio.local_foraneo.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "") 
+      : '';
+    
+    const tipoServicio = servicio.tipo_servicio 
+      ? servicio.tipo_servicio.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "") 
+      : '';
+    
+    if (localForaneo.includes('foraneo') || tipoServicio.includes('foraneo')) {
+      tipoMap["Foraneo"]++;
+    } else if (localForaneo.includes('local') || tipoServicio.includes('local')) {
+      tipoMap["Local"]++;
+    } else if (tipoServicio.includes('reparto') || tipoServicio.includes('distribucion')) {
+      tipoMap["Reparto"]++;
+    } else {
+      tipoMap["Otro"]++;
+    }
+  });
+  
+  // Convertir a array de objetos y filtrar categorías vacías
+  return Object.entries(tipoMap)
+    .filter(([_, count]) => count > 0)
+    .map(([tipo, count]) => ({ tipo, count }))
+    .sort((a, b) => b.count - a.count);
 }

@@ -10,7 +10,15 @@ interface ServiciosTipoChartProps {
   isLoading: boolean;
 }
 
-const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8', '#82ca9d'];
+// Colores para las categorías específicas
+const COLOR_MAP = {
+  "Foraneo": "#0088FE",
+  "Local": "#00C49F",
+  "Reparto": "#FFBB28",
+  "Otro": "#FF8042"
+};
+
+const COLORS = Object.values(COLOR_MAP);
 
 export function ServiciosTipoChart({ data = [], isLoading }: ServiciosTipoChartProps) {
   if (isLoading) {
@@ -66,9 +74,11 @@ export function ServiciosTipoChart({ data = [], isLoading }: ServiciosTipoChartP
                 dataKey="count"
                 nameKey="tipo"
               >
-                {chartDataWithPercentage.map((entry, index) => (
-                  <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                ))}
+                {chartDataWithPercentage.map((entry, index) => {
+                  // Usar color específico si está en el mapa, de lo contrario usar el índice
+                  const color = COLOR_MAP[entry.tipo] || COLORS[index % COLORS.length];
+                  return <Cell key={`cell-${index}`} fill={color} />;
+                })}
               </Pie>
               <Tooltip 
                 formatter={(value, name, props) => [`${value} (${props.payload.percentage}%)`, props.payload.tipo]}

@@ -2,14 +2,12 @@
 import React from 'react';
 import { DateRange } from "react-day-picker";
 import { useQuery } from "@tanstack/react-query";
-import { fetchServiciosData } from "../services/servicios"; // Updated import
+import { fetchServiciosData } from '../services/servicios';
 import { ServiciosMetricsCards } from './ServiciosMetricsCards';
 import { ServiciosPerformanceChart } from './charts/ServiciosPerformanceChart';
-import { ServiciosAlertas } from './ServiciosAlertas';
 import { ServiciosClientesActivos } from './ServiciosClientesActivos';
+import { ServiciosAlertas } from './ServiciosAlertas';
 import { ServiciosTipoChart } from './ServiciosTipoChart';
-import { CohortAnalysisViewer } from './CohortAnalysisViewer';
-import { CustodioRetentionTable } from './CustodioRetentionTable';
 
 interface ServiciosDashboardProps {
   dateRange: DateRange;
@@ -17,78 +15,54 @@ interface ServiciosDashboardProps {
 }
 
 export function ServiciosDashboard({ dateRange, comparisonRange }: ServiciosDashboardProps) {
-  const { data: serviciosData, isLoading, error } = useQuery({
-    queryKey: ['servicios-data', dateRange, comparisonRange],
+  const { data, isLoading, isError } = useQuery({
+    queryKey: ['servicios', dateRange, comparisonRange],
     queryFn: () => fetchServiciosData(dateRange, comparisonRange),
+    refetchOnWindowFocus: false,
   });
 
-  const { data: comparisonData } = useQuery({
-    queryKey: ['servicios-comparison-data', comparisonRange],
-    queryFn: () => comparisonRange ? fetchServiciosData(comparisonRange) : null,
-    enabled: !!comparisonRange && comparisonRange.from !== null && comparisonRange.to !== null,
-  });
-
-  if (error) {
-    console.error('Error loading servicios data:', error);
+  if (isError) {
     return (
-      <div className="p-4 bg-red-50 text-red-700 rounded-lg">
-        <p className="font-semibold">Error al cargar los datos de servicios</p>
-        <p className="text-sm">{String(error)}</p>
+      <div className="p-8 text-center">
+        <h3 className="text-xl font-medium mb-2">Error al cargar datos</h3>
+        <p className="text-muted-foreground">
+          Ocurrió un error al cargar los datos de servicios. Por favor, inténtelo de nuevo.
+        </p>
       </div>
     );
   }
 
   return (
     <div className="space-y-6">
-      {/* Métricas principales */}
       <ServiciosMetricsCards 
-        data={serviciosData} 
+        data={data} 
         isLoading={isLoading} 
       />
       
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* Gráfico principal de rendimiento */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <ServiciosPerformanceChart 
-          data={serviciosData?.serviciosPorCliente || []} 
-          comparisonData={comparisonData?.serviciosPorCliente || []}
-          isLoading={isLoading} 
-          dateRange={dateRange} 
+          data={data?.serviciosData} 
+          isLoading={isLoading}
+          dateRange={dateRange}
         />
         
-        {/* Gráfico de distribución por tipo */}
         <ServiciosTipoChart 
-          data={serviciosData?.serviciosPorTipo || []} 
+          data={data?.serviciosPorTipo || []} 
           isLoading={isLoading} 
         />
       </div>
       
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Alertas */}
-        <ServiciosAlertas 
-          alertas={serviciosData?.alertas || []} 
-          isLoading={isLoading} 
+        <ServiciosClientesActivos 
+          clientes={data?.serviciosPorCliente || []}
+          isLoading={isLoading}
         />
         
-        {/* Clientes más activos */}
-        <ServiciosClientesActivos 
-          clientes={serviciosData?.serviciosPorCliente || []} 
-          isLoading={isLoading} 
+        <ServiciosAlertas 
+          alertas={data?.alertas || []}
+          isLoading={isLoading}
         />
       </div>
-      
-      {/* Análisis de cohortes - Fix: Pass empty array when serviciosData is undefined */}
-      <CohortAnalysisViewer
-        data={serviciosData ? serviciosData : { alertas: [], serviciosPorCliente: [], serviciosPorTipo: [], totalServicios: 0, clientesActivos: 0, clientesNuevos: 0, kmTotales: 0, serviciosMoM: {current: 0, previous: 0, percentChange: 0}, serviciosWoW: {current: 0, previous: 0, percentChange: 0}, kmPromedioMoM: {current: 0, previous: 0, percentChange: 0} }}
-        isLoading={isLoading}
-        dateRange={dateRange}
-      />
-      
-      {/* Tabla de retención de custodios - Fix: Pass empty array when serviciosData is undefined */}
-      <CustodioRetentionTable 
-        data={serviciosData ? serviciosData : { alertas: [], serviciosPorCliente: [], serviciosPorTipo: [], totalServicios: 0, clientesActivos: 0, clientesNuevos: 0, kmTotales: 0, serviciosMoM: {current: 0, previous: 0, percentChange: 0}, serviciosWoW: {current: 0, previous: 0, percentChange: 0}, kmPromedioMoM: {current: 0, previous: 0, percentChange: 0} }}
-        isLoading={isLoading}
-        dateRange={dateRange}
-      />
     </div>
   );
 }

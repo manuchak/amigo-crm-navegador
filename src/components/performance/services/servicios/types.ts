@@ -12,6 +12,7 @@ export interface ServiciosMetricData {
   alertas: ClienteAlerta[];
   serviciosPorCliente: ClienteServicios[];
   serviciosPorTipo: { tipo: string; count: number }[];
+  serviciosData: any[]; // Raw services data for charts
 }
 
 export interface ComparisonMetric {
