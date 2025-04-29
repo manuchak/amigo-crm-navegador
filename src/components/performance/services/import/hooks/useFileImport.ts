@@ -30,6 +30,7 @@ export function useFileImport({
     const file = event.target.files?.[0];
     if (!file) return;
     
+    console.log(`File selected for ${importType} import:`, file.name);
     setSelectedFile(file);
     
     if (isLargeFile(file)) {
@@ -54,6 +55,7 @@ export function useFileImport({
     setShowLargeFileWarning(false);
 
     try {
+      console.log(`Starting import for type: ${importType}`);
       const validation = validateImportFile(file);
       if (!validation.isValid) {
         toast.error("Error en el archivo", {
@@ -75,6 +77,7 @@ export function useFileImport({
         }
       });
 
+      console.log(`Import result for ${importType}:`, result);
       if (result.success) {
         setImportStatus('¡Importación completada!');
         setUploadProgress(100);
@@ -100,13 +103,17 @@ export function useFileImport({
         setUploadProgress(0);
       }
     } catch (error) {
-      console.error("Error handling file upload:", error);
+      console.error(`Error handling ${importType} file upload:`, error);
       setImportStatus('Error en la importación');
       setUploadProgress(0);
+      
+      toast.error("Error en la importación", {
+        description: error instanceof Error ? error.message : "Error desconocido al procesar el archivo"
+      });
     } finally {
       setIsUploading(false);
       setAbortController(null);
-      setSelectedFile(null);
+      // No reiniciamos selectedFile para poder mostrar el mensaje de error si es necesario
     }
   };
 
@@ -118,6 +125,10 @@ export function useFileImport({
       setIsUploading(false);
       setAbortController(null);
       setSelectedFile(null);
+      
+      toast.info("Importación cancelada", {
+        description: "La importación de datos ha sido cancelada"
+      });
     }
   };
 

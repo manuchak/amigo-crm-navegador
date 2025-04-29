@@ -10,6 +10,8 @@ import { DateRangeWithComparison } from "@/components/performance/filters/Advanc
 import { subDays } from "date-fns";
 import { PerformanceDateFilter } from '@/components/performance/PerformanceDateFilter';
 import { Card } from '@/components/ui/card';
+import { ServiceImport } from '@/components/performance/filters/ServiceImport';
+import { DriverBehaviorImport } from '@/components/performance/driver-behavior/DriverBehaviorImport';
 
 export default function Performance() {
   // Initialize with the "last 90 days" preset
@@ -32,9 +34,25 @@ export default function Performance() {
     return <PerformanceHeader />;
   };
 
+  // Render import button based on active tab
+  const renderImportButton = () => {
+    if (activeTab === "driverBehavior") {
+      return <DriverBehaviorImport onImportComplete={() => {}} />;
+    }
+    if (activeTab === "servicios") {
+      return <ServiceImport />;
+    }
+    return null;
+  };
+
   return (
     <div className="container mx-auto space-y-8 py-8 px-4 md:px-6">
-      {renderHeader()}
+      <div className="flex flex-col md:flex-row justify-between md:items-center gap-4">
+        {renderHeader()}
+        <div>
+          {renderImportButton()}
+        </div>
+      </div>
       
       <Card className="border shadow-sm p-4">
         <PerformanceDateFilter dateRange={dateRange} setDateRange={setDateRange} />

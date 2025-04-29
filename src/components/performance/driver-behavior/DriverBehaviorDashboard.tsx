@@ -13,7 +13,7 @@ import { TopDriversPanel } from './TopDriversPanel';
 import { CO2EmissionsCard } from './CO2EmissionsCard';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from "@/components/ui/button";
-import { DownloadIcon, RefreshCw } from "lucide-react";
+import { RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 
 interface DriverBehaviorDashboardProps {
@@ -60,13 +60,6 @@ export function DriverBehaviorDashboard({ dateRange, comparisonRange }: DriverBe
     });
   };
 
-  const downloadTemplate = () => {
-    toast.success("Descargando plantilla", {
-      description: "La plantilla CSV ha sido descargada"
-    });
-    // Implement actual download logic here
-  };
-
   if (error) {
     console.error('Error loading driver behavior data:', error);
     return (
@@ -95,16 +88,6 @@ export function DriverBehaviorDashboard({ dateRange, comparisonRange }: DriverBe
           >
             <RefreshCw className="h-4 w-4 mr-2" />
             Actualizar
-          </Button>
-          
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={downloadTemplate}
-            className="h-9"
-          >
-            <DownloadIcon className="h-4 w-4 mr-2" />
-            Plantilla
           </Button>
         </div>
       </div>
