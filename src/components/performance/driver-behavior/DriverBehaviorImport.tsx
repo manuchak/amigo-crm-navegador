@@ -46,7 +46,7 @@ export function DriverBehaviorImport({ className, onImportComplete }: DriverBeha
       }
       
       toast.success("Datos importados correctamente", {
-        description: "El dashboard ha sido actualizado con los nuevos datos"
+        description: "El dashboard ha sido actualizado con los nuevos datos de comportamiento de conducción"
       });
     }
   });

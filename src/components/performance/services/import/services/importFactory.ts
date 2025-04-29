@@ -1,23 +1,29 @@
 
 import { ImportResponse, ProgressCallback } from '../types';
-import { importServiciosData } from './serviciosImportService';
+import { importServiceData } from './serviciosImportService';
 import { importDriverBehaviorData } from '../../driverBehavior/driverBehaviorService';
 
-type ImportType = 'servicios' | 'driver-behavior';
-
-/**
- * Factory function to handle different types of imports
- */
-export function importData(
+export const importData = async (
   file: File,
-  type: ImportType = 'servicios',
+  importType: 'servicios' | 'driver-behavior',
   onProgress?: ProgressCallback
-): Promise<ImportResponse> {
-  switch (type) {
-    case 'driver-behavior':
-      return importDriverBehaviorData(file, onProgress);
-    case 'servicios':
-    default:
-      return importServiciosData(file, onProgress);
+): Promise<ImportResponse> => {
+  console.log(`Import requested for type: ${importType}`);
+  
+  if (importType === 'servicios') {
+    return importServiceData(file, onProgress);
+  } else if (importType === 'driver-behavior') {
+    return importDriverBehaviorData(file, onProgress);
+  } else {
+    return {
+      success: false,
+      message: `Tipo de importación no soportado: ${importType}`,
+      insertedCount: 0,
+      totalCount: 0,
+      errors: [{
+        row: 0,
+        message: `Tipo de importación no soportado: ${importType}`
+      }]
+    };
   }
-}
+};
