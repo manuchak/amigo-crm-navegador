@@ -141,7 +141,16 @@ export function DriverBehaviorImport({ onImportComplete }: DriverBehaviorImportP
               </label>
             </div>
             
-            {isImporting && <ImportProgressBar status={progress.status} percent={progress.percent} />}
+            {isImporting && (
+              <ImportProgressBar 
+                importStatus={progress.status}
+                uploadProgress={progress.percent}
+                totalRows={0}
+                processedRows={0}
+                isUploading={isImporting}
+                onCancel={() => {}}
+              />
+            )}
             
             <div className="text-xs text-gray-500">
               <p>Formatos soportados: CSV, Excel (.xlsx, .xls)</p>
@@ -158,24 +167,30 @@ export function DriverBehaviorImport({ onImportComplete }: DriverBehaviorImportP
       
       {/* Warning dialog for large files */}
       <LargeFileWarningDialog
-        isOpen={showWarningDialog}
-        onClose={() => setShowWarningDialog(false)}
+        open={showWarningDialog}
+        onOpenChange={setShowWarningDialog}
+        selectedFile={currentFile}
         onContinue={handleContinueWithLargeFile}
       />
       
       {/* Help dialog for template format */}
-      <TemplateHelpDialog
-        isOpen={showHelpDialog}
-        onClose={() => setShowHelpDialog(false)}
-        templateType="driver-behavior"
-      />
+      {showHelpDialog && (
+        <TemplateHelpDialog
+          open={showHelpDialog}
+          onOpenChange={setShowHelpDialog}
+          templateType="driver-behavior"
+        />
+      )}
       
       {/* Error dialog */}
-      <ImportErrorDialog
-        isOpen={!!importErrors}
-        onClose={() => setImportErrors(null)}
-        data={importErrors}
-      />
+      {importErrors && (
+        <ImportErrorDialog
+          open={!!importErrors}
+          onOpenChange={() => setImportErrors(null)}
+          importErrors={importErrors.errors || []}
+          uploadProgress={100}
+        />
+      )}
     </>
   );
 }
