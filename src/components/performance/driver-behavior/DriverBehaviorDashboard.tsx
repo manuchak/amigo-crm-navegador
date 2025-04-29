@@ -22,6 +22,7 @@ export function DriverBehaviorDashboard({ dateRange, comparisonRange }: DriverBe
   const [filters, setFilters] = useState<DriverBehaviorFilters>({});
   const queryClient = useQueryClient();
 
+  // Fetch the client list for filtering
   const { data: clientList = [], isLoading: isClientsLoading } = useQuery({
     queryKey: ['driver-behavior-clients'],
     queryFn: fetchClientList,
@@ -29,17 +30,20 @@ export function DriverBehaviorDashboard({ dateRange, comparisonRange }: DriverBe
     retry: 2,
   });
 
+  // Fetch the driver behavior data with applied filters
   const { data: driverData, isLoading, error } = useQuery({
     queryKey: ['driver-behavior-data', dateRange, filters],
     queryFn: () => fetchDriverBehaviorData(dateRange, filters),
   });
 
+  // Fetch comparison data if a comparison range is provided
   const { data: comparisonData } = useQuery({
     queryKey: ['driver-behavior-comparison-data', comparisonRange, filters],
     queryFn: () => comparisonRange ? fetchDriverBehaviorData(comparisonRange, filters) : null,
     enabled: !!comparisonRange && comparisonRange.from !== null && comparisonRange.to !== null,
   });
 
+  // Handle filter changes
   const handleFilterChange = (newFilters: DriverBehaviorFilters) => {
     console.log('Applying filters:', newFilters);
     setFilters(newFilters);
@@ -60,7 +64,9 @@ export function DriverBehaviorDashboard({ dateRange, comparisonRange }: DriverBe
     );
   }
 
+  // Log data to help debug the issue
   console.log('Client list in dashboard:', clientList);
+  console.log('Current filters:', filters);
 
   return (
     <div className="space-y-6">

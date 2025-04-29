@@ -1,6 +1,6 @@
 
-import React from 'react';
-import { Check, ChevronsUpDown } from "lucide-react";
+import React, { useState } from 'react';
+import { Check, ChevronsUpDown, X } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -30,7 +30,8 @@ export function DriverBehaviorFiltersPanel({
   filters,
   onFilterChange
 }: DriverBehaviorFiltersPanelProps) {
-  const [open, setOpen] = React.useState(false);
+  const [open, setOpen] = useState(false);
+  const [searchValue, setSearchValue] = useState('');
   
   const handleDriverNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     onFilterChange({ ...filters, driverName: e.target.value });
@@ -41,17 +42,25 @@ export function DriverBehaviorFiltersPanel({
     setOpen(false);
   };
   
+  const clearClientFilter = () => {
+    onFilterChange({ ...filters, client: undefined });
+  };
+  
   const handleClearFilters = () => {
     onFilterChange({});
   };
+
+  // Log data to help debug the issue
+  console.log("Client list in filters panel:", clientList);
+  console.log("Current filters:", filters);
   
   return (
-    <Card className="border-0 shadow-md bg-white/90">
+    <Card className="border-0 shadow-md bg-white">
       <CardContent className="p-4">
         <div className="flex flex-wrap gap-4 items-center">
+          <div className="text-sm text-muted-foreground">Filtrar por:</div>
+          
           <div className="flex items-center gap-2">
-            <span className="text-sm text-muted-foreground">Filtrar por:</span>
-            
             <Input
               placeholder="Nombre de conductor"
               value={filters.driverName || ''}
@@ -65,24 +74,28 @@ export function DriverBehaviorFiltersPanel({
                   variant="outline"
                   role="combobox"
                   aria-expanded={open}
-                  className="w-48 h-9 justify-between bg-white text-foreground"
+                  className="w-48 h-9 justify-between bg-white text-foreground border-gray-200 hover:bg-gray-50"
                 >
                   {filters.client || "Seleccionar Cliente"}
                   <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                 </Button>
               </PopoverTrigger>
-              <PopoverContent className="w-48 p-0 bg-white">
+              <PopoverContent className="w-48 p-0 z-50 bg-white border border-gray-200 shadow-md">
                 <Command>
-                  <CommandInput placeholder="Buscar cliente..." />
+                  <CommandInput 
+                    placeholder="Buscar cliente..." 
+                    value={searchValue}
+                    onValueChange={setSearchValue}
+                  />
                   <CommandEmpty>No se encontraron clientes.</CommandEmpty>
                   <CommandGroup className="max-h-64 overflow-y-auto">
-                    {clientList && clientList.length > 0 ? (
+                    {Array.isArray(clientList) && clientList.length > 0 ? (
                       clientList.map((client) => (
                         <CommandItem
                           key={client}
                           value={client}
                           onSelect={() => handleClientSelect(client)}
-                          className="cursor-pointer"
+                          className="cursor-pointer hover:bg-gray-100"
                         >
                           <Check
                             className={cn(
@@ -102,6 +115,17 @@ export function DriverBehaviorFiltersPanel({
                 </Command>
               </PopoverContent>
             </Popover>
+
+            {filters.client && (
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={clearClientFilter}
+                className="h-9 px-2"
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            )}
             
             {(filters.driverName || filters.client) && (
               <Button 
