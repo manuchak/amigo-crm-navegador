@@ -9,6 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { DateRangeWithComparison } from "@/components/performance/filters/AdvancedDateRangePicker";
 import { subDays } from "date-fns";
 import { PerformanceDateFilter } from '@/components/performance/PerformanceDateFilter';
+import { ServiceImport } from '@/components/performance/filters/ServiceImport';
 import { Card } from '@/components/ui/card';
 import { toast } from 'sonner';
 
@@ -63,6 +64,13 @@ export default function Performance() {
     
     setDateRange(newRange);
   };
+  
+  const handleImportComplete = () => {
+    // After successful import, refresh the data
+    toast.success("Datos importados", {
+      description: "Los datos han sido importados correctamente"
+    });
+  };
 
   return (
     <div className="container mx-auto space-y-8 py-8 px-4 md:px-6">
@@ -71,7 +79,15 @@ export default function Performance() {
       </div>
       
       <Card className="border shadow-sm p-4">
-        <PerformanceDateFilter dateRange={dateRange} setDateRange={handleDateRangeChange} />
+        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+          <PerformanceDateFilter dateRange={dateRange} setDateRange={handleDateRangeChange} />
+          
+          {activeTab === "servicios" && (
+            <div className="flex-shrink-0">
+              <ServiceImport onImportComplete={handleImportComplete} />
+            </div>
+          )}
+        </div>
       </Card>
       
       <div className="mt-8">

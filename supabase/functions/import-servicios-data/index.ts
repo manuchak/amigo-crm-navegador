@@ -1,183 +1,176 @@
 
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.7'
-import * as XLSX from 'https://esm.sh/xlsx@0.18.5'
-import { corsHeaders } from './lib/corsHeaders.ts'
-import { determineHeaderMapping } from './lib/columnMapping.ts'
-import { validateFile } from './lib/fileValidator.ts'
-import { ProgressManager } from './lib/progressManager.ts'
-import { BatchProcessor } from './lib/batchProcessor.ts'
-import { initializeMemoryUsageMonitoring, reportMemoryUsage } from './lib/memoryMonitor.ts'
-import { processExcelFileStream } from './lib/excelFileProcessor.ts'
-import { processCsvFile } from './lib/csvFileProcessor.ts'
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { corsHeaders } from "./lib/corsHeaders.ts";
+import { validateFile } from "./lib/fileValidator.ts";
+import { initializeMemoryUsageMonitoring } from "./lib/memoryMonitor.ts";
 
-// Configuraciones de procesamiento extremadamente conservadoras para evitar errores de recursos
-const BATCH_CONFIG = {
-  batchSize: 5,              // Reducido a 5 para minimizar consumo de memoria por lote
-  processingDelay: 1000,     // Aumentado a 1000ms para dar más tiempo al GC entre lotes
-  maxProcessingTime: 10 * 60 * 1000, // 10 minutos en ms (reducido para detectar timeout más rápido)
-  backoffFactor: 3,          // Aumentado para retrocesos más agresivos
-  maxRetries: 7,             // Aumentado para más reintentos
-  initialBackoff: 3000,      // Aumentado para dar más tiempo entre reintentos
-  memoryThreshold: 0.65      // Reducido para activar GC más temprano
-};
+// Initialize monitoring for potential memory issues
+initializeMemoryUsageMonitoring();
 
-// Iniciar monitoreo de memoria temprano
-reportMemoryUsage("Inicio del servicio");
-
-Deno.serve(async (req) => {
-  // Manejo de CORS mejorado
+serve(async (req) => {
+  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
-    return new Response('ok', { 
-      headers: { 
-        ...corsHeaders,
-        'Access-Control-Max-Age': '86400', // Caché para preflight requests - 24 horas
-      } 
-    });
+    return new Response('ok', { headers: corsHeaders });
   }
-
+  
   try {
-    console.log("Iniciando proceso de importación con configuración ultra-optimizada");
-    reportMemoryUsage("Antes de iniciar proceso");
-    
-    const progressId = req.headers.get('X-Progress-ID');
-    console.log(`ID de progreso: ${progressId || 'ninguno'}`);
-    
-    // Verificar si es una petición de prueba/heartbeat
-    if (req.headers.get('X-Test-Connection') === 'true') {
+    // Only allow POST requests
+    if (req.method !== 'POST') {
       return new Response(
-        JSON.stringify({ 
-          success: true, 
-          message: 'Conexión exitosa con la función Edge' 
-        }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        JSON.stringify({ success: false, message: 'Method not allowed' }),
+        { status: 405, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
     
-    const supabaseClient = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-    );
-    
-    const progressManager = new ProgressManager(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
-      progressId
-    );
-    
-    // Verificar si tenemos formData
-    let formData;
-    try {
-      formData = await req.formData();
-    } catch (formError) {
-      console.error('Error al procesar formData:', formError);
+    // Verify authentication
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
       return new Response(
-        JSON.stringify({ 
-          success: false, 
-          message: 'Error al procesar los datos del formulario' 
-        }),
-        { 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          status: 400 
-        }
+        JSON.stringify({ success: false, message: 'Unauthorized' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
     
-    const file = formData.get('file') as File;
-    const format = formData.get('format') as string;
-    const importMode = formData.get('importMode') as string || 'insert';
+    // Get form data from request
+    const formData = await req.formData();
+    const file = formData.get('file');
     
-    if (!file) {
+    if (!file || !(file instanceof File)) {
       return new Response(
-        JSON.stringify({ 
-          success: false, 
-          message: 'No se cargó ningún archivo'
-        }),
-        { 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          status: 400 
-        }
+        JSON.stringify({ success: false, message: 'No file uploaded' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
+    }
+    
+    // Validate file
+    const validationResult = validateFile(file);
+    if (!validationResult.isValid) {
+      return new Response(
+        JSON.stringify({ success: false, message: validationResult.message }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+    
+    // Generate a unique ID for this import process
+    const progressId = crypto.randomUUID();
+    
+    // Create initial progress record
+    const { error: progressError } = await fetch(`${Deno.env.get("SUPABASE_URL")}/rest/v1/import_progress`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${Deno.env.get("SUPABASE_SERVICE_KEY")}`,
+        'apikey': Deno.env.get("SUPABASE_SERVICE_KEY") || '',
+      },
+      body: JSON.stringify({
+        id: progressId,
+        status: 'processing',
+        message: 'Iniciando importación',
+        processed: 0,
+        total: 0,
+      }),
+    }).then(r => r.json());
+    
+    if (progressError) {
+      console.error('Error creating progress record:', progressError);
     }
 
-    // Validar el archivo con un límite más estricto
-    const validation = validateFile(file);
-    if (!validation.isValid) {
+    // Process the file content
+    const fileContent = await file.text();
+    
+    // Update progress record with total lines
+    const lines = fileContent.split('\n');
+    const totalLines = lines.length > 0 ? lines.length - 1 : 0; // Subtract header row
+    
+    await fetch(`${Deno.env.get("SUPABASE_URL")}/rest/v1/import_progress`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${Deno.env.get("SUPABASE_SERVICE_KEY")}`,
+        'apikey': Deno.env.get("SUPABASE_SERVICE_KEY") || '',
+        'Prefer': 'return=minimal',
+      },
+      body: JSON.stringify({
+        status: 'processing',
+        message: 'Analizando datos',
+        total: totalLines,
+      }),
+    });
+    
+    // Call the SQL function to import the data
+    const { data, error } = await fetch(`${Deno.env.get("SUPABASE_URL")}/rest/v1/rpc/import_servicios_custodia_data`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${Deno.env.get("SUPABASE_SERVICE_KEY")}`,
+        'apikey': Deno.env.get("SUPABASE_SERVICE_KEY") || '',
+      },
+      body: JSON.stringify({ file_content: fileContent }),
+    }).then(r => r.json());
+    
+    if (error) {
+      console.error('Error importing data:', error);
+      
+      // Update progress record with error
+      await fetch(`${Deno.env.get("SUPABASE_URL")}/rest/v1/import_progress`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${Deno.env.get("SUPABASE_SERVICE_KEY")}`,
+          'apikey': Deno.env.get("SUPABASE_SERVICE_KEY") || '',
+          'Prefer': 'return=minimal',
+        },
+        body: JSON.stringify({
+          id: progressId,
+          status: 'error',
+          message: `Error: ${error.message || 'Unknown error'}`,
+        }),
+      });
+      
       return new Response(
-        JSON.stringify({ success: false, message: validation.message }),
-        { 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-          status: 400 
-        }
-      );
-    }
-
-    console.log(`Procesando archivo: ${file.name}, tamaño: ${file.size} bytes, formato: ${format || 'auto'}, modo: ${importMode}`);
-    
-    await progressManager.updateProgress(
-      'validating',
-      0,
-      file.size,
-      'Preparando procesamiento del archivo'
-    );
-    
-    reportMemoryUsage("Antes de procesar archivo");
-    
-    // Si el modo de importación es upsert, configurar el modo para el procesador de lotes
-    if (importMode === 'upsert') {
-      BATCH_CONFIG.importMode = 'upsert';
-      console.log("Usando modo upsert para actualizar registros existentes en caso de duplicados");
-    }
-    
-    let processingResult;
-    
-    // Determinar el formato del archivo y procesarlo adecuadamente
-    const isCSV = format === 'csv' || file.name.toLowerCase().endsWith('.csv') || file.type === 'text/csv' || file.type === 'application/csv';
-    
-    if (isCSV) {
-      console.log("Detectado formato CSV, utilizando procesador específico");
-      processingResult = await processCsvFile(
-        file,
-        progressManager,
-        BATCH_CONFIG,
-        supabaseClient
-      );
-    } else {
-      // Usar el procesador de Excel basado en streaming con micro-lotes
-      processingResult = await processExcelFileStream(
-        file, 
-        progressManager, 
-        BATCH_CONFIG,
-        supabaseClient
+        JSON.stringify({ success: false, message: error.message || 'Error importing data', progressId }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
     
-    reportMemoryUsage("Después de procesar archivo");
+    // Update progress record with success
+    await fetch(`${Deno.env.get("SUPABASE_URL")}/rest/v1/import_progress`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${Deno.env.get("SUPABASE_SERVICE_KEY")}`,
+        'apikey': Deno.env.get("SUPABASE_SERVICE_KEY") || '',
+        'Prefer': 'return=minimal',
+      },
+      body: JSON.stringify({
+        id: progressId,
+        status: data.error_count > 0 ? 'completed_with_errors' : 'completed',
+        message: `Importación completada: ${data.inserted_count} registros importados, ${data.error_count} errores`,
+        processed: totalLines,
+      }),
+    });
     
     return new Response(
-      JSON.stringify(processingResult),
-      { 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      }
+      JSON.stringify({
+        success: true,
+        message: `Importación completada: ${data.inserted_count} registros importados, ${data.error_count} errores`,
+        insertedCount: data.inserted_count,
+        errorCount: data.error_count,
+        errors: data.errors,
+        progressId,
+      }),
+      { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
     
   } catch (error) {
-    console.error('Error crítico no controlado:', error);
+    console.error('Unhandled error:', error);
     
-    // Respuesta mejorada para errores
     return new Response(
       JSON.stringify({ 
-        success: false,
-        message: 'Error en el procesamiento de la importación', 
-        error: error.message,
-        stack: error.stack,
-        timestamp: new Date().toISOString()
+        success: false, 
+        message: `Error interno: ${error instanceof Error ? error.message : 'Error desconocido'}` 
       }),
-      { 
-        status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json'}
-      }
+      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
-  } finally {
-    reportMemoryUsage("Finalización del servicio");
   }
 });

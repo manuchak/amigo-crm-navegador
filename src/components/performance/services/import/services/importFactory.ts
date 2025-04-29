@@ -1,7 +1,6 @@
 
 import { ImportResponse, ProgressCallback } from '../types';
 import { importServiciosData } from './serviciosImportService';
-import { importDriverBehaviorData } from '../../driverBehavior/driverBehaviorService';
 
 export const importData = async (
   file: File,
@@ -12,8 +11,6 @@ export const importData = async (
   
   if (importType === 'servicios') {
     return importServiciosData(file, onProgress);
-  } else if (importType === 'driver-behavior') {
-    return importDriverBehaviorData(file, onProgress);
   } else {
     return {
       success: false,

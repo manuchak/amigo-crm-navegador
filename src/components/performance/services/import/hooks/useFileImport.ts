@@ -2,8 +2,7 @@
 import { useState } from 'react';
 import { toast } from "sonner";
 import { ImportResponse } from '../types';
-import { importData } from '../services/importFactory';
-import { validateImportFile, isLargeFile } from '../api/fileValidation';
+import { importServiciosData } from '../importService';
 
 interface UseFileImportOptions {
   onShowErrorDialog: (show: boolean) => void;
@@ -33,7 +32,11 @@ export function useFileImport({
     console.log(`File selected for ${importType} import:`, file.name);
     setSelectedFile(file);
     
-    if (isLargeFile(file)) {
+    // Check if file is large (> 5MB)
+    const MAX_SIZE_MB = 5;
+    const maxSizeBytes = MAX_SIZE_MB * 1024 * 1024;
+    
+    if (file.size > maxSizeBytes) {
       setShowLargeFileWarning(true);
     } else {
       handleFileImport(file);
@@ -56,18 +59,8 @@ export function useFileImport({
 
     try {
       console.log(`Starting import for type: ${importType}`);
-      const validation = validateImportFile(file);
-      if (!validation.isValid) {
-        toast.error("Error en el archivo", {
-          description: validation.message
-        });
-        setIsUploading(false);
-        setUploadProgress(0);
-        setImportStatus('Error de validación');
-        return;
-      }
       
-      const result = await importData(file, importType, (status, processed, total) => {
+      const result = await importServiciosData(file, (status, processed, total) => {
         setImportStatus(status);
         if (total > 0) {
           setTotalRows(total);
