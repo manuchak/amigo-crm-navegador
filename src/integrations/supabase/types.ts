@@ -1303,6 +1303,10 @@ export type Database = {
         Args: { user_uid: string; required_role: string }
         Returns: boolean
       }
+      import_servicios_custodia_data: {
+        Args: { file_content: string }
+        Returns: Json
+      }
       invoke_deduplicate_function: {
         Args: Record<PropertyKey, never>
         Returns: undefined

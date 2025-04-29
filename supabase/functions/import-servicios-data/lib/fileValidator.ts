@@ -1,40 +1,39 @@
 
-export function validateFile(file: File): { isValid: boolean; message?: string } {
-  // Validar tamaño de archivo (reducido a 10MB para evitar problemas de recursos)
-  if (file.size > 10 * 1024 * 1024) {
+export function validateFile(file: File): { isValid: boolean; message: string } {
+  // Check file size (limit to 15MB for Edge Functions)
+  const MAX_SIZE_MB = 15;
+  const maxSizeBytes = MAX_SIZE_MB * 1024 * 1024;
+  
+  if (file.size > maxSizeBytes) {
     return {
       isValid: false,
-      message: "El archivo excede el tamaño máximo permitido de 10 MB. Por favor divida el archivo en partes más pequeñas."
+      message: `El archivo es demasiado grande. El tamaño máximo permitido es de ${MAX_SIZE_MB}MB.`
     };
   }
   
-  // Validar tipo de archivo (debe ser Excel o CSV)
+  // Check file type
   const validExcelTypes = [
     'application/vnd.ms-excel',
     'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
     'application/vnd.ms-excel.sheet.macroEnabled.12'
   ];
   
-  // También verificar por extensión por si el tipo MIME no es confiable
+  const validCsvTypes = [
+    'text/csv',
+    'application/csv',
+    'text/comma-separated-values'
+  ];
+  
   const fileName = file.name.toLowerCase();
-  const hasValidExtension = fileName.endsWith('.xlsx') || fileName.endsWith('.xls');
-  const isCSV = fileName.endsWith('.csv') || file.type === 'text/csv' || file.type === 'application/csv';
+  const isExcel = fileName.endsWith('.xlsx') || fileName.endsWith('.xls') || validExcelTypes.includes(file.type);
+  const isCsv = fileName.endsWith('.csv') || validCsvTypes.includes(file.type);
   
-  if (!isCSV && !validExcelTypes.includes(file.type) && !hasValidExtension) {
+  if (!isExcel && !isCsv) {
     return {
       isValid: false,
-      message: "El formato de archivo no es válido. Solo se permiten archivos Excel (.xls, .xlsx) o CSV (.csv)"
+      message: 'Formato de archivo no válido. Por favor, suba un archivo Excel (.xlsx, .xls) o CSV (.csv).'
     };
   }
   
-  // Verificar que el nombre del archivo no contenga caracteres problemáticos
-  const illegalChars = /[<>:"/\\|?*\x00-\x1F]/g;
-  if (illegalChars.test(file.name)) {
-    return {
-      isValid: false,
-      message: "El nombre del archivo contiene caracteres no permitidos"
-    };
-  }
-  
-  return { isValid: true };
+  return { isValid: true, message: 'Archivo válido' };
 }
