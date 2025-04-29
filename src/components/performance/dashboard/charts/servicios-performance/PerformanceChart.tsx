@@ -50,16 +50,18 @@ export const PerformanceChart: React.FC<PerformanceChartProps> = ({
           <XAxis 
             dataKey="displayDate" 
             tick={{ fontSize: 10 }}
-            interval="preserveStartEnd"
-            tickMargin={10}
             axisLine={{ stroke: '#e5e5e5' }}
+            tickLine={false}
+            tickMargin={10}
+            minTickGap={15}
+            interval="preserveStartEnd"
           />
           <YAxis 
             domain={[0, yAxisMax]}
             axisLine={{ stroke: '#e5e5e5' }}
             tickLine={false}
-            width={30}
             fontSize={10}
+            width={30}
           />
           <Tooltip
             contentStyle={{ 

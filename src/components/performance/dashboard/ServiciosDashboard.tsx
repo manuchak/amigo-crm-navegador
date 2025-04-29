@@ -25,35 +25,13 @@ export function ServiciosDashboard({ dateRange, comparisonRange }: ServiciosDash
     refetchOnWindowFocus: false,
   });
 
-  // Debug logs to validate data is being fetched properly
+  // Debug log to validate date range
   React.useEffect(() => {
-    console.log("ServiciosDashboard render with dateRange:", {
+    console.log("ServiciosDashboard date range:", {
       from: dateRange?.from ? dateRange.from.toISOString() : 'undefined',
       to: dateRange?.to ? dateRange.to.toISOString() : 'undefined'
     });
   }, [dateRange]);
-
-  React.useEffect(() => {
-    if (data) {
-      console.log("ServiciosDashboard received data:", {
-        totalServicios: data.totalServicios,
-        serviciosDataLength: data.serviciosData?.length || 0,
-        clientesActivos: data.clientesActivos,
-        kmTotales: data.kmTotales,
-        hasMockData: !data.serviciosData || data.serviciosData.length === 0
-      });
-      
-      // Analyze April data specifically
-      if (data.serviciosData && data.serviciosData.length > 0) {
-        const aprilData = data.serviciosData.filter(service => {
-          if (!service.fecha_hora_cita) return false;
-          return service.fecha_hora_cita.includes('2025-04');
-        });
-        
-        console.log(`April services in dataset: ${aprilData.length}`);
-      }
-    }
-  }, [data]);
 
   if (isError) {
     return (
@@ -78,7 +56,7 @@ export function ServiciosDashboard({ dateRange, comparisonRange }: ServiciosDash
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       {/* Metrics cards at the top */}
       <div className="animate-fade-in duration-300">
         <ServiciosMetricsCards 
@@ -87,44 +65,46 @@ export function ServiciosDashboard({ dateRange, comparisonRange }: ServiciosDash
         />
       </div>
       
-      {/* Performance chart in its own row with proper height */}
-      <div className="animate-fade-in animate-delay-100 duration-300">
-        <div className="w-full h-[420px]">
+      {/* Top row: Performance chart and type distribution side by side */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 animate-fade-in animate-delay-100 duration-300">
+        {/* Performance chart taking 2/3 width on large screens */}
+        <div className="lg:col-span-2 h-[400px]">
           <ServiciosPerformanceChart 
             data={data?.serviciosData} 
             isLoading={isLoading}
             dateRange={dateRange}
           />
         </div>
-      </div>
-      
-      {/* Services type and hour distribution charts in a grid with fixed heights */}
-      <div className="grid grid-cols-1 gap-6 md:grid-cols-2 animate-fade-in animate-delay-150 duration-300">
-        <div className="h-[400px] flex">
+        
+        {/* Services type chart taking 1/3 width */}
+        <div className="h-[400px]">
           <ServiciosTipoChart 
             data={data?.serviciosPorTipo || []} 
             isLoading={isLoading} 
           />
         </div>
-        
-        <div className="h-[400px] flex">
+      </div>
+      
+      {/* Middle row: Hour distribution and clients */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 animate-fade-in animate-delay-150 duration-300">
+        <div className="h-[380px]">
           <ServiciosHourDistributionChart 
             data={data?.serviciosData}
             isLoading={isLoading}
           />
         </div>
-      </div>
-      
-      {/* Clients and alerts in a row with fixed heights */}
-      <div className="grid grid-cols-1 gap-6 md:grid-cols-2 animate-fade-in animate-delay-200 duration-300">
-        <div className="h-[500px] flex">
+        
+        <div className="h-[380px]">
           <ServiciosClientesActivos 
             clientes={data?.serviciosPorCliente || []}
             isLoading={isLoading}
           />
         </div>
-        
-        <div className="h-[500px] flex">
+      </div>
+      
+      {/* Bottom row: Alerts section */}
+      <div className="animate-fade-in animate-delay-200 duration-300">
+        <div className="h-[360px]">
           <ServiciosAlertas 
             alertas={data?.alertas || []}
             isLoading={isLoading}

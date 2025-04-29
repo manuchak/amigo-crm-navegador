@@ -1,19 +1,15 @@
 
 import React, { useMemo } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { Skeleton } from "@/components/ui/skeleton";
-import { 
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-  Cell
-} from 'recharts';
-import { parseISO } from 'date-fns';
-import { ChartContainer } from "@/components/ui/chart";
+import { format, parseISO } from 'date-fns';
+
+interface HourData {
+  hour: string;
+  count: number;
+  displayHour: string;
+}
 
 interface ServiciosHourDistributionChartProps {
   data?: any[];
@@ -21,146 +17,113 @@ interface ServiciosHourDistributionChartProps {
 }
 
 export function ServiciosHourDistributionChart({ data = [], isLoading }: ServiciosHourDistributionChartProps) {
+  // Process data to extract hourly distribution
   const hourlyData = useMemo(() => {
-    if (!data || data.length === 0) {
-      console.log('No data available for hour distribution chart');
-      return Array.from({ length: 24 }, (_, i) => ({
-        hour: i,
-        count: 0,
-        label: `${i}`
-      }));
+    if (!data || data.length === 0) return [];
+    
+    // Initialize hours (0-23)
+    const hours: { [key: string]: number } = {};
+    for (let i = 0; i < 24; i++) {
+      const hourString = i.toString().padStart(2, '0');
+      hours[hourString] = 0;
     }
 
-    console.log(`Processing ${data.length} services for hour distribution`);
-
-    // Initialize hourly buckets (0-23)
-    const hourCounts = Array.from({ length: 24 }, (_, i) => ({
-      hour: i,
-      count: 0,
-      label: `${i}`
-    }));
-
-    // Count services by hour
-    data.forEach(servicio => {
-      if (!servicio.fecha_hora_cita) return;
-      
-      try {
-        // Parse ISO dates properly to ensure timezone handling
-        const date = servicio.fecha_hora_cita;
-        let serviceDate;
-        
-        if (typeof date === 'string') {
-          serviceDate = parseISO(date);
-        } else if (date instanceof Date) {
-          serviceDate = date;
-        } else {
-          console.error('Invalid date format:', date);
-          return;
+    // Count services per hour
+    data.forEach(service => {
+      if (service.fecha_hora_cita) {
+        try {
+          const date = parseISO(service.fecha_hora_cita);
+          const hour = format(date, 'HH');
+          if (hours[hour] !== undefined) {
+            hours[hour] += 1;
+          }
+        } catch (error) {
+          console.error("Error parsing date:", error);
         }
-        
-        if (isNaN(serviceDate.getTime())) {
-          console.error('Invalid date value:', date);
-          return;
-        }
-        
-        const hour = serviceDate.getHours();
-        
-        if (hour >= 0 && hour < 24) {
-          hourCounts[hour].count++;
-        }
-      } catch (error) {
-        console.error('Error processing service hour:', error, servicio.fecha_hora_cita);
       }
     });
-
-    // Log data for debugging
-    console.log('Hourly distribution data:', 
-      hourCounts.filter(h => h.count > 0).map(h => `Hour ${h.hour}: ${h.count} services`).join(', ')
-    );
     
-    return hourCounts;
+    // Convert to array for chart
+    return Object.entries(hours).map(([hour, count]) => {
+      const hourNum = parseInt(hour, 10);
+      // Format for display (12-hour format with am/pm)
+      let displayHour;
+      if (hourNum === 0) displayHour = '12 AM';
+      else if (hourNum === 12) displayHour = '12 PM';
+      else if (hourNum < 12) displayHour = `${hourNum} AM`;
+      else displayHour = `${hourNum - 12} PM`;
+      
+      return { hour, count, displayHour };
+    });
   }, [data]);
+  
+  // Find the hour with the most services
+  const maxCount = useMemo(() => {
+    if (!hourlyData || hourlyData.length === 0) return 0;
+    return Math.max(...hourlyData.map(item => item.count));
+  }, [hourlyData]);
 
   if (isLoading) {
     return (
       <Card className="border shadow-sm bg-white h-full">
         <CardHeader className="pb-2">
-          <CardTitle className="text-lg font-medium">Distribución por Hora del Día</CardTitle>
+          <CardTitle className="text-lg font-medium">Distribución de Servicios por Hora</CardTitle>
         </CardHeader>
-        <CardContent>
-          <Skeleton className="h-[300px] w-full" />
+        <CardContent className="pt-0 h-[320px]">
+          <Skeleton className="h-full w-full" />
         </CardContent>
       </Card>
     );
   }
 
-  // Find max count for better visualization
-  const maxCount = Math.max(...hourlyData.map(item => item.count));
-  
-  // Special chart config to highlight peak hours
-  const chartConfig = {
-    count: { color: "#0EA5E9" }
-  };
-
   return (
     <Card className="border shadow-sm bg-white h-full">
       <CardHeader className="pb-2">
-        <CardTitle className="text-lg font-medium">Distribución por Hora del Día</CardTitle>
+        <CardTitle className="text-lg font-medium">Distribución de Servicios por Hora</CardTitle>
       </CardHeader>
-      <CardContent>
-        <div className="h-[300px]">
-          <ChartContainer config={chartConfig}>
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart 
-                data={hourlyData}
-                margin={{ top: 10, right: 10, left: 0, bottom: 20 }}
-                barCategoryGap={1}
-              >
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
-                <XAxis 
-                  dataKey="hour" 
-                  tickFormatter={(value) => `${value}`}
-                  tick={{ fontSize: 11 }}
-                  axisLine={{ stroke: '#e5e5e5' }}
-                  tickLine={false}
-                />
-                <YAxis 
-                  width={30}
-                  axisLine={{ stroke: '#e5e5e5' }}
-                  tickLine={false}
-                  tick={{ fontSize: 11 }}
-                />
-                <Tooltip 
-                  formatter={(value) => [`${value}`, 'Servicios']}
-                  labelFormatter={(hour) => `Hora ${hour}:00`}
-                  contentStyle={{
-                    backgroundColor: 'rgba(255, 255, 255, 0.98)',
-                    borderRadius: '6px',
-                    boxShadow: '0 2px 10px rgba(0, 0, 0, 0.08)',
-                    border: 'none',
-                    padding: '8px 12px',
-                  }}
-                />
-                <Bar 
-                  dataKey="count" 
-                  name="Servicios"
-                  radius={[2, 2, 0, 0]}
-                >
-                  {hourlyData.map((entry, index) => {
-                    // Special highlight for peak hours
-                    return (
-                      <Cell 
-                        key={`cell-${index}`} 
-                        fill={entry.count === maxCount ? '#8B5CF6' : '#0EA5E9'} 
-                        fillOpacity={entry.count > 0 ? 0.85 + (entry.count / maxCount * 0.15) : 0.5}
-                      />
-                    );
-                  })}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
-          </ChartContainer>
-        </div>
+      <CardContent className="pt-0 h-[320px]">
+        <ResponsiveContainer width="100%" height="100%">
+          <BarChart
+            data={hourlyData}
+            margin={{
+              top: 10,
+              right: 10,
+              left: 10,
+              bottom: 30,
+            }}
+            barSize={10}
+          >
+            <CartesianGrid strokeDasharray="3 3" vertical={false} />
+            <XAxis 
+              dataKey="displayHour" 
+              tick={{ fontSize: 10 }}
+              interval={1}
+              angle={-45}
+              textAnchor="end"
+              height={60}
+            />
+            <YAxis 
+              domain={[0, maxCount > 0 ? maxCount * 1.1 : 10]} 
+              allowDecimals={false}
+              tick={{ fontSize: 10 }}
+              width={30}
+            />
+            <Tooltip
+              formatter={(value) => [`${value} servicios`, 'Cantidad']}
+              contentStyle={{
+                borderRadius: '8px',
+                boxShadow: '0 2px 5px rgba(0,0,0,0.1)',
+                border: 'none',
+              }}
+            />
+            <Bar 
+              dataKey="count" 
+              fill="#0EA5E9" 
+              radius={[10, 10, 0, 0]}
+              name="Servicios"
+            />
+          </BarChart>
+        </ResponsiveContainer>
       </CardContent>
     </Card>
   );
