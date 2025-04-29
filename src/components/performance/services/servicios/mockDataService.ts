@@ -97,10 +97,10 @@ export function getMockServiciosData(dateRange?: DateRange): ServiciosMetricData
       costoPromedio: Math.floor(Math.random() * 6000) + 1000
     })),
     serviciosPorTipo: [
-      { tipo: "Escolta", count: Math.floor(Math.random() * 50) + 30 },
-      { tipo: "Validación", count: Math.floor(Math.random() * 40) + 20 },
-      { tipo: "Local", count: Math.floor(Math.random() * 30) + 15 },
-      { tipo: "Foráneo", count: Math.floor(Math.random() * 20) + 10 }
-    ]
+      { tipo: "Foráneo", count: Math.floor(Math.random() * 50) + 30 },
+      { tipo: "Local", count: Math.floor(Math.random() * 40) + 20 },
+      { tipo: "Reparto", count: Math.floor(Math.random() * 30) + 15 }
+    ],
+    serviciosData: data  // Added missing property
   };
 }
