@@ -76,18 +76,18 @@ export function ServiciosDashboard({ dateRange, comparisonRange }: ServiciosDash
         />
       </div>
       
-      {/* Análisis de cohortes */}
+      {/* Análisis de cohortes - Fix: Pass empty array when serviciosData is undefined */}
       <CohortAnalysisViewer
-        data={serviciosData}
+        data={serviciosData ? serviciosData : { alertas: [], serviciosPorCliente: [], serviciosPorTipo: [], totalServicios: 0, clientesActivos: 0, clientesNuevos: 0, kmTotales: 0, serviciosMoM: {current: 0, previous: 0, percentChange: 0}, serviciosWoW: {current: 0, previous: 0, percentChange: 0}, kmPromedioMoM: {current: 0, previous: 0, percentChange: 0} }}
         isLoading={isLoading}
         dateRange={dateRange}
       />
       
-      {/* Tabla de retención de custodios */}
+      {/* Tabla de retención de custodios - Fix: Pass empty array when serviciosData is undefined */}
       <CustodioRetentionTable 
-        data={serviciosData} 
-        isLoading={isLoading} 
-        dateRange={dateRange} 
+        data={serviciosData ? serviciosData : { alertas: [], serviciosPorCliente: [], serviciosPorTipo: [], totalServicios: 0, clientesActivos: 0, clientesNuevos: 0, kmTotales: 0, serviciosMoM: {current: 0, previous: 0, percentChange: 0}, serviciosWoW: {current: 0, previous: 0, percentChange: 0}, kmPromedioMoM: {current: 0, previous: 0, percentChange: 0} }}
+        isLoading={isLoading}
+        dateRange={dateRange}
       />
     </div>
   );

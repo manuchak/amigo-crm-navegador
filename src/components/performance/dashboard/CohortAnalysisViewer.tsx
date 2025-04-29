@@ -1,46 +1,43 @@
 
-import React, { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { CohortRetentionChart } from './charts/CohortRetentionChart';
-import { ServiciosCohortChart } from './charts/ServiciosCohortChart';
+import React from 'react';
 import { DateRange } from "react-day-picker";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
+import { ServiciosMetricData } from "../services/servicios/serviciosDataService";
 
 interface CohortAnalysisViewerProps {
-  data?: any[];
+  data: ServiciosMetricData;
   isLoading: boolean;
   dateRange: DateRange;
 }
 
 export function CohortAnalysisViewer({ data, isLoading, dateRange }: CohortAnalysisViewerProps) {
+  if (isLoading) {
+    return (
+      <Card className="border-0 shadow-md">
+        <CardHeader>
+          <CardTitle>Análisis de Cohortes</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <Skeleton className="w-full h-[300px]" />
+        </CardContent>
+      </Card>
+    );
+  }
+
+  // This is a placeholder - in a real implementation, you would process the data
+  // and show cohort analysis using a specialized chart
   return (
     <Card className="border-0 shadow-md">
       <CardHeader>
-        <CardTitle className="text-lg font-medium">Análisis de Cohortes</CardTitle>
+        <CardTitle>Análisis de Cohortes</CardTitle>
       </CardHeader>
       <CardContent>
-        <Tabs defaultValue="table" className="w-full">
-          <TabsList className="mb-6">
-            <TabsTrigger value="table">Tabla de Retención</TabsTrigger>
-            <TabsTrigger value="chart">Gráfico de Cohortes</TabsTrigger>
-          </TabsList>
-          
-          <TabsContent value="table">
-            <CohortRetentionChart 
-              data={data} 
-              isLoading={isLoading} 
-              dateRange={dateRange} 
-            />
-          </TabsContent>
-          
-          <TabsContent value="chart">
-            <ServiciosCohortChart 
-              data={data} 
-              isLoading={isLoading} 
-              dateRange={dateRange} 
-            />
-          </TabsContent>
-        </Tabs>
+        <div className="p-4 text-center text-muted-foreground">
+          Datos insuficientes para el análisis de cohortes.
+          <br />
+          Se requieren más datos históricos para generar este análisis.
+        </div>
       </CardContent>
     </Card>
   );
