@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import { ServiciosMetricData } from '../services/servicios'; // Updated import
 import { formatNumber, formatCurrency } from '../utils/formatters';
+import { getValidNumberOrZero } from '../services/servicios/utils';
 
 interface ServiciosMetricsCardsProps {
   data?: ServiciosMetricData;
@@ -35,6 +36,12 @@ export function ServiciosMetricsCards({ data, isLoading }: ServiciosMetricsCards
     return null;
   }
 
+  // Process km data to avoid NaN values
+  const kmTotales = getValidNumberOrZero(data.kmTotales);
+  const kmPromedioCurrent = getValidNumberOrZero(data.kmPromedioMoM.current);
+  const kmPromedioPrevious = getValidNumberOrZero(data.kmPromedioMoM.previous);
+  const kmPromedioPercentChange = getValidNumberOrZero(data.kmPromedioMoM.percentChange);
+
   const metrics = [
     {
       title: "Total Servicios",
@@ -60,15 +67,15 @@ export function ServiciosMetricsCards({ data, isLoading }: ServiciosMetricsCards
     },
     {
       title: "Km Totales",
-      value: formatNumber(data.kmTotales),
+      value: formatNumber(kmTotales),
       icon: MapPin,
       color: "bg-emerald-50 text-emerald-600"
     },
     {
       title: "Km Promedio MoM",
-      value: formatNumber(data.kmPromedioMoM.current),
-      change: data.kmPromedioMoM.percentChange,
-      comparison: `vs ${formatNumber(data.kmPromedioMoM.previous)} mes anterior`,
+      value: formatNumber(kmPromedioCurrent),
+      change: kmPromedioPercentChange,
+      comparison: `vs ${formatNumber(kmPromedioPrevious)} mes anterior`,
       icon: TrendingUp,
       color: "bg-amber-50 text-amber-600"
     },

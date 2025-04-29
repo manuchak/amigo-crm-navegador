@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { AlertTriangle } from "lucide-react";
@@ -13,6 +12,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { formatNumber, formatCurrency } from '../utils/formatters';
+import { getValidNumberOrZero } from '../services/servicios/utils';
 
 interface ServiciosAlertasProps {
   alertas: ClienteAlerta[];
@@ -21,6 +21,13 @@ interface ServiciosAlertasProps {
 
 export function ServiciosAlertas({ alertas = [], isLoading }: ServiciosAlertasProps) {
   const [expandido, setExpandido] = useState(false);
+  
+  // Process alert data to handle NaN values
+  const alertasProcesadas = alertas.map(alerta => ({
+    ...alerta,
+    kmPromedio: getValidNumberOrZero(alerta.kmPromedio),
+    costoPromedio: getValidNumberOrZero(alerta.costoPromedio)
+  }));
   
   // Si está cargando o no hay alertas, mostrar estados apropiados
   if (isLoading) {
@@ -43,7 +50,7 @@ export function ServiciosAlertas({ alertas = [], isLoading }: ServiciosAlertasPr
     );
   }
 
-  if (alertas.length === 0) {
+  if (alertasProcesadas.length === 0) {
     return (
       <Card className="border-0 shadow-md">
         <CardHeader className="flex flex-row items-center justify-between pb-2">
@@ -62,14 +69,14 @@ export function ServiciosAlertas({ alertas = [], isLoading }: ServiciosAlertasPr
   }
 
   // Mostrar solo las primeras 3 alertas a menos que esté expandido
-  const alertasVisibles = expandido ? alertas : alertas.slice(0, 3);
+  const alertasVisibles = expandido ? alertasProcesadas : alertasProcesadas.slice(0, 3);
   
   return (
     <Card className="border-0 shadow-md overflow-hidden">
       <CardHeader className="flex flex-row items-center justify-between pb-2">
         <CardTitle className="text-lg font-medium flex items-center">
           <AlertTriangle className="h-5 w-5 mr-2 text-amber-500" />
-          Alertas de Servicio ({alertas.length})
+          Alertas de Servicio ({alertasProcesadas.length})
         </CardTitle>
       </CardHeader>
       <CardContent>
@@ -102,14 +109,14 @@ export function ServiciosAlertas({ alertas = [], isLoading }: ServiciosAlertasPr
           </Table>
         </div>
         
-        {alertas.length > 3 && (
+        {alertasProcesadas.length > 3 && (
           <div className="mt-4 text-center">
             <Button 
               variant="outline" 
               size="sm" 
               onClick={() => setExpandido(!expandido)}
             >
-              {expandido ? "Ver menos" : `Ver ${alertas.length - 3} más`}
+              {expandido ? "Ver menos" : `Ver ${alertasProcesadas.length - 3} más`}
             </Button>
           </div>
         )}

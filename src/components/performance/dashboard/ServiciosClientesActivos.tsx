@@ -12,6 +12,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { formatNumber, formatCurrency } from '../utils/formatters';
+import { getValidNumberOrZero } from '../services/servicios/utils';
 
 interface ServiciosClientesActivosProps {
   clientes: ClienteServicios[];
@@ -19,8 +20,17 @@ interface ServiciosClientesActivosProps {
 }
 
 export function ServiciosClientesActivos({ clientes = [], isLoading }: ServiciosClientesActivosProps) {
+  // Process client data to handle NaN values
+  const clientesProcessed = clientes.map(cliente => ({
+    ...cliente,
+    kmPromedio: getValidNumberOrZero(cliente.kmPromedio),
+    costoPromedio: getValidNumberOrZero(cliente.costoPromedio)
+  }));
+  
   // Ordenar clientes por número de servicios (descendente)
-  const clientesOrdenados = [...clientes].sort((a, b) => b.totalServicios - a.totalServicios).slice(0, 5);
+  const clientesOrdenados = [...clientesProcessed]
+    .sort((a, b) => b.totalServicios - a.totalServicios)
+    .slice(0, 5);
   
   if (isLoading) {
     return (

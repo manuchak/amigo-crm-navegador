@@ -3,7 +3,7 @@ import { DateRange } from "react-day-picker";
 import { supabase } from "@/integrations/supabase/client";
 import { format, subMonths, subWeeks, startOfMonth, endOfMonth, startOfWeek, endOfWeek } from "date-fns";
 import { ServiciosMetricData } from "./types";
-import { calcularPorcentajeCambio } from "./utils";
+import { calcularPorcentajeCambio, getValidNumberOrZero } from "./utils";
 import { getMockServiciosData } from "./mockDataService";
 
 /**
@@ -102,20 +102,21 @@ export async function fetchServiciosData(dateRange?: DateRange, comparisonRange?
       )
     };
     
+    // Handle NaN values for kilometer metrics
+    const kmPromedioMesActual = getValidNumberOrZero(metrics.km_promedio_mes_actual);
+    const kmPromedioMesAnterior = getValidNumberOrZero(metrics.km_promedio_mes_anterior);
+    
     const kmPromedioMoM = {
-      current: metrics.km_promedio_mes_actual || 0,
-      previous: metrics.km_promedio_mes_anterior || 0,
-      percentChange: calcularPorcentajeCambio(
-        metrics.km_promedio_mes_actual || 0, 
-        metrics.km_promedio_mes_anterior || 0
-      )
+      current: kmPromedioMesActual,
+      previous: kmPromedioMesAnterior,
+      percentChange: calcularPorcentajeCambio(kmPromedioMesActual, kmPromedioMesAnterior)
     };
 
     return {
       totalServicios: metrics.total_servicios || 0,
       serviciosMoM,
       serviciosWoW,
-      kmTotales: metrics.km_totales || 0,
+      kmTotales: getValidNumberOrZero(metrics.km_totales),
       kmPromedioMoM,
       clientesActivos: metrics.clientes_activos || 0,
       clientesNuevos: metrics.clientes_nuevos || 0,
