@@ -2,7 +2,7 @@
 import React, { useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { DateRange } from "react-day-picker";
-import { DriverBehaviorScore } from "../types/driver-behavior.types";
+import { DriverScore } from "../types/driver-behavior.types";
 import { Skeleton } from "@/components/ui/skeleton";
 import { 
   BarChart, 
@@ -18,7 +18,7 @@ import {
 import { calculateScoreCategory, getScoreColorClass } from "../utils/scoreCalculator";
 
 interface DriverBehaviorChartProps {
-  data?: DriverBehaviorScore[] | null;
+  data?: DriverScore[] | null;
   isLoading: boolean;
   dateRange: DateRange;
 }

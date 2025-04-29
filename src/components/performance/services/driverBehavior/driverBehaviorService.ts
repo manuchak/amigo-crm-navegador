@@ -1,6 +1,6 @@
 
 import { DateRange } from "react-day-picker";
-import { DriverBehaviorData, DriverBehaviorFilters } from "../../types/driver-behavior.types";
+import { DriverBehaviorData, DriverBehaviorFilters, DriverScore } from "../../types/driver-behavior.types";
 import { ImportResponse, ProgressCallback } from "../import/types";
 
 // Mock data for development
@@ -25,6 +25,7 @@ const generateMockDriverBehaviorData = (dateRange: DateRange, filters?: DriverBe
       trips_count: Math.floor(Math.random() * 100) + 10,
       distance: Math.random() * 1000,
       distance_text: `${Math.floor(Math.random() * 1000)} km`,
+      duration_text: `${Math.floor(Math.random() * 24)}h ${Math.floor(Math.random() * 60)}m`,
       start_date: dateRange.from?.toISOString() || new Date().toISOString(),
       end_date: dateRange.to?.toISOString() || new Date().toISOString(),
       client,
@@ -50,6 +51,9 @@ const generateMockDriverBehaviorData = (dateRange: DateRange, filters?: DriverBe
         penalty_points: Math.floor(Math.random() * (prefix === "Improvement Needed" ? 15 : 7)) + 
                         (prefix === "Improvement Needed" ? 15 : 0),
         trips_count: Math.floor(Math.random() * 50) + 30,
+        distance: Math.random() * 500,
+        distance_text: `${Math.floor(Math.random() * 500)} km`,
+        duration_text: `${Math.floor(Math.random() * 12)}h ${Math.floor(Math.random() * 60)}m`,
         start_date: dateRange.from?.toISOString() || new Date().toISOString(),
         end_date: dateRange.to?.toISOString() || new Date().toISOString(),
         client,

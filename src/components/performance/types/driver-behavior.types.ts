@@ -10,6 +10,7 @@ export interface DriverScore {
   trips_count: number;
   distance: number;
   distance_text: string;
+  duration_text?: string;
   start_date: string;
   end_date: string;
   client: string;
@@ -59,6 +60,13 @@ export interface DriverBehaviorData {
 
 export interface DriverBehaviorFilters {
   driverName?: string;
-  selectedClients?: string[]; // Changed from client?: string to selectedClients?: string[] for multi-select
+  selectedClients?: string[];
   dateRange?: DateRange;
+}
+
+export interface ScoreCalculationResult {
+  score: number;
+  penaltyPoints: number;
+  scoreCategory: 'excellent' | 'good' | 'fair' | 'poor' | 'critical';
+  colorClass: string;
 }

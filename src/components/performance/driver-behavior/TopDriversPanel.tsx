@@ -3,7 +3,7 @@ import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Award, TrendingDown, Gauge } from "lucide-react";
 import { Skeleton } from '@/components/ui/skeleton';
-import { DriverPerformance, DriverBehaviorScore } from '../types/driver-behavior.types';
+import { DriverPerformance, DriverScore } from '../types/driver-behavior.types';
 import { getScoreColorClass } from '../utils/scoreCalculator';
 
 interface TopDriversPanelProps {
@@ -61,7 +61,7 @@ export function TopDriversPanel({ data, isLoading }: TopDriversPanelProps) {
   }
 
   // Helper to render driver entry
-  const renderDriverEntry = (driver: DriverBehaviorScore, icon: React.ElementType, iconColorClass: string) => {
+  const renderDriverEntry = (driver: DriverScore, icon: React.ElementType, iconColorClass: string) => {
     const Icon = icon;
     const scoreColorClass = getScoreColorClass(driver.score);
     
