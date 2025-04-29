@@ -145,11 +145,12 @@ export const importDriverBehaviorData = async (
     onProgress("Finalizado", 100, 100);
   }
   
-  // Return a successful import response
+  // Return a successful import response with properties that match ImportResponse type
   return {
     success: true,
     message: "Datos de comportamiento de conductores importados correctamente",
-    rowsProcessed: 150,
+    insertedCount: 150,
+    totalCount: 150,
     errors: [] // No errors in this mock implementation
   };
 };
