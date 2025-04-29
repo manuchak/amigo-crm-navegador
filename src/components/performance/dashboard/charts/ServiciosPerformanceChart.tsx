@@ -13,7 +13,7 @@ import {
   Legend,
   ResponsiveContainer 
 } from 'recharts';
-import { format, parseISO, eachDayOfInterval, addDays, isValid } from 'date-fns';
+import { format, parseISO, eachDayOfInterval, addDays, isValid, isBefore, isAfter } from 'date-fns';
 import { es } from 'date-fns/locale';
 
 interface ServiciosPerformanceChartProps {
@@ -25,117 +25,167 @@ interface ServiciosPerformanceChartProps {
 
 export function ServiciosPerformanceChart({ data = [], comparisonData, isLoading, dateRange }: ServiciosPerformanceChartProps) {
   const chartData = useMemo(() => {
-    if (!data || data.length === 0 || !dateRange.from) {
+    if (!data || data.length === 0) {
       console.warn('Missing or invalid data for ServiciosPerformanceChart');
       return [];
+    }
+    
+    // Debug log to see what data we're working with
+    console.log(`Processing ${data.length} services for chart with date range:`, {
+      from: dateRange.from ? dateRange.from.toISOString() : 'undefined',
+      to: dateRange.to ? dateRange.to.toISOString() : 'undefined'
+    });
+    
+    if (data.length > 0) {
+      // Log a few sample dates to verify data
+      const sampleDates = data.slice(0, 5).map(s => s.fecha_hora_cita);
+      console.log('Sample service dates:', sampleDates);
     }
     
     // Create a map to group services by day
     const dailyDataMap = new Map();
     
-    // Generate all days in the date range to ensure we have entries for days without services
-    let allDays = [];
-    if (dateRange.from && dateRange.to) {
-      allDays = eachDayOfInterval({
-        start: dateRange.from,
-        end: dateRange.to
-      });
-    } else if (dateRange.from) {
-      // If only from date is provided, use 90 days range
-      allDays = eachDayOfInterval({
-        start: dateRange.from,
-        end: addDays(dateRange.from, 90)
-      });
-    }
+    // First pass: Process all data to collect date range
+    const allServiceDates = new Set<string>();
     
-    // Initialize map with all days in range
-    allDays.forEach(day => {
-      const dayStr = format(day, 'yyyy-MM-dd');
-      dailyDataMap.set(dayStr, {
-        date: dayStr,
-        servicios: 0
-      });
-    });
-    
-    console.log(`Processing ${data.length} services for chart with ${allDays.length} days in range`);
-    console.log('Date range:', {
-      from: dateRange.from.toISOString(),
-      to: dateRange.to ? dateRange.to.toISOString() : 'undefined'
-    });
-    
-    // First pass: Process all data to identify date ranges actually in data
-    const allServiceDates = new Set();
     data.forEach(servicio => {
       if (!servicio.fecha_hora_cita) return;
       
       try {
-        const serviceDate = parseISO(servicio.fecha_hora_cita);
+        let serviceDate;
+        
+        // Handle both ISO string and Date object formats
+        if (typeof servicio.fecha_hora_cita === 'string') {
+          serviceDate = parseISO(servicio.fecha_hora_cita);
+        } else if (servicio.fecha_hora_cita instanceof Date) {
+          serviceDate = servicio.fecha_hora_cita;
+        } else {
+          console.error('Unsupported date format:', servicio.fecha_hora_cita);
+          return;
+        }
+        
         if (!isValid(serviceDate)) {
-          console.error('Invalid date format:', servicio.fecha_hora_cita);
+          console.error('Invalid date:', servicio.fecha_hora_cita);
           return;
         }
         
         const dayStr = format(serviceDate, 'yyyy-MM-dd');
         allServiceDates.add(dayStr);
       } catch (error) {
-        console.error('Error processing service date:', error, servicio);
+        console.error('Error processing date:', error, servicio.fecha_hora_cita);
       }
     });
     
-    // Debug: Log all unique dates found in data
     console.log(`Found ${allServiceDates.size} unique dates in data`);
-    console.log('First 10 dates in data:', Array.from(allServiceDates).slice(0, 10));
+    if (allServiceDates.size > 0) {
+      console.log('Date range in data:', {
+        min: Array.from(allServiceDates).sort()[0],
+        max: Array.from(allServiceDates).sort()[allServiceDates.size - 1]
+      });
+    }
+    
+    // Generate continuous date range including days with no services
+    let allDays: Date[] = [];
+    
+    if (dateRange.from && dateRange.to) {
+      // Use the provided date range
+      allDays = eachDayOfInterval({
+        start: dateRange.from,
+        end: dateRange.to
+      });
+    } else if (allServiceDates.size > 0) {
+      // Fallback: Use min/max dates from the actual data
+      const sortedDates = Array.from(allServiceDates).sort();
+      const minDate = parseISO(sortedDates[0]);
+      const maxDate = parseISO(sortedDates[sortedDates.length - 1]);
+      
+      allDays = eachDayOfInterval({
+        start: minDate,
+        end: maxDate
+      });
+    } else {
+      // Last resort: Use default 90 days
+      const today = new Date();
+      allDays = eachDayOfInterval({
+        start: addDays(today, -89),
+        end: today
+      });
+    }
+    
+    console.log(`Generated ${allDays.length} days for chart from ${allDays[0].toISOString()} to ${allDays[allDays.length-1].toISOString()}`);
+    
+    // Initialize map with all days
+    allDays.forEach(day => {
+      const dayStr = format(day, 'yyyy-MM-dd');
+      dailyDataMap.set(dayStr, {
+        date: dayStr,
+        servicios: 0,
+        // Add formatted date for display
+        displayDate: format(day, 'dd MMM', { locale: es })
+      });
+    });
     
     // Process all services and count them by day
     data.forEach(servicio => {
       if (!servicio.fecha_hora_cita) return;
       
       try {
-        const serviceDate = parseISO(servicio.fecha_hora_cita);
+        let serviceDate;
+        
+        // Handle both ISO string and Date object formats
+        if (typeof servicio.fecha_hora_cita === 'string') {
+          serviceDate = parseISO(servicio.fecha_hora_cita);
+        } else if (servicio.fecha_hora_cita instanceof Date) {
+          serviceDate = servicio.fecha_hora_cita;
+        } else {
+          return;
+        }
+        
         if (!isValid(serviceDate)) return;
         
         const dayStr = format(serviceDate, 'yyyy-MM-dd');
         
-        // Add to our map whether it's in our initialized range or not
-        if (!dailyDataMap.has(dayStr)) {
-          // This might happen if the data contains dates outside our specified range
-          // We'll add it anyway to ensure complete data representation
-          console.log(`Adding service outside initialized range: ${dayStr}`);
-          dailyDataMap.set(dayStr, { date: dayStr, servicios: 1 });
-        } else {
-          // Update counts for dates within range
+        // Only count if it's within our display range
+        if (dateRange.from && isBefore(serviceDate, dateRange.from)) return;
+        if (dateRange.to && isAfter(serviceDate, dateRange.to)) return;
+        
+        if (dailyDataMap.has(dayStr)) {
           const dayData = dailyDataMap.get(dayStr);
           dayData.servicios += 1;
-          dailyDataMap.set(dayStr, dayData);
-        }
-        
-        // Debug March and April dates specifically
-        if (dayStr.startsWith('2024-03') || dayStr.startsWith('2024-04')) {
-          console.log(`Found service for ${dayStr}:`, servicio.fecha_hora_cita);
+        } else {
+          // This shouldn't happen if our day generation is working correctly
+          console.warn(`Found service for date outside generated range: ${dayStr}`);
+          dailyDataMap.set(dayStr, { 
+            date: dayStr, 
+            servicios: 1,
+            displayDate: format(serviceDate, 'dd MMM', { locale: es })
+          });
         }
       } catch (error) {
-        console.error('Error processing service data:', error, servicio);
+        console.error('Error processing service:', error, servicio);
       }
     });
     
     // Prepare final data array sorted by date
-    const result = Array.from(dailyDataMap.values()).sort((a, b) => a.date.localeCompare(b.date));
+    const result = Array.from(dailyDataMap.values())
+      .sort((a, b) => a.date.localeCompare(b.date));
     
     console.log(`Chart data prepared with ${result.length} days`);
-    if (result.length > 0) {
-      console.log('Date range in chart:', { 
-        first: result[0].date, 
-        last: result[result.length-1].date
-      });
-    }
     
-    // Debug: Check for specific dates - March 20 onwards
-    const march20onwards = result.filter(entry => 
-      entry.date >= '2024-03-20' && entry.servicios > 0
+    // Check for specific dates like March and April
+    const marchData = result.filter(entry => entry.date.startsWith('2024-03') && entry.servicios > 0);
+    const aprilData = result.filter(entry => entry.date.startsWith('2024-04') && entry.servicios > 0);
+    
+    console.log(`March data with services: ${marchData.length}, April data with services: ${aprilData.length}`);
+    
+    // Verify March 20 onwards data
+    const march20Data = result.filter(entry => 
+      (entry.date >= '2024-03-20' && entry.date < '2024-04-01') && entry.servicios > 0
     );
-    console.log(`Entries from March 20 onwards with services: ${march20onwards.length}`);
-    if (march20onwards.length > 0) {
-      console.log('Sample entries:', march20onwards.slice(0, 5));
+    
+    console.log(`Services from March 20-31: ${march20Data.length}`);
+    if (march20Data.length > 0) {
+      console.log('March 20+ data sample:', march20Data.slice(0, 5));
     }
     
     return result;
@@ -165,16 +215,9 @@ export function ServiciosPerformanceChart({ data = [], comparisonData, isLoading
             <LineChart data={chartData}>
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis 
-                dataKey="date" 
-                tickFormatter={(date) => {
-                  try {
-                    return format(parseISO(date), 'dd MMM', { locale: es });
-                  } catch (error) {
-                    console.error('Error formatting date:', error, date);
-                    return date;
-                  }
-                }} 
+                dataKey="displayDate" 
                 tick={{ fontSize: 10 }}
+                interval={"preserveStartEnd"}
               />
               <YAxis />
               <Tooltip
@@ -182,13 +225,13 @@ export function ServiciosPerformanceChart({ data = [], comparisonData, isLoading
                   if (name === 'servicios') return [value, 'Servicios'];
                   return [value, name];
                 }}
-                labelFormatter={(date) => {
-                  try {
-                    return format(parseISO(date), 'dd MMM yyyy', { locale: es });
-                  } catch (error) {
-                    console.error('Error formatting tooltip date:', error, date);
-                    return date;
+                labelFormatter={(displayDate, entry) => {
+                  // Use the original date from the data point for better formatting
+                  const dataPoint = entry && entry.length > 0 ? entry[0].payload : null;
+                  if (dataPoint && dataPoint.date) {
+                    return format(parseISO(dataPoint.date), 'dd MMM yyyy', { locale: es });
                   }
+                  return displayDate;
                 }}
               />
               <Legend />

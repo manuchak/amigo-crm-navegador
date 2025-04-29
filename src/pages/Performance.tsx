@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { CustodioPerformanceDashboard } from "@/components/performance/CustodioPerformanceDashboard";
 import { PerformanceHeader } from "@/components/performance/PerformanceHeader";
 import { DriverBehaviorHeader } from "@/components/performance/DriverBehaviorHeader";
@@ -14,17 +14,26 @@ import { Card } from '@/components/ui/card';
 import { toast } from 'sonner';
 
 export default function Performance() {
-  // Initialize with the "last 90 days" preset
+  // Initialize with the "last 90 days" preset - ensures we always have a valid date range
   const [dateRange, setDateRange] = useState<DateRangeWithComparison>({
     primary: {
-      from: subDays(new Date(), 89),
-      to: new Date(),
+      from: subDays(new Date(), 89), // Start 90 days ago
+      to: new Date(), // End today
     },
     comparisonType: 'none',
     rangeType: 'last90days'
   });
 
   const [activeTab, setActiveTab] = useState<string>("servicios");
+  
+  useEffect(() => {
+    // Log the selected date range on component mount and whenever it changes
+    console.log("Current date range in Performance component:", {
+      from: dateRange.primary.from ? dateRange.primary.from.toLocaleDateString() : 'undefined',
+      to: dateRange.primary.to ? dateRange.primary.to.toLocaleDateString() : 'undefined',
+      comparisonType: dateRange.comparisonType
+    });
+  }, [dateRange]);
   
   // Show different header based on active tab
   const renderHeader = () => {
@@ -38,7 +47,8 @@ export default function Performance() {
   const handleDateRangeChange = (newRange: DateRangeWithComparison) => {
     console.log("Date range changed:", {
       from: newRange.primary.from ? newRange.primary.from.toLocaleDateString() : 'undefined',
-      to: newRange.primary.to ? newRange.primary.to.toLocaleDateString() : 'undefined'
+      to: newRange.primary.to ? newRange.primary.to.toLocaleDateString() : 'undefined',
+      comparisonType: newRange.comparisonType
     });
     
     // Validate that the date range is not too large (e.g., more than 1 year)

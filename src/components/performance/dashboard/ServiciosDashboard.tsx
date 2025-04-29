@@ -22,6 +22,25 @@ export function ServiciosDashboard({ dateRange, comparisonRange }: ServiciosDash
     refetchOnWindowFocus: false,
   });
 
+  // Debug logs to validate data is being fetched properly
+  React.useEffect(() => {
+    console.log("ServiciosDashboard render with dateRange:", {
+      from: dateRange?.from ? dateRange.from.toISOString() : 'undefined',
+      to: dateRange?.to ? dateRange.to.toISOString() : 'undefined'
+    });
+  }, [dateRange]);
+
+  React.useEffect(() => {
+    if (data) {
+      console.log("ServiciosDashboard received data:", {
+        totalServicios: data.totalServicios,
+        serviciosDataLength: data.serviciosData?.length || 0,
+        clientesActivos: data.clientesActivos,
+        hasMockData: !data.serviciosData || data.serviciosData.length === 0
+      });
+    }
+  }, [data]);
+
   if (isError) {
     return (
       <div className="p-8 text-center">
@@ -34,14 +53,15 @@ export function ServiciosDashboard({ dateRange, comparisonRange }: ServiciosDash
   }
 
   return (
-    <div className="space-y-8"> {/* Increased space between sections */}
+    <div className="space-y-10"> {/* Increased spacing between sections for better separation */}
+      {/* Metrics cards at the top */}
       <ServiciosMetricsCards 
         data={data} 
         isLoading={isLoading} 
       />
       
-      {/* Performance and Type charts in first row */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      {/* Performance and Type charts in first row with increased gap */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         <ServiciosPerformanceChart 
           data={data?.serviciosData} 
           isLoading={isLoading}
@@ -54,16 +74,16 @@ export function ServiciosDashboard({ dateRange, comparisonRange }: ServiciosDash
         />
       </div>
       
-      {/* Hour distribution in second row with full width */}
-      <div className="grid grid-cols-1 gap-6">
+      {/* Hour distribution in its own row with full width and increased height */}
+      <div className="mt-10">
         <ServiciosHourDistributionChart 
           data={data?.serviciosData}
           isLoading={isLoading}
         />
       </div>
       
-      {/* Clients and alerts in third row */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      {/* Clients and alerts in third row with increased gap */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         <ServiciosClientesActivos 
           clientes={data?.serviciosPorCliente || []}
           isLoading={isLoading}

@@ -13,15 +13,31 @@ import { getMockServiciosData } from "./mockDataService";
  * @returns Promise with services metric data
  */
 export async function fetchServiciosData(dateRange?: DateRange, comparisonRange?: DateRange): Promise<ServiciosMetricData> {
-  if (process.env.NODE_ENV === 'development' && (!dateRange || !dateRange.from || !dateRange.to)) {
-    // En modo desarrollo, si no hay rango de fechas, usar datos simulados
-    return getMockServiciosData(dateRange);
-  }
+  // Important debugging for date range issues
+  console.log("fetchServiciosData called with date range:", {
+    from: dateRange?.from ? dateRange.from.toISOString() : 'undefined',
+    to: dateRange?.to ? dateRange.to.toISOString() : 'undefined'
+  });
 
   try {
-    // Establecer fechas por defecto si no se proporcionan
+    // Only use mock data if explicitly in development mode without any date range
+    const useMockData = process.env.NODE_ENV === 'development' && 
+                        (!dateRange || !dateRange.from || !dateRange.to) && 
+                        (!comparisonRange || !comparisonRange.from || !comparisonRange.to);
+    
+    if (useMockData) {
+      console.log("Using mock data because no date range provided in development mode");
+      return getMockServiciosData(dateRange);
+    }
+    
+    // Ensure we have valid date ranges
     const endDate = dateRange?.to || new Date();
     const startDate = dateRange?.from || subMonths(endDate, 3);
+    
+    console.log("Using real data with date range:", {
+      startDate: startDate.toISOString(),
+      endDate: endDate.toISOString()
+    });
     
     // Calcular rangos de tiempo para comparaciones
     const currentMonthStart = startOfMonth(endDate);
@@ -34,7 +50,7 @@ export async function fetchServiciosData(dateRange?: DateRange, comparisonRange?
     const previousWeekStart = startOfWeek(subWeeks(currentWeekStart, 1));
     const previousWeekEnd = endOfWeek(subWeeks(currentWeekStart, 1));
 
-    console.log("Date ranges for KM calculation:", {
+    console.log("Date ranges for database queries:", {
       startDate: startDate.toISOString(),
       endDate: endDate.toISOString(),
       currentMonth: {start: currentMonthStart.toISOString(), end: currentMonthEnd.toISOString()},
@@ -56,7 +72,12 @@ export async function fetchServiciosData(dateRange?: DateRange, comparisonRange?
         semana_anterior_fin: previousWeekEnd.toISOString()
       });
 
-    if (generalError) throw generalError;
+    if (generalError) {
+      console.error("Error fetching general metrics:", generalError);
+      throw generalError;
+    }
+    
+    console.log("General metrics data:", generalMetrics);
 
     // 2. Obtener alertas de clientes con variaciones significativas
     const { data: alertas, error: alertasError } = await supabase
@@ -68,7 +89,10 @@ export async function fetchServiciosData(dateRange?: DateRange, comparisonRange?
         umbral_variacion: 20 // Alerta cuando hay incremento de 20% o más
       });
 
-    if (alertasError) throw alertasError;
+    if (alertasError) {
+      console.error("Error fetching alerts:", alertasError);
+      throw alertasError;
+    }
 
     // 3. Obtener datos de servicios por cliente
     const { data: clientesData, error: clientesError } = await supabase
@@ -77,7 +101,10 @@ export async function fetchServiciosData(dateRange?: DateRange, comparisonRange?
         fecha_fin: endDate.toISOString()
       });
 
-    if (clientesError) throw clientesError;
+    if (clientesError) {
+      console.error("Error fetching client data:", clientesError);
+      throw clientesError;
+    }
     
     // 4. Obtener servicios por tipo y datos crudos de servicios
     const { data: serviciosData, error: serviciosError } = await supabase
@@ -86,7 +113,21 @@ export async function fetchServiciosData(dateRange?: DateRange, comparisonRange?
       .gte('fecha_hora_cita', startDate.toISOString())
       .lte('fecha_hora_cita', endDate.toISOString());
 
-    if (serviciosError) throw serviciosError;
+    if (serviciosError) {
+      console.error("Error fetching services data:", serviciosError);
+      throw serviciosError;
+    }
+
+    console.log(`Fetched ${serviciosData?.length || 0} services from database`);
+    if (serviciosData && serviciosData.length > 0) {
+      console.log("Sample service dates:", serviciosData.slice(0, 5).map(s => s.fecha_hora_cita));
+      
+      // Analyze March and April data specifically
+      const marchData = serviciosData.filter(s => s.fecha_hora_cita && s.fecha_hora_cita.startsWith('2024-03'));
+      const aprilData = serviciosData.filter(s => s.fecha_hora_cita && s.fecha_hora_cita.startsWith('2024-04'));
+      
+      console.log(`March data count: ${marchData.length}, April data count: ${aprilData.length}`);
+    }
 
     // 5. Obtener datos específicos del mes actual para comparación
     const { data: serviciosMesActual, error: mesActualError } = await supabase
@@ -95,7 +136,10 @@ export async function fetchServiciosData(dateRange?: DateRange, comparisonRange?
       .gte('fecha_hora_cita', currentMonthStart.toISOString())
       .lte('fecha_hora_cita', currentMonthEnd.toISOString());
       
-    if (mesActualError) throw mesActualError;
+    if (mesActualError) {
+      console.error("Error fetching current month data:", mesActualError);
+      throw mesActualError;
+    }
       
     // 6. Obtener datos específicos del mes anterior para comparación
     const { data: serviciosMesAnterior, error: mesAnteriorError } = await supabase
@@ -104,7 +148,10 @@ export async function fetchServiciosData(dateRange?: DateRange, comparisonRange?
       .gte('fecha_hora_cita', previousMonthStart.toISOString())
       .lte('fecha_hora_cita', previousMonthEnd.toISOString());
       
-    if (mesAnteriorError) throw mesAnteriorError;
+    if (mesAnteriorError) {
+      console.error("Error fetching previous month data:", mesAnteriorError);
+      throw mesAnteriorError;
+    }
     
     // Calcular kilómetros totales directamente de los datos de servicios para el período completo
     let kmTotales = 0;
@@ -168,7 +215,7 @@ export async function fetchServiciosData(dateRange?: DateRange, comparisonRange?
       percentChange: kmPercentChange
     };
 
-    return {
+    const result = {
       totalServicios: metrics.total_servicios || 0,
       serviciosMoM,
       serviciosWoW,
@@ -181,9 +228,12 @@ export async function fetchServiciosData(dateRange?: DateRange, comparisonRange?
       serviciosPorTipo,
       serviciosData: serviciosData || []
     };
+    
+    console.log("Successfully processed real data from Supabase");
+    return result;
   } catch (error) {
     console.error("Error fetching servicios data:", error);
-    // En caso de error, devolver datos simulados
+    console.warn("Falling back to mock data due to error");
     return getMockServiciosData(dateRange);
   }
 }
