@@ -1,5 +1,6 @@
 
 import { utils, writeFile } from "xlsx";
+import { templateColumns } from './columnDefinitions';
 
 /**
  * Generate a template CSV file for data imports
@@ -125,4 +126,49 @@ export const generateTemplateCSV = (templateType: string) => {
 
   // Create download
   writeFile(workbook, filename);
+};
+
+/**
+ * Creates the header row for CSV templates
+ */
+export const createHeaderRow = (): string => {
+  return templateColumns.map(col => col.displayName).join(',');
+};
+
+/**
+ * Creates the description row with column details
+ */
+export const createDescriptionRow = (): string => {
+  return templateColumns.map(col => {
+    const requiredText = col.required ? '[Requerido]' : '[Opcional]';
+    return `"${requiredText} ${col.description.replace(/"/g, '""')}"`;
+  }).join(',');
+};
+
+/**
+ * Creates an example data row
+ */
+export const createExampleRow = (): string => {
+  return templateColumns.map(col => {
+    if (col.type === 'text' || col.type === 'date') {
+      return `"${col.example}"`;
+    }
+    return col.example;
+  }).join(',');
+};
+
+/**
+ * Creates instruction rows for the CSV
+ */
+export const createInstructionsRows = (): string => {
+  return [
+    '"# PLANTILLA PARA IMPORTACIÓN DE SERVICIOS"',
+    '"# Instrucciones:"',
+    '"# 1. No modifique la estructura de columnas"',
+    '"# 2. Las columnas marcadas como [Requerido] son obligatorias"',
+    '"# 3. Respete el formato de los campos numéricos y fechas"',
+    '"# 4. Para fechas use el formato YYYY-MM-DD HH:MM:SS"',
+    '"# 5. Elimine estas líneas de instrucciones antes de importar"',
+    '"# --------------------------------------------------------------------------"'
+  ].join('\n');
 };
