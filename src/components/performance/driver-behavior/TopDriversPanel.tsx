@@ -42,7 +42,7 @@ export function TopDriversPanel({ data, isLoading }: TopDriversPanelProps) {
     );
   }
 
-  if (!data || (!data.topDrivers?.length && !data.needsImprovement?.length)) {
+  if (!data || (!data.topDrivers?.length && !data.needsImprovement?.length && !data.ecoDrivers?.length)) {
     return (
       <Card className="border-0 shadow-md">
         <CardHeader>

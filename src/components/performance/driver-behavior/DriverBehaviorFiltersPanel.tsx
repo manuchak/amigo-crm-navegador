@@ -122,24 +122,21 @@ export function DriverBehaviorFiltersPanel({
                         <CommandItem
                           key={client}
                           value={client}
-                          className="cursor-pointer hover:bg-gray-100 flex items-center gap-2 py-2"
-                          onSelect={() => {
-                            handleClientToggle(client);
-                          }}
+                          className="flex items-center gap-2 py-2 cursor-pointer hover:bg-gray-100"
+                          onSelect={() => handleClientToggle(client)}
                         >
-                          <div 
-                            className="flex items-center gap-2"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleClientToggle(client);
-                            }}
+                          <Checkbox
+                            id={`client-${client}`}
+                            checked={(filters.selectedClients || []).includes(client)}
+                            onCheckedChange={() => handleClientToggle(client)}
+                            className="mr-2 h-4 w-4"
+                          />
+                          <label 
+                            htmlFor={`client-${client}`}
+                            className="flex-1 cursor-pointer"
                           >
-                            <Checkbox
-                              checked={(filters.selectedClients || []).includes(client)}
-                              className="mr-2 h-4 w-4"
-                            />
                             {client}
-                          </div>
+                          </label>
                         </CommandItem>
                       ))
                     ) : (

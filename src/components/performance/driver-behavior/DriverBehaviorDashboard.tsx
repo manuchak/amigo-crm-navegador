@@ -12,6 +12,7 @@ import { DriverBehaviorFiltersPanel } from './DriverBehaviorFiltersPanel';
 import { DriverRiskAssessment } from './DriverRiskAssessment';
 import { TopDriversPanel } from './TopDriversPanel';
 import { CO2EmissionsCard } from './CO2EmissionsCard';
+import { DriverBehaviorImport } from './DriverBehaviorImport';
 
 interface DriverBehaviorDashboardProps {
   dateRange: DateRange;
@@ -70,11 +71,17 @@ export function DriverBehaviorDashboard({ dateRange, comparisonRange }: DriverBe
 
   return (
     <div className="space-y-6">
-      <DriverBehaviorFiltersPanel 
-        clientList={Array.isArray(clientList) ? clientList : []} 
-        onFilterChange={handleFilterChange} 
-        filters={filters} 
-      />
+      <div className="flex flex-col md:flex-row justify-between gap-4 mb-6">
+        <DriverBehaviorFiltersPanel 
+          clientList={Array.isArray(clientList) ? clientList : []} 
+          onFilterChange={handleFilterChange} 
+          filters={filters} 
+        />
+        
+        <div className="mt-4 md:mt-0">
+          <DriverBehaviorImport onImportComplete={handleImportComplete} />
+        </div>
+      </div>
       
       <DriverBehaviorMetricsCards 
         data={driverData} 

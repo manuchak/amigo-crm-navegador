@@ -9,12 +9,6 @@ import { Button } from "@/components/ui/button";
 import { RefreshCw, Download, Upload } from 'lucide-react';
 import { useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 
 interface DriverBehaviorImportProps {
   className?: string;
