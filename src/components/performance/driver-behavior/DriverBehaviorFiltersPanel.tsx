@@ -76,21 +76,27 @@ export function DriverBehaviorFiltersPanel({
                   <CommandInput placeholder="Buscar cliente..." />
                   <CommandEmpty>No se encontraron clientes.</CommandEmpty>
                   <CommandGroup className="max-h-64 overflow-y-auto">
-                    {clientList.map((client) => (
-                      <CommandItem
-                        key={client}
-                        value={client}
-                        onSelect={() => handleClientSelect(client)}
-                      >
-                        <Check
-                          className={cn(
-                            "mr-2 h-4 w-4",
-                            filters.client === client ? "opacity-100" : "opacity-0"
-                          )}
-                        />
-                        {client}
+                    {clientList && clientList.length > 0 ? (
+                      clientList.map((client) => (
+                        <CommandItem
+                          key={client}
+                          value={client}
+                          onSelect={() => handleClientSelect(client)}
+                        >
+                          <Check
+                            className={cn(
+                              "mr-2 h-4 w-4",
+                              filters.client === client ? "opacity-100" : "opacity-0"
+                            )}
+                          />
+                          {client}
+                        </CommandItem>
+                      ))
+                    ) : (
+                      <CommandItem value="no-clients" disabled>
+                        No hay clientes disponibles
                       </CommandItem>
-                    ))}
+                    )}
                   </CommandGroup>
                 </Command>
               </PopoverContent>

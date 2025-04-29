@@ -593,7 +593,6 @@ export async function importDriverBehaviorData(
   }
 }
 
-// Función mejorada para procesar líneas CSV considerando campos entre comillas
 function processCSVLine(line: string): string[] {
   const values: string[] = [];
   let currentValue = '';
@@ -619,7 +618,6 @@ function processCSVLine(line: string): string[] {
   return values.map(v => v.replace(/^[""]|[""]$/g, '').trim());
 }
 
-// Función mejorada para parsear valores numéricos
 function parseNumericValue(value: any, defaultValue: number = 0): number {
   if (value === undefined || value === null || value === '') {
     return defaultValue;
@@ -641,7 +639,6 @@ function parseNumericValue(value: any, defaultValue: number = 0): number {
   return defaultValue;
 }
 
-// Mejorada para parsear fechas con formato de fecha y hora
 function parseFlexibleDateTime(dateTimeStr: string, defaultDate: Date = new Date()): Date {
   if (!dateTimeStr || dateTimeStr.trim() === '') {
     return defaultDate;
@@ -695,26 +692,26 @@ export function getScoreCategory(score: number): ScoreCalculationResult {
 
 export async function fetchClientList(): Promise<string[]> {
   try {
+    // Fetch unique clients from the driver_behavior_scores table
     const { data, error } = await supabase
       .from('driver_behavior_scores')
       .select('client')
-      .order('client');
-
+      .order('client')
+      
     if (error) {
       console.error('Error fetching client list:', error);
-      return [];
+      throw new Error(`Error fetching client list: ${error.message}`);
     }
-
-    const uniqueClients = new Set<string>();
-    data.forEach(item => {
-      if (item.client) {
-        uniqueClients.add(item.client);
-      }
-    });
-
-    return Array.from(uniqueClients);
+    
+    // Extract unique client names
+    const uniqueClients = Array.from(new Set(data.map(row => row.client)))
+      .filter(Boolean) // Remove null/undefined values
+      .sort();
+    
+    console.log('Fetched client list:', uniqueClients);
+    return uniqueClients as string[];
   } catch (error) {
-    console.error('Error fetching client list:', error);
-    return [];
+    console.error('Error in fetchClientList:', error);
+    return []; // Return empty array in case of error
   }
 }
