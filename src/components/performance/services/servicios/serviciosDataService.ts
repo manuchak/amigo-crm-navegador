@@ -22,8 +22,7 @@ export async function fetchServiciosData(dateRange?: DateRange, comparisonRange?
   try {
     // Only use mock data if explicitly in development mode without any date range
     const useMockData = process.env.NODE_ENV === 'development' && 
-                        (!dateRange || !dateRange.from || !dateRange.to) && 
-                        (!comparisonRange || !comparisonRange.from || !comparisonRange.to);
+                        (!dateRange || !dateRange.from || !dateRange.to);
     
     if (useMockData) {
       console.log("Using mock data because no date range provided in development mode");
@@ -50,13 +49,6 @@ export async function fetchServiciosData(dateRange?: DateRange, comparisonRange?
     const previousWeekStart = startOfWeek(subWeeks(currentWeekStart, 1));
     const previousWeekEnd = endOfWeek(subWeeks(currentWeekStart, 1));
 
-    console.log("Date ranges for database queries:", {
-      startDate: startDate.toISOString(),
-      endDate: endDate.toISOString(),
-      currentMonth: {start: currentMonthStart.toISOString(), end: currentMonthEnd.toISOString()},
-      previousMonth: {start: previousMonthStart.toISOString(), end: previousMonthEnd.toISOString()}
-    });
-
     // 1. Obtener métricas generales
     const { data: generalMetrics, error: generalError } = await supabase
       .rpc('obtener_metricas_generales', {
@@ -76,8 +68,6 @@ export async function fetchServiciosData(dateRange?: DateRange, comparisonRange?
       console.error("Error fetching general metrics:", generalError);
       throw generalError;
     }
-    
-    console.log("General metrics data:", generalMetrics);
 
     // 2. Obtener alertas de clientes con variaciones significativas
     const { data: alertas, error: alertasError } = await supabase
@@ -121,12 +111,6 @@ export async function fetchServiciosData(dateRange?: DateRange, comparisonRange?
     console.log(`Fetched ${serviciosData?.length || 0} services from database`);
     if (serviciosData && serviciosData.length > 0) {
       console.log("Sample service dates:", serviciosData.slice(0, 5).map(s => s.fecha_hora_cita));
-      
-      // Analyze March and April data specifically
-      const marchData = serviciosData.filter(s => s.fecha_hora_cita && s.fecha_hora_cita.startsWith('2024-03'));
-      const aprilData = serviciosData.filter(s => s.fecha_hora_cita && s.fecha_hora_cita.startsWith('2024-04'));
-      
-      console.log(`March data count: ${marchData.length}, April data count: ${aprilData.length}`);
     }
 
     // 5. Obtener datos específicos del mes actual para comparación
@@ -153,35 +137,20 @@ export async function fetchServiciosData(dateRange?: DateRange, comparisonRange?
       throw mesAnteriorError;
     }
     
-    // FIX 1: Calculate total kilometers directly from the data, checking for NaN and using km_teorico 
-    // only when valid and km_recorridos is not available
+    // Calculate total kilometers directly from servicios data
     let kmTotales = 0;
-    const kmValues = [];
+    
     if (serviciosData && serviciosData.length > 0) {
       serviciosData.forEach(servicio => {
-        // First try to use km_recorridos, as it's the actual distance
-        let km = getValidNumberOrZero(servicio.km_recorridos);
-        
-        // Debug for KM calculation - this will help identify issues
-        if (isNaN(km) || km === 0) {
-          console.log(`Service ID ${servicio.id}: km_recorridos=${servicio.km_recorridos} (processed: ${km})`);
-        }
-        
+        // Use km_recorridos, validates for NaN or null values
+        const km = getValidNumberOrZero(servicio.km_recorridos);
         kmTotales += km;
-        kmValues.push(km);
       });
     }
 
-    // Print detailed KM calculation
-    console.log("Fix 1: KM calculation details:", {
+    console.log("KM calculation:", {
       kmTotales,
       totalServices: serviciosData?.length || 0,
-      firstFewServices: serviciosData?.slice(0, 3).map(s => ({
-        id: s.id,
-        km_recorridos: s.km_recorridos,
-        km_teorico: s.km_teorico,
-        fecha: s.fecha_hora_cita
-      }))
     });
 
     // Extraer valores de km para cálculos de promedios
@@ -191,16 +160,6 @@ export async function fetchServiciosData(dateRange?: DateRange, comparisonRange?
     // Calcular promedios de KM por mes
     const kmPromedioMesActual = calculateAverage(kmMesActualValues);
     const kmPromedioMesAnterior = calculateAverage(kmMesAnteriorValues);
-    
-    console.log("Detailed KM calculations:", {
-      kmTotales,
-      totalServices: serviciosData?.length || 0,
-      kmPromedioMesActual,
-      kmPromedioMesAnterior,
-      kmMesActualLength: kmMesActualValues.length,
-      kmMesAnteriorLength: kmMesAnteriorValues.length,
-      sampleKmValues: kmValues.slice(0, 5) // First few values for debugging
-    });
     
     // Procesar servicios por tipo (Foraneo, Local o Reparto)
     const serviciosPorTipo = procesarServiciosPorTipo(serviciosData || []);

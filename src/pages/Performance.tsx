@@ -83,12 +83,12 @@ export default function Performance() {
   };
 
   return (
-    <div className="container mx-auto space-y-8 py-8 px-4 md:px-6">
+    <div className="container mx-auto space-y-6 py-6 px-4 md:px-6">
       <div>
         {renderHeader()}
       </div>
       
-      <Card className="border shadow-sm p-4">
+      <Card className="border shadow-sm bg-white p-4">
         <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <PerformanceDateFilter dateRange={dateRange} setDateRange={handleDateRangeChange} />
           
@@ -100,7 +100,7 @@ export default function Performance() {
         </div>
       </Card>
       
-      <div className="mt-8">
+      <div>
         <Tabs 
           defaultValue="servicios" 
           className="w-full"
@@ -113,21 +113,21 @@ export default function Performance() {
             <TabsTrigger value="driverBehavior" className="data-[state=active]:bg-white data-[state=active]:shadow-sm rounded-md">Comportamiento de Conducción</TabsTrigger>
           </TabsList>
           
-          <TabsContent value="servicios" className="mt-2 animate-fade-in">
+          <TabsContent value="servicios" className="mt-0 animate-fade-in duration-300">
             <ServiciosDashboard 
               dateRange={dateRange.primary} 
               comparisonRange={dateRange.comparisonType !== 'none' ? dateRange.comparison : undefined} 
             />
           </TabsContent>
           
-          <TabsContent value="custodios" className="mt-2 animate-fade-in">
+          <TabsContent value="custodios" className="mt-0 animate-fade-in duration-300">
             <CustodioPerformanceDashboard 
               dateRange={dateRange.primary} 
               comparisonRange={dateRange.comparisonType !== 'none' ? dateRange.comparison : undefined} 
             />
           </TabsContent>
           
-          <TabsContent value="driverBehavior" className="mt-2 animate-fade-in">
+          <TabsContent value="driverBehavior" className="mt-0 animate-fade-in duration-300">
             <DriverBehaviorDashboard 
               dateRange={dateRange.primary} 
               comparisonRange={dateRange.comparisonType !== 'none' ? dateRange.comparison : undefined} 

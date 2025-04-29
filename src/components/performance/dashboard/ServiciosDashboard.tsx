@@ -47,7 +47,7 @@ export function ServiciosDashboard({ dateRange, comparisonRange }: ServiciosDash
 
   if (isError) {
     return (
-      <Card className="p-8 text-center border-0 shadow-sm bg-white/90">
+      <Card className="p-8 text-center border shadow-sm bg-white">
         <CardContent className="pt-6">
           <h3 className="text-xl font-medium mb-2 text-gray-800">Error al cargar datos</h3>
           <p className="text-muted-foreground">
@@ -68,9 +68,9 @@ export function ServiciosDashboard({ dateRange, comparisonRange }: ServiciosDash
   }
 
   return (
-    <div className="space-y-8"> 
-      {/* Metrics cards at the top with subtle shadows */}
-      <div className="animate-fade-in">
+    <div className="space-y-6">
+      {/* Metrics cards at the top */}
+      <div className="animate-fade-in duration-300">
         <ServiciosMetricsCards 
           data={data} 
           isLoading={isLoading} 
@@ -78,7 +78,7 @@ export function ServiciosDashboard({ dateRange, comparisonRange }: ServiciosDash
       </div>
       
       {/* Performance chart with full width for better visibility */}
-      <div className="animate-fade-in animate-delay-100">
+      <div className="animate-fade-in animate-delay-100 duration-300">
         <ServiciosPerformanceChart 
           data={data?.serviciosData} 
           isLoading={isLoading}
@@ -86,16 +86,13 @@ export function ServiciosDashboard({ dateRange, comparisonRange }: ServiciosDash
         />
       </div>
       
-      {/* Type distribution chart in its own row for better visibility */}
-      <div className="animate-fade-in animate-delay-150">
+      {/* Two charts in a row: Tipos and Hour Distribution */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 animate-fade-in animate-delay-150 duration-300">
         <ServiciosTipoChart 
           data={data?.serviciosPorTipo || []} 
           isLoading={isLoading} 
         />
-      </div>
-      
-      {/* Hour distribution chart in its own row */}
-      <div className="animate-fade-in animate-delay-200">
+        
         <ServiciosHourDistributionChart 
           data={data?.serviciosData}
           isLoading={isLoading}
@@ -103,7 +100,7 @@ export function ServiciosDashboard({ dateRange, comparisonRange }: ServiciosDash
       </div>
       
       {/* Clients and alerts in a row */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 animate-fade-in animate-delay-300">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 animate-fade-in animate-delay-200 duration-300">
         <ServiciosClientesActivos 
           clientes={data?.serviciosPorCliente || []}
           isLoading={isLoading}
@@ -116,7 +113,7 @@ export function ServiciosDashboard({ dateRange, comparisonRange }: ServiciosDash
       </div>
 
       {/* Optional cohort analysis section */}
-      <div className="animate-fade-in animate-delay-400">
+      <div className="animate-fade-in animate-delay-300 duration-300">
         <CohortAnalysisViewer
           data={data}
           isLoading={isLoading}

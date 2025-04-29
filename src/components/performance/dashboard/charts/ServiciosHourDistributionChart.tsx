@@ -9,7 +9,6 @@ import {
   YAxis,
   CartesianGrid,
   Tooltip,
-  Legend,
   ResponsiveContainer,
   Cell
 } from 'recharts';
@@ -24,15 +23,21 @@ interface ServiciosHourDistributionChartProps {
 export function ServiciosHourDistributionChart({ data = [], isLoading }: ServiciosHourDistributionChartProps) {
   const hourlyData = useMemo(() => {
     if (!data || data.length === 0) {
-      console.warn('Missing or invalid data for ServiciosHourDistributionChart');
-      return [];
+      console.log('No data available for hour distribution chart');
+      return Array.from({ length: 24 }, (_, i) => ({
+        hour: i,
+        count: 0,
+        label: `${i}`
+      }));
     }
+
+    console.log(`Processing ${data.length} services for hour distribution`);
 
     // Initialize hourly buckets (0-23)
     const hourCounts = Array.from({ length: 24 }, (_, i) => ({
       hour: i,
       count: 0,
-      label: `${i.toString().padStart(2, '0')}:00`
+      label: `${i}`
     }));
 
     // Count services by hour
@@ -43,80 +48,97 @@ export function ServiciosHourDistributionChart({ data = [], isLoading }: Servici
         const serviceDate = parseISO(servicio.fecha_hora_cita);
         const hour = serviceDate.getHours();
         
-        hourCounts[hour].count++;
+        if (hour >= 0 && hour < 24) {
+          hourCounts[hour].count++;
+        }
       } catch (error) {
-        console.error('Error processing service hour data:', error, servicio);
+        console.error('Error processing service hour:', error);
       }
     });
+
+    // Log data for debugging
+    console.log('Hourly distribution data:', 
+      hourCounts.map(h => `Hour ${h.hour}: ${h.count} services`).join(', ')
+    );
     
     return hourCounts;
   }, [data]);
 
   if (isLoading) {
     return (
-      <Card className="border-0 shadow-sm">
+      <Card className="border shadow-sm bg-white">
         <CardHeader className="pb-2">
           <CardTitle className="text-lg font-medium">Distribución por Hora del Día</CardTitle>
         </CardHeader>
         <CardContent>
-          <Skeleton className="h-[250px] w-full" />
+          <Skeleton className="h-[300px] w-full" />
         </CardContent>
       </Card>
     );
   }
 
+  // Find max count for better visualization
+  const maxCount = Math.max(...hourlyData.map(item => item.count));
+  
+  // Special chart config to highlight peak hours
   const chartConfig = {
     count: { color: "#0EA5E9" }
   };
 
-  // Find peak hours for highlighting
-  const maxCount = Math.max(...hourlyData.map(item => item.count));
-  
   return (
-    <Card className="border-0 shadow-sm w-full">
+    <Card className="border shadow-sm bg-white">
       <CardHeader className="pb-2">
         <CardTitle className="text-lg font-medium">Distribución por Hora del Día</CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="h-[250px]">
+        <div className="h-[300px]">
           <ChartContainer config={chartConfig}>
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={hourlyData} margin={{ top: 10, right: 5, left: 5, bottom: 20 }}>
+              <BarChart 
+                data={hourlyData}
+                margin={{ top: 10, right: 10, left: 0, bottom: 20 }}
+                barCategoryGap={1}
+              >
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
                 <XAxis 
-                  dataKey="label" 
-                  interval={2}
-                  tick={{ fontSize: 10 }}
-                  tickMargin={10}
-                  axisLine={{ stroke: '#e5e5e5' }}
-                />
-                <YAxis 
-                  tick={{ fontSize: 10 }}
+                  dataKey="hour" 
+                  tickFormatter={(value) => `${value}`}
+                  tick={{ fontSize: 11 }}
                   axisLine={{ stroke: '#e5e5e5' }}
                   tickLine={false}
                 />
+                <YAxis 
+                  width={30}
+                  axisLine={{ stroke: '#e5e5e5' }}
+                  tickLine={false}
+                  tick={{ fontSize: 11 }}
+                />
                 <Tooltip 
                   formatter={(value) => [`${value}`, 'Servicios']}
-                  labelFormatter={(label) => `Hora: ${label}`}
-                  contentStyle={{ 
-                    backgroundColor: 'rgba(255, 255, 255, 0.95)',
-                    borderRadius: '8px',
-                    boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
-                    border: 'none'
+                  labelFormatter={(hour) => `Hora ${hour}:00`}
+                  contentStyle={{
+                    backgroundColor: 'rgba(255, 255, 255, 0.98)',
+                    borderRadius: '6px',
+                    boxShadow: '0 2px 10px rgba(0, 0, 0, 0.08)',
+                    border: 'none',
+                    padding: '8px 12px',
                   }}
                 />
-                <Legend iconType="circle" iconSize={8} />
                 <Bar 
                   dataKey="count" 
-                  name="Servicios" 
+                  name="Servicios"
+                  radius={[2, 2, 0, 0]}
                 >
-                  {hourlyData.map((entry, index) => (
-                    <Cell 
-                      key={`cell-${index}`} 
-                      fill={entry.count === maxCount ? '#8B5CF6' : '#0EA5E9'} 
-                      fillOpacity={entry.count / maxCount * 0.9 + 0.1}
-                    />
-                  ))}
+                  {hourlyData.map((entry, index) => {
+                    // Special highlight for peak hours
+                    return (
+                      <Cell 
+                        key={`cell-${index}`} 
+                        fill={entry.count === maxCount ? '#8B5CF6' : '#0EA5E9'} 
+                        fillOpacity={entry.count > 0 ? 0.85 + (entry.count / maxCount * 0.15) : 0.5}
+                      />
+                    );
+                  })}
                 </Bar>
               </BarChart>
             </ResponsiveContainer>

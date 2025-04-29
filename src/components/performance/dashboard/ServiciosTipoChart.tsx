@@ -2,7 +2,7 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts';
+import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 import { ChartContainer } from '@/components/ui/chart';
 
 interface ServiciosTipoChartProps {
@@ -20,7 +20,7 @@ const COLOR_MAP = {
 export function ServiciosTipoChart({ data = [], isLoading }: ServiciosTipoChartProps) {
   if (isLoading) {
     return (
-      <Card className="border-0 shadow-sm">
+      <Card className="border shadow-sm bg-white">
         <CardHeader className="pb-2">
           <CardTitle className="text-lg font-medium">Distribución por Tipo de Servicio</CardTitle>
         </CardHeader>
@@ -51,8 +51,30 @@ export function ServiciosTipoChart({ data = [], isLoading }: ServiciosTipoChartP
     chartConfig[item.tipo] = { color };
   });
 
+  // Custom render for the labels to ensure they don't overflow
+  const renderCustomizedLabel = ({ tipo, percentage, cx, cy, midAngle, innerRadius, outerRadius }) => {
+    const RADIAN = Math.PI / 180;
+    const radius = innerRadius + (outerRadius - innerRadius) * 0.5;
+    const x = cx + radius * Math.cos(-midAngle * RADIAN);
+    const y = cy + radius * Math.sin(-midAngle * RADIAN);
+
+    return (
+      <text 
+        x={x} 
+        y={y} 
+        fill="white" 
+        textAnchor="middle" 
+        dominantBaseline="central"
+        fontSize={12}
+        fontWeight={500}
+      >
+        {`${percentage}%`}
+      </text>
+    );
+  };
+
   return (
-    <Card className="border-0 shadow-sm">
+    <Card className="border shadow-sm bg-white">
       <CardHeader className="pb-2">
         <CardTitle className="text-lg font-medium">Distribución por Tipo de Servicio</CardTitle>
       </CardHeader>
@@ -66,9 +88,9 @@ export function ServiciosTipoChart({ data = [], isLoading }: ServiciosTipoChartP
                   cx="50%"
                   cy="50%"
                   labelLine={false}
-                  label={({ tipo, percentage }) => `${percentage}%`}
+                  label={renderCustomizedLabel}
                   outerRadius={85} 
-                  innerRadius={50} // Add a donut hole
+                  innerRadius={50}
                   fill="#8884d8"
                   dataKey="count"
                   nameKey="tipo"
@@ -83,30 +105,29 @@ export function ServiciosTipoChart({ data = [], isLoading }: ServiciosTipoChartP
                 <Tooltip 
                   formatter={(value, name, props) => [`${value} (${props.payload.percentage}%)`, props.payload.tipo]}
                   contentStyle={{ 
-                    backgroundColor: 'rgba(255, 255, 255, 0.95)',
-                    borderRadius: '8px',
-                    boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
-                    border: 'none'
-                  }}
-                />
-                {/* FIX 2: Position the legend at the bottom and limit its width to avoid overflow */}
-                <Legend 
-                  layout="horizontal"
-                  verticalAlign="bottom" 
-                  align="center"
-                  iconType="circle"
-                  iconSize={8}
-                  wrapperStyle={{ 
-                    paddingTop: 10,
-                    width: '100%', 
-                    fontSize: '12px',
-                    display: 'flex',
-                    justifyContent: 'center'
+                    backgroundColor: 'rgba(255, 255, 255, 0.98)',
+                    borderRadius: '6px',
+                    boxShadow: '0 2px 10px rgba(0, 0, 0, 0.08)',
+                    border: 'none',
+                    padding: '8px 12px',
                   }}
                 />
               </PieChart>
             </ResponsiveContainer>
           </ChartContainer>
+        </div>
+        
+        {/* Added legend outside the chart to prevent overflow issues */}
+        <div className="flex justify-center items-center gap-4 mt-2">
+          {chartDataWithPercentage.map(entry => (
+            <div key={entry.tipo} className="flex items-center gap-2">
+              <div 
+                className="w-3 h-3 rounded-full" 
+                style={{ backgroundColor: COLOR_MAP[entry.tipo] || "#CCCCCC" }} 
+              />
+              <span className="text-xs font-medium">{entry.tipo}</span>
+            </div>
+          ))}
         </div>
       </CardContent>
     </Card>
