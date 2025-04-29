@@ -58,6 +58,10 @@ export function ServiciosPerformanceChart({ data = [], comparisonData, isLoading
     });
     
     console.log(`Processing ${data.length} services for chart with ${allDays.length} days in range`);
+    console.log('Date range:', {
+      from: dateRange.from.toISOString(),
+      to: dateRange.to ? dateRange.to.toISOString() : 'undefined'
+    });
     
     // Populate with actual data
     data.forEach(servicio => {
@@ -67,13 +71,22 @@ export function ServiciosPerformanceChart({ data = [], comparisonData, isLoading
         const serviceDate = parseISO(servicio.fecha_hora_cita);
         const dayStr = format(serviceDate, 'yyyy-MM-dd');
         
-        // Skip if outside our date range
-        if (!dailyDataMap.has(dayStr)) return;
+        // Debug April dates specifically
+        if (dayStr.startsWith('2024-04')) {
+          console.log('Found April service:', dayStr, servicio.fecha_hora_cita);
+        }
         
-        // Update counts
-        const dayData = dailyDataMap.get(dayStr);
-        dayData.servicios += 1;
-        dailyDataMap.set(dayStr, dayData);
+        // Add to our map whether it's in our initialized range or not
+        if (!dailyDataMap.has(dayStr)) {
+          // This might happen if the data contains dates outside our specified range
+          console.log(`Service date outside initialized range: ${dayStr}`);
+          dailyDataMap.set(dayStr, { date: dayStr, servicios: 1 });
+        } else {
+          // Update counts for dates within range
+          const dayData = dailyDataMap.get(dayStr);
+          dayData.servicios += 1;
+          dailyDataMap.set(dayStr, dayData);
+        }
       } catch (error) {
         console.error('Error processing service data:', error, servicio);
       }
@@ -82,7 +95,13 @@ export function ServiciosPerformanceChart({ data = [], comparisonData, isLoading
     // Prepare final data array sorted by date
     const result = Array.from(dailyDataMap.values()).sort((a, b) => a.date.localeCompare(b.date));
     
-    console.log(`Chart data prepared with ${result.length} days, sample:`, result.slice(0, 5));
+    console.log(`Chart data prepared with ${result.length} days`);
+    console.log('First 5 entries:', result.slice(0, 5));
+    console.log('Last 5 entries:', result.slice(-5));
+    
+    // Specifically check for April entries
+    const aprilEntries = result.filter(entry => entry.date.startsWith('2024-04'));
+    console.log(`April entries: ${aprilEntries.length}`, aprilEntries);
     
     return result;
   }, [data, dateRange]);
@@ -120,6 +139,7 @@ export function ServiciosPerformanceChart({ data = [], comparisonData, isLoading
                     return date;
                   }
                 }} 
+                tick={{ fontSize: 10 }}
               />
               <YAxis />
               <Tooltip
@@ -143,6 +163,7 @@ export function ServiciosPerformanceChart({ data = [], comparisonData, isLoading
                 stroke="#8B5CF6" 
                 name="Servicios"
                 activeDot={{ r: 6 }} 
+                connectNulls
               />
             </LineChart>
           </ResponsiveContainer>

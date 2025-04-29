@@ -53,14 +53,15 @@ export function ServiciosDashboard({ dateRange, comparisonRange }: ServiciosDash
         />
       </div>
       
-      <div className="grid grid-cols-1 gap-6">
+      {/* Move hour distribution to its own row with full width */}
+      <div className="grid grid-cols-1 gap-6 mt-6">
         <ServiciosHourDistributionChart 
           data={data?.serviciosData}
           isLoading={isLoading}
         />
       </div>
       
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
         <ServiciosClientesActivos 
           clientes={data?.serviciosPorCliente || []}
           isLoading={isLoading}

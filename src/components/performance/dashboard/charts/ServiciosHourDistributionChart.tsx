@@ -72,20 +72,21 @@ export function ServiciosHourDistributionChart({ data = [], isLoading }: Servici
   };
 
   return (
-    <Card className="border-0 shadow-md">
+    <Card className="border-0 shadow-md w-full">
       <CardHeader>
         <CardTitle className="text-lg font-medium">Distribución por Hora del Día</CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="h-[300px]">
+        <div className="h-[350px]"> {/* Increased height for better visibility */}
           <ChartContainer config={chartConfig}>
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={hourlyData}>
+              <BarChart data={hourlyData} margin={{ top: 10, right: 30, left: 10, bottom: 20 }}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} />
                 <XAxis 
                   dataKey="label" 
-                  interval={1}
+                  interval={2} {/* Show every 3rd label to avoid crowding */}
                   tick={{ fontSize: 10 }}
+                  height={40}
                 />
                 <YAxis />
                 <Tooltip 
