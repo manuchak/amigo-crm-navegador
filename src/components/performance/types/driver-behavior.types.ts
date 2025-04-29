@@ -1,15 +1,15 @@
 
-export interface DriverBehaviorScore {
+import { DateRange } from "react-day-picker";
+
+export interface DriverScore {
   id: number;
   driver_name: string;
   driver_group: string;
   score: number;
   penalty_points: number;
   trips_count: number;
-  duration_interval?: string;
-  duration_text?: string;
-  distance?: number;
-  distance_text?: string;
+  distance: number;
+  distance_text: string;
   start_date: string;
   end_date: string;
   client: string;
@@ -17,26 +17,17 @@ export interface DriverBehaviorScore {
   updated_at: string;
 }
 
-export interface ScoreCalculationResult {
+export interface DriverPerformance {
+  topDrivers: DriverScore[];
+  needsImprovement: DriverScore[];
+  ecoDrivers: DriverScore[];
+}
+
+export interface RiskAssessment {
+  level: 'low' | 'moderate' | 'high' | 'critical';
   score: number;
-  penaltyPoints: number;
-  scoreCategory: 'excellent' | 'good' | 'fair' | 'poor' | 'critical';
-  colorClass: string;
-}
-
-export interface DriverBehaviorFilters {
-  driverName?: string;
-  driverGroup?: string;
-  client?: string;
-  startDate?: Date;
-  endDate?: Date;
-  minScore?: number;
-  maxScore?: number;
-}
-
-export interface DriverBehaviorMetric {
-  label: string;
-  value: number | string;
+  description: string;
+  recommendations: string[];
 }
 
 export interface ScoreDistribution {
@@ -47,37 +38,27 @@ export interface ScoreDistribution {
   critical: number;
 }
 
+export interface MetricItem {
+  label: string;
+  value: number;
+}
+
 export interface DriverBehaviorData {
-  metrics: DriverBehaviorMetric[];
-  driverScores: DriverBehaviorScore[];
-  scoreDistribution?: ScoreDistribution;
+  metrics: MetricItem[];
+  driverScores: DriverScore[];
+  scoreDistribution: ScoreDistribution;
   averageScore: number;
   totalPenaltyPoints: number;
   totalTrips: number;
-  totalDrivingTime?: number; // In minutes
-  totalDistance?: number; // In kilometers
-  co2Emissions?: number; // In kg
-  riskAssessment?: RiskAssessment;
-  driverPerformance?: DriverPerformance;
+  totalDrivingTime: number;
+  totalDistance: number;
+  co2Emissions: number;
+  riskAssessment: RiskAssessment;
+  driverPerformance: DriverPerformance;
 }
 
-export interface RiskAssessment {
-  level: 'low' | 'moderate' | 'high' | 'critical';
-  score: number;
-  description: string;
-  recommendations: string[];
+export interface DriverBehaviorFilters {
+  driverName?: string;
+  selectedClients?: string[]; // Changed from client?: string to selectedClients?: string[] for multi-select
+  dateRange?: DateRange;
 }
-
-export interface DriverPerformance {
-  topDrivers: DriverBehaviorScore[];
-  needsImprovement: DriverBehaviorScore[];
-  ecoDrivers: DriverBehaviorScore[];
-}
-
-export interface CO2Calculation {
-  baseEmissions: number; // kg CO2
-  wastage: number; // kg CO2 wasted due to poor driving
-  potentialSavings: number; // kg CO2 that could be saved
-  percentageIncrease: number; // % increase due to poor behavior
-}
-

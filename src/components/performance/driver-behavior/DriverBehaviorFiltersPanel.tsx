@@ -18,6 +18,7 @@ import {
 } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 import { DriverBehaviorFilters } from '../types/driver-behavior.types';
+import { Checkbox } from "@/components/ui/checkbox";
 
 interface DriverBehaviorFiltersPanelProps {
   clientList: string[];
@@ -37,17 +38,42 @@ export function DriverBehaviorFiltersPanel({
     onFilterChange({ ...filters, driverName: e.target.value });
   };
   
-  const handleClientSelect = (client: string) => {
-    onFilterChange({ ...filters, client });
-    setOpen(false);
+  const handleClientToggle = (client: string) => {
+    // Initialize selectedClients if it doesn't exist
+    const currentSelected = filters.selectedClients || [];
+    
+    // Toggle client selection
+    let newSelectedClients: string[];
+    
+    if (currentSelected.includes(client)) {
+      // Remove client if already selected
+      newSelectedClients = currentSelected.filter(c => c !== client);
+    } else {
+      // Add client if not selected
+      newSelectedClients = [...currentSelected, client];
+    }
+    
+    // Update filters with new selection
+    onFilterChange({ 
+      ...filters, 
+      selectedClients: newSelectedClients.length > 0 ? newSelectedClients : undefined 
+    });
   };
   
   const clearClientFilter = () => {
-    onFilterChange({ ...filters, client: undefined });
+    onFilterChange({ ...filters, selectedClients: undefined });
   };
   
   const handleClearFilters = () => {
     onFilterChange({});
+  };
+  
+  // Get a summary of selected clients for display
+  const getSelectedClientsDisplay = () => {
+    const selectedClients = filters.selectedClients || [];
+    if (selectedClients.length === 0) return "Seleccionar Cliente(s)";
+    if (selectedClients.length === 1) return selectedClients[0];
+    return `${selectedClients.length} clientes seleccionados`;
   };
 
   // Log data to help debug the issue
@@ -74,13 +100,13 @@ export function DriverBehaviorFiltersPanel({
                   variant="outline"
                   role="combobox"
                   aria-expanded={open}
-                  className="w-48 h-9 justify-between bg-white text-foreground border-gray-200 hover:bg-gray-50"
+                  className="w-64 h-9 justify-between bg-white text-foreground border-gray-200 hover:bg-gray-50"
                 >
-                  {filters.client || "Seleccionar Cliente"}
+                  {getSelectedClientsDisplay()}
                   <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                 </Button>
               </PopoverTrigger>
-              <PopoverContent className="w-48 p-0 z-50 bg-white border border-gray-200 shadow-md">
+              <PopoverContent className="w-64 p-0 z-50 bg-white border border-gray-200 shadow-md">
                 <Command>
                   <CommandInput 
                     placeholder="Buscar cliente..." 
@@ -94,14 +120,13 @@ export function DriverBehaviorFiltersPanel({
                         <CommandItem
                           key={client}
                           value={client}
-                          onSelect={() => handleClientSelect(client)}
-                          className="cursor-pointer hover:bg-gray-100"
+                          onSelect={() => handleClientToggle(client)}
+                          className="cursor-pointer hover:bg-gray-100 flex items-center gap-2"
                         >
-                          <Check
-                            className={cn(
-                              "mr-2 h-4 w-4",
-                              filters.client === client ? "opacity-100" : "opacity-0"
-                            )}
+                          <Checkbox
+                            checked={(filters.selectedClients || []).includes(client)}
+                            className="mr-2 h-4 w-4"
+                            onCheckedChange={() => handleClientToggle(client)}
                           />
                           {client}
                         </CommandItem>
@@ -116,7 +141,7 @@ export function DriverBehaviorFiltersPanel({
               </PopoverContent>
             </Popover>
 
-            {filters.client && (
+            {filters.selectedClients && filters.selectedClients.length > 0 && (
               <Button 
                 variant="ghost" 
                 size="sm" 
@@ -127,7 +152,7 @@ export function DriverBehaviorFiltersPanel({
               </Button>
             )}
             
-            {(filters.driverName || filters.client) && (
+            {(filters.driverName || filters.selectedClients) && (
               <Button 
                 variant="ghost" 
                 size="sm" 

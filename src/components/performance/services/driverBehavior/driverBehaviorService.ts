@@ -8,16 +8,15 @@ const mockClients = ["Aquasteam", "Servprot", "Shellpride", "Logitrade", "TransG
 
 // Mock driver behavior data generator
 const generateMockDriverBehaviorData = (dateRange: DateRange, filters?: DriverBehaviorFilters): DriverBehaviorData => {
-  // Filter client based on filters
-  const client = filters?.client || "All Clients";
+  // Filter based on selected clients
+  const selectedClients = filters?.selectedClients || [];
+  const useClientFilter = selectedClients.length > 0;
   
-  return {
-    metrics: [
-      { label: "Total Conductores", value: 42 },
-      { label: "Conductores Activos", value: 38 },
-      { label: "Alertas de Seguridad", value: 156 }
-    ],
-    driverScores: Array(10).fill(null).map((_, i) => ({
+  // Generate driver scores filtered by client if specified
+  const driverScores = Array(10).fill(null).map((_, i) => {
+    const client = i % mockClients.length === 0 ? mockClients[0] : mockClients[i % mockClients.length];
+    
+    return {
       id: i + 1,
       driver_name: `Driver ${i + 1}`,
       driver_group: i % 3 === 0 ? "Group A" : i % 3 === 1 ? "Group B" : "Group C",
@@ -28,23 +27,61 @@ const generateMockDriverBehaviorData = (dateRange: DateRange, filters?: DriverBe
       distance_text: `${Math.floor(Math.random() * 1000)} km`,
       start_date: dateRange.from?.toISOString() || new Date().toISOString(),
       end_date: dateRange.to?.toISOString() || new Date().toISOString(),
-      client: i % mockClients.length === 0 ? mockClients[0] : mockClients[i % mockClients.length],
+      client,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString()
-    })),
+    };
+  }).filter(driver => {
+    if (!useClientFilter) return true;
+    return selectedClients.includes(driver.client);
+  });
+  
+  // Generate top drivers filtered by client if specified
+  const generateDrivers = (prefix: string, scoreBase: number, count: number = 3) => {
+    return Array(count).fill(null).map((_, i) => {
+      const client = mockClients[i % mockClients.length];
+      
+      return {
+        id: i + 100,
+        driver_name: `${prefix} ${i + 1}`,
+        driver_group: prefix === "Top Driver" ? "Elite Drivers" : 
+                      prefix === "Improvement Needed" ? "Risk Group" : "Green Team",
+        score: Math.floor(Math.random() * 10) + scoreBase,
+        penalty_points: Math.floor(Math.random() * (prefix === "Improvement Needed" ? 15 : 7)) + 
+                        (prefix === "Improvement Needed" ? 15 : 0),
+        trips_count: Math.floor(Math.random() * 50) + 30,
+        start_date: dateRange.from?.toISOString() || new Date().toISOString(),
+        end_date: dateRange.to?.toISOString() || new Date().toISOString(),
+        client,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      };
+    }).filter(driver => {
+      if (!useClientFilter) return true;
+      return selectedClients.includes(driver.client);
+    });
+  };
+  
+  return {
+    metrics: [
+      { label: "Total Conductores", value: useClientFilter ? driverScores.length + 2 : 42 },
+      { label: "Conductores Activos", value: useClientFilter ? driverScores.length : 38 },
+      { label: "Alertas de Seguridad", value: useClientFilter ? Math.floor(driverScores.length * 4.1) : 156 }
+    ],
+    driverScores,
     scoreDistribution: {
-      excellent: 15,
-      good: 45,
-      fair: 30,
-      poor: 8,
-      critical: 2
+      excellent: useClientFilter ? Math.floor(15 * (driverScores.length / 10)) : 15,
+      good: useClientFilter ? Math.floor(45 * (driverScores.length / 10)) : 45,
+      fair: useClientFilter ? Math.floor(30 * (driverScores.length / 10)) : 30,
+      poor: useClientFilter ? Math.floor(8 * (driverScores.length / 10)) : 8,
+      critical: useClientFilter ? Math.floor(2 * (driverScores.length / 10)) : 2
     },
     averageScore: 5.1,
-    totalPenaltyPoints: 450,
-    totalTrips: 1495,
-    totalDrivingTime: 12450,
-    totalDistance: 28750,
-    co2Emissions: 5842,
+    totalPenaltyPoints: useClientFilter ? driverScores.reduce((sum, d) => sum + d.penalty_points, 0) : 450,
+    totalTrips: useClientFilter ? driverScores.reduce((sum, d) => sum + d.trips_count, 0) : 1495,
+    totalDrivingTime: useClientFilter ? Math.floor(12450 * (driverScores.length / 10)) : 12450,
+    totalDistance: useClientFilter ? Math.floor(28750 * (driverScores.length / 10)) : 28750,
+    co2Emissions: useClientFilter ? Math.floor(5842 * (driverScores.length / 10)) : 5842,
     riskAssessment: {
       level: "moderate",
       score: 65,
@@ -56,45 +93,9 @@ const generateMockDriverBehaviorData = (dateRange: DateRange, filters?: DriverBe
       ]
     },
     driverPerformance: {
-      topDrivers: Array(3).fill(null).map((_, i) => ({
-        id: i + 100,
-        driver_name: `Top Driver ${i + 1}`,
-        driver_group: "Elite Drivers",
-        score: Math.floor(Math.random() * 10) + 90,
-        penalty_points: Math.floor(Math.random() * 5),
-        trips_count: Math.floor(Math.random() * 50) + 50,
-        start_date: dateRange.from?.toISOString() || new Date().toISOString(),
-        end_date: dateRange.to?.toISOString() || new Date().toISOString(),
-        client: client === "All Clients" ? mockClients[i % mockClients.length] : client,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      })),
-      needsImprovement: Array(3).fill(null).map((_, i) => ({
-        id: i + 200,
-        driver_name: `Improvement Needed ${i + 1}`,
-        driver_group: "Risk Group",
-        score: Math.floor(Math.random() * 20) + 40,
-        penalty_points: Math.floor(Math.random() * 10) + 15,
-        trips_count: Math.floor(Math.random() * 30) + 10,
-        start_date: dateRange.from?.toISOString() || new Date().toISOString(),
-        end_date: dateRange.to?.toISOString() || new Date().toISOString(),
-        client: client === "All Clients" ? mockClients[i % mockClients.length] : client,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      })),
-      ecoDrivers: Array(3).fill(null).map((_, i) => ({
-        id: i + 300,
-        driver_name: `Eco Driver ${i + 1}`,
-        driver_group: "Green Team",
-        score: Math.floor(Math.random() * 15) + 80,
-        penalty_points: Math.floor(Math.random() * 7),
-        trips_count: Math.floor(Math.random() * 40) + 30,
-        start_date: dateRange.from?.toISOString() || new Date().toISOString(),
-        end_date: dateRange.to?.toISOString() || new Date().toISOString(),
-        client: client === "All Clients" ? mockClients[i % mockClients.length] : client,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      }))
+      topDrivers: generateDrivers("Top Driver", 90),
+      needsImprovement: generateDrivers("Improvement Needed", 40),
+      ecoDrivers: generateDrivers("Eco Driver", 80)
     }
   };
 };
