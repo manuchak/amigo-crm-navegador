@@ -1,0 +1,2 @@
+
+export { ServiciosPerformanceChart } from './ServiciosPerformanceChart';
