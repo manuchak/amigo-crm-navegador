@@ -33,7 +33,10 @@ export function TemplateHelpDialog({ open, onOpenChange, templateType }: Templat
         { field: 'Tipo', description: 'Tipo de servicio', required: true, example: 'Instalación' },
         { field: 'Estatus', description: 'Estado del servicio', required: true, example: 'Completado' },
         { field: 'Custodio', description: 'Nombre del custodio asignado', required: false, example: 'Pedro García' },
-        { field: 'Vehículo', description: 'Información del vehículo', required: false, example: 'Toyota Corolla 2023' }
+        { field: 'Vehículo', description: 'Información del vehículo', required: false, example: 'Toyota Corolla 2023' },
+        { field: 'ID Servicio', description: 'Identificador único del servicio', required: false, example: 'SERV-12345' },
+        { field: 'Origen', description: 'Lugar de origen', required: false, example: 'Ciudad de México' },
+        { field: 'Destino', description: 'Lugar de destino', required: false, example: 'Guadalajara' }
       ];
     } else {
       return [
@@ -109,10 +112,13 @@ export function TemplateHelpDialog({ open, onOpenChange, templateType }: Templat
             <h3 className="text-lg font-medium">Notas adicionales</h3>
             <ul className="list-disc list-inside text-sm space-y-1 mt-1 text-muted-foreground">
               <li>Los archivos CSV deben usar coma (,) como separador</li>
-              <li>Las fechas deben estar en formato YYYY-MM-DD</li>
+              <li>Las fechas deben estar en formato YYYY-MM-DD o DD/MM/YYYY</li>
               <li>Se recomienda no exceder los 1000 registros por importación</li>
               <li>Los valores con comas deben estar entre comillas dobles</li>
               <li>La primera fila debe contener los nombres de las columnas</li>
+              {templateType === 'servicios' && (
+                <li>Si existe un registro con el mismo ID de servicio, se actualizará en lugar de crear uno nuevo</li>
+              )}
             </ul>
           </div>
         </div>

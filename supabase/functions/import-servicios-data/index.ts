@@ -84,6 +84,7 @@ Deno.serve(async (req) => {
     
     const file = formData.get('file') as File;
     const format = formData.get('format') as string;
+    const importMode = formData.get('importMode') as string || 'insert';
     
     if (!file) {
       return new Response(
@@ -110,7 +111,7 @@ Deno.serve(async (req) => {
       );
     }
 
-    console.log(`Procesando archivo: ${file.name}, tamaño: ${file.size} bytes, formato: ${format || 'auto'}`);
+    console.log(`Procesando archivo: ${file.name}, tamaño: ${file.size} bytes, formato: ${format || 'auto'}, modo: ${importMode}`);
     
     await progressManager.updateProgress(
       'validating',
@@ -120,6 +121,12 @@ Deno.serve(async (req) => {
     );
     
     reportMemoryUsage("Antes de procesar archivo");
+    
+    // Si el modo de importación es upsert, configurar el modo para el procesador de lotes
+    if (importMode === 'upsert') {
+      BATCH_CONFIG.importMode = 'upsert';
+      console.log("Usando modo upsert para actualizar registros existentes en caso de duplicados");
+    }
     
     let processingResult;
     

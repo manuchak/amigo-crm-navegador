@@ -1,3 +1,4 @@
+
 import { toast } from "sonner";
 import { v4 as uuidv4 } from "uuid";
 import { ImportResponse, ImportProgress } from "../types";
@@ -103,9 +104,12 @@ export async function callImportApi(
     formData.append('progressId', progressId);
     
     const isCSV = file.name.toLowerCase().endsWith('.csv') || file.type === 'text/csv' || file.type === 'application/csv';
-    if (isCSV && !formData.has('format')) {
+    if (isCSV) {
       formData.append('format', 'csv');
     }
+    
+    // Add an import mode flag that indicates we should handle duplicates by updating
+    formData.append('importMode', 'upsert');
     
     const apiUrl = 'https://beefjsdgrdeiymzxwxru.supabase.co/functions/v1/import-servicios-data';
     console.log(`Enviando solicitud a: ${apiUrl}`);

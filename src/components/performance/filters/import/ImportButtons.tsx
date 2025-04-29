@@ -91,7 +91,6 @@ export function ImportButtons({
           </Tooltip>
         </TooltipProvider>
         
-        {/* Fix: Add the required props for TemplateHelpDialog */}
         <Button 
           variant="ghost" 
           size="icon" 
