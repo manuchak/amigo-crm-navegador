@@ -26,6 +26,15 @@ export function TemplateHelpDialog({ open, onOpenChange, templateType }: Templat
         { field: 'Comienzo', description: 'Fecha de inicio del período', required: true, example: '2025-01-01' },
         { field: 'Fin', description: 'Fecha de fin del período', required: true, example: '2025-01-31' }
       ];
+    } else if (templateType === 'servicios') {
+      return [
+        { field: 'Fecha', description: 'Fecha del servicio', required: true, example: '2025-01-01' },
+        { field: 'Cliente', description: 'Nombre del cliente', required: true, example: 'Empresa ABC' },
+        { field: 'Tipo', description: 'Tipo de servicio', required: true, example: 'Instalación' },
+        { field: 'Estatus', description: 'Estado del servicio', required: true, example: 'Completado' },
+        { field: 'Custodio', description: 'Nombre del custodio asignado', required: false, example: 'Pedro García' },
+        { field: 'Vehículo', description: 'Información del vehículo', required: false, example: 'Toyota Corolla 2023' }
+      ];
     } else {
       return [
         { field: 'Campo 1', description: 'Descripción del campo 1', required: true, example: 'Ejemplo 1' },
@@ -44,7 +53,13 @@ export function TemplateHelpDialog({ open, onOpenChange, templateType }: Templat
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Formato de plantilla para {templateType === 'driver-behavior' ? 'Comportamiento de Conducción' : 'importación'}</DialogTitle>
+          <DialogTitle>
+            Formato de plantilla para {
+              templateType === 'driver-behavior' ? 'Comportamiento de Conducción' : 
+              templateType === 'servicios' ? 'Servicios' : 
+              'importación'
+            }
+          </DialogTitle>
         </DialogHeader>
 
         <div className="space-y-6">

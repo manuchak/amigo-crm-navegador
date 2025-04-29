@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { DownloadIcon, UploadIcon, XIcon } from 'lucide-react';
@@ -26,6 +26,9 @@ export function ImportButtons({
   onDownloadTemplate,
   onCancelImport
 }: ImportButtonsProps) {
+  // Add state for managing the template help dialog
+  const [showHelpDialog, setShowHelpDialog] = useState(false);
+  
   return (
     <div className="flex items-center gap-3">
       <Input
@@ -87,7 +90,21 @@ export function ImportButtons({
             </TooltipContent>
           </Tooltip>
         </TooltipProvider>
-        <TemplateHelpDialog />
+        
+        {/* Fix: Add the required props for TemplateHelpDialog */}
+        <Button 
+          variant="ghost" 
+          size="icon" 
+          className="ml-1"
+          onClick={() => setShowHelpDialog(true)}
+        >
+          ?
+        </Button>
+        <TemplateHelpDialog 
+          open={showHelpDialog} 
+          onOpenChange={setShowHelpDialog} 
+          templateType="servicios" 
+        />
       </div>
       
       <Button size="sm" className="whitespace-nowrap">
