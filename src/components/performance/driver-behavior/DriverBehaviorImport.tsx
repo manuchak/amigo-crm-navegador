@@ -1,132 +1,180 @@
 
 import React, { useState } from 'react';
-import { useFileImport } from '../services/import/hooks/useFileImport';
-import { useTemplateDownload } from '../services/import/hooks/useTemplateDownload';
-import { ImportProgressBar } from '../filters/ImportProgressBar';
-import { ImportErrorDialog } from '../filters/ImportErrorDialog';
-import { LargeFileWarningDialog } from '../filters/LargeFileWarningDialog';
 import { Button } from "@/components/ui/button";
-import { Upload, DownloadIcon } from 'lucide-react';
-import { useQueryClient } from "@tanstack/react-query";
-import { toast } from "sonner";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { UploadIcon } from "lucide-react";
+import { ImportProgressBar } from "../filters/ImportProgressBar";
+import { ImportErrorDialog } from "../filters/ImportErrorDialog";
+import { LargeFileWarningDialog } from "../filters/LargeFileWarningDialog";
+import { TemplateHelpDialog } from "../filters/TemplateHelpDialog";
+import { importDriverBehaviorData } from '../services/driverBehavior/importService';
+import { ImportResponse } from '../services/import/types';
+import { toast } from 'sonner';
 
 interface DriverBehaviorImportProps {
-  className?: string;
   onImportComplete?: () => void;
 }
 
-export function DriverBehaviorImport({ className, onImportComplete }: DriverBehaviorImportProps) {
-  const [showErrorDialog, setShowErrorDialog] = useState(false);
-  const queryClient = useQueryClient();
+export function DriverBehaviorImport({ onImportComplete }: DriverBehaviorImportProps) {
+  const [isImporting, setIsImporting] = useState(false);
+  const [showFileDialog, setShowFileDialog] = useState(false);
+  const [progress, setProgress] = useState({ status: '', percent: 0 });
+  const [importErrors, setImportErrors] = useState<ImportResponse | null>(null);
+  const [showWarningDialog, setShowWarningDialog] = useState(false);
+  const [currentFile, setCurrentFile] = useState<File | null>(null);
+  const [showHelpDialog, setShowHelpDialog] = useState(false);
   
-  const {
-    isUploading,
-    uploadProgress,
-    importErrors,
-    importStatus,
-    totalRows,
-    processedRows,
-    showLargeFileWarning,
-    selectedFile,
-    setShowLargeFileWarning,
-    handleFileSelected,
-    handleFileImport,
-    handleCancelImport
-  } = useFileImport({
-    onShowErrorDialog: setShowErrorDialog,
-    importType: 'driver-behavior',
-    onComplete: () => {
-      // Invalidate queries to refresh data after import
-      queryClient.invalidateQueries({ queryKey: ['driver-behavior-data'] });
-      queryClient.invalidateQueries({ queryKey: ['driver-behavior-clients'] });
-      
-      if (onImportComplete) {
-        onImportComplete();
-      }
-      
-      toast.success("Datos importados correctamente", {
-        description: "El dashboard ha sido actualizado con los nuevos datos de comportamiento de conducción"
-      });
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    
+    // Check if file is too large (> 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      setCurrentFile(file);
+      setShowWarningDialog(true);
+      return;
     }
-  });
-
-  const { isDownloading, handleDownloadTemplate } = useTemplateDownload();
+    
+    processFile(file);
+  };
+  
+  const processFile = async (file: File) => {
+    setIsImporting(true);
+    setProgress({ status: 'Iniciando importación...', percent: 0 });
+    
+    try {
+      const result = await importDriverBehaviorData(
+        file,
+        (status, processed, total) => {
+          const percent = Math.round((processed / total) * 100);
+          setProgress({ status, percent });
+        }
+      );
+      
+      if (result.success) {
+        toast.success('Importación completada', {
+          description: result.message
+        });
+        if (onImportComplete) {
+          onImportComplete();
+        }
+      } else {
+        console.error('Import errors:', result);
+        setImportErrors(result);
+      }
+    } catch (error) {
+      console.error('Error during import:', error);
+      toast.error('Error en la importación', {
+        description: 'Ha ocurrido un error durante el proceso de importación'
+      });
+    } finally {
+      setIsImporting(false);
+      setShowFileDialog(false);
+      setCurrentFile(null);
+    }
+  };
+  
+  const handleContinueWithLargeFile = () => {
+    setShowWarningDialog(false);
+    if (currentFile) {
+      processFile(currentFile);
+    }
+  };
   
   return (
     <>
-      <div className="flex gap-2">
-        <TooltipProvider>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button 
-                variant="default" 
-                size="sm" 
-                className="h-9"
-                onClick={() => document.getElementById('driver-behavior-file-upload')?.click()}
-                disabled={isUploading}
-              >
-                <Upload className="h-4 w-4 mr-2" />
-                {isUploading ? "Importando..." : "Importar datos"}
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>
-              <p>Importar datos desde archivo Excel o CSV</p>
-            </TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
-
-        <TooltipProvider>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button 
-                variant="outline" 
-                size="sm" 
-                className="h-9"
-                onClick={handleDownloadTemplate}
-                disabled={isDownloading}
-              >
-                <DownloadIcon className="h-4 w-4 mr-2" />
-                Plantilla
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>
-              <p>Descargar plantilla de importación</p>
-            </TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
+      <div className="flex items-center gap-2">
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => setShowFileDialog(true)}
+          className="h-9"
+        >
+          <UploadIcon className="w-4 h-4 mr-2" />
+          Importar Datos
+        </Button>
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={() => setShowHelpDialog(true)}
+          className="h-9 w-9 rounded-full"
+        >
+          ?
+        </Button>
       </div>
       
-      <input
-        type="file"
-        accept=".xlsx,.xls,.csv"
-        onChange={handleFileSelected}
-        className="hidden"
-        id="driver-behavior-file-upload"
-        disabled={isUploading}
+      {/* File Selection Dialog */}
+      <Dialog open={showFileDialog} onOpenChange={setShowFileDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Importar Datos de Comportamiento</DialogTitle>
+            <DialogDescription>
+              Seleccione un archivo CSV con datos de comportamiento de conducción para importar.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="flex flex-col gap-4">
+            <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
+              <input
+                type="file"
+                id="file-upload"
+                className="hidden"
+                accept=".csv,.xlsx,.xls"
+                onChange={handleFileSelect}
+                disabled={isImporting}
+              />
+              <label
+                htmlFor="file-upload"
+                className="cursor-pointer text-blue-500 hover:text-blue-700"
+              >
+                {isImporting ? (
+                  <span>Importando archivo...</span>
+                ) : (
+                  <div className="flex flex-col items-center gap-2">
+                    <UploadIcon className="h-8 w-8" />
+                    <span>Haga clic para seleccionar un archivo CSV</span>
+                    <span className="text-xs text-gray-500">
+                      o arrastre y suelte aquí
+                    </span>
+                  </div>
+                )}
+              </label>
+            </div>
+            
+            {isImporting && <ImportProgressBar status={progress.status} percent={progress.percent} />}
+            
+            <div className="text-xs text-gray-500">
+              <p>Formatos soportados: CSV, Excel (.xlsx, .xls)</p>
+              <p>Tamaño máximo recomendado: 5MB</p>
+              <p>
+                <Button variant="link" className="p-0 h-auto text-xs" onClick={() => setShowHelpDialog(true)}>
+                  Ver información sobre el formato esperado
+                </Button>
+              </p>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+      
+      {/* Warning dialog for large files */}
+      <LargeFileWarningDialog
+        isOpen={showWarningDialog}
+        onClose={() => setShowWarningDialog(false)}
+        onContinue={handleContinueWithLargeFile}
       />
       
-      <ImportProgressBar 
-        importStatus={importStatus}
-        uploadProgress={uploadProgress}
-        totalRows={totalRows}
-        processedRows={processedRows}
-        isUploading={isUploading}
-        onCancel={handleCancelImport}
+      {/* Help dialog for template format */}
+      <TemplateHelpDialog
+        isOpen={showHelpDialog}
+        onClose={() => setShowHelpDialog(false)}
+        templateType="driver-behavior"
       />
-
-      <LargeFileWarningDialog 
-        open={showLargeFileWarning} 
-        onOpenChange={setShowLargeFileWarning}
-        selectedFile={selectedFile}
-        onContinue={handleFileImport}
-      />
-
-      <ImportErrorDialog 
-        open={showErrorDialog} 
-        onOpenChange={setShowErrorDialog}
-        importErrors={importErrors}
-        uploadProgress={uploadProgress}
+      
+      {/* Error dialog */}
+      <ImportErrorDialog
+        isOpen={!!importErrors}
+        onClose={() => setImportErrors(null)}
+        data={importErrors}
       />
     </>
   );

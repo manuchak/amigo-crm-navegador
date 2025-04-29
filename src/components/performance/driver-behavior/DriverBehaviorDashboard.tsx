@@ -2,7 +2,7 @@
 import React, { useState, useCallback } from 'react';
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { DateRange } from "react-day-picker";
-import { fetchDriverBehaviorData, fetchClientList } from "../services/driverBehavior/driverBehaviorService";
+import { fetchDriverBehaviorData, fetchClientList } from "../services/driverBehavior/dataService";
 import { DriverBehaviorMetricsCards } from './DriverBehaviorMetricsCards';
 import { DriverBehaviorTable } from './DriverBehaviorTable';
 import { DriverBehaviorChart } from './DriverBehaviorChart';

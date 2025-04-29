@@ -13,7 +13,7 @@ import {
   TableRow
 } from '@/components/ui/table';
 import { Skeleton } from '@/components/ui/skeleton';
-import { fetchDriverBehaviorData } from '../services/driverBehavior/driverBehaviorService';
+import { fetchDriverBehaviorData } from '../services/driverBehavior/dataService';
 import { getScoreColorClass, calculateScoreCategory } from '../utils/scoreCalculator';
 import { DriverBehaviorData, DriverBehaviorFilters } from '../types/driver-behavior.types';
 
