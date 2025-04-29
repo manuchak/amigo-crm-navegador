@@ -34,6 +34,11 @@ export async function fetchServiciosData(dateRange?: DateRange, comparisonRange?
     const previousWeekStart = startOfWeek(subWeeks(currentWeekStart, 1));
     const previousWeekEnd = endOfWeek(subWeeks(currentWeekStart, 1));
 
+    console.log("Date ranges for KM calculation:", {
+      startDate: startDate.toISOString(),
+      endDate: endDate.toISOString()
+    });
+
     // 1. Obtener métricas generales
     const { data: generalMetrics, error: generalError } = await supabase
       .rpc('obtener_metricas_generales', {
@@ -72,7 +77,7 @@ export async function fetchServiciosData(dateRange?: DateRange, comparisonRange?
 
     if (clientesError) throw clientesError;
     
-    // 4. Obtener servicios por tipo - Modificado para simplificar categorías
+    // 4. Obtener servicios por tipo y datos crudos de servicios
     const { data: serviciosData, error: serviciosError } = await supabase
       .from('servicios_custodia')
       .select('id, local_foraneo, tipo_servicio, fecha_hora_cita, km_recorridos, duracion_servicio')
@@ -84,8 +89,29 @@ export async function fetchServiciosData(dateRange?: DateRange, comparisonRange?
     // Procesar servicios por tipo (Foraneo, Local o Reparto)
     const serviciosPorTipo = procesarServiciosPorTipo(serviciosData || []);
 
+    // Calcular kilómetros totales directamente de los datos de servicios
+    let kmTotales = 0;
+    if (serviciosData && serviciosData.length > 0) {
+      kmTotales = serviciosData.reduce((total, servicio) => {
+        const km = getValidNumberOrZero(servicio.km_recorridos);
+        return total + km;
+      }, 0);
+    }
+
+    console.log("Calculando KM totales desde servicios:", {
+      kmTotalesCalculados: kmTotales,
+      numServicios: serviciosData?.length || 0,
+      muestraServicios: serviciosData?.slice(0, 3).map(s => ({
+        id: s.id,
+        km: s.km_recorridos
+      }))
+    });
+
     // Calcular cambios porcentuales
-    const metrics = generalMetrics[0] || {};
+    const metrics = generalMetrics?.[0] || {};
+    
+    // Log métricas generales para depurar
+    console.log("General metrics received:", metrics);
     
     const serviciosMoM = {
       current: metrics.servicios_mes_actual || 0,
@@ -105,9 +131,18 @@ export async function fetchServiciosData(dateRange?: DateRange, comparisonRange?
       )
     };
     
-    // Handle NaN values for kilometer metrics
+    // Calcular km promedio del mes actual y anterior
     const kmPromedioMesActual = getValidNumberOrZero(metrics.km_promedio_mes_actual);
     const kmPromedioMesAnterior = getValidNumberOrZero(metrics.km_promedio_mes_anterior);
+    
+    console.log("KM promedio values:", {
+      mesActual: kmPromedioMesActual,
+      mesAnterior: kmPromedioMesAnterior,
+      original: {
+        mesActual: metrics.km_promedio_mes_actual,
+        mesAnterior: metrics.km_promedio_mes_anterior
+      }
+    });
     
     const kmPromedioMoM = {
       current: kmPromedioMesActual,
@@ -119,7 +154,7 @@ export async function fetchServiciosData(dateRange?: DateRange, comparisonRange?
       totalServicios: metrics.total_servicios || 0,
       serviciosMoM,
       serviciosWoW,
-      kmTotales: getValidNumberOrZero(metrics.km_totales),
+      kmTotales: kmTotales, // Utilizar los kilómetros calculados directamente de los datos de servicios
       kmPromedioMoM,
       clientesActivos: metrics.clientes_activos || 0,
       clientesNuevos: metrics.clientes_nuevos || 0,
@@ -140,10 +175,9 @@ export async function fetchServiciosData(dateRange?: DateRange, comparisonRange?
  */
 function procesarServiciosPorTipo(servicios: any[]): { tipo: string; count: number }[] {
   const tipoMap: Record<string, number> = {
-    "Foraneo": 0,
+    "Foráneo": 0,
     "Local": 0,
-    "Reparto": 0,
-    "Otro": 0
+    "Reparto": 0
   };
   
   servicios.forEach(servicio => {
@@ -157,13 +191,14 @@ function procesarServiciosPorTipo(servicios: any[]): { tipo: string; count: numb
       : '';
     
     if (localForaneo.includes('foraneo') || tipoServicio.includes('foraneo')) {
-      tipoMap["Foraneo"]++;
+      tipoMap["Foráneo"]++;
     } else if (localForaneo.includes('local') || tipoServicio.includes('local')) {
       tipoMap["Local"]++;
     } else if (tipoServicio.includes('reparto') || tipoServicio.includes('distribucion')) {
       tipoMap["Reparto"]++;
     } else {
-      tipoMap["Otro"]++;
+      // Asignación por defecto a la categoría más común
+      tipoMap["Local"]++;
     }
   });
   

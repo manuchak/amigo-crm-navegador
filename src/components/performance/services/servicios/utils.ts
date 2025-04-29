@@ -25,5 +25,10 @@ export function isValidNumber(value: any): boolean {
  * @returns The value if valid, 0 otherwise
  */
 export function getValidNumberOrZero(value: any): number {
-  return isValidNumber(value) ? Number(value) : 0;
+  // Add debugging to track problematic values
+  if (!isValidNumber(value)) {
+    console.log("Invalid number detected:", value, typeof value);
+    return 0;
+  }
+  return Number(value);
 }

@@ -33,8 +33,21 @@ export function ServiciosMetricsCards({ data, isLoading }: ServiciosMetricsCards
   }
 
   if (!data) {
+    console.log("No data available for ServiciosMetricsCards");
     return null;
   }
+
+  // Debug - log KM values to console
+  console.log("KM values in metrics cards:", {
+    kmTotales: data.kmTotales,
+    kmPromedioCurrent: data.kmPromedioMoM.current,
+    kmPromedioPrevious: data.kmPromedioMoM.previous,
+    kmPromedioPercentChange: data.kmPromedioMoM.percentChange,
+    rawData: {
+      kmTotales: data.kmTotales,
+      kmPromedioMoM: data.kmPromedioMoM
+    }
+  });
 
   // Process km data to avoid NaN values
   const kmTotales = getValidNumberOrZero(data.kmTotales);

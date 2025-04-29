@@ -24,6 +24,9 @@ export function getMockServiciosData(dateRange?: DateRange): ServiciosMetricData
     'Miguel Hernández', 'Sofía Martínez', 'Roberto González', 'Laura Sánchez'
   ];
   
+  // Calculate total KM for the mock dataset
+  let totalKm = 0;
+  
   for (let i = 0; i < count; i++) {
     // Generate random date within range
     const dateOffset = Math.floor(Math.random() * diffDays);
@@ -43,6 +46,8 @@ export function getMockServiciosData(dateRange?: DateRange): ServiciosMetricData
       km = Math.floor(Math.random() * 1000) + 200;
     }
     
+    totalKm += km;
+    
     // Random cost (between 500-1500)
     const cost = Math.floor(Math.random() * 1000) + 500;
     
@@ -61,9 +66,18 @@ export function getMockServiciosData(dateRange?: DateRange): ServiciosMetricData
     });
   }
   
+  // Calculate average KM for the current month
+  const avgKm = count > 0 ? Math.floor(totalKm / count) : 0;
+  
+  console.log("Mock data KM values:", {
+    totalKm,
+    avgKm,
+    mockItemCount: count
+  });
+  
   // Datos simulados para el nuevo formato
   return {
-    totalServicios: Math.floor(Math.random() * 100) + 150,
+    totalServicios: count,
     serviciosMoM: {
       current: Math.floor(Math.random() * 30) + 40,
       previous: Math.floor(Math.random() * 20) + 30,
@@ -74,9 +88,9 @@ export function getMockServiciosData(dateRange?: DateRange): ServiciosMetricData
       previous: Math.floor(Math.random() * 10) + 5,
       percentChange: Math.floor(Math.random() * 40) - 5
     },
-    kmTotales: Math.floor(Math.random() * 10000) + 5000,
+    kmTotales: totalKm, // Use the calculated total KM
     kmPromedioMoM: {
-      current: Math.floor(Math.random() * 100) + 80,
+      current: avgKm, // Use the calculated average KM
       previous: Math.floor(Math.random() * 100) + 70,
       percentChange: Math.floor(Math.random() * 20) - 5
     },
