@@ -84,7 +84,7 @@ export function ServiciosHourDistributionChart({ data = [], isLoading }: Servici
                 <CartesianGrid strokeDasharray="3 3" vertical={false} />
                 <XAxis 
                   dataKey="label" 
-                  interval={2} {/* Show every 3rd label to avoid crowding */}
+                  interval={2} /* Show every 3rd label to avoid crowding */
                   tick={{ fontSize: 10 }}
                   height={40}
                 />
