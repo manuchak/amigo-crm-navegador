@@ -86,30 +86,38 @@ export function ServiciosDashboard({ dateRange, comparisonRange }: ServiciosDash
         />
       </div>
       
-      {/* Two charts in a row: Tipos and Hour Distribution */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 animate-fade-in animate-delay-150 duration-300">
-        <ServiciosTipoChart 
-          data={data?.serviciosPorTipo || []} 
-          isLoading={isLoading} 
-        />
+      {/* FIXED: Added proper heights to ensure charts don't overlap and are consistently sized */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 animate-fade-in animate-delay-150 duration-300">
+        <div className="h-full">
+          <ServiciosTipoChart 
+            data={data?.serviciosPorTipo || []} 
+            isLoading={isLoading} 
+          />
+        </div>
         
-        <ServiciosHourDistributionChart 
-          data={data?.serviciosData}
-          isLoading={isLoading}
-        />
+        <div className="h-full">
+          <ServiciosHourDistributionChart 
+            data={data?.serviciosData}
+            isLoading={isLoading}
+          />
+        </div>
       </div>
       
       {/* Clients and alerts in a row */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 animate-fade-in animate-delay-200 duration-300">
-        <ServiciosClientesActivos 
-          clientes={data?.serviciosPorCliente || []}
-          isLoading={isLoading}
-        />
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 animate-fade-in animate-delay-200 duration-300">
+        <div className="h-full">
+          <ServiciosClientesActivos 
+            clientes={data?.serviciosPorCliente || []}
+            isLoading={isLoading}
+          />
+        </div>
         
-        <ServiciosAlertas 
-          alertas={data?.alertas || []}
-          isLoading={isLoading}
-        />
+        <div className="h-full">
+          <ServiciosAlertas 
+            alertas={data?.alertas || []}
+            isLoading={isLoading}
+          />
+        </div>
       </div>
 
       {/* Optional cohort analysis section */}

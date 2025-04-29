@@ -137,13 +137,14 @@ export async function fetchServiciosData(dateRange?: DateRange, comparisonRange?
       throw mesAnteriorError;
     }
     
-    // Calculate total kilometers directly from servicios data
+    // FIXED: Calculate KM totales using km_teorico instead of km_recorridos
     let kmTotales = 0;
     
     if (serviciosData && serviciosData.length > 0) {
       serviciosData.forEach(servicio => {
-        // Use km_recorridos, validates for NaN or null values
-        const km = getValidNumberOrZero(servicio.km_recorridos);
+        // Use km_teorico instead of km_recorridos for the total calculation
+        // This fixes the issue with showing 464K instead of 190K
+        const km = getValidNumberOrZero(servicio.km_teorico);
         kmTotales += km;
       });
     }
@@ -154,8 +155,8 @@ export async function fetchServiciosData(dateRange?: DateRange, comparisonRange?
     });
 
     // Extraer valores de km para cálculos de promedios
-    const kmMesActualValues = serviciosMesActual?.map(s => getValidNumberOrZero(s.km_recorridos)) || [];
-    const kmMesAnteriorValues = serviciosMesAnterior?.map(s => getValidNumberOrZero(s.km_recorridos)) || [];
+    const kmMesActualValues = serviciosMesActual?.map(s => getValidNumberOrZero(s.km_teorico)) || [];
+    const kmMesAnteriorValues = serviciosMesAnterior?.map(s => getValidNumberOrZero(s.km_teorico)) || [];
     
     // Calcular promedios de KM por mes
     const kmPromedioMesActual = calculateAverage(kmMesActualValues);

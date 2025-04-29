@@ -45,14 +45,36 @@ export function ServiciosHourDistributionChart({ data = [], isLoading }: Servici
       if (!servicio.fecha_hora_cita) return;
       
       try {
-        const serviceDate = parseISO(servicio.fecha_hora_cita);
+        // FIXED: Parse ISO dates properly to ensure timezone handling
+        const date = servicio.fecha_hora_cita;
+        let serviceDate;
+        
+        if (typeof date === 'string') {
+          serviceDate = parseISO(date);
+        } else if (date instanceof Date) {
+          serviceDate = date;
+        } else {
+          console.error('Invalid date format:', date);
+          return;
+        }
+        
+        if (isNaN(serviceDate.getTime())) {
+          console.error('Invalid date value:', date);
+          return;
+        }
+        
         const hour = serviceDate.getHours();
+        
+        // Debug log
+        if (hour === 21 || hour === 22 || hour === 20) {
+          console.log(`Service at hour ${hour}:`, servicio.fecha_hora_cita);
+        }
         
         if (hour >= 0 && hour < 24) {
           hourCounts[hour].count++;
         }
       } catch (error) {
-        console.error('Error processing service hour:', error);
+        console.error('Error processing service hour:', error, servicio.fecha_hora_cita);
       }
     });
 
@@ -86,7 +108,7 @@ export function ServiciosHourDistributionChart({ data = [], isLoading }: Servici
   };
 
   return (
-    <Card className="border shadow-sm bg-white">
+    <Card className="border shadow-sm bg-white h-full">
       <CardHeader className="pb-2">
         <CardTitle className="text-lg font-medium">Distribución por Hora del Día</CardTitle>
       </CardHeader>

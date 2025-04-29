@@ -20,7 +20,7 @@ const COLOR_MAP = {
 export function ServiciosTipoChart({ data = [], isLoading }: ServiciosTipoChartProps) {
   if (isLoading) {
     return (
-      <Card className="border shadow-sm bg-white">
+      <Card className="border shadow-sm bg-white h-full">
         <CardHeader className="pb-2">
           <CardTitle className="text-lg font-medium">Distribución por Tipo de Servicio</CardTitle>
         </CardHeader>
@@ -74,12 +74,12 @@ export function ServiciosTipoChart({ data = [], isLoading }: ServiciosTipoChartP
   };
 
   return (
-    <Card className="border shadow-sm bg-white">
+    <Card className="border shadow-sm bg-white h-full">
       <CardHeader className="pb-2">
         <CardTitle className="text-lg font-medium">Distribución por Tipo de Servicio</CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="h-[250px]">
+        <div className="h-[250px] mb-2">
           <ChartContainer config={chartConfig}>
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
@@ -117,8 +117,8 @@ export function ServiciosTipoChart({ data = [], isLoading }: ServiciosTipoChartP
           </ChartContainer>
         </div>
         
-        {/* Added legend outside the chart to prevent overflow issues */}
-        <div className="flex justify-center items-center gap-4 mt-2">
+        {/* FIXED: Move legend to center-bottom with better spacing */}
+        <div className="flex justify-center items-center gap-6 mt-4">
           {chartDataWithPercentage.map(entry => (
             <div key={entry.tipo} className="flex items-center gap-2">
               <div 
