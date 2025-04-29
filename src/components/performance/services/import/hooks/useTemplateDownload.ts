@@ -1,6 +1,10 @@
 
 import { useState } from 'react';
 import { toast } from "sonner";
+import * as XLSX from 'xlsx';
+import { format } from 'date-fns';
+import { es } from 'date-fns/locale';
+import { templateColumns } from '../../export/columnDefinitions';
 
 interface UseTemplateDownloadResult {
   isDownloading: boolean;
@@ -14,107 +18,76 @@ export function useTemplateDownload(templateType: 'servicios' | 'driver-behavior
     setIsDownloading(true);
     
     try {
-      let fileName: string;
-      let headers: string[];
-      let data: any[][];
+      // Create a new workbook
+      const workbook = XLSX.utils.book_new();
+      let headers: string[] = [];
+      let descriptions: string[] = [];
+      let exampleData: any[] = [];
       
-      if (templateType === 'driver-behavior') {
-        fileName = 'plantilla_comportamiento_conduccion.csv';
+      if (templateType === 'servicios') {
+        // Get all columns from the templateColumns definition
+        headers = templateColumns.map(col => col.name);
+        descriptions = templateColumns.map(col => {
+          const requiredText = col.required ? '[Requerido] ' : '[Opcional] ';
+          return requiredText + (col.description || '');
+        });
+        
+        // Prepare example data row from the template definitions
+        const exampleRow: Record<string, any> = {};
+        templateColumns.forEach(col => {
+          exampleRow[col.name] = col.example;
+        });
+        
+        exampleData = [exampleRow];
+      } else if (templateType === 'driver-behavior') {
         headers = [
-          'Agrupación', 
-          'Valoración', 
-          'Multa', 
-          'Cantidad', 
-          'Duración', 
-          'Kilometraje', 
-          'Comienzo', 
-          'Fin', 
-          'Cliente'
+          'Agrupación', 'Valoración', 'Multa', 'Cantidad', 
+          'Duración', 'Kilometraje', 'Comienzo', 'Fin', 'Cliente'
         ];
         
-        // Ejemplo de datos con formato correcto para mejor comprensión del usuario
+        // Example data for driver behavior
         const today = new Date();
         const lastMonth = new Date(today);
         lastMonth.setMonth(today.getMonth() - 1);
         
-        const formattedToday = today.toISOString().split('T')[0];
-        const formattedLastMonth = lastMonth.toISOString().split('T')[0];
+        const formattedToday = format(today, 'yyyy-MM-dd', { locale: es });
+        const formattedLastMonth = format(lastMonth, 'yyyy-MM-dd', { locale: es });
         
-        data = [
-          [
-            'Grupo A', 
-            '8.5', 
-            '120', 
-            '25', 
-            '35:45:00', 
-            '1250 km', 
-            `${formattedLastMonth} 09:00`,
-            `${formattedToday} 18:00`, 
-            'Cliente Ejemplo'
-          ],
-          [
-            'Grupo B',
-            '9.2',
-            '50',
-            '18',
-            '28:15:00',
-            '980 km',
-            `${formattedLastMonth} 10:30`,
-            `${formattedToday} 17:15`,
-            'Cliente Demo'
-          ]
-        ];
-      } else {
-        fileName = 'plantilla_servicios_custodia.csv';
-        headers = [
-          'id_servicio', 
-          'estado', 
-          'nombre_cliente', 
-          'nombre_custodio', 
-          'fecha_hora_cita', 
-          'origen', 
-          'destino', 
-          'tipo_servicio'
-        ];
-        
-        // Ejemplo de datos
-        data = [
-          [
-            'SRV-001', 
-            'Completado', 
-            'Cliente Ejemplo', 
-            'Custodio Ejemplo', 
-            '2023-01-15 09:00:00', 
-            'Ciudad de México', 
-            'Puebla', 
-            'Transporte'
-          ],
-          [
-            'SRV-002',
-            'Pendiente',
-            'Cliente Demo',
-            'Custodio Demo',
-            '2023-02-20 14:30:00',
-            'Guadalajara',
-            'León',
-            'Escolta'
-          ]
+        exampleData = [
+          {
+            'Agrupación': 'Juan Pérez',
+            'Valoración': 8.5,
+            'Multa': 2,
+            'Cantidad': 25,
+            'Duración': '35:45:00',
+            'Kilometraje': '1250 km',
+            'Comienzo': formattedLastMonth,
+            'Fin': formattedToday,
+            'Cliente': 'Cliente Ejemplo'
+          }
         ];
       }
       
-      // Crear contenido CSV con BOM para compatibilidad con Excel
-      const BOM = '\uFEFF';
-      const csvContent = BOM + [
-        headers.join(','),
-        ...data.map(row => row.join(','))
-      ].join('\n');
+      // Create headers and descriptions worksheet
+      const ws = XLSX.utils.json_to_sheet([]);
+      XLSX.utils.sheet_add_aoa(ws, [headers], { origin: 'A1' });
+      XLSX.utils.sheet_add_aoa(ws, [descriptions], { origin: 'A2' });
       
-      // Crear blob y descargar
-      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-      const link = document.createElement('a');
-      link.href = URL.createObjectURL(blob);
-      link.download = fileName;
-      link.click();
+      // Add example data
+      if (exampleData.length > 0) {
+        const exampleValues = Object.values(exampleData[0]);
+        XLSX.utils.sheet_add_aoa(ws, [exampleValues], { origin: 'A3' });
+      }
+      
+      // Add worksheet to workbook
+      XLSX.utils.book_append_sheet(workbook, ws, "Template");
+      
+      // Generate filename with current date
+      const date = format(new Date(), 'yyyyMMdd', { locale: es });
+      const fileName = `plantilla_${templateType === 'servicios' ? 'servicios_custodia' : 'comportamiento_conduccion'}_${date}.xlsx`;
+      
+      // Generate and download the Excel file
+      XLSX.writeFile(workbook, fileName);
       
       toast.success("Plantilla descargada", {
         description: "La plantilla ha sido descargada correctamente"

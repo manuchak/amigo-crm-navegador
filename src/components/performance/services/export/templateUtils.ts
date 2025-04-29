@@ -141,7 +141,7 @@ export const createHeaderRow = (): string => {
 export const createDescriptionRow = (): string => {
   return templateColumns.map(col => {
     const requiredText = col.required ? '[Requerido]' : '[Opcional]';
-    return `"${requiredText} ${col.description.replace(/"/g, '""')}"`;
+    return `"${requiredText} ${col.description ? col.description.replace(/"/g, '""') : ''}"`;
   }).join(',');
 };
 
@@ -150,7 +150,7 @@ export const createDescriptionRow = (): string => {
  */
 export const createExampleRow = (): string => {
   return templateColumns.map(col => {
-    if (col.type === 'text' || col.type === 'date') {
+    if (col.type === 'text' || col.type === 'date' || col.type === 'time' || col.type === 'datetime' || col.type === 'interval') {
       return `"${col.example}"`;
     }
     return col.example;
@@ -168,7 +168,9 @@ export const createInstructionsRows = (): string => {
     '"# 2. Las columnas marcadas como [Requerido] son obligatorias"',
     '"# 3. Respete el formato de los campos numéricos y fechas"',
     '"# 4. Para fechas use el formato YYYY-MM-DD HH:MM:SS"',
-    '"# 5. Elimine estas líneas de instrucciones antes de importar"',
+    '"# 5. Para intervalos de tiempo use el formato HH:MM:SS"',
+    '"# 6. Para campos booleanos use Sí/No o Verdadero/Falso"',
+    '"# 7. Elimine estas líneas de instrucciones antes de importar"',
     '"# --------------------------------------------------------------------------"'
   ].join('\n');
 };

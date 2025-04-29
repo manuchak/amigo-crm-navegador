@@ -1,20 +1,27 @@
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { DownloadIcon } from "lucide-react";
+import { templateColumns } from '../services/export/columnDefinitions';
+import { useTemplateDownload } from '../services/import/hooks/useTemplateDownload';
 
 export interface TemplateHelpDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  templateType: string;
+  templateType: 'servicios' | 'driver-behavior';
 }
 
 export function TemplateHelpDialog({ open, onOpenChange, templateType }: TemplateHelpDialogProps) {
-  // Helper function to determine which content to show based on template type
-  const getTemplateFields = () => {
-    if (templateType === 'driver-behavior') {
+  const { isDownloading, handleDownloadTemplate } = useTemplateDownload(templateType);
+  
+  // Get essential fields for the selected template type
+  const essentialFields = useMemo(() => {
+    if (templateType === 'servicios') {
+      // Get the required fields from templateColumns
+      return templateColumns.filter(col => col.required);
+    } else if (templateType === 'driver-behavior') {
       return [
         { field: 'Agrupación', description: 'Nombre del conductor o grupo', required: true, example: 'Juan Pérez' },
         { field: 'Valoración', description: 'Puntuación de 0 a 10', required: true, example: '8.5' },
@@ -26,30 +33,43 @@ export function TemplateHelpDialog({ open, onOpenChange, templateType }: Templat
         { field: 'Comienzo', description: 'Fecha de inicio del período', required: true, example: '2025-01-01' },
         { field: 'Fin', description: 'Fecha de fin del período', required: true, example: '2025-01-31' }
       ];
-    } else if (templateType === 'servicios') {
+    }
+    return [];
+  }, [templateType]);
+
+  // Get optional fields (first 10 max)
+  const optionalFields = useMemo(() => {
+    if (templateType === 'servicios') {
+      // Get some non-required fields from templateColumns (limited to first 10)
+      return templateColumns.filter(col => !col.required).slice(0, 10);
+    }
+    return [];
+  }, [templateType]);
+
+  const getFieldsData = () => {
+    if (templateType === 'servicios') {
       return [
-        { field: 'Fecha', description: 'Fecha del servicio', required: true, example: '2025-01-01' },
-        { field: 'Cliente', description: 'Nombre del cliente', required: true, example: 'Empresa ABC' },
-        { field: 'Tipo', description: 'Tipo de servicio', required: true, example: 'Instalación' },
-        { field: 'Estatus', description: 'Estado del servicio', required: true, example: 'Completado' },
-        { field: 'Custodio', description: 'Nombre del custodio asignado', required: false, example: 'Pedro García' },
-        { field: 'Vehículo', description: 'Información del vehículo', required: false, example: 'Toyota Corolla 2023' },
-        { field: 'ID Servicio', description: 'Identificador único del servicio', required: false, example: 'SERV-12345' },
-        { field: 'Origen', description: 'Lugar de origen', required: false, example: 'Ciudad de México' },
-        { field: 'Destino', description: 'Lugar de destino', required: false, example: 'Guadalajara' }
+        ...essentialFields.map(field => ({
+          field: field.displayName,
+          description: field.description || '',
+          required: 'Sí',
+          example: field.example
+        })),
+        ...optionalFields.map(field => ({
+          field: field.displayName,
+          description: field.description || '',
+          required: 'No',
+          example: field.example
+        }))
       ];
     } else {
-      return [
-        { field: 'Campo 1', description: 'Descripción del campo 1', required: true, example: 'Ejemplo 1' },
-        { field: 'Campo 2', description: 'Descripción del campo 2', required: false, example: 'Ejemplo 2' }
-      ];
+      return essentialFields.map(field => ({
+        field: field.field,
+        description: field.description,
+        required: field.required ? 'Sí' : 'No',
+        example: field.example
+      }));
     }
-  };
-
-  const handleDownloadTemplate = () => {
-    // Logic to download template would go here
-    console.log(`Downloading ${templateType} template...`);
-    // You can implement actual download functionality here
   };
 
   return (
@@ -59,8 +79,7 @@ export function TemplateHelpDialog({ open, onOpenChange, templateType }: Templat
           <DialogTitle>
             Formato de plantilla para {
               templateType === 'driver-behavior' ? 'Comportamiento de Conducción' : 
-              templateType === 'servicios' ? 'Servicios' : 
-              'importación'
+              'Servicios de Custodia'
             }
           </DialogTitle>
         </DialogHeader>
@@ -70,20 +89,21 @@ export function TemplateHelpDialog({ open, onOpenChange, templateType }: Templat
             <h3 className="text-lg font-medium">Instrucciones</h3>
             <p className="text-sm text-muted-foreground mt-1">
               Para importar datos correctamente, su archivo debe seguir esta estructura. 
-              Puede descargar una plantilla para comenzar.
+              El archivo puede estar en formato Excel (.xlsx) o CSV (.csv).
             </p>
             <Button 
               variant="outline" 
               className="mt-2" 
               onClick={handleDownloadTemplate}
+              disabled={isDownloading}
             >
               <DownloadIcon className="h-4 w-4 mr-2" />
-              Descargar plantilla
+              {isDownloading ? "Descargando..." : "Descargar plantilla"}
             </Button>
           </div>
 
           <div>
-            <h3 className="text-lg font-medium mb-2">Campos requeridos</h3>
+            <h3 className="text-lg font-medium mb-2">Campos principales</h3>
             <div className="border rounded-md overflow-hidden">
               <Table>
                 <TableHeader>
@@ -95,17 +115,22 @@ export function TemplateHelpDialog({ open, onOpenChange, templateType }: Templat
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {getTemplateFields().map((field, idx) => (
+                  {getFieldsData().map((field, idx) => (
                     <TableRow key={idx}>
                       <TableCell className="font-medium">{field.field}</TableCell>
                       <TableCell>{field.description}</TableCell>
-                      <TableCell>{field.required ? 'Sí' : 'No'}</TableCell>
+                      <TableCell>{field.required}</TableCell>
                       <TableCell className="font-mono text-xs">{field.example}</TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
               </Table>
             </div>
+            {templateType === 'servicios' && (
+              <p className="text-sm text-muted-foreground mt-2">
+                * La plantilla completa contiene {templateColumns.length} campos. Descargue la plantilla para ver todos los campos disponibles.
+              </p>
+            )}
           </div>
 
           <div>
@@ -113,11 +138,14 @@ export function TemplateHelpDialog({ open, onOpenChange, templateType }: Templat
             <ul className="list-disc list-inside text-sm space-y-1 mt-1 text-muted-foreground">
               <li>Los archivos CSV deben usar coma (,) como separador</li>
               <li>Las fechas deben estar en formato YYYY-MM-DD o DD/MM/YYYY</li>
-              <li>Se recomienda no exceder los 1000 registros por importación</li>
+              <li>Los campos de fecha y hora deben estar en formato YYYY-MM-DD HH:MM:SS</li>
               <li>Los valores con comas deben estar entre comillas dobles</li>
               <li>La primera fila debe contener los nombres de las columnas</li>
               {templateType === 'servicios' && (
-                <li>Si existe un registro con el mismo ID de servicio, se actualizará en lugar de crear uno nuevo</li>
+                <>
+                  <li>Si existe un registro con el mismo ID de servicio, se actualizará en lugar de crear uno nuevo</li>
+                  <li>Los campos requeridos son obligatorios para cada registro nuevo</li>
+                </>
               )}
             </ul>
           </div>

@@ -3,7 +3,7 @@ import { format } from "date-fns";
 import { es } from "date-fns/locale";
 
 // Define column types for better template generation
-export type ColumnType = 'text' | 'numeric' | 'boolean' | 'date' | 'time' | 'interval';
+export type ColumnType = 'text' | 'numeric' | 'boolean' | 'date' | 'time' | 'datetime' | 'interval';
 
 export interface ColumnDefinition {
   name: string;
@@ -26,12 +26,12 @@ export const templateColumns: ColumnDefinition[] = [
     description: 'Nombre completo del cliente o empresa'
   },
   {
-    name: 'fecha_servicio',
-    displayName: 'Fecha de Servicio',
-    type: 'date',
+    name: 'fecha_hora_cita',
+    displayName: 'Fecha y Hora de Cita',
+    type: 'datetime',
     required: true,
-    example: format(new Date(), 'yyyy-MM-dd', { locale: es }),
-    description: 'Fecha en formato AAAA-MM-DD'
+    example: format(new Date(), 'yyyy-MM-dd HH:mm:ss', { locale: es }),
+    description: 'Fecha y hora en formato AAAA-MM-DD HH:MM:SS'
   },
   {
     name: 'tipo_servicio',
@@ -65,7 +65,7 @@ export const templateColumns: ColumnDefinition[] = [
     example: 'Guadalajara',
     description: 'Ciudad de destino'
   },
-  // Información básica (requerida)
+  // Información básica
   {
     name: 'id_servicio',
     displayName: 'ID Servicio',
@@ -73,6 +73,14 @@ export const templateColumns: ColumnDefinition[] = [
     required: false,
     example: 'SRV-2023-001',
     description: 'Identificador único del servicio'
+  },
+  {
+    name: 'estado',
+    displayName: 'Estado',
+    type: 'text',
+    required: false,
+    example: 'Completado',
+    description: 'Estado del servicio (Completado, Pendiente, Cancelado, etc.)'
   },
   {
     name: 'folio_cliente',
@@ -91,12 +99,12 @@ export const templateColumns: ColumnDefinition[] = [
     description: 'Número o folio del manifiesto'
   },
   {
-    name: 'estado',
-    displayName: 'Estado',
+    name: 'comentarios_adicionales',
+    displayName: 'Comentarios',
     type: 'text',
     required: false,
-    example: 'Completado',
-    description: 'Estado del servicio (Completado, Pendiente, Cancelado, etc.)'
+    example: 'Servicio con escolta adicional',
+    description: 'Comentarios u observaciones adicionales'
   },
   // Datos numéricos
   {
@@ -106,6 +114,22 @@ export const templateColumns: ColumnDefinition[] = [
     required: false,
     example: '450',
     description: 'Kilómetros recorridos en número'
+  },
+  {
+    name: 'km_teorico',
+    displayName: 'KM Teórico',
+    type: 'numeric',
+    required: false,
+    example: '420',
+    description: 'Kilómetros teóricos estimados'
+  },
+  {
+    name: 'km_extras',
+    displayName: 'KM Extras',
+    type: 'numeric',
+    required: false,
+    example: '30',
+    description: 'Kilómetros extras realizados'
   },
   {
     name: 'cobro_cliente',
@@ -131,10 +155,76 @@ export const templateColumns: ColumnDefinition[] = [
     example: '500',
     description: 'Costo de casetas (sin símbolos)'
   },
+  {
+    name: 'cantidad_transportes',
+    displayName: 'Cantidad de Transportes',
+    type: 'numeric',
+    required: false,
+    example: '1',
+    description: 'Número de transportes utilizados'
+  },
+  // Datos de timing
+  {
+    name: 'fecha_hora_asignacion',
+    displayName: 'Fecha Hora Asignación',
+    type: 'datetime',
+    required: false,
+    example: format(new Date(), 'yyyy-MM-dd HH:mm:ss', { locale: es }),
+    description: 'Fecha y hora de asignación'
+  },
+  {
+    name: 'hora_presentacion',
+    displayName: 'Hora de Presentación',
+    type: 'time',
+    required: false,
+    example: '09:00:00',
+    description: 'Hora de presentación en formato HH:MM:SS'
+  },
+  {
+    name: 'hora_inicio_custodia',
+    displayName: 'Hora Inicio Custodia',
+    type: 'time',
+    required: false,
+    example: '10:00:00',
+    description: 'Hora de inicio de custodia en formato HH:MM:SS'
+  },
+  {
+    name: 'hora_arribo',
+    displayName: 'Hora de Arribo',
+    type: 'time',
+    required: false,
+    example: '12:30:00',
+    description: 'Hora de arribo en formato HH:MM:SS'
+  },
+  {
+    name: 'hora_finalizacion',
+    displayName: 'Hora de Finalización',
+    type: 'time',
+    required: false,
+    example: '14:45:00',
+    description: 'Hora de finalización en formato HH:MM:SS'
+  },
+  // Fechas adicionales
+  {
+    name: 'fecha_contratacion',
+    displayName: 'Fecha Contratación',
+    type: 'date',
+    required: false,
+    example: format(new Date(), 'yyyy-MM-dd', { locale: es }),
+    description: 'Fecha de contratación del servicio (AAAA-MM-DD)'
+  },
+  {
+    name: 'fecha_primer_servicio',
+    displayName: 'Fecha Primer Servicio',
+    type: 'date',
+    required: false,
+    example: format(new Date(), 'yyyy-MM-dd', { locale: es }),
+    description: 'Fecha del primer servicio (AAAA-MM-DD)'
+  },
   // Datos del vehículo
   {
-    name: 'unidad',
-    displayName: 'Unidad',
+    name: 'auto',
+    displayName: 'Auto',
     type: 'text',
     required: false,
     example: 'Toyota Hilux',
@@ -199,14 +289,6 @@ export const templateColumns: ColumnDefinition[] = [
   },
   // Información adicional
   {
-    name: 'comentarios_adicionales',
-    displayName: 'Comentarios',
-    type: 'text',
-    required: false,
-    example: 'Servicio con escolta adicional',
-    description: 'Comentarios u observaciones adicionales'
-  },
-  {
     name: 'local_foraneo',
     displayName: 'Local/Foráneo',
     type: 'text',
@@ -229,6 +311,39 @@ export const templateColumns: ColumnDefinition[] = [
     required: false,
     example: 'Transportes SA',
     description: 'Proveedor del servicio'
+  },
+  // Tiempo estimado y duraciones
+  {
+    name: 'tiempo_estimado',
+    displayName: 'Tiempo Estimado',
+    type: 'interval',
+    required: false,
+    example: '02:30:00',
+    description: 'Tiempo estimado del servicio (HH:MM:SS)'
+  },
+  {
+    name: 'duracion_servicio',
+    displayName: 'Duración Servicio',
+    type: 'interval',
+    required: false,
+    example: '03:15:00',
+    description: 'Duración real del servicio (HH:MM:SS)'
+  },
+  {
+    name: 'tiempo_retraso',
+    displayName: 'Tiempo Retraso',
+    type: 'interval',
+    required: false,
+    example: '00:45:00',
+    description: 'Tiempo de retraso (HH:MM:SS)'
+  },
+  {
+    name: 'tiempo_punto_origen',
+    displayName: 'Tiempo en Origen',
+    type: 'interval',
+    required: false,
+    example: '00:30:00',
+    description: 'Tiempo en el punto de origen (HH:MM:SS)'
   },
   // Operadores de transporte
   {
@@ -346,31 +461,6 @@ export const templateColumns: ColumnDefinition[] = [
     example: 'Rastreador',
     description: 'Tipo de gadget o equipo'
   },
-  // Campos de presentación y programación
-  {
-    name: 'presentacion',
-    displayName: 'Presentación',
-    type: 'text',
-    required: false,
-    example: 'Formal',
-    description: 'Tipo de presentación requerida'
-  },
-  {
-    name: 'fecha_contratacion',
-    displayName: 'Fecha Contratación',
-    type: 'date',
-    required: false,
-    example: format(new Date(), 'yyyy-MM-dd', { locale: es }),
-    description: 'Fecha de contratación del servicio (AAAA-MM-DD)'
-  },
-  {
-    name: 'fecha_primer_servicio',
-    displayName: 'Fecha Primer Servicio',
-    type: 'date',
-    required: false,
-    example: format(new Date(), 'yyyy-MM-dd', { locale: es }),
-    description: 'Fecha del primer servicio (AAAA-MM-DD)'
-  },
   // Información administrativa
   {
     name: 'creado_por',
@@ -395,5 +485,21 @@ export const templateColumns: ColumnDefinition[] = [
     required: false,
     example: 'COT-2023-001',
     description: 'Identificador de la cotización'
-  }
+  },
+  {
+    name: 'gm_transport_id',
+    displayName: 'ID GM Transport',
+    type: 'text',
+    required: false,
+    example: 'GMT-001',
+    description: 'ID de transporte GM'
+  },
+  {
+    name: 'presentacion',
+    displayName: 'Presentación',
+    type: 'text',
+    required: false,
+    example: 'Formal',
+    description: 'Tipo de presentación requerida'
+  },
 ];
