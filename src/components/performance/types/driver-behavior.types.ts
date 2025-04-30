@@ -78,3 +78,21 @@ export interface DriverGroup {
   drivers: number;
   avgScore: number;
 }
+
+export interface DriverGroupDetails {
+  id: string;
+  name: string;
+  client: string;
+  description?: string;
+  created_at: string;
+  updated_at: string;
+  driver_ids?: string[];
+  drivers?: DriverForGroup[];
+}
+
+export interface DriverForGroup {
+  id: string;
+  name: string;
+  score?: number;
+  client: string;
+}

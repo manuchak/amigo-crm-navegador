@@ -1,6 +1,6 @@
 
 import React, { useEffect, useState } from 'react';
-import { X, Filter, Users } from "lucide-react";
+import { X, Filter, Users, UserPlus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { DriverBehaviorFilters } from '../types/driver-behavior.types';
 import { DriverBehaviorImport } from './DriverBehaviorImport';
@@ -22,6 +22,7 @@ import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
+import { DriverGroupsManagement } from './groups/DriverGroupsManagement';
 
 interface DriverBehaviorFiltersPanelProps {
   filters: DriverBehaviorFilters;
@@ -39,6 +40,9 @@ export function DriverBehaviorFiltersPanel({
     queryFn: fetchClientList,
     staleTime: 1000 * 60 * 5, // 5 minutes
   });
+  
+  // State for managing groups panel
+  const [isGroupsManagementOpen, setIsGroupsManagementOpen] = useState(false);
   
   // Local state for driver groups within selected client
   const [availableGroups, setAvailableGroups] = useState<string[]>([]);
@@ -110,6 +114,11 @@ export function DriverBehaviorFiltersPanel({
     (filters.selectedClient || filters.selectedGroups?.length || 
      (filters.selectedClients?.length || Object.keys(filters).some(key => key !== 'selectedClients' && !!filters[key as keyof DriverBehaviorFilters])));
 
+  // Open groups management with the current client preselected
+  const handleOpenGroupsManagement = () => {
+    setIsGroupsManagementOpen(true);
+  };
+
   return (
     <div className="flex flex-wrap gap-3 items-center">
       <div className="flex flex-wrap gap-2 items-center">
@@ -149,14 +158,36 @@ export function DriverBehaviorFiltersPanel({
           </PopoverTrigger>
           <PopoverContent className="w-56 p-3" align="start">
             <div className="space-y-2">
-              <h4 className="text-sm font-medium">Grupos de conductores</h4>
+              <div className="flex items-center justify-between">
+                <h4 className="text-sm font-medium">Grupos de conductores</h4>
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className="h-8 w-8 p-0"
+                  onClick={handleOpenGroupsManagement}
+                >
+                  <UserPlus className="h-4 w-4" />
+                  <span className="sr-only">Administrar grupos</span>
+                </Button>
+              </div>
               <Separator />
               {isLoadingGroups ? (
                 <div className="text-sm text-muted-foreground">Cargando...</div>
               ) : (
                 <>
                   {availableGroups.length === 0 ? (
-                    <div className="text-sm text-muted-foreground">No hay grupos disponibles</div>
+                    <div className="text-sm text-muted-foreground">
+                      No hay grupos disponibles
+                      <Button 
+                        variant="link" 
+                        size="sm" 
+                        className="block px-0 h-auto mt-1"
+                        onClick={handleOpenGroupsManagement}
+                      >
+                        <UserPlus className="h-3 w-3 mr-1" />
+                        Crear grupo
+                      </Button>
+                    </div>
                   ) : (
                     <div className="space-y-2">
                       {availableGroups.map(group => (
@@ -176,6 +207,17 @@ export function DriverBehaviorFiltersPanel({
             </div>
           </PopoverContent>
         </Popover>
+        
+        {/* Manage Groups Button */}
+        <Button 
+          variant="ghost" 
+          size="sm" 
+          className="h-9"
+          onClick={handleOpenGroupsManagement}
+        >
+          <UserPlus className="h-4 w-4 mr-2" />
+          Gestionar Grupos
+        </Button>
         
         {/* Filter badges */}
         {filters.selectedGroups && filters.selectedGroups.length > 0 && (
@@ -208,6 +250,13 @@ export function DriverBehaviorFiltersPanel({
       <div className="ml-auto">
         <DriverBehaviorImport onImportComplete={() => {}} />
       </div>
+      
+      {/* Groups Management Sheet */}
+      <DriverGroupsManagement
+        isOpen={isGroupsManagementOpen}
+        onClose={() => setIsGroupsManagementOpen(false)}
+        selectedClient={filters.selectedClient}
+      />
     </div>
   );
 }

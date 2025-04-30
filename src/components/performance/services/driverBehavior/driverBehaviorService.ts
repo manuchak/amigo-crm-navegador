@@ -4,9 +4,16 @@
 
 import { fetchDriverBehaviorData, fetchClientList } from './dataService';
 import { importDriverBehaviorData } from './importService';
+import { fetchDriverGroups, fetchDriversByClient, createDriverGroup, updateDriverGroup, deleteDriverGroup } from './driverGroupsService';
 
 export {
   fetchDriverBehaviorData,
   fetchClientList,
-  importDriverBehaviorData
+  importDriverBehaviorData,
+  // Driver groups
+  fetchDriverGroups,
+  fetchDriversByClient,
+  createDriverGroup,
+  updateDriverGroup,
+  deleteDriverGroup
 };
