@@ -43,39 +43,40 @@ export function useClienteFilters(
         totalKm += Number(kmValue);
       });
       
-      const avgKm = filteredClientServices.length > 0 ? totalKm / filteredClientServices.length : 0;
+      // Round to 2 decimal places
+      const avgKm = filteredClientServices.length > 0 ? 
+        Number((totalKm / filteredClientServices.length).toFixed(2)) : 0;
       
-      // Calculate AOV (Average Order Value) - Sum of cobro_cliente divided by service count
-      // Debug logging to identify issues with cobro_cliente values
-      console.log(`Client ${cliente.nombre_cliente} services:`, filteredClientServices.map(s => ({
-        id: s.id,
-        cobro_cliente: s.cobro_cliente,
-        cobro_cliente_type: typeof s.cobro_cliente
-      })));
-      
-      // Fix: Ensure cobro_cliente values are properly converted to numbers
+      // Calculate AOV (Average Order Value) - Sum of cobro_cliente values
       let totalCobro = 0;
+      let validCobroCount = 0;
+
+      // Get distinct service IDs to avoid counting duplicates
+      const distinctServiceIds = new Set(filteredClientServices.map(s => s.id_servicio));
+      
       filteredClientServices.forEach((servicio: any) => {
-        // Check if cobro_cliente exists and convert it properly to a number
+        // Only process services with valid cobro_cliente values and unique id_servicio
         if (servicio.cobro_cliente !== null && servicio.cobro_cliente !== undefined) {
-          // Handle both numeric and string representations
-          const cobroValue = typeof servicio.cobro_cliente === 'string' 
-            ? parseFloat(servicio.cobro_cliente.replace(/[^0-9.-]+/g, '')) 
-            : Number(servicio.cobro_cliente);
-            
+          // Parse the value as a number
+          let cobroValue;
+          
+          if (typeof servicio.cobro_cliente === 'string') {
+            // Remove any non-numeric characters except decimal point and minus sign
+            cobroValue = parseFloat(servicio.cobro_cliente.replace(/[^0-9.-]+/g, ''));
+          } else {
+            cobroValue = Number(servicio.cobro_cliente);
+          }
+          
           if (!isNaN(cobroValue)) {
             totalCobro += cobroValue;
+            validCobroCount++;
           }
         }
       });
       
-      const avgCobro = filteredClientServices.length > 0 ? totalCobro / filteredClientServices.length : 0;
-      
-      console.log(`Client ${cliente.nombre_cliente} AOV calculation:`, {
-        totalCobro,
-        serviceCount: filteredClientServices.length,
-        avgCobro
-      });
+      // Use the number of distinct service IDs for the calculation
+      const distinctCount = distinctServiceIds.size || filteredCount;
+      const avgCobro = distinctCount > 0 ? totalCobro / distinctCount : 0;
       
       return {
         ...cliente,
@@ -85,7 +86,6 @@ export function useClienteFilters(
       };
     });
     
-    console.log("Filtered client data:", activeClientes.length);
     return activeClientes;
   }, [serviciosPorCliente, serviciosData, filteredData]);
 
