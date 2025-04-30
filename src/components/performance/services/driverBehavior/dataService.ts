@@ -35,8 +35,15 @@ export const fetchDriverBehaviorData = async (dateRange: DateRange, filters?: Dr
     );
     
     // Apply client filter if provided
-    if (filters?.selectedClients && filters.selectedClients.length > 0) {
+    if (filters?.selectedClient) {
+      query = query.eq('client', filters.selectedClient);
+    } else if (filters?.selectedClients && filters.selectedClients.length > 0) {
       query = query.in('client', filters.selectedClients);
+    }
+    
+    // Apply driver group filter if provided
+    if (filters?.selectedGroups && filters.selectedGroups.length > 0) {
+      query = query.in('driver_group', filters.selectedGroups);
     }
     
     // Execute the query
@@ -97,6 +104,43 @@ export const fetchClientList = async (): Promise<string[]> => {
     }
   } catch (err) {
     console.error("Exception when fetching client list:", err);
+    return [];
+  }
+};
+
+// Fetch driver groups for a specific client
+export const fetchDriverGroups = async (client?: string): Promise<string[]> => {
+  console.log("Fetching driver groups", client ? `for client: ${client}` : "for all clients");
+  
+  try {
+    let query = supabase
+      .from('driver_behavior_scores')
+      .select('driver_group')
+      .order('driver_group');
+      
+    // Filter by client if provided
+    if (client) {
+      query = query.eq('client', client);
+    }
+    
+    const { data, error } = await query.limit(100);
+    
+    if (error) {
+      console.error("Error fetching driver groups:", error);
+      return [];
+    }
+    
+    if (data && data.length > 0) {
+      // Extract unique group names
+      const uniqueGroups = Array.from(new Set(data.map(item => item.driver_group))).filter(Boolean) as string[];
+      console.log(`Found ${uniqueGroups.length} unique driver groups`);
+      return uniqueGroups.sort();
+    } else {
+      console.log("No driver group data found");
+      return [];
+    }
+  } catch (err) {
+    console.error("Exception when fetching driver groups:", err);
     return [];
   }
 };

@@ -1,3 +1,4 @@
+
 import { DateRange } from "react-day-picker";
 
 export interface DriverScore {
@@ -59,6 +60,8 @@ export interface DriverBehaviorData {
 
 export interface DriverBehaviorFilters {
   selectedClients?: string[];
+  selectedClient?: string;
+  selectedGroups?: string[];
   dateRange?: DateRange;
 }
 
@@ -67,4 +70,11 @@ export interface ScoreCalculationResult {
   penaltyPoints: number;
   scoreCategory: 'excellent' | 'good' | 'fair' | 'poor' | 'critical';
   colorClass: string;
+}
+
+export interface DriverGroup {
+  name: string;
+  client: string;
+  drivers: number;
+  avgScore: number;
 }

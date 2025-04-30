@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { 
   ProductivityParameter, 
@@ -7,6 +8,7 @@ import {
   FuelPrices
 } from "../../types/productivity.types";
 import { DateRange } from "react-day-picker";
+import { DriverBehaviorFilters } from "../../types/driver-behavior.types";
 
 // Fetch productivity parameters for a specific client and driver group
 export const fetchProductivityParameters = async (
@@ -94,6 +96,37 @@ export const deleteProductivityParameter = async (id: number): Promise<void> => 
   }
 };
 
+// Fetch driver groups for a client (used for filtering)
+export const fetchDriverGroups = async (client?: string): Promise<string[]> => {
+  try {
+    let query = supabase
+      .from('driver_behavior_scores')
+      .select('driver_group')
+      .distinct();
+    
+    if (client) {
+      query = query.eq('client', client);
+    }
+    
+    const { data, error } = await query;
+    
+    if (error) {
+      console.error("Error fetching driver groups:", error);
+      return [];
+    }
+    
+    if (!data || data.length === 0) {
+      return [];
+    }
+    
+    const groups = data.map(item => item.driver_group).filter(Boolean) as string[];
+    return groups.sort();
+  } catch (err) {
+    console.error("Exception when fetching driver groups:", err);
+    return [];
+  }
+};
+
 // Fetch current fuel prices from web scraper
 export const fetchCurrentFuelPrices = async (): Promise<FuelPrices> => {
   try {
@@ -144,10 +177,10 @@ export const updateAllFuelPrices = async (): Promise<{ nationalPrice: number, re
   }
 };
 
-// Fetch productivity analysis data
-// Updated to remove client filtering
+// Fetch productivity analysis data with filters
 export const fetchProductivityAnalysis = async (
-  dateRange: DateRange
+  dateRange: DateRange,
+  filters?: DriverBehaviorFilters
 ): Promise<ProductivityAnalysis[]> => {
   // Validate that both from and to dates exist
   if (!dateRange.from || !dateRange.to) {
@@ -160,6 +193,16 @@ export const fetchProductivityAnalysis = async (
     .select('*')
     .gte('start_date', dateRange.from.toISOString())
     .lte('end_date', dateRange.to.toISOString());
+  
+  // Apply client filter if provided
+  if (filters?.selectedClient) {
+    query = query.eq('client', filters.selectedClient);
+  }
+  
+  // Apply driver group filter if provided
+  if (filters?.selectedGroups && filters.selectedGroups.length > 0) {
+    query = query.in('driver_group', filters.selectedGroups);
+  }
   
   const { data, error } = await query;
   

@@ -48,6 +48,7 @@ export function DriverBehaviorDashboard({ dateRange, comparisonRange }: DriverBe
   const refreshData = () => {
     queryClient.invalidateQueries({ queryKey: ['driver-behavior-data'] });
     queryClient.invalidateQueries({ queryKey: ['driver-behavior-clients'] });
+    queryClient.invalidateQueries({ queryKey: ['driver-behavior-groups'] });
     toast.success("Datos actualizados", {
       description: "Dashboard actualizado con los datos más recientes"
     });
@@ -132,6 +133,7 @@ export function DriverBehaviorDashboard({ dateRange, comparisonRange }: DriverBe
         <TabsContent value="productivity" className="mt-6">
           <ProductivityDashboard 
             dateRange={dateRange}
+            filters={filters}
           />
         </TabsContent>
         

@@ -1,26 +1,30 @@
 
 import React, { useState } from 'react';
-import { 
-  Table, 
-  TableBody, 
-  TableCell, 
-  TableHead, 
-  TableHeader, 
-  TableRow 
-} from "@/components/ui/table";
-import { 
-  Card, 
-  CardContent, 
-  CardHeader, 
-  CardTitle, 
-  CardDescription 
-} from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { toast } from "sonner";
-import { Pencil, Plus, Trash2, AlertTriangle, RefreshCw } from "lucide-react";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Pencil, Trash2 } from 'lucide-react';
+import { Skeleton } from '@/components/ui/skeleton';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { ProductivityParameter } from '../../types/productivity.types';
-import { ProductivityParametersDialog } from './ProductivityParametersDialog';
-import { deleteProductivityParameter } from '../../services/productivity/productivityService';
+import { deleteProductivityParameter, updateAllFuelPrices } from '../../services/productivity/productivityService';
+import { toast } from 'sonner';
 
 interface ProductivityParametersTableProps {
   parameters: ProductivityParameter[];
@@ -28,179 +32,189 @@ interface ProductivityParametersTableProps {
   driverGroups: string[];
   isLoading: boolean;
   onRefresh: () => void;
-  currentFuelPrice?: number | null;
+  selectedClient?: string;
 }
 
 export function ProductivityParametersTable({
   parameters,
-  clients,
-  driverGroups,
   isLoading,
   onRefresh,
-  currentFuelPrice
+  selectedClient
 }: ProductivityParametersTableProps) {
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [editParameter, setEditParameter] = useState<ProductivityParameter | undefined>();
-  const [isDeleting, setIsDeleting] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [deletingId, setDeletingId] = useState<number | null>(null);
   
-  const handleOpenDialog = () => {
-    setEditParameter(undefined);
-    setIsDialogOpen(true);
-  };
-  
-  const handleEditParameter = (parameter: ProductivityParameter) => {
-    setEditParameter(parameter);
-    setIsDialogOpen(true);
-  };
-  
-  const handleDeleteParameter = async (parameter: ProductivityParameter) => {
-    if (!confirm(`¿Estás seguro que deseas eliminar los parámetros para ${parameter.client}${parameter.driver_group ? ` - ${parameter.driver_group}` : ''}?`)) {
-      return;
+  // Filter parameters by search term and selected client
+  const filteredParameters = React.useMemo(() => {
+    let filtered = parameters;
+    
+    // Apply client filter if specified in props
+    if (selectedClient) {
+      filtered = filtered.filter(param => param.client === selectedClient);
     }
     
+    // Apply search filter
+    if (searchTerm) {
+      filtered = filtered.filter(param => 
+        param.client.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (param.driver_group && param.driver_group.toLowerCase().includes(searchTerm.toLowerCase()))
+      );
+    }
+    
+    return filtered;
+  }, [parameters, searchTerm, selectedClient]);
+  
+  // Handle delete confirmation
+  const confirmDelete = async () => {
+    if (deletingId === null) return;
+    
     try {
-      setIsDeleting(true);
-      await deleteProductivityParameter(parameter.id);
-      toast.success("Parámetros eliminados", {
-        description: `Se eliminaron los parámetros para ${parameter.client}${parameter.driver_group ? ` - ${parameter.driver_group}` : ''}`
+      await deleteProductivityParameter(deletingId);
+      toast.success('Parámetro eliminado');
+      onRefresh();
+    } catch (error) {
+      console.error('Error deleting parameter:', error);
+      toast.error('Error al eliminar el parámetro');
+    } finally {
+      setDeletingId(null);
+    }
+  };
+  
+  // Handle update all fuel prices
+  const handleUpdateAllFuelPrices = async () => {
+    try {
+      const result = await updateAllFuelPrices();
+      toast.success(`Precios de combustible actualizados a $${result.nationalPrice.toFixed(2)}`, {
+        description: `${result.recordsUpdated} parámetros actualizados`
       });
       onRefresh();
     } catch (error) {
-      console.error("Error deleting parameter:", error);
-      toast.error("Error al eliminar", {
-        description: "No se pudo eliminar los parámetros."
-      });
-    } finally {
-      setIsDeleting(false);
+      console.error('Error updating fuel prices:', error);
+      toast.error('Error al actualizar los precios de combustible');
     }
   };
   
-  const handleCloseDialog = () => {
-    setIsDialogOpen(false);
-    setEditParameter(undefined);
-  };
+  if (isLoading) {
+    return (
+      <div>
+        <div className="flex justify-between items-center mb-4">
+          <Skeleton className="h-9 w-64" />
+          <Skeleton className="h-9 w-32" />
+        </div>
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Cliente</TableHead>
+              <TableHead>Grupo</TableHead>
+              <TableHead>Distancia Diaria</TableHead>
+              <TableHead>Tiempo Diario</TableHead>
+              <TableHead>Costo Combustible</TableHead>
+              <TableHead>Rendimiento</TableHead>
+              <TableHead>Acciones</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {[...Array(3)].map((_, i) => (
+              <TableRow key={i}>
+                {[...Array(7)].map((_, j) => (
+                  <TableCell key={j}>
+                    <Skeleton className="h-4 w-full" />
+                  </TableCell>
+                ))}
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </div>
+    );
+  }
   
-  const handleParameterSaved = () => {
-    onRefresh();
-  };
-
-  // Check if any parameter has outdated fuel price
-  const hasOutdatedFuelPrice = currentFuelPrice && parameters.some(
-    param => Math.abs(param.fuel_cost_per_liter - currentFuelPrice) > 0.5
-  );
-
   return (
-    <>
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
-          <div>
-            <CardTitle className="text-lg font-medium">Parámetros de Productividad</CardTitle>
-            <CardDescription>Define los valores esperados por cliente y grupo</CardDescription>
-          </div>
-          <div className="flex items-center gap-2">
-            {hasOutdatedFuelPrice && (
-              <div className="flex items-center text-amber-500 text-sm mr-2">
-                <AlertTriangle className="h-4 w-4 mr-1" />
-                <span>Precios de combustible desactualizados</span>
-              </div>
-            )}
-            <Button variant="outline" size="sm" onClick={onRefresh}>
-              <RefreshCw className="h-4 w-4 mr-2" />
-              Actualizar
-            </Button>
-            <Button size="sm" onClick={handleOpenDialog}>
-              <Plus className="h-4 w-4 mr-2" />
-              Nuevo Parámetro
-            </Button>
-          </div>
-        </CardHeader>
-        <CardContent>
-          {isLoading ? (
-            <div className="py-8 text-center text-muted-foreground">
-              Cargando parámetros...
-            </div>
-          ) : parameters.length === 0 ? (
-            <div className="py-8 text-center text-muted-foreground">
-              No hay parámetros definidos.
-              <div className="mt-2">
-                <Button variant="outline" size="sm" onClick={handleOpenDialog}>
-                  <Plus className="h-4 w-4 mr-2" />
-                  Agregar nuevo parámetro
-                </Button>
-              </div>
-            </div>
-          ) : (
-            <div className="rounded-md border">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Cliente</TableHead>
-                    <TableHead>Grupo</TableHead>
-                    <TableHead className="text-right">Distancia diaria (km)</TableHead>
-                    <TableHead className="text-right">Tiempo diario</TableHead>
-                    <TableHead className="text-right">Costo combustible</TableHead>
-                    <TableHead className="text-right">Rendimiento (km/l)</TableHead>
-                    <TableHead></TableHead>
+    <div>
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4">
+        <Input
+          placeholder="Buscar por cliente o grupo..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          className="max-w-xs"
+        />
+        <Button variant="outline" onClick={handleUpdateAllFuelPrices}>
+          Actualizar Precios de Combustible
+        </Button>
+      </div>
+      
+      <div className="rounded-md border">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Cliente</TableHead>
+              <TableHead>Grupo</TableHead>
+              <TableHead>Distancia Diaria</TableHead>
+              <TableHead>Tiempo Diario</TableHead>
+              <TableHead>Costo Combustible</TableHead>
+              <TableHead>Rendimiento</TableHead>
+              <TableHead>Acciones</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {filteredParameters.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={7} className="text-center py-8">
+                  No se encontraron parámetros
+                </TableCell>
+              </TableRow>
+            ) : (
+              filteredParameters.map((param) => {
+                const hours = Math.floor(param.expected_daily_time_minutes / 60);
+                const minutes = param.expected_daily_time_minutes % 60;
+                
+                return (
+                  <TableRow key={param.id}>
+                    <TableCell>{param.client}</TableCell>
+                    <TableCell>{param.driver_group || <em className="text-muted-foreground">Todos</em>}</TableCell>
+                    <TableCell>{param.expected_daily_distance} km</TableCell>
+                    <TableCell>{hours}h {minutes}m</TableCell>
+                    <TableCell>${param.fuel_cost_per_liter.toFixed(2)}</TableCell>
+                    <TableCell>{param.expected_fuel_efficiency} km/l</TableCell>
+                    <TableCell>
+                      <div className="flex space-x-2">
+                        <Button variant="ghost" size="icon">
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          onClick={() => setDeletingId(param.id)}
+                        >
+                          <Trash2 className="h-4 w-4 text-red-500" />
+                        </Button>
+                      </div>
+                    </TableCell>
                   </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {parameters.map(param => {
-                    const outdatedFuelPrice = currentFuelPrice && 
-                      Math.abs(param.fuel_cost_per_liter - currentFuelPrice) > 0.5;
-                    
-                    return (
-                      <TableRow key={param.id}>
-                        <TableCell>{param.client}</TableCell>
-                        <TableCell>{param.driver_group || 'Todos'}</TableCell>
-                        <TableCell className="text-right">{param.expected_daily_distance}</TableCell>
-                        <TableCell className="text-right">
-                          {Math.floor(param.expected_daily_time_minutes / 60)}h {param.expected_daily_time_minutes % 60}m
-                        </TableCell>
-                        <TableCell className={`text-right ${outdatedFuelPrice ? 'text-amber-500 font-medium' : ''}`}>
-                          ${param.fuel_cost_per_liter.toFixed(2)}/litro
-                          {outdatedFuelPrice && <AlertTriangle className="inline-block ml-1 h-4 w-4" />}
-                        </TableCell>
-                        <TableCell className="text-right">{param.expected_fuel_efficiency}</TableCell>
-                        <TableCell className="text-right">
-                          <div className="flex justify-end gap-2">
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => handleEditParameter(param)}
-                              title="Editar"
-                            >
-                              <Pencil className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => handleDeleteParameter(param)}
-                              disabled={isDeleting}
-                              title="Eliminar"
-                            >
-                              <Trash2 className="h-4 w-4 text-red-500" />
-                            </Button>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })}
-                </TableBody>
-              </Table>
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      <ProductivityParametersDialog
-        isOpen={isDialogOpen}
-        onClose={handleCloseDialog}
-        onParameterSaved={handleParameterSaved}
-        clients={clients}
-        driverGroups={driverGroups}
-        editParameter={editParameter}
-        currentFuelPrice={currentFuelPrice}
-      />
-    </>
+                );
+              })
+            )}
+          </TableBody>
+        </Table>
+      </div>
+      
+      <AlertDialog open={deletingId !== null} onOpenChange={() => setDeletingId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta acción no se puede deshacer. Eliminarás permanentemente este parámetro
+              de productividad.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDelete} className="bg-red-600">
+              Eliminar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </div>
   );
 }

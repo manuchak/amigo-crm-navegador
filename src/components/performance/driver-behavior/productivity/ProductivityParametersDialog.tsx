@@ -1,13 +1,14 @@
 
-import React, { useState, useEffect } from 'react';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import React from 'react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { toast } from 'sonner';
+import { saveProductivityParameter, fetchCurrentFuelPrices } from '../../services/productivity/productivityService';
+import { NewProductivityParameter } from '../../types/productivity.types';
 import {
   Form,
   FormControl,
@@ -16,115 +17,125 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
-} from "@/components/ui/form";
+} from '@/components/ui/form';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { toast } from "sonner";
-import { useForm } from "react-hook-form";
-import { NewProductivityParameter, ProductivityParameter } from "../../types/productivity.types";
-import { saveProductivityParameter } from "../../services/productivity/productivityService";
+} from '@/components/ui/select';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
 
 interface ProductivityParametersDialogProps {
-  isOpen: boolean;
+  open: boolean;
   onClose: () => void;
-  onParameterSaved: () => void;
-  clients: string[];
-  driverGroups: string[];
-  editParameter?: ProductivityParameter;
-  currentFuelPrice?: number | null;
+  onSaved?: () => void;
+  selectedClient?: string;
+  availableGroups?: string[];
 }
 
-export function ProductivityParametersDialog({
-  isOpen,
-  onClose,
-  onParameterSaved,
-  clients,
-  driverGroups,
-  editParameter,
-  currentFuelPrice
+// Define the form schema
+const formSchema = z.object({
+  client: z.string().min(1, 'Cliente es requerido'),
+  driver_group: z.string().optional(),
+  expected_daily_distance: z.coerce.number().positive('Debe ser un número positivo'),
+  expected_daily_time_minutes: z.coerce.number().int().positive('Debe ser un número entero positivo'),
+  fuel_cost_per_liter: z.coerce.number().positive('Debe ser un número positivo'),
+  expected_fuel_efficiency: z.coerce.number().positive('Debe ser un número positivo'),
+});
+
+export function ProductivityParametersDialog({ 
+  open, 
+  onClose, 
+  onSaved,
+  selectedClient,
+  availableGroups = []
 }: ProductivityParametersDialogProps) {
-  const [isSaving, setIsSaving] = useState(false);
-  
-  const form = useForm<NewProductivityParameter>({
-    defaultValues: {
-      client: '',
-      driver_group: '',
-      expected_daily_distance: 100,
-      expected_daily_time_minutes: 480, // 8 hours
-      fuel_cost_per_liter: currentFuelPrice || 24,
-      expected_fuel_efficiency: 10 // 10 km per liter
-    }
+  // Fetch client list
+  const { data: clientList = [] } = useQuery({
+    queryKey: ['productivity-clients-for-form'],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('driver_productivity_parameters')
+        .select('client')
+        .order('client');
+        
+      if (!data) return [];
+      return Array.from(new Set(data.map(d => d.client)));
+    },
   });
   
-  useEffect(() => {
-    if (editParameter) {
-      form.reset({
-        id: editParameter.id,
-        client: editParameter.client,
-        driver_group: editParameter.driver_group || '',
-        expected_daily_distance: editParameter.expected_daily_distance,
-        expected_daily_time_minutes: editParameter.expected_daily_time_minutes,
-        fuel_cost_per_liter: editParameter.fuel_cost_per_liter,
-        expected_fuel_efficiency: editParameter.expected_fuel_efficiency
-      });
-    } else {
-      form.reset({
-        client: '',
-        driver_group: '',
-        expected_daily_distance: 100,
-        expected_daily_time_minutes: 480,
-        fuel_cost_per_liter: currentFuelPrice || 24,
-        expected_fuel_efficiency: 10
-      });
-    }
-  }, [editParameter, form, currentFuelPrice]);
+  // Set up form
+  const form = useForm<z.infer<typeof formSchema>>({
+    resolver: zodResolver(formSchema),
+    defaultValues: {
+      client: selectedClient || '',
+      driver_group: '',
+      expected_daily_distance: 150,
+      expected_daily_time_minutes: 480, // 8 hours
+      fuel_cost_per_liter: 22.5,
+      expected_fuel_efficiency: 10, // km per liter
+    },
+  });
   
-  const handleSubmit = async (values: NewProductivityParameter) => {
+  // Update default client when selectedClient changes
+  React.useEffect(() => {
+    if (selectedClient) {
+      form.setValue('client', selectedClient);
+    }
+  }, [selectedClient, form]);
+  
+  // Handle form submission
+  const onSubmit = async (values: z.infer<typeof formSchema>) => {
     try {
-      setIsSaving(true);
-      
-      // Format the driver_group: empty string becomes null
-      const formattedValues = {
-        ...values,
-        driver_group: values.driver_group === '' ? null : values.driver_group
+      const parameter: NewProductivityParameter = {
+        client: values.client,
+        driver_group: values.driver_group || null,
+        expected_daily_distance: values.expected_daily_distance,
+        expected_daily_time_minutes: values.expected_daily_time_minutes,
+        fuel_cost_per_liter: values.fuel_cost_per_liter,
+        expected_fuel_efficiency: values.expected_fuel_efficiency,
       };
       
-      await saveProductivityParameter(formattedValues);
-      toast.success(editParameter ? "Parámetros actualizados" : "Parámetros guardados");
-      onParameterSaved();
+      await saveProductivityParameter(parameter);
+      
+      toast.success('Parámetros guardados correctamente');
+      onSaved?.();
       onClose();
     } catch (error) {
-      console.error("Error saving productivity parameters:", error);
-      toast.error("Error al guardar parámetros", {
-        description: "Ha ocurrido un error al guardar los parámetros de productividad."
-      });
-    } finally {
-      setIsSaving(false);
+      console.error('Error saving parameters:', error);
+      toast.error('Error al guardar los parámetros');
     }
   };
-
+  
+  // Get latest fuel price
+  const fetchLatestFuelPrice = async () => {
+    try {
+      const prices = await fetchCurrentFuelPrices();
+      if (prices.regular) {
+        form.setValue('fuel_cost_per_liter', prices.regular);
+        toast.success('Precio de combustible actualizado');
+      } else {
+        toast.error('No se pudo obtener el precio actual del combustible');
+      }
+    } catch (error) {
+      console.error('Error fetching fuel prices:', error);
+      toast.error('Error al obtener el precio del combustible');
+    }
+  };
+  
   return (
-    <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="sm:max-w-[550px]">
+    <Dialog open={open} onOpenChange={onClose}>
+      <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
-          <DialogTitle>
-            {editParameter ? "Editar Parámetros de Productividad" : "Nuevos Parámetros de Productividad"}
-          </DialogTitle>
-          <DialogDescription>
-            Define los parámetros de productividad esperados para un cliente o grupo específico.
-          </DialogDescription>
+          <DialogTitle>Configurar Parámetros de Productividad</DialogTitle>
         </DialogHeader>
         
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+            <div className="grid grid-cols-1 gap-4">
               <FormField
                 control={form.control}
                 name="client"
@@ -135,7 +146,6 @@ export function ProductivityParametersDialog({
                       onValueChange={field.onChange} 
                       defaultValue={field.value}
                       value={field.value}
-                      disabled={isSaving || !!editParameter}
                     >
                       <FormControl>
                         <SelectTrigger>
@@ -143,10 +153,8 @@ export function ProductivityParametersDialog({
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        {clients.map(client => (
-                          <SelectItem key={client} value={client}>
-                            {client}
-                          </SelectItem>
+                        {clientList.map((client) => (
+                          <SelectItem key={client} value={client}>{client}</SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
@@ -160,142 +168,117 @@ export function ProductivityParametersDialog({
                 name="driver_group"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Grupo (opcional)</FormLabel>
+                    <FormLabel>Grupo de Conductores (opcional)</FormLabel>
                     <Select 
                       onValueChange={field.onChange} 
-                      defaultValue={field.value}
+                      defaultValue={field.value || ''}
                       value={field.value || ''}
-                      disabled={isSaving || !!editParameter}
                     >
                       <FormControl>
                         <SelectTrigger>
-                          <SelectValue placeholder="Todos los grupos" />
+                          <SelectValue placeholder="Seleccionar grupo" />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value="all">Todos los grupos</SelectItem>
-                        {driverGroups.map(group => (
-                          <SelectItem key={group} value={group}>
-                            {group}
-                          </SelectItem>
+                        <SelectItem value="">Sin grupo específico</SelectItem>
+                        {availableGroups.map((group) => (
+                          <SelectItem key={group} value={group}>{group}</SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
                     <FormDescription>
-                      Si no se selecciona grupo, se aplicará a todos
+                      Si no se especifica un grupo, estos parámetros se aplicarán a todos los conductores del cliente.
                     </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <FormField
-                control={form.control}
-                name="expected_daily_distance"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Distancia diaria esperada (km)</FormLabel>
-                    <FormControl>
-                      <Input 
-                        type="number" 
-                        min="1"
-                        step="1"
-                        {...field}
-                        onChange={(e) => field.onChange(Number(e.target.value))}
-                        disabled={isSaving}
-                      />
-                    </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
               />
               
-              <FormField
-                control={form.control}
-                name="expected_daily_time_minutes"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Tiempo diario esperado (minutos)</FormLabel>
-                    <FormControl>
-                      <Input 
-                        type="number" 
-                        min="1"
-                        step="1"
-                        {...field}
-                        onChange={(e) => field.onChange(Number(e.target.value))}
-                        disabled={isSaving}
-                      />
-                    </FormControl>
-                    <FormDescription>
-                      {Math.floor(field.value / 60)}h {field.value % 60}m
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <FormField
-                control={form.control}
-                name="fuel_cost_per_liter"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Costo de combustible por litro (MXN)</FormLabel>
-                    <FormControl>
-                      <Input 
-                        type="number" 
-                        min="0.01"
-                        step="0.01"
-                        {...field}
-                        onChange={(e) => field.onChange(Number(e.target.value))}
-                        disabled={isSaving}
-                      />
-                    </FormControl>
-                    {currentFuelPrice && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="expected_daily_distance"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Distancia Diaria Esperada (km)</FormLabel>
+                      <FormControl>
+                        <Input type="number" min="0" step="0.01" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={form.control}
+                  name="expected_daily_time_minutes"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Tiempo Diario Esperado (min)</FormLabel>
+                      <FormControl>
+                        <Input type="number" min="0" step="1" {...field} />
+                      </FormControl>
                       <FormDescription>
-                        Precio actual: ${currentFuelPrice.toFixed(2)}/litro
+                        {Math.floor(Number(field.value) / 60)}h {Number(field.value) % 60}m
                       </FormDescription>
-                    )}
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
               
-              <FormField
-                control={form.control}
-                name="expected_fuel_efficiency"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Rendimiento esperado (km/l)</FormLabel>
-                    <FormControl>
-                      <Input 
-                        type="number" 
-                        min="0.1"
-                        step="0.1"
-                        {...field}
-                        onChange={(e) => field.onChange(Number(e.target.value))}
-                        disabled={isSaving}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="fuel_cost_per_liter"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="flex justify-between">
+                        <span>Costo por Litro (MXN)</span>
+                        <Button 
+                          type="button" 
+                          variant="link" 
+                          className="h-auto p-0 text-xs"
+                          onClick={fetchLatestFuelPrice}
+                        >
+                          Obtener precio actual
+                        </Button>
+                      </FormLabel>
+                      <FormControl>
+                        <Input type="number" min="0" step="0.01" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={form.control}
+                  name="expected_fuel_efficiency"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Rendimiento de Combustible (km/l)</FormLabel>
+                      <FormControl>
+                        <Input type="number" min="0" step="0.1" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
             </div>
             
             <DialogFooter>
-              <Button variant="outline" type="button" onClick={onClose} disabled={isSaving}>
+              <Button type="button" variant="outline" onClick={onClose}>
                 Cancelar
               </Button>
-              <Button type="submit" disabled={isSaving}>
-                {isSaving ? "Guardando..." : "Guardar parámetros"}
+              <Button type="submit">
+                Guardar Parámetros
               </Button>
             </DialogFooter>
           </form>
         </Form>
+        
       </DialogContent>
     </Dialog>
   );
