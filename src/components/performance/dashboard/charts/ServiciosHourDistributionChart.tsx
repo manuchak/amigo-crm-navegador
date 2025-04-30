@@ -34,21 +34,53 @@ export function ServiciosHourDistributionChart({ data = [], isLoading }: Servici
       };
     }
 
+    console.log(`Processing ${data.length} services for hour distribution`);
+    
     // Count unique service IDs per hour
     data.forEach(service => {
-      if (service.fecha_hora_cita && service.id_servicio) {
-        try {
-          const date = parseISO(service.fecha_hora_cita);
-          const hour = format(date, 'HH');
-          
-          if (hoursMap[hour]) {
-            hoursMap[hour].uniqueServices.add(service.id_servicio);
-          }
-        } catch (error) {
-          console.error("Error processing service date:", service.fecha_hora_cita, error);
+      try {
+        if (!service.fecha_hora_cita) {
+          console.log('Service missing fecha_hora_cita:', service.id_servicio || 'unknown ID');
+          return;
         }
+        
+        // Handle different date formats and types
+        let serviceDate: Date;
+        
+        if (typeof service.fecha_hora_cita === 'string') {
+          serviceDate = parseISO(service.fecha_hora_cita);
+        } else if (service.fecha_hora_cita instanceof Date) {
+          serviceDate = service.fecha_hora_cita;
+        } else {
+          console.log('Unrecognized date format:', service.fecha_hora_cita);
+          return;
+        }
+        
+        if (isNaN(serviceDate.getTime())) {
+          console.log('Invalid date for service:', service.id_servicio || 'unknown ID');
+          return;
+        }
+        
+        const hour = format(serviceDate, 'HH');
+        const serviceId = service.id_servicio || service.id || `service-${Math.random()}`;
+        
+        if (hoursMap[hour]) {
+          hoursMap[hour].uniqueServices.add(serviceId);
+          if (hoursMap[hour].uniqueServices.size % 10 === 0) {
+            console.log(`Hour ${hour} now has ${hoursMap[hour].uniqueServices.size} unique services`);
+          }
+        }
+      } catch (error) {
+        console.error("Error processing service date:", service.fecha_hora_cita, error);
       }
     });
+    
+    // Log distribution before returning
+    const distribution = Object.entries(hoursMap).map(([hour, data]) => ({
+      hour, 
+      count: data.uniqueServices.size
+    }));
+    console.log('Hour distribution data:', distribution);
     
     // Convert to array for chart and count unique services
     return Object.values(hoursMap).map(hourData => ({
@@ -91,48 +123,54 @@ export function ServiciosHourDistributionChart({ data = [], isLoading }: Servici
         <CardTitle className="text-lg font-medium">Distribución de Servicios por Hora</CardTitle>
       </CardHeader>
       <CardContent className="pt-0 h-[320px]">
-        <ResponsiveContainer width="100%" height="100%">
-          <BarChart
-            data={hourlyData}
-            margin={{
-              top: 10,
-              right: 10,
-              left: 10,
-              bottom: 30,
-            }}
-            barSize={20}
-          >
-            <CartesianGrid strokeDasharray="3 3" vertical={false} />
-            <XAxis 
-              dataKey="displayHour" 
-              tick={{ fontSize: 10 }}
-              interval={0}
-              angle={-45}
-              textAnchor="end"
-              height={60}
-            />
-            <YAxis 
-              domain={[0, maxCount > 0 ? Math.ceil(maxCount * 1.1) : 10]} 
-              allowDecimals={false}
-              tick={{ fontSize: 10 }}
-              width={30}
-            />
-            <Tooltip
-              formatter={(value) => [`${value} servicios únicos`, 'Cantidad']}
-              contentStyle={{
-                borderRadius: '8px',
-                boxShadow: '0 2px 5px rgba(0,0,0,0.1)',
-                border: 'none',
+        {hourlyData.every(item => item.count === 0) ? (
+          <div className="flex items-center justify-center h-full text-muted-foreground">
+            No hay datos para mostrar en el rango de fechas seleccionado
+          </div>
+        ) : (
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart
+              data={hourlyData}
+              margin={{
+                top: 10,
+                right: 10,
+                left: 10,
+                bottom: 30,
               }}
-            />
-            <Bar 
-              dataKey="count" 
-              fill="#0EA5E9" 
-              radius={[4, 4, 0, 0]}
-              name="Servicios Únicos"
-            />
-          </BarChart>
-        </ResponsiveContainer>
+              barSize={20}
+            >
+              <CartesianGrid strokeDasharray="3 3" vertical={false} />
+              <XAxis 
+                dataKey="displayHour" 
+                tick={{ fontSize: 10 }}
+                interval={0}
+                angle={-45}
+                textAnchor="end"
+                height={60}
+              />
+              <YAxis 
+                domain={[0, maxCount > 0 ? Math.ceil(maxCount * 1.1) : 10]} 
+                allowDecimals={false}
+                tick={{ fontSize: 10 }}
+                width={30}
+              />
+              <Tooltip
+                formatter={(value) => [`${value} servicios únicos`, 'Cantidad']}
+                contentStyle={{
+                  borderRadius: '8px',
+                  boxShadow: '0 2px 5px rgba(0,0,0,0.1)',
+                  border: 'none',
+                }}
+              />
+              <Bar 
+                dataKey="count" 
+                fill="#0EA5E9" 
+                radius={[4, 4, 0, 0]}
+                name="Servicios Únicos"
+              />
+            </BarChart>
+          </ResponsiveContainer>
+        )}
       </CardContent>
     </Card>
   );
