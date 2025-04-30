@@ -6,14 +6,12 @@ import { fetchServiciosData } from '../services/servicios';
 import { ServiciosMetricsCards } from './ServiciosMetricsCards';
 import { toast } from 'sonner';
 import { 
-  StatusFilterSection,
   DashboardLayout,
   PerformanceChartsGrid,
   SecondaryChartsGrid,
   AlertsSection
 } from './components';
-import { useStatusFilters } from './hooks/useStatusFilters';
-import { useClienteFilters } from './hooks/useClienteFilters';
+import { useClienteFilters } from './hooks';
 
 export type { StatusOption } from './hooks/useStatusFilters';
 
@@ -56,8 +54,8 @@ export function ServiciosDashboard({ dateRange, comparisonRange }: ServiciosDash
     }
   }, [data]);
   
-  // Use our custom hooks for filtering
-  const { statusOptions, filteredData, handleStatusFilterChange } = useStatusFilters(data?.serviciosData);
+  // Temporarily use raw data without status filtering
+  const filteredData = data?.serviciosData || [];
   const filteredClientesData = useClienteFilters(data?.serviciosPorCliente, data?.serviciosData, filteredData);
   
   // Show error toast if fetch fails
@@ -90,13 +88,7 @@ export function ServiciosDashboard({ dateRange, comparisonRange }: ServiciosDash
       dateRange={dateRange}
     >
       <div className="space-y-6">
-        {/* Status filter */}
-        <div className="animate-fade-in duration-300">
-          <StatusFilterSection 
-            statusOptions={statusOptions} 
-            onStatusFilterChange={handleStatusFilterChange}
-          />
-        </div>
+        {/* Status filter removed temporarily */}
         
         {/* Metrics cards at the top */}
         <div className="animate-fade-in duration-300">
