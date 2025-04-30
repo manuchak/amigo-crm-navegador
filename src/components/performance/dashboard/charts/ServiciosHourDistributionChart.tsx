@@ -9,6 +9,7 @@ interface HourData {
   hour: string;
   count: number;
   displayHour: string;
+  uniqueServices: Set<string>;
 }
 
 interface ServiciosHourDistributionChartProps {
@@ -17,45 +18,53 @@ interface ServiciosHourDistributionChartProps {
 }
 
 export function ServiciosHourDistributionChart({ data = [], isLoading }: ServiciosHourDistributionChartProps) {
-  // Process data to extract hourly distribution
+  // Process data to extract hourly distribution with unique service IDs
   const hourlyData = useMemo(() => {
     if (!data || data.length === 0) return [];
     
     // Initialize hours (0-23)
-    const hours: { [key: string]: number } = {};
+    const hoursMap: Record<string, HourData> = {};
     for (let i = 0; i < 24; i++) {
       const hourString = i.toString().padStart(2, '0');
-      hours[hourString] = 0;
+      hoursMap[hourString] = {
+        hour: hourString,
+        count: 0,
+        displayHour: formatHourDisplay(i),
+        uniqueServices: new Set<string>()
+      };
     }
 
-    // Count services per hour
+    // Count unique service IDs per hour
     data.forEach(service => {
-      if (service.fecha_hora_cita) {
+      if (service.fecha_hora_cita && service.id_servicio) {
         try {
           const date = parseISO(service.fecha_hora_cita);
           const hour = format(date, 'HH');
-          if (hours[hour] !== undefined) {
-            hours[hour] += 1;
+          
+          if (hoursMap[hour]) {
+            hoursMap[hour].uniqueServices.add(service.id_servicio);
           }
         } catch (error) {
-          console.error("Error parsing date:", error);
+          console.error("Error processing service date:", service.fecha_hora_cita, error);
         }
       }
     });
     
-    // Convert to array for chart
-    return Object.entries(hours).map(([hour, count]) => {
-      const hourNum = parseInt(hour, 10);
-      // Format for display (12-hour format with am/pm)
-      let displayHour;
-      if (hourNum === 0) displayHour = '12 AM';
-      else if (hourNum === 12) displayHour = '12 PM';
-      else if (hourNum < 12) displayHour = `${hourNum} AM`;
-      else displayHour = `${hourNum - 12} PM`;
-      
-      return { hour, count, displayHour };
-    });
+    // Convert to array for chart and count unique services
+    return Object.values(hoursMap).map(hourData => ({
+      hour: hourData.hour,
+      displayHour: hourData.displayHour,
+      count: hourData.uniqueServices.size
+    }));
   }, [data]);
+  
+  // Format hour for display (12-hour format with am/pm)
+  function formatHourDisplay(hourNum: number): string {
+    if (hourNum === 0) return '12 AM';
+    else if (hourNum === 12) return '12 PM';
+    else if (hourNum < 12) return `${hourNum} AM`;
+    else return `${hourNum - 12} PM`;
+  }
   
   // Find the hour with the most services
   const maxCount = useMemo(() => {
@@ -91,25 +100,25 @@ export function ServiciosHourDistributionChart({ data = [], isLoading }: Servici
               left: 10,
               bottom: 30,
             }}
-            barSize={10}
+            barSize={20}
           >
             <CartesianGrid strokeDasharray="3 3" vertical={false} />
             <XAxis 
               dataKey="displayHour" 
               tick={{ fontSize: 10 }}
-              interval={1}
+              interval={0}
               angle={-45}
               textAnchor="end"
               height={60}
             />
             <YAxis 
-              domain={[0, maxCount > 0 ? maxCount * 1.1 : 10]} 
+              domain={[0, maxCount > 0 ? Math.ceil(maxCount * 1.1) : 10]} 
               allowDecimals={false}
               tick={{ fontSize: 10 }}
               width={30}
             />
             <Tooltip
-              formatter={(value) => [`${value} servicios`, 'Cantidad']}
+              formatter={(value) => [`${value} servicios únicos`, 'Cantidad']}
               contentStyle={{
                 borderRadius: '8px',
                 boxShadow: '0 2px 5px rgba(0,0,0,0.1)',
@@ -119,8 +128,8 @@ export function ServiciosHourDistributionChart({ data = [], isLoading }: Servici
             <Bar 
               dataKey="count" 
               fill="#0EA5E9" 
-              radius={[10, 10, 0, 0]}
-              name="Servicios"
+              radius={[4, 4, 0, 0]}
+              name="Servicios Únicos"
             />
           </BarChart>
         </ResponsiveContainer>
