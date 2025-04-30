@@ -171,7 +171,7 @@ export function ProductivityParametersDialog({
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value="">Todos los grupos</SelectItem>
+                        <SelectItem value="all">Todos los grupos</SelectItem>
                         {driverGroups.map(group => (
                           <SelectItem key={group} value={group}>
                             {group}
