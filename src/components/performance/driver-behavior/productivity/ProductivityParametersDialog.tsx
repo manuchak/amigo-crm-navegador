@@ -46,9 +46,9 @@ export function ProductivityParametersDialog({
   
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[550px] p-6">
+      <DialogContent className="sm:max-w-[550px] p-6 bg-white">
         <DialogHeader className="mb-4">
-          <DialogTitle className="text-xl font-semibold text-center">
+          <DialogTitle className="text-center text-xl font-semibold">
             Configurar Parámetros de Productividad
           </DialogTitle>
         </DialogHeader>
@@ -84,10 +84,7 @@ export function ProductivityParametersDialog({
               >
                 Cancelar
               </Button>
-              <Button 
-                type="submit"
-                className="px-6"
-              >
+              <Button type="submit">
                 Guardar Parámetros
               </Button>
             </DialogFooter>

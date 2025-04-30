@@ -1,10 +1,11 @@
 
 import React from 'react';
-import { FormField, FormItem, FormLabel, FormMessage, FormControl, FormDescription } from '@/components/ui/form';
+import { FormField, FormItem, FormLabel, FormMessage, FormControl } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { UseFormReturn } from 'react-hook-form';
 import { ProductivityFormValues } from './ProductivityFormSchema';
+import { ArrowDownToLine } from 'lucide-react';
 
 interface ProductivityMetricsFieldsProps {
   form: UseFormReturn<ProductivityFormValues>;
@@ -12,15 +13,12 @@ interface ProductivityMetricsFieldsProps {
 }
 
 export function ProductivityMetricsFields({ form, onFetchFuelPrice }: ProductivityMetricsFieldsProps) {
-  const dailyTimeValue = form.watch('expected_daily_time_minutes');
-  
-  // Calculate hours and minutes for display
-  const hours = Math.floor(Number(dailyTimeValue) / 60);
-  const minutes = Number(dailyTimeValue) % 60;
-  
   return (
-    <>
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+    <div className="space-y-6">
+      <h3 className="text-base font-medium text-gray-700">Parámetros de rendimiento</h3>
+      
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {/* Expected Daily Distance */}
         <FormField
           control={form.control}
           name="expected_daily_distance"
@@ -30,10 +28,11 @@ export function ProductivityMetricsFields({ form, onFetchFuelPrice }: Productivi
               <FormControl>
                 <Input 
                   type="number" 
-                  min="0" 
-                  step="0.01" 
-                  className="bg-white"
-                  {...field} 
+                  step="0.01"
+                  min="0"
+                  placeholder="150" 
+                  className="bg-white focus:ring-gray-200"
+                  {...field}
                 />
               </FormControl>
               <FormMessage />
@@ -41,54 +40,57 @@ export function ProductivityMetricsFields({ form, onFetchFuelPrice }: Productivi
           )}
         />
         
+        {/* Expected Daily Time Minutes */}
         <FormField
           control={form.control}
           name="expected_daily_time_minutes"
           render={({ field }) => (
             <FormItem>
-              <FormLabel className="text-sm font-medium">Tiempo Diario Esperado (min)</FormLabel>
+              <FormLabel className="text-sm font-medium">Tiempo Diario Esperado (minutos)</FormLabel>
               <FormControl>
                 <Input 
                   type="number" 
-                  min="0" 
-                  step="1" 
-                  className="bg-white"
-                  {...field} 
+                  step="1"
+                  min="0"
+                  placeholder="480" 
+                  className="bg-white focus:ring-gray-200"
+                  {...field}
                 />
               </FormControl>
-              <FormDescription className="text-xs text-gray-500 mt-1">
-                {hours}h {minutes}m
-              </FormDescription>
               <FormMessage />
             </FormItem>
           )}
         />
       </div>
       
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {/* Fuel Cost Per Liter */}
         <FormField
           control={form.control}
           name="fuel_cost_per_liter"
           render={({ field }) => (
             <FormItem>
-              <FormLabel className="flex justify-between items-center text-sm font-medium">
-                <span>Costo por Litro (MXN)</span>
+              <div className="flex items-center justify-between mb-1.5">
+                <FormLabel className="text-sm font-medium">Costo de Combustible ($/L)</FormLabel>
                 <Button 
                   type="button" 
-                  variant="link" 
-                  className="h-auto p-0 text-xs"
+                  variant="outline" 
+                  size="sm"
                   onClick={onFetchFuelPrice}
+                  className="h-7 text-xs bg-white hover:bg-gray-50"
                 >
-                  Obtener precio actual
+                  <ArrowDownToLine className="h-3 w-3 mr-1" />
+                  Actualizar Precio
                 </Button>
-              </FormLabel>
+              </div>
               <FormControl>
                 <Input 
                   type="number" 
-                  min="0" 
-                  step="0.01" 
-                  className="bg-white"
-                  {...field} 
+                  step="0.01"
+                  min="0"
+                  placeholder="22.5" 
+                  className="bg-white focus:ring-gray-200"
+                  {...field}
                 />
               </FormControl>
               <FormMessage />
@@ -96,19 +98,21 @@ export function ProductivityMetricsFields({ form, onFetchFuelPrice }: Productivi
           )}
         />
         
+        {/* Expected Fuel Efficiency */}
         <FormField
           control={form.control}
           name="expected_fuel_efficiency"
           render={({ field }) => (
             <FormItem>
-              <FormLabel className="text-sm font-medium">Rendimiento de Combustible (km/l)</FormLabel>
+              <FormLabel className="text-sm font-medium">Rendimiento de Combustible (km/L)</FormLabel>
               <FormControl>
                 <Input 
                   type="number" 
-                  min="0" 
-                  step="0.1" 
-                  className="bg-white"
-                  {...field} 
+                  step="0.1"
+                  min="0"
+                  placeholder="10" 
+                  className="bg-white focus:ring-gray-200"
+                  {...field}
                 />
               </FormControl>
               <FormMessage />
@@ -116,6 +120,6 @@ export function ProductivityMetricsFields({ form, onFetchFuelPrice }: Productivi
           )}
         />
       </div>
-    </>
+    </div>
   );
 }

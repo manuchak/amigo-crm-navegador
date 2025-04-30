@@ -1,18 +1,17 @@
 
 import React from 'react';
 import { DateRange } from "react-day-picker";
+import { useQuery } from "@tanstack/react-query";
+import { motion } from "framer-motion";
+import { Settings } from "lucide-react";
+import { DriverBehaviorFilters } from '../../types/driver-behavior.types';
+import { fetchProductivityParameters, fetchDriverGroups, fetchClientList } from '../../services/productivity/productivityService';
 import { ProductivityMetricsCards } from './ProductivityMetricsCards';
 import { ProductivityAnalysisTable } from './ProductivityAnalysisTable';
 import { ProductivityParametersDialog } from './ProductivityParametersDialog';
 import { ProductivityParametersTable } from './ProductivityParametersTable';
-import { useQuery } from "@tanstack/react-query";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Settings } from "lucide-react";
-import { DriverBehaviorFilters } from '../../types/driver-behavior.types';
-import { fetchProductivityParameters, fetchDriverGroups, fetchClientList } from '../../services/productivity/productivityService';
-import { supabase } from "@/integrations/supabase/client";
-import { motion } from "framer-motion";
+import { Badge } from "@/components/ui/badge";
 
 interface ProductivityDashboardProps {
   dateRange: DateRange;
@@ -61,45 +60,75 @@ export function ProductivityDashboard({ dateRange, filters = {} }: ProductivityD
       return '';
     }).filter(Boolean);
   }, [driverGroups]);
-  
+
   return (
-    <motion.div 
-      className="space-y-8"
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      transition={{ duration: 0.3 }}
-    >
-      <div className="flex items-center justify-between">
-        <h3 className="text-lg font-medium text-gray-900">Análisis de Productividad</h3>
+    <div className="space-y-8">
+      {/* Header with title and client info */}
+      <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4">
+        <div>
+          <h2 className="text-2xl font-semibold text-gray-900">Análisis de Productividad</h2>
+          {filters?.selectedClient && (
+            <div className="mt-1 flex items-center">
+              <Badge variant="outline" className="bg-white">
+                Cliente: {filters.selectedClient}
+              </Badge>
+            </div>
+          )}
+        </div>
         <Button 
-          variant="outline" 
-          size="sm"
-          className="h-9 bg-white hover:bg-gray-50 text-gray-700"
           onClick={() => setShowParameters(true)}
+          className="flex items-center gap-2 bg-white hover:bg-gray-50 text-gray-700 border shadow-sm"
         >
-          <Settings className="h-4 w-4 mr-2" />
-          Configurar Parámetros
+          <Settings className="h-4 w-4" />
+          <span>Configurar Parámetros</span>
         </Button>
       </div>
       
-      <ProductivityMetricsCards 
-        dateRange={dateRange}
-        filters={filters}
-      />
+      {/* Metrics Cards with animation */}
+      <motion.div 
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4 }}
+      >
+        <ProductivityMetricsCards 
+          dateRange={dateRange}
+          filters={filters}
+        />
+      </motion.div>
       
-      <div className="grid grid-cols-1 gap-8">
-        <Card className="border shadow-sm rounded-xl bg-white/90 backdrop-blur-sm">
-          <CardHeader className="pb-3">
-            <CardTitle className="text-lg font-medium">Análisis por Conductor</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ProductivityAnalysisTable 
-              dateRange={dateRange}
-              filters={filters}
-            />
-          </CardContent>
-        </Card>
-      </div>
+      {/* Analysis Section with animation */}
+      <motion.div 
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4, delay: 0.1 }}
+        className="bg-white rounded-xl shadow-sm border p-6"
+      >
+        <h3 className="text-lg font-medium mb-4">Análisis por Conductor</h3>
+        <ProductivityAnalysisTable 
+          dateRange={dateRange}
+          filters={filters}
+        />
+      </motion.div>
+      
+      {/* Parameters Section with animation */}
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4, delay: 0.2 }}
+        className="bg-white rounded-xl shadow-sm border p-6"
+      >
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-lg font-medium">Parámetros de Productividad</h3>
+        </div>
+        <ProductivityParametersTable 
+          parameters={parameters || []}
+          clients={clients}
+          driverGroups={groupNames}
+          isLoading={isLoadingParameters}
+          onRefresh={handleRefreshParameters}
+          selectedClient={filters?.selectedClient}
+        />
+      </motion.div>
       
       {/* Parameters Dialog */}
       <ProductivityParametersDialog 
@@ -110,23 +139,6 @@ export function ProductivityDashboard({ dateRange, filters = {} }: ProductivityD
         availableGroups={groupNames}
         clientList={clients}
       />
-      
-      {/* Parameters Table */}
-      <Card className="border shadow-sm rounded-xl bg-white/90 backdrop-blur-sm">
-        <CardHeader className="pb-3">
-          <CardTitle className="text-lg font-medium">Parámetros de Productividad</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <ProductivityParametersTable 
-            parameters={parameters || []}
-            clients={clients}
-            driverGroups={groupNames}
-            isLoading={isLoadingParameters}
-            onRefresh={handleRefreshParameters}
-            selectedClient={filters?.selectedClient}
-          />
-        </CardContent>
-      </Card>
-    </motion.div>
+    </div>
   );
 }

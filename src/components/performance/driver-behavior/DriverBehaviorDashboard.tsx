@@ -1,22 +1,17 @@
 
-import React, { useState, useCallback } from 'react';
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import React, { useState } from 'react';
 import { DateRange } from "react-day-picker";
-import { fetchDriverBehaviorData, fetchClientList } from "../services/driverBehavior/dataService";
-import { DriverBehaviorMetricsCards } from './DriverBehaviorMetricsCards';
-import { DriverBehaviorTable } from './DriverBehaviorTable';
-import { DriverBehaviorChart } from './DriverBehaviorChart';
-import { DriverBehaviorFilters } from '../types/driver-behavior.types';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Card, CardContent } from "@/components/ui/card";
+import { ProductivityDashboard } from './productivity/ProductivityDashboard';
 import { DriverBehaviorFiltersPanel } from './DriverBehaviorFiltersPanel';
+import { DriverBehaviorMetricsCards } from './DriverBehaviorMetricsCards';
+import { DriverBehaviorChart } from './DriverBehaviorChart';
+import { DriverBehaviorTable } from './DriverBehaviorTable';
 import { DriverRiskAssessment } from './DriverRiskAssessment';
 import { TopDriversPanel } from './TopDriversPanel';
 import { CO2EmissionsCard } from './CO2EmissionsCard';
-import { ProductivityDashboard } from './productivity/ProductivityDashboard';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Button } from "@/components/ui/button";
-import { RefreshCw } from "lucide-react";
-import { toast } from "sonner";
-import { motion } from "framer-motion";
+import { DriverBehaviorFilters } from '../types/driver-behavior.types';
 
 interface DriverBehaviorDashboardProps {
   dateRange: DateRange;
@@ -24,152 +19,89 @@ interface DriverBehaviorDashboardProps {
 }
 
 export function DriverBehaviorDashboard({ dateRange, comparisonRange }: DriverBehaviorDashboardProps) {
+  const [activeTab, setActiveTab] = useState('resumen');
   const [filters, setFilters] = useState<DriverBehaviorFilters>({});
-  const queryClient = useQueryClient();
-
-  // Get driver behavior data
-  const { data: driverData, isLoading, error } = useQuery({
-    queryKey: ['driver-behavior-data', dateRange, filters],
-    queryFn: () => fetchDriverBehaviorData(dateRange, filters),
-  });
-
-  // Get comparison data if comparison range is provided
-  const { data: comparisonData } = useQuery({
-    queryKey: ['driver-behavior-comparison-data', comparisonRange, filters],
-    queryFn: () => comparisonRange ? fetchDriverBehaviorData(comparisonRange, filters) : null,
-    enabled: !!comparisonRange && comparisonRange.from !== null && comparisonRange.to !== null,
-  });
-
-  // Handle filter changes
-  const handleFilterChange = useCallback((newFilters: DriverBehaviorFilters) => {
-    console.log('Applying filters:', newFilters);
-    setFilters(newFilters);
-  }, []);
   
-  const refreshData = () => {
-    queryClient.invalidateQueries({ queryKey: ['driver-behavior-data'] });
-    queryClient.invalidateQueries({ queryKey: ['driver-behavior-clients'] });
-    queryClient.invalidateQueries({ queryKey: ['driver-behavior-groups'] });
-    toast.success("Datos actualizados", {
-      description: "Dashboard actualizado con los datos más recientes"
-    });
-  };
-
-  if (error) {
-    console.error('Error loading driver behavior data:', error);
-    return (
-      <div className="p-6 text-center">
-        <p className="text-red-500">Error al cargar los datos de comportamiento de conducción</p>
-      </div>
-    );
-  }
-
   return (
-    <motion.div 
-      className="space-y-8"
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      transition={{ duration: 0.3 }}
-    >
-      <div className="flex items-center justify-between mb-6">
-        <DriverBehaviorFiltersPanel 
-          onFilterChange={handleFilterChange} 
-          filters={filters} 
-        />
-        
-        <div className="flex items-center gap-3">
-          <Button 
-            variant="outline"
-            size="sm"
-            onClick={refreshData}
-            className="h-9 bg-white hover:bg-gray-50 text-gray-700"
-            title="Actualizar datos"
-          >
-            <RefreshCw className="h-4 w-4 mr-2" />
-            Actualizar
-          </Button>
+    <div className="space-y-6 pb-8">
+      <Card className="bg-white/90 backdrop-blur-sm rounded-xl shadow-sm border">
+        <CardContent className="p-5">
+          <DriverBehaviorFiltersPanel 
+            onFiltersChange={setFilters} 
+            activeTab={activeTab}
+            currentFilters={filters}
+          />
+        </CardContent>
+      </Card>
+      
+      <Tabs 
+        value={activeTab} 
+        onValueChange={setActiveTab}
+        className="space-y-6"
+      >
+        <div className="flex justify-center">
+          <TabsList className="bg-white/90 backdrop-blur-sm border shadow-sm rounded-xl p-1.5">
+            <TabsTrigger 
+              value="resumen" 
+              className="data-[state=active]:bg-white data-[state=active]:shadow-sm rounded-lg px-5 py-2.5 text-sm"
+            >
+              Resumen
+            </TabsTrigger>
+            <TabsTrigger 
+              value="riesgo" 
+              className="data-[state=active]:bg-white data-[state=active]:shadow-sm rounded-lg px-5 py-2.5 text-sm"
+            >
+              Riesgo y Conductores
+            </TabsTrigger>
+            <TabsTrigger 
+              value="productividad" 
+              className="data-[state=active]:bg-white data-[state=active]:shadow-sm rounded-lg px-5 py-2.5 text-sm"
+            >
+              Productividad
+            </TabsTrigger>
+            <TabsTrigger 
+              value="detalles" 
+              className="data-[state=active]:bg-white data-[state=active]:shadow-sm rounded-lg px-5 py-2.5 text-sm"
+            >
+              Detalles
+            </TabsTrigger>
+          </TabsList>
         </div>
-      </div>
-      
-      <DriverBehaviorMetricsCards 
-        data={driverData} 
-        comparisonData={comparisonData}
-        isLoading={isLoading} 
-      />
-      
-      <Tabs defaultValue="overview" className="w-full">
-        <TabsList className="bg-white/70 backdrop-blur-sm border shadow-sm rounded-xl p-1.5 w-auto inline-flex">
-          <TabsTrigger 
-            value="overview" 
-            className="data-[state=active]:bg-white data-[state=active]:shadow-sm rounded-lg px-5 py-2.5 text-sm"
-          >
-            Resumen
-          </TabsTrigger>
-          <TabsTrigger 
-            value="risk" 
-            className="data-[state=active]:bg-white data-[state=active]:shadow-sm rounded-lg px-5 py-2.5 text-sm"
-          >
-            Riesgo y Conductores
-          </TabsTrigger>
-          <TabsTrigger 
-            value="productivity" 
-            className="data-[state=active]:bg-white data-[state=active]:shadow-sm rounded-lg px-5 py-2.5 text-sm"
-          >
-            Productividad
-          </TabsTrigger>
-          <TabsTrigger 
-            value="details" 
-            className="data-[state=active]:bg-white data-[state=active]:shadow-sm rounded-lg px-5 py-2.5 text-sm"
-          >
-            Detalles
-          </TabsTrigger>
-        </TabsList>
         
-        <TabsContent value="overview" className="mt-8 space-y-8">
-          <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-            <div className="lg:col-span-3">
-              <DriverBehaviorChart 
-                data={driverData?.driverScores} 
-                isLoading={isLoading} 
-                dateRange={dateRange} 
-              />
-            </div>
-            <div>
-              <CO2EmissionsCard 
-                data={driverData} 
-                isLoading={isLoading} 
-              />
-            </div>
+        <TabsContent value="resumen" className="mt-0 space-y-8 animate-fade-in duration-300">
+          <DriverBehaviorMetricsCards dateRange={dateRange} filters={filters} />
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <Card className="col-span-1 lg:col-span-2 bg-white/90 backdrop-blur-sm shadow-sm border rounded-xl">
+              <CardContent className="p-6">
+                <DriverBehaviorChart dateRange={dateRange} filters={filters} />
+              </CardContent>
+            </Card>
+            <Card className="bg-white/90 backdrop-blur-sm shadow-sm border rounded-xl">
+              <CardContent className="p-6">
+                <CO2EmissionsCard dateRange={dateRange} filters={filters} />
+              </CardContent>
+            </Card>
+          </div>
+          <DriverBehaviorTable dateRange={dateRange} filters={filters} />
+        </TabsContent>
+        
+        <TabsContent value="riesgo" className="mt-0 animate-fade-in duration-300">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <DriverRiskAssessment dateRange={dateRange} filters={filters} />
+            <TopDriversPanel dateRange={dateRange} filters={filters} />
           </div>
         </TabsContent>
         
-        <TabsContent value="risk" className="mt-8 space-y-8">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <DriverRiskAssessment 
-              riskData={driverData?.riskAssessment} 
-              isLoading={isLoading} 
-            />
-            <TopDriversPanel 
-              data={driverData?.driverPerformance} 
-              isLoading={isLoading}
-            />
+        <TabsContent value="productividad" className="mt-0 animate-fade-in duration-300">
+          <ProductivityDashboard dateRange={dateRange} filters={filters} />
+        </TabsContent>
+        
+        <TabsContent value="detalles" className="mt-0 animate-fade-in duration-300">
+          <div className="p-8 text-center text-gray-500">
+            Detalles detallados próximamente
           </div>
-        </TabsContent>
-        
-        <TabsContent value="productivity" className="mt-8">
-          <ProductivityDashboard 
-            dateRange={dateRange}
-            filters={filters}
-          />
-        </TabsContent>
-        
-        <TabsContent value="details" className="mt-8">
-          <DriverBehaviorTable 
-            dateRange={dateRange}
-            filters={filters}
-          />
         </TabsContent>
       </Tabs>
-    </motion.div>
+    </div>
   );
 }

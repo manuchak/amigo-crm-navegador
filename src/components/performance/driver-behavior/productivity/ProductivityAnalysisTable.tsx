@@ -14,7 +14,7 @@ import {
 } from '@/components/ui/table';
 import { Skeleton } from '@/components/ui/skeleton';
 import { DriverBehaviorFilters } from '../../types/driver-behavior.types';
-import { ProductivityAnalysis } from '../../types/productivity.types';
+import { Search } from "lucide-react";
 
 interface ProductivityAnalysisTableProps {
   dateRange: DateRange;
@@ -67,98 +67,72 @@ export function ProductivityAnalysisTable({ dateRange, filters }: ProductivityAn
     return 'bg-red-100 text-red-800';
   };
   
-  if (isLoading) {
-    return (
-      <div>
-        <div className="mb-4">
+  return (
+    <div>
+      <div className="mb-6">
+        <div className="relative">
+          <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
           <Input
             placeholder="Buscar conductor, grupo o cliente..."
-            disabled
-            className="max-w-sm"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="pl-10 bg-gray-50 border-gray-200 focus-visible:ring-gray-200"
           />
         </div>
-        <div className="rounded-md border">
+      </div>
+      <div className="rounded-lg border border-gray-100 overflow-hidden">
+        <div className="overflow-x-auto">
           <Table>
-            <TableHeader>
+            <TableHeader className="bg-gray-50">
               <TableRow>
-                <TableHead>Conductor</TableHead>
-                <TableHead>Grupo</TableHead>
-                <TableHead>Cliente</TableHead>
-                <TableHead>Puntuación</TableHead>
-                <TableHead>Distancia</TableHead>
-                <TableHead>Tiempo</TableHead>
-                <TableHead>Costo Combustible</TableHead>
-                <TableHead>Días</TableHead>
+                <TableHead className="font-medium">Conductor</TableHead>
+                <TableHead className="font-medium">Grupo</TableHead>
+                <TableHead className="font-medium">Cliente</TableHead>
+                <TableHead className="font-medium">Puntuación</TableHead>
+                <TableHead className="font-medium">Distancia</TableHead>
+                <TableHead className="font-medium">Tiempo</TableHead>
+                <TableHead className="font-medium">Costo Combustible</TableHead>
+                <TableHead className="font-medium">Días</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {[...Array(5)].map((_, i) => (
-                <TableRow key={i}>
-                  {[...Array(8)].map((_, j) => (
-                    <TableCell key={j}>
-                      <Skeleton className="h-4 w-full" />
-                    </TableCell>
-                  ))}
+              {isLoading ? (
+                [...Array(5)].map((_, i) => (
+                  <TableRow key={i}>
+                    {[...Array(8)].map((_, j) => (
+                      <TableCell key={j}>
+                        <Skeleton className="h-4 w-full" />
+                      </TableCell>
+                    ))}
+                  </TableRow>
+                ))
+              ) : filteredData.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={8} className="text-center py-12 text-gray-500">
+                    No hay datos disponibles para el período seleccionado
+                  </TableCell>
                 </TableRow>
-              ))}
+              ) : (
+                filteredData.map((row) => (
+                  <TableRow key={row.id} className="hover:bg-gray-50">
+                    <TableCell className="font-medium">{row.driver_name}</TableCell>
+                    <TableCell>{row.driver_group}</TableCell>
+                    <TableCell>{row.client}</TableCell>
+                    <TableCell>
+                      <div className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium ${getScoreColor(row.productivity_score)}`}>
+                        {row.productivity_score ? row.productivity_score.toFixed(1) : 'N/A'}
+                      </div>
+                    </TableCell>
+                    <TableCell>{row.distance.toLocaleString()} km</TableCell>
+                    <TableCell>{formatInterval(row.duration_interval)}</TableCell>
+                    <TableCell>${row.estimated_fuel_cost?.toFixed(2) || '0.00'}</TableCell>
+                    <TableCell>{row.days_count}</TableCell>
+                  </TableRow>
+                ))
+              )}
             </TableBody>
           </Table>
         </div>
-      </div>
-    );
-  }
-  
-  return (
-    <div>
-      <div className="mb-4">
-        <Input
-          placeholder="Buscar conductor, grupo o cliente..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          className="max-w-sm"
-        />
-      </div>
-      <div className="rounded-md border">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Conductor</TableHead>
-              <TableHead>Grupo</TableHead>
-              <TableHead>Cliente</TableHead>
-              <TableHead>Puntuación</TableHead>
-              <TableHead>Distancia</TableHead>
-              <TableHead>Tiempo</TableHead>
-              <TableHead>Costo Combustible</TableHead>
-              <TableHead>Días</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {filteredData.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={8} className="text-center py-8">
-                  No hay datos disponibles para el período seleccionado
-                </TableCell>
-              </TableRow>
-            ) : (
-              filteredData.map((row) => (
-                <TableRow key={row.id}>
-                  <TableCell>{row.driver_name}</TableCell>
-                  <TableCell>{row.driver_group}</TableCell>
-                  <TableCell>{row.client}</TableCell>
-                  <TableCell>
-                    <div className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getScoreColor(row.productivity_score)}`}>
-                      {row.productivity_score ? row.productivity_score.toFixed(1) : 'N/A'}
-                    </div>
-                  </TableCell>
-                  <TableCell>{row.distance.toLocaleString()} km</TableCell>
-                  <TableCell>{formatInterval(row.duration_interval)}</TableCell>
-                  <TableCell>${row.estimated_fuel_cost?.toFixed(2) || '0.00'}</TableCell>
-                  <TableCell>{row.days_count}</TableCell>
-                </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
       </div>
     </div>
   );

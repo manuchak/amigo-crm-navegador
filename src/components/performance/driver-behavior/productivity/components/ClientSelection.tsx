@@ -23,7 +23,7 @@ export function ClientSelection({ form, clientList }: ClientSelectionProps) {
             value={field.value}
           >
             <FormControl>
-              <SelectTrigger className="w-full bg-white">
+              <SelectTrigger className="w-full bg-white focus:ring-gray-200">
                 <SelectValue placeholder="Seleccionar cliente" />
               </SelectTrigger>
             </FormControl>
