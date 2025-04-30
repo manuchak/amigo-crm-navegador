@@ -116,6 +116,25 @@ export async function fetchServiciosData(dateRange?: DateRange, comparisonRange?
 
     console.log(`Fetched ${serviciosData?.length || 0} services from database`);
     
+    // DEBUG: Log status values to troubleshoot filtering
+    if (serviciosData && serviciosData.length > 0) {
+      const statusCounts: Record<string, number> = {};
+      const statusSamples: Record<string, any> = {};
+      
+      serviciosData.forEach((servicio, idx) => {
+        const status = servicio.estado || 'undefined';
+        statusCounts[status] = (statusCounts[status] || 0) + 1;
+        
+        // Store a sample of each status type
+        if (!statusSamples[status]) {
+          statusSamples[status] = { ...servicio };
+        }
+      });
+      
+      console.log("Status distribution in data:", statusCounts);
+      console.log("Status samples:", statusSamples);
+    }
+    
     // 5. Get specific data for current month for comparison
     const { data: serviciosMesActual, error: mesActualError } = await supabase
       .from('servicios_custodia')

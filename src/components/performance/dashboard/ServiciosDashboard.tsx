@@ -63,9 +63,9 @@ export function ServiciosDashboard({ dateRange, comparisonRange }: ServiciosDash
       // Log unique status values for debugging
       const uniqueStatuses = new Set();
       data.serviciosData.forEach((item: any) => {
-        if (item.estado) uniqueStatuses.add(item.estado);
+        if (item.estado) uniqueStatuses.add(`"${item.estado}"`);
       });
-      console.log("Unique statuses in data:", Array.from(uniqueStatuses));
+      console.log("Unique statuses in data:", Array.from(uniqueStatuses).join(", "));
     }
   }, [data]);
 
@@ -81,35 +81,56 @@ export function ServiciosDashboard({ dateRange, comparisonRange }: ServiciosDash
   
   // Filter data when raw data or filters change
   useEffect(() => {
-    if (data?.serviciosData) {
-      // Get active status filters
-      const activeStatuses = statusOptions
-        .filter(option => option.checked)
-        .map(option => option.value);
-      
-      console.log("Filtering data with statuses:", activeStatuses);
-      
-      // Apply filters to data - with better string normalization
-      const filtered = data.serviciosData.filter((item: any) => {
-        // If estado (status) is present, filter by it
-        if (item.estado) {
-          const normalizedItemStatus = item.estado.trim().toLowerCase();
-          
-          // Check if any active status matches this item's status
-          return activeStatuses.some(status => 
-            normalizedItemStatus === status.trim().toLowerCase()
-          );
-        }
-        // If no estado field, include it only if we're showing all statuses
-        return activeStatuses.length === statusOptions.length;
-      });
-      
-      console.log(`Filtered data count: ${filtered.length} out of ${data.serviciosData.length}`);
-      setFilteredData(filtered);
+    if (!data?.serviciosData) return;
+    
+    // Get active status filters
+    const activeStatuses = statusOptions
+      .filter(option => option.checked)
+      .map(option => option.value);
+    
+    console.log("Active status filters:", activeStatuses);
+    
+    if (activeStatuses.length === 0) {
+      // If no status is selected, show no data
+      console.log("No status filters selected, showing no data");
+      setFilteredData([]);
+      return;
     }
+    
+    const filtered = data.serviciosData.filter((item: any) => {
+      // If item has no estado field or it's empty, include it only if we want to show "unspecified" items
+      if (!item.estado || item.estado.trim() === '') {
+        return statusOptions.some(opt => opt.checked && opt.value === "Unspecified");
+      }
+      
+      // Get normalized item status
+      const normalizedItemStatus = item.estado.trim();
+      
+      // Debug specific items
+      if (Math.random() < 0.05) { // Sample ~5% of items for logging
+        console.log(`Item status check: "${normalizedItemStatus}" against active statuses:`, activeStatuses);
+      }
+      
+      // Check if the status matches any of the active filters (case-insensitive)
+      return activeStatuses.some(activeStatus => {
+        const statusMatches = normalizedItemStatus.toLowerCase() === activeStatus.toLowerCase();
+        return statusMatches;
+      });
+    });
+    
+    console.log(`Filtering applied: ${filtered.length} out of ${data.serviciosData.length} items matched filters`);
+    
+    // Additional logging for some filtered items
+    if (filtered.length > 0 && filtered.length <= 5) {
+      filtered.forEach((item, idx) => {
+        console.log(`Filtered item ${idx}: estado=${item.estado}, id=${item.id}`);
+      });
+    }
+    
+    setFilteredData(filtered);
   }, [data?.serviciosData, statusOptions]);
   
-  // Also filter client data by status
+  // Filter client data by status
   const filteredClientesData = React.useMemo(() => {
     if (!data?.serviciosPorCliente || !filteredData) return [];
     
@@ -117,7 +138,6 @@ export function ServiciosDashboard({ dateRange, comparisonRange }: ServiciosDash
     const filteredIds = new Set(filteredData.map((item: any) => item.id));
     
     // Only return clients that have services in the filtered set
-    // This effectively applies the status filter to the clients chart
     const activeClientes = data.serviciosPorCliente.filter(cliente => {
       // Find services for this client in the raw data
       const clientServices = data.serviciosData.filter(
@@ -155,14 +175,22 @@ export function ServiciosDashboard({ dateRange, comparisonRange }: ServiciosDash
 
   // Check if we have data to display
   const hasData = !!(data && data.serviciosData && data.serviciosData.length > 0);
+  const hasFilteredData = !!(filteredData && filteredData.length > 0);
   
-  console.log("Dashboard render state:", { isLoading, isError, hasData });
+  console.log("Dashboard render state:", { 
+    isLoading, 
+    isError, 
+    hasData, 
+    hasFilteredData, 
+    filteredDataCount: filteredData?.length,
+    totalDataCount: data?.serviciosData?.length
+  });
 
   return (
     <DashboardLayout
       isLoading={isLoading}
       isError={isError}
-      hasData={hasData}
+      hasData={hasData && hasFilteredData}
       dateRange={dateRange}
     >
       <div className="space-y-6">
