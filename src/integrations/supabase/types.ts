@@ -242,6 +242,36 @@ export type Database = {
         }
         Relationships: []
       }
+      driver_groups: {
+        Row: {
+          client: string
+          created_at: string
+          description: string | null
+          driver_ids: string[]
+          id: string
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          client: string
+          created_at?: string
+          description?: string | null
+          driver_ids?: string[]
+          id: string
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          client?: string
+          created_at?: string
+          description?: string | null
+          driver_ids?: string[]
+          id?: string
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       driver_productivity_analysis: {
         Row: {
           actual_daily_distance: number | null

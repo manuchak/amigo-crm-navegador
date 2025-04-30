@@ -1,84 +1,15 @@
 
-import { DateRange } from "react-day-picker";
+// If this file doesn't exist, we'll create it with the necessary types
 
-export interface DriverScore {
-  id: number;
-  driver_name: string;
-  driver_group: string;
-  score: number;
-  penalty_points: number;
-  trips_count: number;
-  distance: number;
-  distance_text: string;
-  duration_text?: string;
-  start_date: string;
-  end_date: string;
-  client: string;
-  created_at: string;
-  updated_at: string;
-}
-
-export interface DriverPerformance {
-  topDrivers: DriverScore[];
-  needsImprovement: DriverScore[];
-  ecoDrivers: DriverScore[];
-}
-
-export interface RiskAssessment {
-  level: 'low' | 'moderate' | 'high' | 'critical';
-  score: number;
-  description: string;
-  recommendations: string[];
-}
-
-export interface ScoreDistribution {
-  excellent: number;
-  good: number;
-  fair: number;
-  poor: number;
-  critical: number;
-}
-
-export interface MetricItem {
-  label: string;
-  value: number;
-}
-
-export interface DriverBehaviorData {
-  metrics: MetricItem[];
-  driverScores: DriverScore[];
-  scoreDistribution: ScoreDistribution;
-  averageScore: number;
-  totalPenaltyPoints: number;
-  totalTrips: number;
-  totalDrivingTime: number;
-  totalDistance: number;
-  co2Emissions: number;
-  riskAssessment: RiskAssessment;
-  driverPerformance: DriverPerformance;
-}
-
+// Driver behavior filters
 export interface DriverBehaviorFilters {
-  selectedClients?: string[];
   selectedClient?: string;
+  selectedClients?: string[];
   selectedGroups?: string[];
-  dateRange?: DateRange;
+  [key: string]: any;
 }
 
-export interface ScoreCalculationResult {
-  score: number;
-  penaltyPoints: number;
-  scoreCategory: 'excellent' | 'good' | 'fair' | 'poor' | 'critical';
-  colorClass: string;
-}
-
-export interface DriverGroup {
-  name: string;
-  client: string;
-  drivers: number;
-  avgScore: number;
-}
-
+// Driver group details
 export interface DriverGroupDetails {
   id: string;
   name: string;
@@ -89,6 +20,7 @@ export interface DriverGroupDetails {
   updated_at?: string;
 }
 
+// Driver for group selection
 export interface DriverForGroup {
   id: string;
   name: string;
@@ -96,10 +28,96 @@ export interface DriverForGroup {
   client: string;
 }
 
-export interface DriverGroupsState {
-  groups: DriverGroupDetails[];
-  filteredGroups: DriverGroupDetails[];
-  searchTerm: string;
-  loading: boolean;
-  error: string | null;
+// Main driver behavior data structure
+export interface DriverBehaviorData {
+  driverScores: DriverScore[];
+  summaryMetrics: {
+    averageScore: number;
+    totalDrivers: number;
+    totalDistance: number;
+    totalTrips: number;
+    highRiskDrivers: number;
+    mediumRiskDrivers: number;
+    lowRiskDrivers: number;
+  };
+  driverPerformance: {
+    topDrivers: DriverScore[];
+    worstDrivers: DriverScore[];
+  };
+  riskAssessment: {
+    riskDistribution: {
+      highRisk: number;
+      mediumRisk: number;
+      lowRisk: number;
+    };
+    riskByClient: {
+      client: string;
+      highRisk: number;
+      mediumRisk: number;
+      lowRisk: number;
+    }[];
+  };
+  co2Emissions: {
+    totalEmissions: number;
+    emissionsByClient: {
+      client: string;
+      emissions: number;
+    }[];
+    emissionsTrend: {
+      date: string;
+      emissions: number;
+    }[];
+  };
+}
+
+// Driver score structure
+export interface DriverScore {
+  id: string | number;
+  driver_name: string;
+  client: string;
+  driver_group: string;
+  score: number;
+  penalty_points: number;
+  trips_count: number;
+  duration_text?: string;
+  distance_text?: string;
+  start_date: string;
+  end_date: string;
+  distance?: number;
+  duration_interval?: any;
+}
+
+// Productivity data
+export interface DriverProductivityData {
+  productivityScores: ProductivityScore[];
+  summaryMetrics: {
+    averageProductivity: number;
+    totalDistance: number;
+    totalDuration: string;
+    fuelCost: number;
+    fuelUsage: number;
+  };
+  topPerformers: ProductivityScore[];
+  underperformers: ProductivityScore[];
+}
+
+// Productivity score
+export interface ProductivityScore {
+  id: string | number;
+  driver_name: string;
+  client: string;
+  driver_group: string;
+  productivity_score: number;
+  start_date: string;
+  end_date: string;
+  days_count: number;
+  trips_count: number;
+  distance: number;
+  actual_daily_distance: number;
+  expected_daily_distance: number;
+  expected_daily_time_minutes: number;
+  fuel_cost_per_liter: number;
+  expected_fuel_efficiency: number;
+  estimated_fuel_usage_liters: number;
+  estimated_fuel_cost: number;
 }
