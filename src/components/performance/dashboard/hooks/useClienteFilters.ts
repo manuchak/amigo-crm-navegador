@@ -50,23 +50,12 @@ export function useClienteFilters(
       const avgKm = filteredClientServices.length > 0 ? 
         Number((totalKm / filteredClientServices.length).toFixed(2)) : 0;
 
-      // ========== COMPLETELY REWRITTEN AOV CALCULATION ==========
-      console.log(`\n===== CALCULATING AOV FOR ${cliente.nombre_cliente} =====`);
+      // Log cliente details to help with debugging
+      console.log(`Processing client ${cliente.nombre_cliente} with ${filteredClientServices.length} services`);
       
       // Track total valid amount and count for averaging
       let totalAmount = 0;
       let validServiceCount = 0;
-      
-      // Debug: Show some sample services
-      const sampleServices = filteredClientServices.slice(0, 3);
-      console.log(`Sample services (up to 3 of ${filteredClientServices.length} total):`);
-      sampleServices.forEach((s, idx) => {
-        console.log(`Sample ${idx+1}:`, {
-          id: s.id,
-          cobro_cliente: s.cobro_cliente,
-          cobro_type: typeof s.cobro_cliente
-        });
-      });
       
       // Process each service to calculate total amount
       filteredClientServices.forEach((servicio, idx) => {
@@ -86,8 +75,8 @@ export function useClienteFilters(
           validServiceCount++;
           
           // Log some samples for debugging
-          if (idx < 5) {
-            console.log(`Service ${servicio.id}: Raw value "${rawValue}" → Parsed: ${amount}`);
+          if (idx < 3) {
+            console.log(`Service ${servicio.id}: Raw cobro_cliente "${rawValue}" → Parsed: ${amount}`);
           }
         }
       });
@@ -97,12 +86,10 @@ export function useClienteFilters(
       
       if (validServiceCount > 0) {
         avgCost = totalAmount / validServiceCount;
-        console.log(`Final calculation: ${totalAmount} ÷ ${validServiceCount} services = ${avgCost}`);
+        console.log(`${cliente.nombre_cliente}: AOV calculation: ${totalAmount} ÷ ${validServiceCount} services = ${avgCost}`);
       } else {
-        console.log(`No valid cobro_cliente values found for ${cliente.nombre_cliente}`);
+        console.log(`${cliente.nombre_cliente}: No valid cobro_cliente values found`);
       }
-      
-      console.log(`===== END AOV CALCULATION =====\n`);
       
       // Add trend info based on client metrics
       const serviciosTrend = filteredCount > 50 ? 'up' : (filteredCount > 20 ? 'neutral' : 'down');
@@ -121,12 +108,6 @@ export function useClienteFilters(
     });
     
     console.log("Final filtered client count:", activeClientes.length);
-    
-    // Additional debug: Show final AOV values for all clients
-    console.log("Final AOV values for all clients:");
-    activeClientes.forEach(cliente => {
-      console.log(`${cliente.nombre_cliente}: ${cliente.costoPromedio}`);
-    });
     
     return activeClientes;
   }, [serviciosPorCliente, serviciosData, filteredData]);

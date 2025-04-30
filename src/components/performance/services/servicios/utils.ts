@@ -46,7 +46,7 @@ export function calculateAverage(values: number[]): number {
 
 /**
  * Parse a possibly formatted currency string to a number
- * Enhanced version for Mexican currency formats and more edge cases
+ * Comprehensive version that handles all possible currency formats
  */
 export function parseCurrencyValue(value: any): number {
   // First, log the original input for debugging
@@ -71,10 +71,12 @@ export function parseCurrencyValue(value: any): number {
     // Skip empty strings
     if (value.trim() === '') return 0;
     
-    // Handle Mexican currency format: "$1,234.56" or "$ 1 234,56"
+    // Handle all common currency formats: "$1,234.56" or "$ 1 234,56" or "1.234,56 €"
     let cleanVal = value
       .replace(/\$/g, '')   // Remove dollar signs
+      .replace(/€/g, '')    // Remove euro signs
       .replace(/\s/g, '')   // Remove spaces
+      .replace(/[^\d.,]/g, '') // Remove any character that's not a digit, dot or comma
       .trim();
     
     // Check common currency formats
@@ -87,7 +89,6 @@ export function parseCurrencyValue(value: any): number {
       // Case like "1234,56" - comma is the decimal separator (European style)
       cleanVal = cleanVal.replace(/,/g, '.');
     } else if (hasComma && hasPeriod) {
-      // Mexican format case like "1,234.56" - comma is thousands separator
       // Check which character appears last to determine decimal separator
       const lastCommaIndex = cleanVal.lastIndexOf(',');
       const lastPeriodIndex = cleanVal.lastIndexOf('.');
@@ -117,6 +118,16 @@ export function parseCurrencyValue(value: any): number {
       const result = isNaN(parsedAgain) ? 0 : parsedAgain;
       console.log(`Aggressive parsing resulted in: ${result}`);
       return result;
+    }
+  }
+  
+  // For other types or if all parsing failed, convert to string and try again
+  if (typeof value !== 'string') {
+    try {
+      return parseCurrencyValue(String(value));
+    } catch (error) {
+      console.error(`Failed to convert to string and parse: ${value}`);
+      return 0;
     }
   }
   
