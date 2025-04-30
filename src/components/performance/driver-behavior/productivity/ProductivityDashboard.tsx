@@ -10,7 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Settings } from "lucide-react";
 import { DriverBehaviorFilters } from '../../types/driver-behavior.types';
-import { fetchProductivityParameters, fetchDriverGroups } from '../../services/productivity/productivityService';
+import { fetchProductivityParameters, fetchDriverGroups, fetchClientList } from '../../services/productivity/productivityService';
 import { supabase } from "@/integrations/supabase/client";
 import { motion } from "framer-motion";
 
@@ -22,10 +22,16 @@ interface ProductivityDashboardProps {
 export function ProductivityDashboard({ dateRange, filters = {} }: ProductivityDashboardProps) {
   const [showParameters, setShowParameters] = React.useState(false);
   
-  // Fetch parameters, clients, and driver groups to pass to components
+  // Fetch parameters to pass to components
   const { data: parameters, isLoading: isLoadingParameters, refetch: refetchParameters } = useQuery({
     queryKey: ['productivity-parameters', filters?.selectedClient],
     queryFn: () => fetchProductivityParameters(filters?.selectedClient),
+  });
+
+  // Fetch client list explicitly for the parameters dialog
+  const { data: clients = [] } = useQuery({
+    queryKey: ['productivity-clients-list'],
+    queryFn: fetchClientList,
   });
 
   // Fetch driver groups for the selected client
@@ -33,20 +39,6 @@ export function ProductivityDashboard({ dateRange, filters = {} }: ProductivityD
     queryKey: ['productivity-driver-groups', filters?.selectedClient],
     queryFn: () => fetchDriverGroups(filters?.selectedClient),
     enabled: !!filters?.selectedClient,
-  });
-
-  // Get client list from the filters or fetch it if not available
-  const { data: clients = [] } = useQuery({
-    queryKey: ['productivity-clients'],
-    queryFn: async () => {
-      const { data } = await supabase
-        .from('driver_productivity_parameters')
-        .select('client')
-        .order('client');
-      
-      if (!data) return [];
-      return Array.from(new Set(data.map(item => item.client)));
-    },
   });
   
   const handleRefreshParameters = () => {
@@ -64,7 +56,7 @@ export function ProductivityDashboard({ dateRange, filters = {} }: ProductivityD
         return group;
       }
       if (group && typeof group === 'object' && 'name' in group) {
-        return group.name;
+        return (group as { name: string }).name;
       }
       return '';
     }).filter(Boolean);
@@ -116,6 +108,7 @@ export function ProductivityDashboard({ dateRange, filters = {} }: ProductivityD
         onSaved={handleRefreshParameters}
         selectedClient={filters?.selectedClient}
         availableGroups={groupNames}
+        clientList={clients}
       />
       
       {/* Parameters Table */}

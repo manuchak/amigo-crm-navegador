@@ -26,7 +26,6 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
 import { fetchDriverGroups } from '../../services/driverBehavior/driverGroupsService';
 
 interface ProductivityParametersDialogProps {
@@ -35,6 +34,7 @@ interface ProductivityParametersDialogProps {
   onSaved?: () => void;
   selectedClient?: string;
   availableGroups?: string[];
+  clientList?: string[];
 }
 
 // Define the form schema
@@ -52,31 +52,9 @@ export function ProductivityParametersDialog({
   onClose, 
   onSaved,
   selectedClient,
-  availableGroups = []
+  availableGroups = [],
+  clientList = []
 }: ProductivityParametersDialogProps) {
-  // Fetch client list
-  const { data: clientList = [] } = useQuery({
-    queryKey: ['productivity-clients-for-form'],
-    queryFn: async () => {
-      const { data } = await supabase
-        .from('driver_productivity_parameters')
-        .select('client')
-        .order('client');
-        
-      if (!data) return [];
-      
-      // Get unique clients
-      const uniqueClients = Array.from(new Set(data.map(d => d.client)));
-      
-      // Add client from props if not in list
-      if (selectedClient && !uniqueClients.includes(selectedClient)) {
-        uniqueClients.push(selectedClient);
-      }
-      
-      return uniqueClients;
-    },
-  });
-  
   // Set up form
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -93,12 +71,12 @@ export function ProductivityParametersDialog({
   // Fetch groups for selected client
   const currentClient = form.watch('client');
   
-  const { data: clientGroups = [] } = useQuery({
+  const { data: clientGroups = [], isLoading: isLoadingGroups } = useQuery({
     queryKey: ['productivity-groups-for-client', currentClient],
     queryFn: async () => {
       if (!currentClient) return [];
       const groups = await fetchDriverGroups(currentClient);
-      return groups.map(group => group.name);
+      return groups.map(group => typeof group === 'string' ? group : group.name);
     },
     enabled: !!currentClient,
   });

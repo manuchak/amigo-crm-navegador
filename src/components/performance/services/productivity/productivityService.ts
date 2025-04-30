@@ -1,269 +1,182 @@
+
 import { supabase } from "@/integrations/supabase/client";
-import { 
-  ProductivityParameter, 
-  NewProductivityParameter, 
-  ProductivityAnalysis, 
-  ProductivitySummary,
-  FuelPrices
-} from "../../types/productivity.types";
-import { DateRange } from "react-day-picker";
-import { DriverBehaviorFilters } from "../../types/driver-behavior.types";
+import { NewProductivityParameter, ProductivityParameter } from "../../types/productivity.types";
+import { toast } from "sonner";
 
-// Fetch productivity parameters for a specific client and driver group
-export const fetchProductivityParameters = async (
-  client?: string,
-  driver_group?: string
-): Promise<ProductivityParameter[]> => {
-  let query = supabase
-    .from('driver_productivity_parameters')
-    .select('*')
-    .order('client', { ascending: true });
-  
-  if (client) {
-    query = query.eq('client', client);
-  }
-  
-  if (driver_group) {
-    query = query.eq('driver_group', driver_group);
-  }
-  
-  const { data, error } = await query;
-  
-  if (error) {
-    console.error("Error fetching productivity parameters:", error);
-    throw error;
-  }
-  
-  return data || [];
-};
-
-// Save productivity parameter
-export const saveProductivityParameter = async (
-  parameter: NewProductivityParameter
-): Promise<ProductivityParameter> => {
-  try {
-    const { data, error } = await supabase
-      .rpc('update_productivity_parameters', {
-        p_id: parameter.id || null,
-        p_client: parameter.client,
-        p_driver_group: parameter.driver_group || null,
-        p_expected_daily_distance: parameter.expected_daily_distance,
-        p_expected_daily_time_minutes: parameter.expected_daily_time_minutes,
-        p_fuel_cost_per_liter: parameter.fuel_cost_per_liter,
-        p_expected_fuel_efficiency: parameter.expected_fuel_efficiency,
-        p_user_id: (await supabase.auth.getUser()).data.user?.id
-      });
-    
-    if (error) {
-      console.error("Error saving productivity parameter:", error);
-      throw error;
-    }
-    
-    if (!data || data.length === 0) {
-      throw new Error("No data returned from save operation");
-    }
-    
-    // Fetch the saved parameter to return the complete record
-    const { data: savedParameter, error: fetchError } = await supabase
-      .from('driver_productivity_parameters')
-      .select('*')
-      .eq('id', data[0].id)
-      .single();
-      
-    if (fetchError) {
-      console.error("Error fetching saved parameter:", fetchError);
-      throw fetchError;
-    }
-    
-    return savedParameter;
-  } catch (error) {
-    console.error("Exception in saveProductivityParameter:", error);
-    throw error;
-  }
-};
-
-// Delete a productivity parameter
-export const deleteProductivityParameter = async (id: number): Promise<void> => {
-  const { error } = await supabase
-    .from('driver_productivity_parameters')
-    .delete()
-    .eq('id', id);
-  
-  if (error) {
-    console.error("Error deleting productivity parameter:", error);
-    throw error;
-  }
-};
-
-// Fetch driver groups for a client (used for filtering)
-export const fetchDriverGroups = async (client?: string): Promise<string[]> => {
+// Fetch productivity parameters with optional client filter
+export const fetchProductivityParameters = async (clientName?: string): Promise<ProductivityParameter[]> => {
   try {
     let query = supabase
-      .from('driver_behavior_scores')
-      .select('driver_group');
-    
-    if (client) {
-      query = query.eq('client', client);
+      .from('driver_productivity_parameters')
+      .select('*');
+      
+    if (clientName && clientName !== 'all') {
+      query = query.eq('client', clientName);
     }
     
-    // Using "select distinct" approach to get unique values rather than
-    // using the incorrect .distinct() method
     const { data, error } = await query;
     
     if (error) {
-      console.error("Error fetching driver groups:", error);
+      console.error("Error fetching productivity parameters:", error);
+      toast.error("Error al cargar parámetros", { 
+        description: error.message 
+      });
       return [];
     }
     
-    if (!data || data.length === 0) {
-      return [];
-    }
+    return data || [];
     
-    // Extract unique driver groups by using Set to remove duplicates
-    const groups = Array.from(new Set(data.map(item => item.driver_group).filter(Boolean))) as string[];
-    return groups.sort();
-  } catch (err) {
-    console.error("Exception when fetching driver groups:", err);
+  } catch (error) {
+    console.error("Exception when fetching productivity parameters:", error);
+    toast.error("Error inesperado al cargar parámetros");
     return [];
   }
 };
 
-// Fetch current fuel prices from web scraper
-export const fetchCurrentFuelPrices = async (): Promise<FuelPrices> => {
+// Save productivity parameter
+export const saveProductivityParameter = async (parameter: NewProductivityParameter): Promise<ProductivityParameter | null> => {
   try {
-    const { data, error } = await supabase.functions.invoke('fetch-fuel-prices');
+    console.log("Saving productivity parameter:", parameter);
     
-    if (error) {
-      console.error("Error fetching fuel prices:", error);
-      throw error;
-    }
-    
-    return data;
-  } catch (error) {
-    console.error("Error invoking fetch-fuel-prices function:", error);
-    throw error;
-  }
-};
-
-// Update all fuel prices to national average
-export const updateAllFuelPrices = async (): Promise<{ nationalPrice: number, recordsUpdated: number }> => {
-  try {
-    // First get the current price from our scraper
-    const fuelPrices = await fetchCurrentFuelPrices();
-    const regularPrice = fuelPrices.regular;
-    
-    if (!regularPrice) {
-      throw new Error("Could not retrieve regular fuel price");
-    }
-    
-    // Now update all parameters with the new price
-    const { data, error } = await supabase
+    // Check if a parameter exists for this client/group combination
+    let query = supabase
       .from('driver_productivity_parameters')
-      .update({ fuel_cost_per_liter: regularPrice, updated_at: new Date().toISOString() })
-      .neq('id', 0) // Update all records
-      .select('id');
+      .select('id')
+      .eq('client', parameter.client);
+      
+    if (parameter.driver_group) {
+      query = query.eq('driver_group', parameter.driver_group);
+    } else {
+      query = query.is('driver_group', null);
+    }
+    
+    const { data: existingParams, error: findError } = await query;
+    
+    if (findError) {
+      throw findError;
+    }
+    
+    let result;
+    
+    if (existingParams && existingParams.length > 0) {
+      // Update existing parameter
+      const { data, error } = await supabase
+        .from('driver_productivity_parameters')
+        .update({
+          expected_daily_distance: parameter.expected_daily_distance,
+          expected_daily_time_minutes: parameter.expected_daily_time_minutes,
+          fuel_cost_per_liter: parameter.fuel_cost_per_liter,
+          expected_fuel_efficiency: parameter.expected_fuel_efficiency,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', existingParams[0].id)
+        .select('*')
+        .single();
+        
+      if (error) throw error;
+      result = data;
+      console.log("Updated existing parameter:", result);
+    } else {
+      // Create new parameter
+      const { data, error } = await supabase
+        .from('driver_productivity_parameters')
+        .insert({
+          ...parameter,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        })
+        .select('*')
+        .single();
+        
+      if (error) throw error;
+      result = data;
+      console.log("Created new parameter:", result);
+    }
+    
+    return result;
+    
+  } catch (error: any) {
+    console.error("Error saving productivity parameter:", error);
+    
+    // Check for duplicate value error
+    if (error.code === '23505') {
+      toast.error("Error al guardar parámetros", { 
+        description: "Ya existe un parámetro para este cliente y grupo" 
+      });
+    } else {
+      toast.error("Error al guardar parámetros", { 
+        description: error.message || "Error inesperado" 
+      });
+    }
+    
+    return null;
+  }
+};
+
+// Fetch current fuel prices (mock example for now)
+export const fetchCurrentFuelPrices = async (): Promise<{ regular: number, premium: number }> => {
+  try {
+    // In a real app, this would make an API call to get current prices
+    // For now we'll just return mock data
+    return { regular: 24.99, premium: 26.99 };
+  } catch (error) {
+    console.error("Error fetching fuel prices:", error);
+    throw error;
+  }
+};
+
+// Fetch list of clients for dropdowns
+export const fetchClientList = async (): Promise<string[]> => {
+  try {
+    // First try to get clients from driver_behavior_scores table
+    let { data: clientsData, error } = await supabase
+      .from('driver_behavior_scores')
+      .select('client')
+      .not('client', 'is', null)
+      .order('client');
     
     if (error) {
-      console.error("Error updating fuel prices:", error);
-      throw error;
+      console.error("Error fetching clients from driver_behavior_scores:", error);
+      return [];
     }
     
-    return {
-      nationalPrice: regularPrice,
-      recordsUpdated: data?.length || 0
-    };
+    let clients = clientsData.map(c => c.client);
+    
+    // Also get clients from driver_productivity_parameters
+    const { data: paramClients, error: paramError } = await supabase
+      .from('driver_productivity_parameters')
+      .select('client')
+      .not('client', 'is', null)
+      .order('client');
+    
+    if (!paramError && paramClients) {
+      // Combine both client lists
+      clients = [...clients, ...paramClients.map(c => c.client)];
+    }
+    
+    // Get unique clients
+    const uniqueClients = Array.from(new Set(clients)).filter(Boolean);
+    console.log("Fetched client list:", uniqueClients);
+    
+    return uniqueClients;
+    
   } catch (error) {
-    console.error("Error in updateAllFuelPrices:", error);
-    throw error;
-  }
-};
-
-// Fetch productivity analysis data with filters
-export const fetchProductivityAnalysis = async (
-  dateRange: DateRange,
-  filters?: DriverBehaviorFilters
-): Promise<ProductivityAnalysis[]> => {
-  // Validate that both from and to dates exist
-  if (!dateRange.from || !dateRange.to) {
-    console.warn("Invalid date range provided to fetchProductivityAnalysis");
+    console.error("Exception when fetching client list:", error);
     return [];
   }
-  
-  let query = supabase
-    .from('driver_productivity_analysis')
-    .select('*')
-    .gte('start_date', dateRange.from.toISOString())
-    .lte('end_date', dateRange.to.toISOString());
-  
-  // Apply client filter if provided
-  if (filters?.selectedClient) {
-    query = query.eq('client', filters.selectedClient);
-  }
-  
-  // Apply driver group filter if provided
-  if (filters?.selectedGroups && filters.selectedGroups.length > 0) {
-    query = query.in('driver_group', filters.selectedGroups);
-  }
-  
-  const { data, error } = await query;
-  
-  if (error) {
-    console.error("Error fetching productivity analysis:", error);
-    throw error;
-  }
-  
-  return data || [];
 };
 
-// Calculate productivity summary
-export const calculateProductivitySummary = (data: ProductivityAnalysis[]): ProductivitySummary => {
-  if (!data || data.length === 0) {
-    return {
-      totalDrivers: 0,
-      highPerformers: 0,
-      averagePerformers: 0,
-      lowPerformers: 0,
-      averageProductivityScore: 0,
-      totalDistanceCovered: 0,
-      totalFuelCost: 0,
-      totalTimeSpent: '0h 0m'
-    };
+// Fetch driver groups with optional client filter
+export const fetchDriverGroups = async (clientName?: string): Promise<string[]> => {
+  try {
+    const groups = await import('../../services/driverBehavior/driverGroupsService')
+      .then(module => module.fetchDriverGroups(clientName));
+      
+    const groupNames = groups.map(group => typeof group === 'string' ? group : group.name);
+    return groupNames;
+    
+  } catch (error) {
+    console.error("Error fetching driver groups:", error);
+    return [];
   }
-  
-  const driversWithScore = data.filter(d => d.productivity_score !== null);
-  const highPerformers = driversWithScore.filter(d => (d.productivity_score || 0) >= 100).length;
-  const averagePerformers = driversWithScore.filter(d => (d.productivity_score || 0) >= 80 && (d.productivity_score || 0) < 100).length;
-  const lowPerformers = driversWithScore.filter(d => (d.productivity_score || 0) < 80).length;
-  
-  const totalDistanceCovered = data.reduce((sum, d) => sum + (d.distance || 0), 0);
-  const totalFuelCost = data.reduce((sum, d) => sum + (d.estimated_fuel_cost || 0), 0);
-  
-  // Convert total minutes to hours and minutes format
-  const totalMinutes = data.reduce((sum, d) => {
-    if (d.duration_interval) {
-      const matches = d.duration_interval.match(/(\d+):(\d+):(\d+)/);
-      if (matches) {
-        const hours = parseInt(matches[1]);
-        const minutes = parseInt(matches[2]);
-        return sum + (hours * 60) + minutes;
-      }
-    }
-    return sum;
-  }, 0);
-  
-  const hours = Math.floor(totalMinutes / 60);
-  const minutes = totalMinutes % 60;
-  
-  return {
-    totalDrivers: data.length,
-    highPerformers,
-    averagePerformers,
-    lowPerformers,
-    averageProductivityScore: driversWithScore.length > 0 
-      ? driversWithScore.reduce((sum, d) => sum + (d.productivity_score || 0), 0) / driversWithScore.length 
-      : 0,
-    totalDistanceCovered,
-    totalFuelCost,
-    totalTimeSpent: `${hours}h ${minutes}m`
-  };
 };
