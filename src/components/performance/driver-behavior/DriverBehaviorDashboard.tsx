@@ -27,9 +27,9 @@ export function DriverBehaviorDashboard({ dateRange, comparisonRange }: DriverBe
       <Card className="bg-white/90 backdrop-blur-sm rounded-xl shadow-sm border">
         <CardContent className="p-5">
           <DriverBehaviorFiltersPanel 
-            onFiltersChange={setFilters} 
+            onFilterChange={setFilters} 
             activeTab={activeTab}
-            currentFilters={filters}
+            filters={filters}
           />
         </CardContent>
       </Card>
@@ -69,16 +69,27 @@ export function DriverBehaviorDashboard({ dateRange, comparisonRange }: DriverBe
         </div>
         
         <TabsContent value="resumen" className="mt-0 space-y-8 animate-fade-in duration-300">
-          <DriverBehaviorMetricsCards dateRange={dateRange} filters={filters} />
+          <DriverBehaviorMetricsCards 
+            data={undefined} 
+            comparisonData={undefined} 
+            isLoading={false} 
+          />
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             <Card className="col-span-1 lg:col-span-2 bg-white/90 backdrop-blur-sm shadow-sm border rounded-xl">
               <CardContent className="p-6">
-                <DriverBehaviorChart dateRange={dateRange} filters={filters} />
+                <DriverBehaviorChart 
+                  data={undefined} 
+                  isLoading={false} 
+                  dateRange={dateRange} 
+                />
               </CardContent>
             </Card>
             <Card className="bg-white/90 backdrop-blur-sm shadow-sm border rounded-xl">
               <CardContent className="p-6">
-                <CO2EmissionsCard dateRange={dateRange} filters={filters} />
+                <CO2EmissionsCard 
+                  data={undefined} 
+                  isLoading={false} 
+                />
               </CardContent>
             </Card>
           </div>
@@ -87,8 +98,14 @@ export function DriverBehaviorDashboard({ dateRange, comparisonRange }: DriverBe
         
         <TabsContent value="riesgo" className="mt-0 animate-fade-in duration-300">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            <DriverRiskAssessment dateRange={dateRange} filters={filters} />
-            <TopDriversPanel dateRange={dateRange} filters={filters} />
+            <DriverRiskAssessment 
+              riskData={undefined} 
+              isLoading={false} 
+            />
+            <TopDriversPanel 
+              data={undefined} 
+              isLoading={false} 
+            />
           </div>
         </TabsContent>
         

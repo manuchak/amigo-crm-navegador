@@ -28,12 +28,14 @@ import { fetchDriverGroups } from '../services/driverBehavior/driverGroupsServic
 interface DriverBehaviorFiltersPanelProps {
   filters: DriverBehaviorFilters;
   onFilterChange: (filters: DriverBehaviorFilters) => void;
+  activeTab?: string;
   clientList?: string[]; // Optional, will fetch if not provided
 }
 
 export function DriverBehaviorFiltersPanel({
   filters,
-  onFilterChange
+  onFilterChange,
+  activeTab
 }: DriverBehaviorFiltersPanelProps) {
   // Fetch client list
   const { data: clientsData, isLoading: isLoadingClients } = useQuery({
