@@ -49,21 +49,27 @@ export function useClienteFilters(
       const avgKm = filteredClientServices.length > 0 ? 
         Number((totalKm / filteredClientServices.length).toFixed(2)) : 0;
 
-      // Calcular costo promedio (ahora los valores son numéricos gracias a la normalización)
+      // Calcular costo promedio (normalizar tipos de datos)
       let totalAmount = 0;
       let validServiceCount = 0;
       
       filteredClientServices.forEach((servicio) => {
         // Extraer cobro_cliente (valor de ingresos/AOV)
-        const amount = servicio.cobro_cliente;
+        let amount = servicio.cobro_cliente;
         
-        // Omitir servicios sin valor cobro_cliente
-        if (amount === null || amount === undefined) {
+        // Convertir a número si es string
+        if (typeof amount === 'string') {
+          const cleanValue = amount.replace(/[^\d.-]/g, '');
+          amount = parseFloat(cleanValue);
+        }
+        
+        // Omitir servicios sin valor cobro_cliente o valores no válidos
+        if (amount === null || amount === undefined || isNaN(amount)) {
           return;
         }
         
-        // Los valores ahora deberían ser numéricos
-        if (typeof amount === 'number' && !isNaN(amount) && amount > 0) {
+        // Solo considerar valores positivos
+        if (amount > 0) {
           totalAmount += amount;
           validServiceCount++;
         }

@@ -12,24 +12,34 @@ export function formatNumber(value: number | undefined | null): string {
  * Formatea un número como moneda (pesos mexicanos)
  * Con manejo mejorado para valores en diferentes formatos
  */
-export function formatCurrency(value: number | undefined | null): string {
+export function formatCurrency(value: number | string | undefined | null): string {
   // Si el valor es undefined o null, retornamos $0
   if (value === undefined || value === null) {
     return '$0';
   }
   
+  // Convertir a número si es string
+  let numValue: number;
+  if (typeof value === 'string') {
+    // Limpiar formato de la cadena
+    const cleanString = value.replace(/[^\d.-]/g, '');
+    numValue = parseFloat(cleanString);
+  } else {
+    numValue = value;
+  }
+  
   // Manejo explícito para NaN
-  if (typeof value === 'number' && isNaN(value)) {
+  if (isNaN(numValue)) {
     return '$0';
   }
   
   // Para valores muy pequeños pero no cero, mostrar como $0.1 para indicar que hay algún valor
-  if (Math.abs(value) > 0 && Math.abs(value) < 0.1) {
+  if (Math.abs(numValue) > 0 && Math.abs(numValue) < 0.1) {
     return '$0.1';
   }
   
   // Para valor cero, simplemente retornar $0 sin decimales
-  if (value === 0) {
+  if (numValue === 0) {
     return '$0';
   }
   
@@ -42,10 +52,10 @@ export function formatCurrency(value: number | undefined | null): string {
       maximumFractionDigits: 1
     });
     
-    return formatter.format(value);
+    return formatter.format(numValue);
   } catch (error) {
     // Si falla Intl, caemos en un método simple de formateo
-    return `$${value.toFixed(1)}`;
+    return `$${numValue.toFixed(1)}`;
   }
 }
 
