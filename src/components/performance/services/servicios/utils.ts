@@ -4,6 +4,19 @@
  */
 export function getValidNumberOrZero(value: any): number {
   if (value === undefined || value === null) return 0;
+  
+  // Handle different types
+  if (typeof value === 'string') {
+    // Clean up the string value (remove currency symbols, spaces, commas)
+    const cleanVal = value
+      .replace(/\$/g, '') // Remove dollar signs
+      .replace(/\s/g, '') // Remove spaces
+      .replace(/,/g, '.'); // Replace commas with periods for decimal
+    
+    const num = Number(cleanVal);
+    return isNaN(num) ? 0 : num;
+  }
+  
   const num = Number(value);
   return isNaN(num) ? 0 : num;
 }
@@ -29,4 +42,30 @@ export function calculateAverage(values: number[]): number {
   
   const sum = validValues.reduce((acc, val) => acc + val, 0);
   return Math.round((sum / validValues.length) * 100) / 100; // Round to 2 decimal places
+}
+
+/**
+ * Parse a possibly formatted currency string to a number
+ */
+export function parseCurrencyValue(value: any): number {
+  if (value === undefined || value === null) return 0;
+  
+  // If it's already a number, return it
+  if (typeof value === 'number') return value;
+  
+  // If it's a string, clean it up
+  if (typeof value === 'string') {
+    // Handle different currency formats (MX, US, etc.)
+    const cleanVal = value
+      .replace(/\$/g, '')  // Remove dollar signs
+      .replace(/\s/g, '')   // Remove spaces
+      .replace(/,/g, '.')   // Replace commas with periods for decimal (Mexican format)
+      .trim();
+    
+    // Parse the cleaned value
+    const num = parseFloat(cleanVal);
+    return isNaN(num) ? 0 : num;
+  }
+  
+  return 0;
 }

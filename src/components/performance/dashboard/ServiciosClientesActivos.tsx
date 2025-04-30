@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Users, TrendingUp, TrendingDown, Minus } from "lucide-react";
@@ -39,8 +40,8 @@ export function ServiciosClientesActivos({ clientes = [], isLoading }: Servicios
     // Debug log AOV values
     console.log(`Client ${cliente.nombre_cliente} - Display AOV: ${costoPromedio}, Raw: ${cliente.costoPromedio}`);
     
-    // Simple trend calculation (for illustrative purposes)
-    // In a real scenario, you would compare with historical data from previous periods
+    // Use provided trend or calculate based on thresholds
+    const serviciosTrend = cliente.serviciosTrend || (cliente.totalServicios > 50 ? 'up' : (cliente.totalServicios > 20 ? 'neutral' : 'down'));
     const kmTrend: TrendType = kmPromedio > 0 ? (kmPromedio > 100 ? 'up' : 'down') : 'neutral';
     const costTrend: TrendType = costoPromedio > 0 ? (costoPromedio > 2000 ? 'up' : 'down') : 'neutral';
     
@@ -51,7 +52,8 @@ export function ServiciosClientesActivos({ clientes = [], isLoading }: Servicios
       kmPromedio: kmPromedioFormatted,
       costoPromedio: costoPromedio, 
       kmTrend,
-      costTrend
+      costTrend,
+      serviciosTrend
     };
   });
   
@@ -135,7 +137,22 @@ export function ServiciosClientesActivos({ clientes = [], isLoading }: Servicios
                   <TableCell className="font-medium">
                     {cliente.nombre_cliente || `Cliente ${index + 1}`}
                   </TableCell>
-                  <TableCell className="text-right">{formatNumber(cliente.totalServicios)}</TableCell>
+                  <TableCell className="text-right">
+                    <div className="flex items-center justify-end gap-1">
+                      {formatNumber(cliente.totalServicios)}
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <span>{renderTrendIcon(cliente.serviciosTrend as TrendType)}</span>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            {cliente.serviciosTrend === 'up' ? 'Alto volumen' : 
+                             cliente.serviciosTrend === 'down' ? 'Bajo volumen' : 'Volumen medio'}
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    </div>
+                  </TableCell>
                   <TableCell className="text-right">
                     <div className="flex items-center justify-end gap-1">
                       {formatNumber(cliente.kmPromedio)}
