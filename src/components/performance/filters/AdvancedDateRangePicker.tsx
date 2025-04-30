@@ -42,8 +42,23 @@ export interface DateRangeWithComparison {
   rangeType: string;
 }
 
+export interface DateRangePreset {
+  label: string;
+  value: string;
+  getDateRange: () => { from: Date; to: Date };
+}
+
+// Internal preset item type to handle both legacy and new format
+type InternalPreset = {
+  id?: string;
+  value?: string;
+  label: string;
+  getRange?: () => { from: Date; to: Date };
+  getDateRange?: () => { from: Date; to: Date };
+};
+
 // Preset date range options
-const DATE_RANGE_PRESETS = [
+const DATE_RANGE_PRESETS: InternalPreset[] = [
   { id: 'today', label: 'Hoy', getRange: () => {
     const today = new Date();
     return { from: today, to: today };
@@ -92,12 +107,6 @@ const DATE_RANGE_PRESETS = [
   }},
 ];
 
-export interface DateRangePreset {
-  label: string;
-  value: string;
-  getDateRange: () => { from: Date; to: Date };
-}
-
 interface AdvancedDateRangePickerProps {
   value: DateRangeWithComparison;
   onChange: (range: DateRangeWithComparison) => void;
@@ -116,8 +125,14 @@ const AdvancedDateRangePicker: React.FC<AdvancedDateRangePickerProps> = ({
   const [localValue, setLocalValue] = useState<DateRangeWithComparison>(value);
   const [isMobile, setIsMobile] = useState(false);
   
-  // Use provided presets or default presets
-  const activePresets = presets || DATE_RANGE_PRESETS;
+  // Convert external presets to internal format if provided
+  const activePresets: InternalPreset[] = presets 
+    ? presets.map(p => ({
+        ...p,
+        id: p.value, // Map value to id for compatibility
+        getRange: p.getDateRange // Map getDateRange to getRange for compatibility
+      }))
+    : DATE_RANGE_PRESETS;
   
   // Check if screen is mobile size
   useEffect(() => {
@@ -151,7 +166,7 @@ const AdvancedDateRangePicker: React.FC<AdvancedDateRangePickerProps> = ({
 
   // Get selected range name for display
   const getSelectedRangeName = () => {
-    const preset = activePresets.find(p => p.value === localValue.rangeType);
+    const preset = activePresets.find(p => (p.id || p.value) === localValue.rangeType);
     return preset ? preset.label : "Personalizado";
   };
 
@@ -159,10 +174,13 @@ const AdvancedDateRangePicker: React.FC<AdvancedDateRangePickerProps> = ({
   const applyPreset = (presetId: string) => {
     try {
       console.log(`Applying preset: ${presetId}`);
-      const preset = activePresets.find(p => p.value === presetId);
+      const preset = activePresets.find(p => (p.id || p.value) === presetId);
       if (!preset) return;
 
-      const primaryRange = preset.getDateRange();
+      // Get date range using appropriate method
+      const primaryRange = preset.getRange ? preset.getRange() : 
+                          preset.getDateRange ? preset.getDateRange() : 
+                          { from: null, to: null };
       
       const newValue = {
         ...localValue,
@@ -282,14 +300,14 @@ const AdvancedDateRangePicker: React.FC<AdvancedDateRangePickerProps> = ({
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
           {activePresets.map((preset) => (
             <Button
-              key={preset.value}
-              variant={localValue.rangeType === preset.value ? "default" : "outline"}
+              key={preset.id || preset.value}
+              variant={localValue.rangeType === (preset.id || preset.value) ? "default" : "outline"}
               size="sm"
               className="justify-start"
-              onClick={() => applyPreset(preset.value)}
+              onClick={() => applyPreset(preset.id || preset.value || '')}
             >
               <span className="truncate">{preset.label}</span>
-              {localValue.rangeType === preset.value && (
+              {localValue.rangeType === (preset.id || preset.value) && (
                 <Check className="w-4 h-4 ml-auto" />
               )}
             </Button>
