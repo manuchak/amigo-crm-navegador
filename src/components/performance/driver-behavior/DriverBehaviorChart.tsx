@@ -15,7 +15,7 @@ import {
   Cell,
   LabelList
 } from "recharts";
-import { calculateScoreCategory, getScoreColorClass } from "../utils/scoreCalculator";
+import { calculateScoreCategory } from "../utils/scoreCalculator";
 
 interface DriverBehaviorChartProps {
   data?: DriverScore[] | null;
@@ -30,25 +30,29 @@ export function DriverBehaviorChart({ data, isLoading, dateRange }: DriverBehavi
     
     // Group by driver group and calculate average scores
     const groupedData = data.reduce<Record<string, { score: number, count: number, penaltyPoints: number }>>((acc, item) => {
-      if (!acc[item.driver_group]) {
-        acc[item.driver_group] = { score: 0, count: 0, penaltyPoints: 0 };
+      const groupName = item.driver_group || 'Sin grupo';
+      
+      if (!acc[groupName]) {
+        acc[groupName] = { score: 0, count: 0, penaltyPoints: 0 };
       }
       
-      acc[item.driver_group].score += item.score;
-      acc[item.driver_group].count += 1;
-      acc[item.driver_group].penaltyPoints += item.penalty_points;
+      acc[groupName].score += Number(item.score || 0);
+      acc[groupName].count += 1;
+      acc[groupName].penaltyPoints += Number(item.penalty_points || 0);
       
       return acc;
     }, {});
     
     // Convert to array and calculate averages
-    return Object.entries(groupedData).map(([group, stats]) => ({
-      name: group,
-      score: parseFloat((stats.score / stats.count).toFixed(1)),
-      penaltyPoints: stats.penaltyPoints,
-      driverCount: stats.count,
-      category: calculateScoreCategory(stats.score / stats.count)
-    })).sort((a, b) => a.score - b.score); // Sort by score ascending
+    return Object.entries(groupedData)
+      .map(([group, stats]) => ({
+        name: group,
+        score: parseFloat((stats.score / stats.count).toFixed(1)),
+        penaltyPoints: stats.penaltyPoints,
+        driverCount: stats.count,
+        category: calculateScoreCategory(stats.score / stats.count)
+      }))
+      .sort((a, b) => b.score - a.score); // Sort by score descending
   }, [data]);
   
   const colorMap: Record<string, string> = {
@@ -61,12 +65,12 @@ export function DriverBehaviorChart({ data, isLoading, dateRange }: DriverBehavi
 
   if (isLoading) {
     return (
-      <Card className="border-0 shadow-md">
+      <Card className="border shadow-md">
         <CardHeader>
           <CardTitle className="text-lg font-medium">Puntuación por Grupo</CardTitle>
         </CardHeader>
         <CardContent className="h-80">
-          <Skeleton className="w-full h-full" />
+          <Skeleton className="w-full h-full rounded-lg" />
         </CardContent>
       </Card>
     );
@@ -74,12 +78,21 @@ export function DriverBehaviorChart({ data, isLoading, dateRange }: DriverBehavi
   
   if (!data || !Array.isArray(data) || data.length === 0) {
     return (
-      <Card className="border-0 shadow-md">
+      <Card className="border shadow-md">
         <CardHeader>
           <CardTitle className="text-lg font-medium">Puntuación por Grupo</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="text-center p-8">
+          <div className="flex flex-col items-center justify-center text-center p-8 h-64 text-gray-500">
+            <svg 
+              xmlns="http://www.w3.org/2000/svg" 
+              className="h-16 w-16 text-gray-300 mb-4" 
+              fill="none" 
+              viewBox="0 0 24 24" 
+              stroke="currentColor"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+            </svg>
             No hay datos disponibles para el período seleccionado
           </div>
         </CardContent>
@@ -87,10 +100,15 @@ export function DriverBehaviorChart({ data, isLoading, dateRange }: DriverBehavi
     );
   }
 
+  const dateRangeText = dateRange.from && dateRange.to 
+    ? `${dateRange.from.toLocaleDateString()} - ${dateRange.to.toLocaleDateString()}`
+    : 'Período actual';
+
   return (
-    <Card className="border-0 shadow-md">
-      <CardHeader>
+    <Card className="border shadow-md hover:shadow-lg transition-all duration-200">
+      <CardHeader className="pb-2">
         <CardTitle className="text-lg font-medium">Puntuación por Grupo</CardTitle>
+        <p className="text-xs text-muted-foreground">{dateRangeText}</p>
       </CardHeader>
       <CardContent>
         <div className="h-80">
@@ -98,14 +116,16 @@ export function DriverBehaviorChart({ data, isLoading, dateRange }: DriverBehavi
             <BarChart
               data={chartData}
               margin={{ top: 20, right: 30, left: 20, bottom: 40 }}
+              barSize={40}
             >
-              <CartesianGrid strokeDasharray="3 3" vertical={false} />
+              <CartesianGrid strokeDasharray="3 3" vertical={false} opacity={0.2} />
               <XAxis 
                 dataKey="name" 
                 angle={-45} 
                 textAnchor="end" 
                 height={70} 
                 tick={{ fontSize: 12 }}
+                tickMargin={8}
               />
               <YAxis 
                 domain={[0, 100]} 
@@ -113,30 +133,41 @@ export function DriverBehaviorChart({ data, isLoading, dateRange }: DriverBehavi
                   value: 'Puntuación', 
                   angle: -90, 
                   position: 'insideLeft',
-                  style: { textAnchor: 'middle' }
-                }} 
+                  style: { textAnchor: 'middle', fontSize: 12 }
+                }}
+                tickMargin={8}
               />
               <Tooltip 
                 formatter={(value, name) => [value, name === 'score' ? 'Puntuación' : 'Puntos']}
                 labelFormatter={(value) => `Grupo: ${value}`}
+                contentStyle={{ 
+                  borderRadius: '8px', 
+                  backgroundColor: 'rgba(255, 255, 255, 0.97)',
+                  boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
+                  border: '1px solid rgba(0, 0, 0, 0.05)'
+                }}
               />
               <Bar 
                 dataKey="score" 
                 name="Puntuación" 
-                isAnimationActive={false}
+                isAnimationActive={true}
+                animationDuration={1200}
                 minPointSize={3}
+                radius={[4, 4, 0, 0]}
               >
                 {chartData.map((entry, index) => (
                   <Cell 
                     key={`cell-${index}`}
                     fill={colorMap[entry.category]}
+                    fillOpacity={0.9}
+                    strokeWidth={0}
                   />
                 ))}
                 <LabelList 
                   dataKey="score" 
                   position="top" 
                   formatter={(value: number) => `${value}`}
-                  style={{ fontSize: 12, fill: '#6b7280' }}
+                  style={{ fontSize: 11, fill: '#6b7280', fontWeight: 500 }}
                 />
               </Bar>
             </BarChart>

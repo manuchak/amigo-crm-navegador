@@ -5,6 +5,7 @@ import { Cloud } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { DriverBehaviorData } from '../types/driver-behavior.types';
 import { Progress } from '@/components/ui/progress';
+import { motion } from 'framer-motion';
 
 interface CO2EmissionsCardProps {
   data?: DriverBehaviorData | null;
@@ -14,7 +15,7 @@ interface CO2EmissionsCardProps {
 export function CO2EmissionsCard({ data, isLoading }: CO2EmissionsCardProps) {
   if (isLoading) {
     return (
-      <Card className="border-0 shadow-md">
+      <Card className="border shadow-md h-full">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Cloud className="h-5 w-5" />
@@ -38,10 +39,10 @@ export function CO2EmissionsCard({ data, isLoading }: CO2EmissionsCardProps) {
   // If no data is available
   if (!data || !data.co2Emissions) {
     return (
-      <Card className="border-0 shadow-md">
+      <Card className="border shadow-md h-full">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <Cloud className="h-5 w-5" />
+            <Cloud className="h-5 w-5 text-blue-600" />
             Emisiones de CO2
           </CardTitle>
           <CardDescription>
@@ -50,6 +51,7 @@ export function CO2EmissionsCard({ data, isLoading }: CO2EmissionsCardProps) {
         </CardHeader>
         <CardContent>
           <div className="flex flex-col items-center justify-center h-48 text-muted-foreground text-sm">
+            <Cloud className="h-16 w-16 text-gray-200 mb-4" />
             No hay información de distancias registrada para calcular emisiones
           </div>
         </CardContent>
@@ -65,10 +67,19 @@ export function CO2EmissionsCard({ data, isLoading }: CO2EmissionsCardProps) {
   // Calculate the potential reduction percentage
   const potentialReductionPercentage = Math.round((wastageValue / co2EmissionsValue) * 100);
 
+  // Animation settings
+  const progressAnimation = {
+    initial: { width: 0 },
+    animate: (width: number) => ({
+      width: `${width}%`,
+      transition: { duration: 1, ease: "easeOut" }
+    })
+  };
+
   return (
-    <Card className="border-0 shadow-md">
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
+    <Card className="border shadow-md hover:shadow-lg transition-all duration-200 h-full">
+      <CardHeader className="pb-2">
+        <CardTitle className="flex items-center gap-2 text-lg">
           <Cloud className="h-5 w-5 text-blue-600" />
           Emisiones de CO2
         </CardTitle>
@@ -78,38 +89,79 @@ export function CO2EmissionsCard({ data, isLoading }: CO2EmissionsCardProps) {
       </CardHeader>
       <CardContent>
         <div className="space-y-6">
-          <div>
+          <motion.div 
+            initial={{ opacity: 0, y: 5 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4 }}
+          >
             <div className="flex justify-between items-center mb-2">
               <span className="text-sm font-medium">Emisiones totales</span>
               <span className="text-2xl font-bold">{co2EmissionsValue.toFixed(1)} kg</span>
             </div>
-            <Progress value={100} className="h-2 bg-gray-100" />
-          </div>
+            <div className="h-2 w-full bg-gray-100 rounded-full overflow-hidden">
+              <motion.div 
+                className="h-full bg-blue-500 rounded-full"
+                initial="initial"
+                animate="animate"
+                custom={100}
+                variants={progressAnimation}
+              />
+            </div>
+          </motion.div>
           
-          <div>
+          <motion.div
+            initial={{ opacity: 0, y: 5 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4, delay: 0.2 }}
+          >
             <div className="flex justify-between items-center mb-2">
               <span className="text-sm font-medium text-amber-600">CO2 adicional por mala conducción</span>
               <span className="text-lg font-medium text-amber-600">+{wastageValue.toFixed(1)} kg</span>
             </div>
-            <Progress value={Math.min((wastageValue / co2EmissionsValue) * 100, 100)} className="h-2 bg-gray-100" indicatorClassName="bg-amber-500" />
-          </div>
+            <div className="h-2 w-full bg-gray-100 rounded-full overflow-hidden">
+              <motion.div 
+                className="h-full bg-amber-500 rounded-full"
+                initial="initial"
+                animate="animate"
+                custom={Math.min((wastageValue / co2EmissionsValue) * 100, 100)}
+                variants={progressAnimation}
+              />
+            </div>
+          </motion.div>
           
-          <div>
+          <motion.div
+            initial={{ opacity: 0, y: 5 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4, delay: 0.4 }}
+          >
             <div className="flex justify-between items-center mb-2">
               <span className="text-sm font-medium text-green-600">CO2 ahorrado con buena conducción</span>
               <span className="text-lg font-medium text-green-600">-{savedValue.toFixed(1)} kg</span>
             </div>
-            <Progress value={Math.min((savedValue / co2EmissionsValue) * 100, 100)} className="h-2 bg-gray-100" indicatorClassName="bg-green-500" />
-          </div>
+            <div className="h-2 w-full bg-gray-100 rounded-full overflow-hidden">
+              <motion.div 
+                className="h-full bg-green-500 rounded-full"
+                initial="initial"
+                animate="animate"
+                custom={Math.min((savedValue / co2EmissionsValue) * 100, 100)}
+                variants={progressAnimation}
+              />
+            </div>
+          </motion.div>
           
-          <div className="pt-2 border-t">
+          <motion.div 
+            className="pt-2 border-t"
+            initial={{ opacity: 0, y: 5 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4, delay: 0.6 }}
+          >
             <p className="text-sm text-muted-foreground">
-              Potencial de reducción de emisiones mediante mejora de hábitos de conducción: {potentialReductionPercentage}%
+              Potencial de reducción de emisiones: <span className="font-semibold text-green-600">{potentialReductionPercentage}%</span>
             </p>
             <p className="text-xs text-muted-foreground mt-1">
-              *Basado en estudios que indican que la conducción ineficiente aumenta el consumo de combustible y emisiones hasta un 30%.
+              *Basado en estudios de conducción eficiente y consumo de combustible.
             </p>
-          </div>
+          </motion.div>
         </div>
       </CardContent>
     </Card>

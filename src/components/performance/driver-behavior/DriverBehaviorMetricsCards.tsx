@@ -7,6 +7,7 @@ import {
 import { DriverBehaviorData } from "../types/driver-behavior.types";
 import { AlertTriangle, Award, Gauge, TrendingDown } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
+import { motion } from "framer-motion";
 
 interface MetricCardProps {
   title: string;
@@ -28,16 +29,16 @@ function MetricCard({
   isLoading = false
 }: MetricCardProps) {
   return (
-    <Card className="border-0 shadow-md bg-white/90">
+    <Card className="border shadow-md bg-white/95 hover:shadow-lg transition-all duration-200">
       <CardContent className="p-6">
         <div className="flex items-center gap-4">
           <div className={`${colorClass} p-3 rounded-xl`}>
             <Icon className="w-6 h-6" />
           </div>
-          <div>
-            <p className="text-sm text-muted-foreground">{title}</p>
-            <div className="flex items-baseline gap-2">
-              <h3 className="text-2xl font-semibold mt-1">
+          <div className="flex-1">
+            <p className="text-sm text-muted-foreground font-medium">{title}</p>
+            <div className="flex items-baseline gap-2 mt-1.5">
+              <h3 className="text-2xl font-semibold">
                 {isLoading ? <Skeleton className="h-8 w-16" /> : value}
               </h3>
               {change !== undefined && !isLoading && (
@@ -142,48 +143,77 @@ export function DriverBehaviorMetricsCards({
       hasComparison: prevDriverScores.length > 0
     });
   }
+
+  // Animation variants for the cards
+  const container = {
+    hidden: { opacity: 0 },
+    show: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.1
+      }
+    }
+  };
+
+  const item = {
+    hidden: { opacity: 0, y: 20 },
+    show: { opacity: 1, y: 0 }
+  };
   
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
-      <MetricCard
-        title="Puntuación Promedio"
-        value={isLoading ? 0 : avgScore.toFixed(1)}
-        icon={Gauge}
-        colorClass="bg-blue-50 text-blue-600"
-        change={Math.round(scoreChange)}
-        changeDirection={scoreChange > 0 ? 'up' : scoreChange < 0 ? 'down' : 'neutral'}
-        isLoading={isLoading}
-      />
+    <motion.div 
+      className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4"
+      variants={container}
+      initial="hidden"
+      animate="show"
+    >
+      <motion.div variants={item}>
+        <MetricCard
+          title="Puntuación Promedio"
+          value={isLoading ? 0 : avgScore.toFixed(1)}
+          icon={Gauge}
+          colorClass="bg-blue-50 text-blue-600"
+          change={Math.round(scoreChange)}
+          changeDirection={scoreChange > 0 ? 'up' : scoreChange < 0 ? 'down' : 'neutral'}
+          isLoading={isLoading}
+        />
+      </motion.div>
       
-      <MetricCard
-        title="Puntos de Penalización"
-        value={isLoading ? 0 : totalPenaltyPoints}
-        icon={TrendingDown}
-        colorClass="bg-amber-50 text-amber-600"
-        change={Math.round(penaltyChange)}
-        changeDirection={penaltyChange < 0 ? 'up' : penaltyChange > 0 ? 'down' : 'neutral'}
-        isLoading={isLoading}
-      />
+      <motion.div variants={item}>
+        <MetricCard
+          title="Puntos de Penalización"
+          value={isLoading ? 0 : totalPenaltyPoints}
+          icon={TrendingDown}
+          colorClass="bg-amber-50 text-amber-600"
+          change={Math.round(penaltyChange)}
+          changeDirection={penaltyChange < 0 ? 'up' : penaltyChange > 0 ? 'down' : 'neutral'}
+          isLoading={isLoading}
+        />
+      </motion.div>
       
-      <MetricCard
-        title="Total de Viajes"
-        value={isLoading ? 0 : totalTrips}
-        icon={Award}
-        colorClass="bg-emerald-50 text-emerald-600"
-        change={Math.round(tripsChange)}
-        changeDirection={tripsChange > 0 ? 'up' : tripsChange < 0 ? 'down' : 'neutral'}
-        isLoading={isLoading}
-      />
+      <motion.div variants={item}>
+        <MetricCard
+          title="Total de Viajes"
+          value={isLoading ? 0 : totalTrips}
+          icon={Award}
+          colorClass="bg-emerald-50 text-emerald-600"
+          change={Math.round(tripsChange)}
+          changeDirection={tripsChange > 0 ? 'up' : tripsChange < 0 ? 'down' : 'neutral'}
+          isLoading={isLoading}
+        />
+      </motion.div>
       
-      <MetricCard
-        title="Conductores Críticos"
-        value={isLoading ? 0 : criticalDriversCount}
-        icon={AlertTriangle}
-        colorClass="bg-red-50 text-red-600"
-        change={Math.round(criticalChange)}
-        changeDirection={criticalChange < 0 ? 'up' : criticalChange > 0 ? 'down' : 'neutral'}
-        isLoading={isLoading}
-      />
-    </div>
+      <motion.div variants={item}>
+        <MetricCard
+          title="Conductores Críticos"
+          value={isLoading ? 0 : criticalDriversCount}
+          icon={AlertTriangle}
+          colorClass="bg-red-50 text-red-600"
+          change={Math.round(criticalChange)}
+          changeDirection={criticalChange < 0 ? 'up' : criticalChange > 0 ? 'down' : 'neutral'}
+          isLoading={isLoading}
+        />
+      </motion.div>
+    </motion.div>
   );
 }
