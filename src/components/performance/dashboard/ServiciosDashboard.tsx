@@ -9,9 +9,9 @@ import { ServiciosHourDistributionChart } from './charts/ServiciosHourDistributi
 import { ServiciosClientesActivos } from './ServiciosClientesActivos';
 import { ServiciosAlertas } from './ServiciosAlertas';
 import { ServiciosTipoChart } from './ServiciosTipoChart';
-import { CohortAnalysisViewer } from './CohortAnalysisViewer';
 import { Card, CardContent } from '@/components/ui/card';
 import { Loader2 } from "lucide-react";
+import { toast } from 'sonner';
 
 interface ServiciosDashboardProps {
   dateRange: DateRange;
@@ -25,13 +25,26 @@ export function ServiciosDashboard({ dateRange, comparisonRange }: ServiciosDash
     refetchOnWindowFocus: false,
   });
 
-  // Debug log to validate date range
+  // Debug logging for date range
   React.useEffect(() => {
-    console.log("ServiciosDashboard date range:", {
-      from: dateRange?.from ? dateRange.from.toISOString() : 'undefined',
-      to: dateRange?.to ? dateRange.to.toISOString() : 'undefined'
-    });
+    if (dateRange?.from && dateRange?.to) {
+      console.log("ServiciosDashboard date range:", {
+        from: dateRange.from.toISOString(),
+        to: dateRange.to.toISOString()
+      });
+    } else {
+      console.warn("ServiciosDashboard received invalid date range");
+    }
   }, [dateRange]);
+  
+  // Show error toast if fetch fails
+  React.useEffect(() => {
+    if (isError) {
+      toast.error("Error al cargar datos", {
+        description: "No se pudieron cargar los datos de servicios. Intente nuevamente."
+      });
+    }
+  }, [isError]);
 
   if (isError) {
     return (
@@ -55,6 +68,21 @@ export function ServiciosDashboard({ dateRange, comparisonRange }: ServiciosDash
     );
   }
 
+  // Quick validation check - if we have date range but no data
+  if (dateRange?.from && dateRange?.to && (!data || !data.serviciosData || data.serviciosData.length === 0)) {
+    return (
+      <Card className="p-8 text-center border shadow-sm bg-white">
+        <CardContent className="pt-6">
+          <h3 className="text-xl font-medium mb-2 text-gray-800">Sin datos para el período seleccionado</h3>
+          <p className="text-muted-foreground">
+            No hay datos de servicios disponibles para el rango de fechas seleccionado. 
+            Intente seleccionar otro período.
+          </p>
+        </CardContent>
+      </Card>
+    );
+  }
+
   return (
     <div className="space-y-8">
       {/* Metrics cards at the top */}
@@ -65,10 +93,10 @@ export function ServiciosDashboard({ dateRange, comparisonRange }: ServiciosDash
         />
       </div>
       
-      {/* Top row: Performance chart and type distribution side by side */}
+      {/* Performance chart and type distribution side by side */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 animate-fade-in animate-delay-100 duration-300">
         {/* Performance chart taking 2/3 width on large screens */}
-        <div className="lg:col-span-2 h-[400px]">
+        <div className="lg:col-span-2 h-[500px]">
           <ServiciosPerformanceChart 
             data={data?.serviciosData} 
             isLoading={isLoading}
@@ -77,7 +105,7 @@ export function ServiciosDashboard({ dateRange, comparisonRange }: ServiciosDash
         </div>
         
         {/* Services type chart taking 1/3 width */}
-        <div className="h-[400px]">
+        <div className="h-[500px]">
           <ServiciosTipoChart 
             data={data?.serviciosPorTipo || []} 
             isLoading={isLoading} 
@@ -85,16 +113,16 @@ export function ServiciosDashboard({ dateRange, comparisonRange }: ServiciosDash
         </div>
       </div>
       
-      {/* Middle row: Hour distribution and clients */}
+      {/* Hour distribution and clients */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 animate-fade-in animate-delay-150 duration-300">
-        <div className="h-[380px]">
+        <div className="h-[420px]">
           <ServiciosHourDistributionChart 
             data={data?.serviciosData}
             isLoading={isLoading}
           />
         </div>
         
-        <div className="h-[380px]">
+        <div className="h-[420px]">
           <ServiciosClientesActivos 
             clientes={data?.serviciosPorCliente || []}
             isLoading={isLoading}
@@ -102,7 +130,7 @@ export function ServiciosDashboard({ dateRange, comparisonRange }: ServiciosDash
         </div>
       </div>
       
-      {/* Bottom row: Alerts section */}
+      {/* Alerts section */}
       <div className="animate-fade-in animate-delay-200 duration-300">
         <div className="h-[360px]">
           <ServiciosAlertas 
@@ -110,15 +138,6 @@ export function ServiciosDashboard({ dateRange, comparisonRange }: ServiciosDash
             isLoading={isLoading}
           />
         </div>
-      </div>
-
-      {/* Optional cohort analysis section */}
-      <div className="animate-fade-in animate-delay-300 duration-300">
-        <CohortAnalysisViewer
-          data={data}
-          isLoading={isLoading}
-          dateRange={dateRange}
-        />
       </div>
     </div>
   );

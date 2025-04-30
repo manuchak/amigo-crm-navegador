@@ -1,55 +1,44 @@
 
 import { DateRange } from "react-day-picker";
 import { supabase } from "@/integrations/supabase/client";
-import { format, subMonths, subWeeks, startOfMonth, endOfMonth, startOfWeek, endOfWeek } from "date-fns";
+import { format, startOfMonth, endOfMonth, startOfWeek, endOfWeek } from "date-fns";
 import { ServiciosMetricData } from "./types";
 import { calcularPorcentajeCambio, getValidNumberOrZero, calculateAverage } from "./utils";
-import { getMockServiciosData } from "./mockDataService";
 
 /**
- * Fetches service data from Supabase or falls back to mock data
- * @param dateRange Optional primary date range 
+ * Fetches service data from Supabase
+ * @param dateRange Primary date range 
  * @param comparisonRange Optional comparison date range
  * @returns Promise with services metric data
  */
 export async function fetchServiciosData(dateRange?: DateRange, comparisonRange?: DateRange): Promise<ServiciosMetricData> {
-  // Important debugging for date range issues
-  console.log("fetchServiciosData called with date range:", {
-    from: dateRange?.from ? dateRange.from.toISOString() : 'undefined',
-    to: dateRange?.to ? dateRange.to.toISOString() : 'undefined'
-  });
-
   try {
-    // Only use mock data if explicitly in development mode without any date range
-    const useMockData = process.env.NODE_ENV === 'development' && 
-                      (!dateRange || !dateRange.from || !dateRange.to);
-    
-    if (useMockData) {
-      console.log("Using mock data because no date range provided in development mode");
-      return getMockServiciosData(dateRange);
+    // Validate date range
+    if (!dateRange || !dateRange.from || !dateRange.to) {
+      throw new Error('Invalid date range provided');
     }
     
-    // Ensure we have valid date ranges
-    const endDate = dateRange?.to || new Date();
-    const startDate = dateRange?.from || subMonths(endDate, 3);
+    // Use provided date range
+    const endDate = dateRange.to;
+    const startDate = dateRange.from;
     
-    console.log("Using real data with date range:", {
+    console.log("Fetching real data with date range:", {
       startDate: startDate.toISOString(),
       endDate: endDate.toISOString()
     });
     
-    // Calcular rangos de tiempo para comparaciones
+    // Calculate time ranges for comparisons
     const currentMonthStart = startOfMonth(endDate);
     const currentMonthEnd = endOfMonth(endDate);
-    const previousMonthStart = startOfMonth(subMonths(currentMonthStart, 1));
-    const previousMonthEnd = endOfMonth(subMonths(currentMonthStart, 1));
+    const previousMonthStart = startOfMonth(new Date(currentMonthStart.getFullYear(), currentMonthStart.getMonth() - 1));
+    const previousMonthEnd = endOfMonth(new Date(currentMonthStart.getFullYear(), currentMonthStart.getMonth() - 1));
     
-    const currentWeekStart = startOfWeek(endDate);
-    const currentWeekEnd = endOfWeek(endDate);
-    const previousWeekStart = startOfWeek(subWeeks(currentWeekStart, 1));
-    const previousWeekEnd = endOfWeek(subWeeks(currentWeekStart, 1));
+    const currentWeekStart = startOfWeek(endDate, { weekStartsOn: 1 });
+    const currentWeekEnd = endOfWeek(endDate, { weekStartsOn: 1 });
+    const previousWeekStart = startOfWeek(new Date(currentWeekStart.getTime() - 7 * 24 * 60 * 60 * 1000), { weekStartsOn: 1 });
+    const previousWeekEnd = endOfWeek(new Date(currentWeekStart.getTime() - 7 * 24 * 60 * 60 * 1000), { weekStartsOn: 1 });
 
-    // 1. Obtener métricas generales
+    // 1. Get general metrics using database function
     const { data: generalMetrics, error: generalError } = await supabase
       .rpc('obtener_metricas_generales', {
         fecha_inicio: startDate.toISOString(),
@@ -69,14 +58,14 @@ export async function fetchServiciosData(dateRange?: DateRange, comparisonRange?
       throw generalError;
     }
 
-    // 2. Obtener alertas de clientes con variaciones significativas
+    // 2. Get client alerts using database function
     const { data: alertas, error: alertasError } = await supabase
       .rpc('obtener_alertas_clientes', {
         mes_actual_inicio: currentMonthStart.toISOString(),
         mes_actual_fin: currentMonthEnd.toISOString(),
         mes_anterior_inicio: previousMonthStart.toISOString(),
         mes_anterior_fin: previousMonthEnd.toISOString(),
-        umbral_variacion: 20 // Alerta cuando hay incremento de 20% o más
+        umbral_variacion: 20 // Alert on 20%+ increase
       });
 
     if (alertasError) {
@@ -84,7 +73,7 @@ export async function fetchServiciosData(dateRange?: DateRange, comparisonRange?
       throw alertasError;
     }
 
-    // 3. Obtener datos de servicios por cliente
+    // 3. Get services by client using database function
     const { data: clientesData, error: clientesError } = await supabase
       .rpc('obtener_servicios_por_cliente', {
         fecha_inicio: startDate.toISOString(),
@@ -96,10 +85,25 @@ export async function fetchServiciosData(dateRange?: DateRange, comparisonRange?
       throw clientesError;
     }
     
-    // 4. Obtener servicios por tipo y datos crudos de servicios
+    // 4. Get services by type and raw service data
     const { data: serviciosData, error: serviciosError } = await supabase
       .from('servicios_custodia')
-      .select('id, local_foraneo, tipo_servicio, fecha_hora_cita, km_recorridos, km_teorico, duracion_servicio, nombre_cliente')
+      .select(`
+        id, 
+        local_foraneo, 
+        tipo_servicio, 
+        fecha_hora_cita, 
+        km_recorridos, 
+        km_teorico, 
+        duracion_servicio, 
+        nombre_cliente,
+        ruta,
+        origen,
+        destino,
+        tipo_gadget,
+        placa_carga,
+        tipo_unidad
+      `)
       .gte('fecha_hora_cita', startDate.toISOString())
       .lte('fecha_hora_cita', endDate.toISOString());
 
@@ -109,26 +113,8 @@ export async function fetchServiciosData(dateRange?: DateRange, comparisonRange?
     }
 
     console.log(`Fetched ${serviciosData?.length || 0} services from database`);
-    if (serviciosData && serviciosData.length > 0) {
-      // Log a sample of the data to verify date formats and April data
-      const sample = serviciosData.slice(0, 5);
-      console.log("Sample service dates:", sample.map(s => ({
-        id: s.id,
-        fecha: s.fecha_hora_cita,
-        month: s.fecha_hora_cita ? new Date(s.fecha_hora_cita).getMonth() + 1 : 'unknown'
-      })));
-      
-      // Check specifically for April data
-      const aprilData = serviciosData.filter(s => {
-        if (!s.fecha_hora_cita) return false;
-        const date = new Date(s.fecha_hora_cita);
-        return date.getMonth() === 3; // April is month 3 (0-indexed)
-      });
-      
-      console.log(`Found ${aprilData.length} services in April`);
-    }
-
-    // 5. Obtener datos específicos del mes actual para comparación
+    
+    // 5. Get specific data for current month for comparison
     const { data: serviciosMesActual, error: mesActualError } = await supabase
       .from('servicios_custodia')
       .select('km_recorridos, km_teorico')
@@ -140,7 +126,7 @@ export async function fetchServiciosData(dateRange?: DateRange, comparisonRange?
       throw mesActualError;
     }
       
-    // 6. Obtener datos específicos del mes anterior para comparación
+    // 6. Get specific data for previous month for comparison
     const { data: serviciosMesAnterior, error: mesAnteriorError } = await supabase
       .from('servicios_custodia')
       .select('km_recorridos, km_teorico')
@@ -152,39 +138,40 @@ export async function fetchServiciosData(dateRange?: DateRange, comparisonRange?
       throw mesAnteriorError;
     }
     
-    // Calculate KM totales using km_teorico instead of km_recorridos
+    // Calculate total KM - prefer km_teorico, fallback to km_recorridos
     let kmTotales = 0;
     
     if (serviciosData && serviciosData.length > 0) {
-      let validKmCount = 0;
       serviciosData.forEach(servicio => {
-        // Use km_teorico or fallback to km_recorridos if teorico is not available
         const km = getValidNumberOrZero(servicio.km_teorico || servicio.km_recorridos);
-        if (km > 0) {
-          validKmCount++;
-        }
         kmTotales += km;
-      });
-
-      console.log("KM calculation:", {
-        kmTotales,
-        totalServices: serviciosData.length,
-        servicesWithValidKm: validKmCount
       });
     }
 
-    // Extraer valores de km para cálculos de promedios
-    const kmMesActualValues = serviciosMesActual?.map(s => getValidNumberOrZero(s.km_teorico || s.km_recorridos)) || [];
-    const kmMesAnteriorValues = serviciosMesAnterior?.map(s => getValidNumberOrZero(s.km_teorico || s.km_recorridos)) || [];
+    // Extract KM values for average calculations
+    const kmMesActualValues = serviciosMesActual?.map(s => 
+      getValidNumberOrZero(s.km_teorico || s.km_recorridos)) || [];
+      
+    const kmMesAnteriorValues = serviciosMesAnterior?.map(s => 
+      getValidNumberOrZero(s.km_teorico || s.km_recorridos)) || [];
     
-    // Calcular promedios de KM por mes
+    // Calculate average KM per month
     const kmPromedioMesActual = calculateAverage(kmMesActualValues);
     const kmPromedioMesAnterior = calculateAverage(kmMesAnteriorValues);
     
-    // Procesar servicios por tipo (Foraneo, Local o Reparto)
-    const serviciosPorTipo = procesarServiciosPorTipo(serviciosData || []);
+    // Process services by type (Foraneo, Local, Reparto, etc.)
+    const { data: serviciosPorTipo, error: tiposError } = await supabase
+      .rpc('obtener_servicios_por_tipo', {
+        fecha_inicio: startDate.toISOString(),
+        fecha_fin: endDate.toISOString()
+      });
 
-    // Calcular cambios porcentuales
+    if (tiposError) {
+      console.error("Error fetching service types:", tiposError);
+      throw tiposError;
+    }
+
+    // Calculate percentage changes
     const metrics = generalMetrics?.[0] || {};
     
     const serviciosMoM = {
@@ -205,16 +192,15 @@ export async function fetchServiciosData(dateRange?: DateRange, comparisonRange?
       )
     };
     
-    // Calcular cambio porcentual para KM promedio
-    const kmPercentChange = calcularPorcentajeCambio(kmPromedioMesActual, kmPromedioMesAnterior);
-    
+    // Calculate percentage change for average KM
     const kmPromedioMoM = {
       current: kmPromedioMesActual,
       previous: kmPromedioMesAnterior,
-      percentChange: kmPercentChange
+      percentChange: calcularPorcentajeCambio(kmPromedioMesActual, kmPromedioMesAnterior)
     };
 
-    const result = {
+    // Assemble the result object
+    const result: ServiciosMetricData = {
       totalServicios: metrics.total_servicios || 0,
       serviciosMoM,
       serviciosWoW,
@@ -224,54 +210,27 @@ export async function fetchServiciosData(dateRange?: DateRange, comparisonRange?
       clientesNuevos: metrics.clientes_nuevos || 0,
       alertas: alertas || [],
       serviciosPorCliente: clientesData || [],
-      serviciosPorTipo,
+      serviciosPorTipo: serviciosPorTipo || [],
       serviciosData: serviciosData || []
     };
     
-    console.log("Successfully processed real data from Supabase");
+    console.log("Successfully processed data from servicios_custodia table");
     return result;
   } catch (error) {
     console.error("Error fetching servicios data:", error);
-    console.warn("Falling back to mock data due to error");
-    return getMockServiciosData(dateRange);
+    // Instead of falling back to mock data, return empty data structure
+    return {
+      totalServicios: 0,
+      serviciosMoM: { current: 0, previous: 0, percentChange: 0 },
+      serviciosWoW: { current: 0, previous: 0, percentChange: 0 },
+      kmTotales: 0,
+      kmPromedioMoM: { current: 0, previous: 0, percentChange: 0 },
+      clientesActivos: 0,
+      clientesNuevos: 0,
+      alertas: [],
+      serviciosPorCliente: [],
+      serviciosPorTipo: [],
+      serviciosData: []
+    };
   }
-}
-
-/**
- * Procesa los servicios y los clasifica en categorías simplificadas
- */
-function procesarServiciosPorTipo(servicios: any[]): { tipo: string; count: number }[] {
-  const tipoMap: Record<string, number> = {
-    "Foráneo": 0,
-    "Local": 0,
-    "Reparto": 0
-  };
-  
-  servicios.forEach(servicio => {
-    // Normalizar a minúsculas y eliminar acentos para hacer coincidencias más robustas
-    const localForaneo = servicio.local_foraneo 
-      ? servicio.local_foraneo.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "") 
-      : '';
-    
-    const tipoServicio = servicio.tipo_servicio 
-      ? servicio.tipo_servicio.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "") 
-      : '';
-    
-    // Clasificar el servicio según palabras clave
-    if (localForaneo.includes('foraneo') || tipoServicio.includes('foraneo')) {
-      tipoMap["Foráneo"]++;
-    } else if (localForaneo.includes('local') || tipoServicio.includes('local')) {
-      tipoMap["Local"]++;
-    } else if (tipoServicio.includes('reparto') || tipoServicio.includes('distribucion')) {
-      tipoMap["Reparto"]++;
-    } else {
-      // Asignación por defecto a la categoría más común
-      tipoMap["Local"]++;
-    }
-  });
-  
-  // Convertir a array de objetos y filtrar categorías vacías
-  return Object.entries(tipoMap)
-    .map(([tipo, count]) => ({ tipo, count }))
-    .sort((a, b) => b.count - a.count);
 }

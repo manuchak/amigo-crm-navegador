@@ -13,21 +13,13 @@ interface ChartDataPoint {
 
 export function usePerformanceChartData(data: any[] = [], dateRange: DateRange) {
   return useMemo(() => {
-    if (!data || data.length === 0) {
-      console.warn('No data provided for ServiciosPerformanceChart');
+    if (!data || data.length === 0 || !dateRange?.from || !dateRange?.to) {
+      console.warn('Invalid data or date range provided for chart');
       return [];
     }
-    
-    // Generate continuous date range
-    if (!dateRange?.from || !dateRange?.to) {
-      console.warn('Invalid date range provided');
-      return [];
-    }
-
-    console.log(`Processing ${data.length} services for chart from ${dateRange.from.toDateString()} to ${dateRange.to.toDateString()}`);
     
     try {
-      // Use the provided date range
+      // Generate continuous date range
       const allDays = eachDayOfInterval({
         start: dateRange.from,
         end: dateRange.to
@@ -46,18 +38,12 @@ export function usePerformanceChartData(data: any[] = [], dateRange: DateRange) 
         });
       });
       
-      // Log what months are in the date range for debugging
-      const uniqueMonths = new Set(allDays.map(date => format(date, 'yyyy-MM')));
-      console.log("Months included in chart:", Array.from(uniqueMonths));
-      
       // Process all services and count them by day
       data.forEach(servicio => {
-        if (!servicio.fecha_hora_cita) {
-          return;
-        }
+        if (!servicio.fecha_hora_cita) return;
         
         try {
-          // Parse the service date correctly from ISO string
+          // Parse the service date correctly
           let serviceDate;
           
           if (typeof servicio.fecha_hora_cita === 'string') {
@@ -68,9 +54,7 @@ export function usePerformanceChartData(data: any[] = [], dateRange: DateRange) 
             return;
           }
           
-          if (!isValid(serviceDate)) {
-            return;
-          }
+          if (!isValid(serviceDate)) return;
           
           const dayStr = format(serviceDate, 'yyyy-MM-dd');
           
@@ -78,23 +62,11 @@ export function usePerformanceChartData(data: any[] = [], dateRange: DateRange) 
           if (dailyDataMap.has(dayStr)) {
             const dayData = dailyDataMap.get(dayStr)!;
             dayData.servicios += 1;
-            
-            // Debug April data specifically for troubleshooting
-            if (isSameMonth(serviceDate, new Date(2025, 3, 1))) { // April is month 3 (zero-indexed)
-              console.log(`Found April service: ${dayStr}, ID: ${servicio.id || 'unknown'}`);
-            }
           }
         } catch (error) {
           console.error('Error processing service date:', servicio.fecha_hora_cita);
         }
       });
-      
-      // Debug: count days with data vs total days
-      let daysWithData = 0;
-      dailyDataMap.forEach(value => {
-        if (value.servicios > 0) daysWithData++;
-      });
-      console.log(`Days with data: ${daysWithData} out of ${allDays.length}`);
       
       // Prepare final data array sorted by date
       const result = Array.from(dailyDataMap.values())

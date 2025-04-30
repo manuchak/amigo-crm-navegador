@@ -7,24 +7,96 @@ import { ServiciosDashboard } from "@/components/performance/dashboard/Servicios
 import { DriverBehaviorDashboard } from "@/components/performance/driver-behavior/DriverBehaviorDashboard";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { DateRangeWithComparison } from "@/components/performance/filters/AdvancedDateRangePicker";
-import { subDays } from "date-fns";
+import { subDays, startOfMonth, endOfMonth } from "date-fns";
 import { PerformanceDateFilter } from '@/components/performance/PerformanceDateFilter';
 import { ServiceImport } from '@/components/performance/filters/ServiceImport';
 import { Card } from '@/components/ui/card';
 import { toast } from 'sonner';
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 
 export default function Performance() {
-  // Initialize with the "last 90 days" preset - ensures we always have a valid date range
+  // Initialize with the "last 30 days" preset for better performance
   const [dateRange, setDateRange] = useState<DateRangeWithComparison>({
     primary: {
-      from: subDays(new Date(), 89), // Start 90 days ago
+      from: subDays(new Date(), 29), // Start 30 days ago
       to: new Date(), // End today
     },
     comparisonType: 'none',
-    rangeType: 'last90days'
+    rangeType: 'last30days'
   });
 
+  // Add presets for the current month, previous month, etc.
+  const presets = [
+    { 
+      label: "Este mes", 
+      value: "thisMonth",
+      getDateRange: () => {
+        const now = new Date();
+        return {
+          from: startOfMonth(now),
+          to: endOfMonth(now)
+        };
+      }
+    },
+    { 
+      label: "Mes anterior", 
+      value: "lastMonth",
+      getDateRange: () => {
+        const now = new Date();
+        const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1);
+        return {
+          from: startOfMonth(lastMonth),
+          to: endOfMonth(lastMonth)
+        };
+      }
+    },
+    { 
+      label: "Últimos 30 días", 
+      value: "last30days",
+      getDateRange: () => {
+        return {
+          from: subDays(new Date(), 29),
+          to: new Date()
+        };
+      }
+    },
+    { 
+      label: "Últimos 90 días", 
+      value: "last90days",
+      getDateRange: () => {
+        return {
+          from: subDays(new Date(), 89),
+          to: new Date()
+        };
+      }
+    }
+  ];
+
   const [activeTab, setActiveTab] = useState<string>("servicios");
+  
+  // List available clients for filter dropdown
+  const { data: clientsData } = useQuery({
+    queryKey: ['servicios-clients'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('servicios_custodia')
+        .select('nombre_cliente')
+        .not('nombre_cliente', 'is', null)
+        .order('nombre_cliente')
+        .limit(100);
+      
+      if (error) throw error;
+      
+      // Get unique clients
+      const uniqueClients = Array.from(new Set(
+        data.map(item => item.nombre_cliente)
+      )).filter(Boolean);
+      
+      return uniqueClients;
+    },
+    staleTime: 1000 * 60 * 10 // 10 minutes
+  });
   
   useEffect(() => {
     // Log the selected date range on component mount and whenever it changes
@@ -90,7 +162,11 @@ export default function Performance() {
       
       <Card className="border shadow-sm bg-white p-4">
         <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-          <PerformanceDateFilter dateRange={dateRange} setDateRange={handleDateRangeChange} />
+          <PerformanceDateFilter 
+            dateRange={dateRange} 
+            setDateRange={handleDateRangeChange}
+            presets={presets}
+          />
           
           {activeTab === "servicios" && (
             <div className="flex-shrink-0">
