@@ -53,6 +53,9 @@ export function ProductivityDashboard({ dateRange, filters = {} }: ProductivityD
     refetchParameters();
   };
   
+  // Get group names for the select dropdown
+  const groupNames = driverGroups.map(group => group.name);
+  
   return (
     <motion.div 
       className="space-y-8"
@@ -98,7 +101,7 @@ export function ProductivityDashboard({ dateRange, filters = {} }: ProductivityD
         onClose={() => setShowParameters(false)}
         onSaved={handleRefreshParameters}
         selectedClient={filters?.selectedClient}
-        availableGroups={driverGroups}
+        availableGroups={groupNames}
       />
       
       {/* Parameters Table */}
@@ -110,7 +113,7 @@ export function ProductivityDashboard({ dateRange, filters = {} }: ProductivityD
           <ProductivityParametersTable 
             parameters={parameters || []}
             clients={clients}
-            driverGroups={driverGroups}
+            driverGroups={groupNames}
             isLoading={isLoadingParameters}
             onRefresh={handleRefreshParameters}
             selectedClient={filters?.selectedClient}

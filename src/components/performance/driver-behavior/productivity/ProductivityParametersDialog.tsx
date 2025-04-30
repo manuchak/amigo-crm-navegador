@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -27,6 +27,7 @@ import {
 } from '@/components/ui/select';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { fetchDriverGroups } from '../../services/driverBehavior/driverGroupsService';
 
 interface ProductivityParametersDialogProps {
   open: boolean;
@@ -63,7 +64,16 @@ export function ProductivityParametersDialog({
         .order('client');
         
       if (!data) return [];
-      return Array.from(new Set(data.map(d => d.client)));
+      
+      // Get unique clients
+      const uniqueClients = Array.from(new Set(data.map(d => d.client)));
+      
+      // Add client from props if not in list
+      if (selectedClient && !uniqueClients.includes(selectedClient)) {
+        uniqueClients.push(selectedClient);
+      }
+      
+      return uniqueClients;
     },
   });
   
@@ -80,8 +90,21 @@ export function ProductivityParametersDialog({
     },
   });
   
+  // Fetch groups for selected client
+  const currentClient = form.watch('client');
+  
+  const { data: clientGroups = [] } = useQuery({
+    queryKey: ['productivity-groups-for-client', currentClient],
+    queryFn: async () => {
+      if (!currentClient) return [];
+      const groups = await fetchDriverGroups(currentClient);
+      return groups.map(group => group.name);
+    },
+    enabled: !!currentClient,
+  });
+  
   // Update default client when selectedClient changes
-  React.useEffect(() => {
+  useEffect(() => {
     if (selectedClient) {
       form.setValue('client', selectedClient);
     }
@@ -126,73 +149,93 @@ export function ProductivityParametersDialog({
     }
   };
   
+  // Get active groups - use clientGroups from query if available, otherwise fall back to props
+  const activeGroups = clientGroups.length > 0 ? clientGroups : availableGroups;
+  
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[500px]">
-        <DialogHeader>
-          <DialogTitle>Configurar Parámetros de Productividad</DialogTitle>
+      <DialogContent className="sm:max-w-[550px] p-6">
+        <DialogHeader className="mb-4">
+          <DialogTitle className="text-xl font-semibold text-center">
+            Configurar Parámetros de Productividad
+          </DialogTitle>
         </DialogHeader>
         
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-            <div className="grid grid-cols-1 gap-4">
-              <FormField
-                control={form.control}
-                name="client"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Cliente</FormLabel>
-                    <Select 
-                      onValueChange={field.onChange} 
-                      defaultValue={field.value}
-                      value={field.value}
-                    >
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Seleccionar cliente" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {clientList.map((client) => (
-                          <SelectItem key={client} value={client}>{client}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+            <div className="grid gap-6">
+              <div className="grid grid-cols-1 gap-4">
+                <FormField
+                  control={form.control}
+                  name="client"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-sm font-medium">Cliente</FormLabel>
+                      <Select 
+                        onValueChange={field.onChange} 
+                        value={field.value}
+                      >
+                        <FormControl>
+                          <SelectTrigger className="w-full bg-white">
+                            <SelectValue placeholder="Seleccionar cliente" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent className="bg-white max-h-[300px]">
+                          {clientList.length === 0 ? (
+                            <SelectItem value="no_clients" disabled>No hay clientes disponibles</SelectItem>
+                          ) : (
+                            clientList.map((client) => (
+                              <SelectItem key={client} value={client}>{client}</SelectItem>
+                            ))
+                          )}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
               
-              <FormField
-                control={form.control}
-                name="driver_group"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Grupo de Conductores (opcional)</FormLabel>
-                    <Select 
-                      onValueChange={field.onChange} 
-                      defaultValue={field.value || ''}
-                      value={field.value || ''}
-                    >
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Seleccionar grupo" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="no_group">Sin grupo específico</SelectItem>
-                        {availableGroups.map((group) => (
-                          <SelectItem key={group} value={group}>{group}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormDescription>
-                      Si no se especifica un grupo, estos parámetros se aplicarán a todos los conductores del cliente.
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+              <div className="grid grid-cols-1 gap-4">
+                <FormField
+                  control={form.control}
+                  name="driver_group"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel className="text-sm font-medium">
+                        Grupo de Conductores (opcional)
+                      </FormLabel>
+                      <Select 
+                        onValueChange={field.onChange} 
+                        value={field.value || ''}
+                        disabled={!currentClient}
+                      >
+                        <FormControl>
+                          <SelectTrigger className="w-full bg-white">
+                            <SelectValue placeholder="Seleccionar grupo" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent className="bg-white">
+                          <SelectItem value="no_group">Sin grupo específico</SelectItem>
+                          {activeGroups.length > 0 ? (
+                            activeGroups.map((group) => (
+                              <SelectItem key={group} value={group}>{group}</SelectItem>
+                            ))
+                          ) : (
+                            <SelectItem value="empty" disabled>
+                              {currentClient ? 'No hay grupos para este cliente' : 'Seleccione un cliente primero'}
+                            </SelectItem>
+                          )}
+                        </SelectContent>
+                      </Select>
+                      <FormDescription className="text-xs text-gray-500 mt-1">
+                        Si no se especifica un grupo, estos parámetros se aplicarán a todos los conductores del cliente.
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
               
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <FormField
@@ -200,9 +243,15 @@ export function ProductivityParametersDialog({
                   name="expected_daily_distance"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Distancia Diaria Esperada (km)</FormLabel>
+                      <FormLabel className="text-sm font-medium">Distancia Diaria Esperada (km)</FormLabel>
                       <FormControl>
-                        <Input type="number" min="0" step="0.01" {...field} />
+                        <Input 
+                          type="number" 
+                          min="0" 
+                          step="0.01" 
+                          className="bg-white"
+                          {...field} 
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -214,11 +263,17 @@ export function ProductivityParametersDialog({
                   name="expected_daily_time_minutes"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Tiempo Diario Esperado (min)</FormLabel>
+                      <FormLabel className="text-sm font-medium">Tiempo Diario Esperado (min)</FormLabel>
                       <FormControl>
-                        <Input type="number" min="0" step="1" {...field} />
+                        <Input 
+                          type="number" 
+                          min="0" 
+                          step="1" 
+                          className="bg-white"
+                          {...field} 
+                        />
                       </FormControl>
-                      <FormDescription>
+                      <FormDescription className="text-xs text-gray-500 mt-1">
                         {Math.floor(Number(field.value) / 60)}h {Number(field.value) % 60}m
                       </FormDescription>
                       <FormMessage />
@@ -233,7 +288,7 @@ export function ProductivityParametersDialog({
                   name="fuel_cost_per_liter"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel className="flex justify-between">
+                      <FormLabel className="flex justify-between items-center text-sm font-medium">
                         <span>Costo por Litro (MXN)</span>
                         <Button 
                           type="button" 
@@ -245,7 +300,13 @@ export function ProductivityParametersDialog({
                         </Button>
                       </FormLabel>
                       <FormControl>
-                        <Input type="number" min="0" step="0.01" {...field} />
+                        <Input 
+                          type="number" 
+                          min="0" 
+                          step="0.01" 
+                          className="bg-white"
+                          {...field} 
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -257,9 +318,15 @@ export function ProductivityParametersDialog({
                   name="expected_fuel_efficiency"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Rendimiento de Combustible (km/l)</FormLabel>
+                      <FormLabel className="text-sm font-medium">Rendimiento de Combustible (km/l)</FormLabel>
                       <FormControl>
-                        <Input type="number" min="0" step="0.1" {...field} />
+                        <Input 
+                          type="number" 
+                          min="0" 
+                          step="0.1" 
+                          className="bg-white"
+                          {...field} 
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -268,17 +335,24 @@ export function ProductivityParametersDialog({
               </div>
             </div>
             
-            <DialogFooter>
-              <Button type="button" variant="outline" onClick={onClose}>
+            <DialogFooter className="flex justify-end gap-2 pt-2 mt-6">
+              <Button 
+                type="button" 
+                variant="outline" 
+                onClick={onClose}
+                className="bg-white"
+              >
                 Cancelar
               </Button>
-              <Button type="submit">
+              <Button 
+                type="submit"
+                className="px-6"
+              >
                 Guardar Parámetros
               </Button>
             </DialogFooter>
           </form>
         </Form>
-        
       </DialogContent>
     </Dialog>
   );
