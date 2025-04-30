@@ -93,6 +93,7 @@ export function DriverGroupFormDialog({ isOpen, onClose, group, onSuccess }: Dri
 
   console.log("Selected client:", selectedClient);
   console.log("Fetched drivers:", drivers);
+  console.log("Selected drivers:", selectedDrivers);
   
   // If there's an error fetching drivers, show a toast
   useEffect(() => {
@@ -139,16 +140,19 @@ export function DriverGroupFormDialog({ isOpen, onClose, group, onSuccess }: Dri
 
   // Set form driver_ids when selectedDrivers changes
   useEffect(() => {
-    if (selectedDrivers.length > 0) {
-      const driverIds = selectedDrivers.map(driver => driver.id);
-      console.log("Setting driver_ids in form:", driverIds);
-      form.setValue('driver_ids', driverIds);
-    }
+    const driverIds = selectedDrivers.map(driver => driver.id);
+    console.log("Setting driver_ids in form:", driverIds);
+    form.setValue('driver_ids', driverIds);
   }, [selectedDrivers]);
 
   // Handle form submission
   const onSubmit = async (values: DriverGroupFormValues) => {
     console.log("Form values on submit:", values);
+    if (!values.driver_ids || values.driver_ids.length === 0) {
+      toast.warning("Debe seleccionar al menos un conductor");
+      return;
+    }
+    
     setIsSubmitting(true);
     
     try {
@@ -158,7 +162,7 @@ export function DriverGroupFormDialog({ isOpen, onClose, group, onSuccess }: Dri
           ...group,
           name: values.name,
           description: values.description,
-          driver_ids: values.driver_ids || []
+          driver_ids: values.driver_ids 
         };
         
         console.log("Updating group with data:", updatedGroup);
@@ -336,7 +340,7 @@ export function DriverGroupFormDialog({ isOpen, onClose, group, onSuccess }: Dri
                     
                     {/* Drivers Dropdown Panel */}
                     {showDriversList && (
-                      <div className="border rounded-md overflow-hidden mt-2">
+                      <div className="border rounded-md overflow-hidden mt-2 max-h-[350px]">
                         {/* Search Bar */}
                         <div className="p-2 border-b bg-muted/30">
                           <div className="relative">
@@ -351,7 +355,7 @@ export function DriverGroupFormDialog({ isOpen, onClose, group, onSuccess }: Dri
                         </div>
                         
                         {/* Drivers List */}
-                        <ScrollArea className="h-[200px]">
+                        <ScrollArea className="h-[250px] w-full pr-2">
                           {isLoadingDrivers ? (
                             <div className="flex flex-col items-center justify-center h-full p-4">
                               <Loader2 className="h-6 w-6 animate-spin text-primary" />
@@ -439,7 +443,7 @@ export function DriverGroupFormDialog({ isOpen, onClose, group, onSuccess }: Dri
               </Button>
               <Button 
                 type="submit" 
-                disabled={isSubmitting || !form.formState.isValid}
+                disabled={isSubmitting}
                 className="ml-2"
               >
                 {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}

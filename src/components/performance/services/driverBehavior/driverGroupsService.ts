@@ -116,12 +116,15 @@ export const createDriverGroup = async (group: Partial<DriverGroupDetails>): Pro
     // Create a unique ID for the group
     const groupId = `${group.name}-${group.client}`.toLowerCase().replace(/\s+/g, '-');
     
+    // Ensure driver_ids is defined and is an array
+    const driver_ids = Array.isArray(group.driver_ids) ? group.driver_ids : [];
+    
     const newGroup = {
       id: groupId,
       name: group.name,
       client: group.client,
       description: group.description || '',
-      driver_ids: group.driver_ids || [],
+      driver_ids: driver_ids,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString()
     };
@@ -136,7 +139,14 @@ export const createDriverGroup = async (group: Partial<DriverGroupDetails>): Pro
       
     if (error) {
       console.error("Error creating driver group:", error);
-      toast.error("Error al crear grupo", { description: error.message });
+      
+      // Check if it's a duplicate key error
+      if (error.code === '23505') {
+        toast.error("Error al crear grupo", { description: "Ya existe un grupo con este nombre para este cliente" });
+      } else {
+        toast.error("Error al crear grupo", { description: error.message });
+      }
+      
       return null;
     }
     
@@ -156,8 +166,12 @@ export const updateDriverGroup = async (group: DriverGroupDetails): Promise<bool
   try {
     console.log("Updating driver group:", group);
     
+    // Ensure driver_ids is an array
+    const driver_ids = Array.isArray(group.driver_ids) ? group.driver_ids : [];
+    
     const updatedGroup = {
       ...group,
+      driver_ids: driver_ids,
       updated_at: new Date().toISOString()
     };
     
