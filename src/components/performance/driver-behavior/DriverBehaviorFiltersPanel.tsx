@@ -23,6 +23,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { DriverGroupsManagement } from './groups/DriverGroupsManagement';
+import { fetchDriverGroups } from '../services/driverBehavior/driverGroupsService';
 
 interface DriverBehaviorFiltersPanelProps {
   filters: DriverBehaviorFilters;
@@ -44,33 +45,15 @@ export function DriverBehaviorFiltersPanel({
   // State for managing groups panel
   const [isGroupsManagementOpen, setIsGroupsManagementOpen] = useState(false);
   
-  // Local state for driver groups within selected client
-  const [availableGroups, setAvailableGroups] = useState<string[]>([]);
-  
-  // Fetch driver groups when client changes
+  // Fetch driver groups based on selected client
   const { data: groupsData, isLoading: isLoadingGroups } = useQuery({
     queryKey: ['driver-behavior-groups', filters.selectedClient],
     queryFn: async () => {
-      if (!filters.selectedClient) return [];
-      
-      // Fetch driver groups for selected client
-      const { data, error } = await fetch('/api/driver-groups?client=' + filters.selectedClient)
-        .then(res => res.json());
-        
-      if (error) throw error;
-      return data || [];
+      // Fetch all groups or only groups for the selected client
+      return await fetchDriverGroups(filters.selectedClient);
     },
-    enabled: !!filters.selectedClient,
     staleTime: 1000 * 60 * 5, // 5 minutes
-    // Use mock data for now since we don't have the API endpoint yet
-    placeholderData: filters.selectedClient ? ['Team A', 'Team B', 'Night Shift', 'Day Shift'] : []
   });
-  
-  useEffect(() => {
-    if (groupsData) {
-      setAvailableGroups(groupsData);
-    }
-  }, [groupsData]);
   
   // Handle client selection
   const handleClientChange = (clientName: string) => {
@@ -118,6 +101,9 @@ export function DriverBehaviorFiltersPanel({
   const handleOpenGroupsManagement = () => {
     setIsGroupsManagementOpen(true);
   };
+
+  // Get available group names from the groups data
+  const availableGroups = groupsData?.map(group => group.name) || [];
 
   return (
     <div className="flex flex-wrap gap-3 items-center">

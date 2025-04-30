@@ -1,4 +1,6 @@
 
+// This file serves as the driver groups service to manage groups
+
 import { supabase } from "@/integrations/supabase/client";
 import { DriverGroupDetails, DriverForGroup } from "../../types/driver-behavior.types";
 import { toast } from "sonner";

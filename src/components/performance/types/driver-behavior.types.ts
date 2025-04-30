@@ -1,4 +1,3 @@
-
 // Driver behavior filters
 export interface DriverBehaviorFilters {
   selectedClient?: string;
