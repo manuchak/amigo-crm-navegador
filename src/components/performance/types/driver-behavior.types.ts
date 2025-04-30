@@ -1,4 +1,3 @@
-
 import { DateRange } from "react-day-picker";
 
 export interface DriverScore {
@@ -84,10 +83,9 @@ export interface DriverGroupDetails {
   name: string;
   client: string;
   description?: string;
-  created_at: string;
-  updated_at: string;
   driver_ids?: string[];
-  drivers?: DriverForGroup[];
+  created_at?: string;
+  updated_at?: string;
 }
 
 export interface DriverForGroup {

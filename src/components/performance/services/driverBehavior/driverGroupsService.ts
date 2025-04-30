@@ -31,7 +31,9 @@ export const fetchDriverGroups = async (clientName?: string): Promise<DriverGrou
 
 // Fetch drivers for a specific client (to add to groups)
 export const fetchDriversByClient = async (clientName: string): Promise<DriverForGroup[]> => {
+  console.log("Fetching drivers for client:", clientName);
   if (!clientName || clientName === 'all') {
+    console.warn("No client name provided for fetchDriversByClient");
     return [];
   }
   
@@ -46,11 +48,23 @@ export const fetchDriversByClient = async (clientName: string): Promise<DriverFo
       console.error("Error fetching drivers:", error);
       return [];
     }
+
+    if (!data || data.length === 0) {
+      console.log(`No drivers found for client: ${clientName}`);
+      return [];
+    }
+    
+    console.log(`Found ${data.length} drivers for client ${clientName}`);
     
     // Get unique drivers
     const driversMap = new Map<string, DriverForGroup>();
     
-    data?.forEach(driver => {
+    data.forEach(driver => {
+      if (!driver.driver_name) {
+        console.warn("Found driver entry without name", driver);
+        return;
+      }
+      
       const driverId = `${driver.driver_name}-${driver.client}`.toLowerCase().replace(/\s+/g, '-');
       
       if (!driversMap.has(driverId)) {
@@ -74,6 +88,8 @@ export const fetchDriversByClient = async (clientName: string): Promise<DriverFo
 // Create a new driver group
 export const createDriverGroup = async (group: Partial<DriverGroupDetails>): Promise<DriverGroupDetails | null> => {
   try {
+    console.log("Creating driver group:", group);
+    
     // Create a unique ID for the group
     const groupId = `${group.name}-${group.client}`.toLowerCase().replace(/\s+/g, '-');
     
@@ -112,6 +128,8 @@ export const createDriverGroup = async (group: Partial<DriverGroupDetails>): Pro
 // Update an existing driver group
 export const updateDriverGroup = async (group: DriverGroupDetails): Promise<boolean> => {
   try {
+    console.log("Updating driver group:", group);
+    
     const updatedGroup = {
       ...group,
       updated_at: new Date().toISOString()
@@ -141,6 +159,8 @@ export const updateDriverGroup = async (group: DriverGroupDetails): Promise<bool
 // Delete a driver group
 export const deleteDriverGroup = async (groupId: string): Promise<boolean> => {
   try {
+    console.log("Deleting driver group:", groupId);
+    
     const { error } = await supabase
       .from('driver_groups')
       .delete()
