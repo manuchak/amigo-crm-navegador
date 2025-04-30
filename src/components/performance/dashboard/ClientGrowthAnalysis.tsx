@@ -1,3 +1,4 @@
+
 import React, { useMemo, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -80,6 +81,18 @@ export function ClientGrowthAnalysis({
       previousServiciosIds: Set<string>;
     }> = {};
 
+    // DEBUG: First check what type of values we're getting for cobro_cliente
+    console.log("Sample of cobro_cliente values in serviciosData:");
+    const sampleServices = serviciosData.slice(0, 5);
+    sampleServices.forEach((service, idx) => {
+      console.log(`Sample ${idx + 1}:`, {
+        id: service.id || service.id_servicio,
+        cobro_cliente: service.cobro_cliente,
+        cobro_type: typeof service.cobro_cliente,
+        parsed: parseCurrencyValue(service.cobro_cliente)
+      });
+    });
+
     // Process each service
     serviciosData.forEach(servicio => {
       if (!servicio.nombre_cliente) return;
@@ -103,18 +116,42 @@ export function ClientGrowthAnalysis({
         };
       }
       
-      // Get the GMV value (cobro_cliente)
+      // Get the GMV value (cobro_cliente) using our enhanced parser
       const gmvValue = parseCurrencyValue(servicio.cobro_cliente);
       
       // Track unique service IDs per period (to avoid double-counting)
       if (isCurrentPeriod) {
-        clientData[servicio.nombre_cliente].serviciosIds.add(servicio.id_servicio || servicio.id);
-        clientData[servicio.nombre_cliente].currentGMV += gmvValue;
+        const serviceId = servicio.id_servicio || servicio.id;
+        if (serviceId) {
+          clientData[servicio.nombre_cliente].serviciosIds.add(serviceId);
+        }
+        
+        // Add GMV value to current period
+        if (gmvValue > 0) { // Only add positive values
+          clientData[servicio.nombre_cliente].currentGMV += gmvValue;
+        }
+        
       } else if (isPreviousPeriod) {
-        clientData[servicio.nombre_cliente].previousServiciosIds.add(servicio.id_servicio || servicio.id);
-        clientData[servicio.nombre_cliente].previousGMV += gmvValue;
+        const serviceId = servicio.id_servicio || servicio.id;
+        if (serviceId) {
+          clientData[servicio.nombre_cliente].previousServiciosIds.add(serviceId);
+        }
+        
+        // Add GMV value to previous period
+        if (gmvValue > 0) { // Only add positive values
+          clientData[servicio.nombre_cliente].previousGMV += gmvValue;
+        }
       }
     });
+    
+    // Debug: log GMV data for top clients
+    console.log("GMV data for some clients:");
+    Object.entries(clientData)
+      .sort((a, b) => b[1].currentGMV - a[1].currentGMV)
+      .slice(0, 5)
+      .forEach(([client, data]) => {
+        console.log(`${client}: Current GMV=${data.currentGMV}, Previous GMV=${data.previousGMV}`);
+      });
     
     // Calculate final metrics for each client
     const growthData: ClientGrowthData[] = Object.entries(clientData).map(([nombre_cliente, data]) => {
