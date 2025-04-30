@@ -46,6 +46,9 @@ export const fetchDriversByClient = async (clientName: string): Promise<DriverFo
     
     if (error) {
       console.error("Error fetching drivers:", error);
+      toast.error("Error al cargar conductores", {
+        description: error.message
+      });
       return [];
     }
 
@@ -77,10 +80,13 @@ export const fetchDriversByClient = async (clientName: string): Promise<DriverFo
       }
     });
     
-    return Array.from(driversMap.values());
+    const drivers = Array.from(driversMap.values());
+    console.log("Processed drivers:", drivers);
+    return drivers;
     
   } catch (error) {
     console.error("Exception when fetching drivers:", error);
+    toast.error("Error inesperado al cargar conductores");
     return [];
   }
 };

@@ -39,6 +39,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { cn } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
+import { toast } from "sonner";
 
 // Validation schema for the form
 const formSchema = z.object({
@@ -91,9 +92,12 @@ export function DriverGroupFormDialog({ isOpen, onClose, group, onSuccess }: Dri
     staleTime: 1000 * 60 * 5, // 5 minutes
   });
 
+  console.log("Drivers data fetched:", driversData);
+
   // Initialize selected drivers when editing a group
   useEffect(() => {
     if (group && driversData && group.driver_ids) {
+      console.log("Setting selected drivers from group.driver_ids:", group.driver_ids);
       const selectedDriversList = driversData.filter(driver => 
         group.driver_ids?.includes(driver.id)
       );
@@ -140,6 +144,9 @@ export function DriverGroupFormDialog({ isOpen, onClose, group, onSuccess }: Dri
       }
     } catch (error) {
       console.error("Error submitting group:", error);
+      toast.error("Error al guardar el grupo", {
+        description: "Hubo un problema al crear el grupo. Por favor intente nuevamente."
+      });
     } finally {
       setIsSubmitting(false);
     }
@@ -148,26 +155,25 @@ export function DriverGroupFormDialog({ isOpen, onClose, group, onSuccess }: Dri
   // Handle driver selection
   const toggleDriverSelection = (driver: DriverForGroup) => {
     console.log("Toggling driver selection:", driver);
-    const driverIndex = selectedDrivers.findIndex(d => d.id === driver.id);
     
-    if (driverIndex >= 0) {
+    // Check if driver is already selected
+    const isSelected = selectedDrivers.some(d => d.id === driver.id);
+    let newSelectedDrivers: DriverForGroup[];
+    
+    if (isSelected) {
       // Remove driver from selection
-      const newSelectedDrivers = [...selectedDrivers];
-      newSelectedDrivers.splice(driverIndex, 1);
-      setSelectedDrivers(newSelectedDrivers);
-      
-      // Update form value
-      const newDriverIds = newSelectedDrivers.map(d => d.id);
-      form.setValue('driver_ids', newDriverIds);
+      newSelectedDrivers = selectedDrivers.filter(d => d.id !== driver.id);
     } else {
       // Add driver to selection
-      const newSelectedDrivers = [...selectedDrivers, driver];
-      setSelectedDrivers(newSelectedDrivers);
-      
-      // Update form value
-      const newDriverIds = newSelectedDrivers.map(d => d.id);
-      form.setValue('driver_ids', newDriverIds);
+      newSelectedDrivers = [...selectedDrivers, driver];
     }
+    
+    console.log("New selected drivers:", newSelectedDrivers);
+    setSelectedDrivers(newSelectedDrivers);
+    
+    // Update form value
+    const newDriverIds = newSelectedDrivers.map(d => d.id);
+    form.setValue('driver_ids', newDriverIds);
   };
 
   // Filter drivers based on search term
@@ -175,9 +181,12 @@ export function DriverGroupFormDialog({ isOpen, onClose, group, onSuccess }: Dri
     driver.name.toLowerCase().includes(driverSearchTerm.toLowerCase())
   );
 
-  console.log("Available drivers:", driversData);
-  console.log("Selected drivers:", selectedDrivers);
-  console.log("Filtered drivers:", filteredDrivers);
+  console.log("Driver selection state:", {
+    selectedDrivers,
+    filteredDrivers,
+    selectedClient,
+    driversDataCount: driversData.length
+  });
   
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
@@ -293,7 +302,7 @@ export function DriverGroupFormDialog({ isOpen, onClose, group, onSuccess }: Dri
                           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                         </Button>
                       </PopoverTrigger>
-                      <PopoverContent className="w-full p-0" align="start">
+                      <PopoverContent className="w-[300px] p-0" align="start">
                         <Command>
                           <CommandInput 
                             placeholder="Buscar conductores..." 
@@ -314,30 +323,38 @@ export function DriverGroupFormDialog({ isOpen, onClose, group, onSuccess }: Dri
                               )}
                             </CommandEmpty>
                             <CommandGroup>
-                              {filteredDrivers.map((driver) => {
-                                const isSelected = selectedDrivers.some(d => d.id === driver.id);
-                                return (
-                                  <CommandItem
-                                    key={driver.id}
-                                    value={driver.id}
-                                    onSelect={() => toggleDriverSelection(driver)}
-                                    className="cursor-pointer"
-                                  >
-                                    <div className={cn(
-                                      "mr-2 flex h-4 w-4 items-center justify-center rounded-sm border",
-                                      isSelected ? "bg-primary border-primary text-primary-foreground" : "opacity-50"
-                                    )}>
-                                      {isSelected && <Check className="h-3 w-3" />}
-                                    </div>
-                                    <span>{driver.name}</span>
-                                    {driver.score && (
-                                      <span className="ml-auto text-muted-foreground">
-                                        Score: {driver.score}
-                                      </span>
-                                    )}
-                                  </CommandItem>
-                                );
-                              })}
+                              {filteredDrivers.length > 0 ? (
+                                filteredDrivers.map((driver) => {
+                                  const isSelected = selectedDrivers.some(d => d.id === driver.id);
+                                  return (
+                                    <CommandItem
+                                      key={driver.id}
+                                      value={driver.name}
+                                      onSelect={() => {
+                                        toggleDriverSelection(driver);
+                                      }}
+                                      className="cursor-pointer flex items-center"
+                                    >
+                                      <div className={cn(
+                                        "mr-2 flex h-4 w-4 items-center justify-center rounded-sm border",
+                                        isSelected ? "bg-primary border-primary text-primary-foreground" : "opacity-50"
+                                      )}>
+                                        {isSelected && <Check className="h-3 w-3" />}
+                                      </div>
+                                      <span>{driver.name}</span>
+                                      {driver.score !== undefined && (
+                                        <span className="ml-auto text-muted-foreground">
+                                          Score: {driver.score}
+                                        </span>
+                                      )}
+                                    </CommandItem>
+                                  );
+                                })
+                              ) : (
+                                <div className="py-6 text-center text-sm">
+                                  No hay conductores disponibles para este cliente
+                                </div>
+                              )}
                             </CommandGroup>
                           </CommandList>
                         </Command>
