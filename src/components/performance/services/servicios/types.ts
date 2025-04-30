@@ -35,4 +35,7 @@ export interface ClienteServicios {
   totalServicios: number;
   kmPromedio: number;
   costoPromedio: number;
+  serviciosTrend?: 'up' | 'down' | 'neutral';
+  kmTrend?: 'up' | 'down' | 'neutral';
+  costTrend?: 'up' | 'down' | 'neutral';
 }
