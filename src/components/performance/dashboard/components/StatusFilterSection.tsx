@@ -1,7 +1,6 @@
 
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Badge } from "@/components/ui/badge";
 
 export interface StatusOption {
@@ -20,28 +19,13 @@ export function StatusFilterSection({
   statusOptions, 
   onStatusFilterChange 
 }: StatusFilterSectionProps) {
-  // Get the currently selected status values
-  const selectedValues = statusOptions
-    .filter(option => option.checked)
-    .map(option => option.value);
-  
-  // Handle toggle click
-  const handleToggleChange = (value: string) => {
-    // Find if the item is currently checked
-    const option = statusOptions.find(opt => opt.value === value);
-    if (option) {
-      // Toggle the checked value
-      onStatusFilterChange(value, !option.checked);
-    }
-  };
-  
   // Map status to badge variants
   const getBadgeVariant = (status: string) => {
-    switch(status) {
-      case "Completado": return "success";
-      case "Pendiente": return "warning";
-      case "En progreso": return "info";
-      case "Cancelado": return "destructive";
+    switch(status.toLowerCase()) {
+      case "completado": return "success";
+      case "pendiente": return "warning";
+      case "en progreso": return "info";
+      case "cancelado": return "destructive";
       default: return "secondary";
     }
   };
@@ -57,8 +41,8 @@ export function StatusFilterSection({
             <Badge 
               key={option.value}
               variant={option.checked ? getBadgeVariant(option.value) : "outline"}
-              className={`px-3 py-1 cursor-pointer transition-all ${option.checked ? '' : 'opacity-70'}`}
-              onClick={() => handleToggleChange(option.value)}
+              className={`px-3 py-1 cursor-pointer transition-all ${option.checked ? 'font-medium' : 'opacity-70'}`}
+              onClick={() => onStatusFilterChange(option.value, !option.checked)}
             >
               {option.label}
             </Badge>

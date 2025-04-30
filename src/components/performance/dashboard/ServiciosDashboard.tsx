@@ -36,7 +36,6 @@ export function ServiciosDashboard({ dateRange, comparisonRange }: ServiciosDash
   // Filtered data state
   const [filteredData, setFilteredData] = useState<any[]>([]);
   
-  // Console logs added for debugging
   console.log("ServiciosDashboard rendering with dateRange:", dateRange);
   
   const { data, isLoading, isError } = useQuery({
@@ -58,6 +57,16 @@ export function ServiciosDashboard({ dateRange, comparisonRange }: ServiciosDash
   // Debug logging after data fetch
   useEffect(() => {
     console.log("Data fetched:", data);
+    if (data?.serviciosData) {
+      console.log("Total services in raw data:", data.serviciosData.length);
+      
+      // Log unique status values for debugging
+      const uniqueStatuses = new Set();
+      data.serviciosData.forEach((item: any) => {
+        if (item.estado) uniqueStatuses.add(item.estado);
+      });
+      console.log("Unique statuses in data:", Array.from(uniqueStatuses));
+    }
   }, [data]);
 
   // Handle status filter changes
@@ -104,20 +113,29 @@ export function ServiciosDashboard({ dateRange, comparisonRange }: ServiciosDash
     
     // Only return clients that have services in the filtered set
     // This effectively applies the status filter to the clients chart
-    const activeClientes = data.serviciosPorCliente.map(cliente => {
-      // We need to count only services that match our filter
-      const filteredCount = data.serviciosData
-        .filter(servicio => 
+    const activeClientes = data.serviciosPorCliente.filter(cliente => {
+      // Find services for this client in the raw data
+      const clientServices = data.serviciosData.filter(
+        (servicio: any) => servicio.nombre_cliente === cliente.nombre_cliente
+      );
+      
+      // Check if any of these services are in our filtered set
+      return clientServices.some((servicio: any) => filteredIds.has(servicio.id));
+    }).map(cliente => {
+      // Count only services that match our filter for this client
+      const filteredCount = data.serviciosData.filter(
+        (servicio: any) => 
           servicio.nombre_cliente === cliente.nombre_cliente && 
           filteredIds.has(servicio.id)
-        ).length;
+      ).length;
       
       return {
         ...cliente,
-        servicios_count: filteredCount
+        totalServicios: filteredCount
       };
-    }).filter(cliente => cliente.servicios_count > 0);
+    });
     
+    console.log("Filtered client data:", activeClientes.length);
     return activeClientes;
   }, [data?.serviciosPorCliente, data?.serviciosData, filteredData]);
   
