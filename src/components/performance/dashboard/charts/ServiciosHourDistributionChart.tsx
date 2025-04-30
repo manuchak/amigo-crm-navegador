@@ -3,7 +3,6 @@ import React, { useMemo } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { Skeleton } from "@/components/ui/skeleton";
-import { format, parseISO } from 'date-fns';
 import { Badge } from "@/components/ui/badge";
 
 interface HourData {
@@ -41,11 +40,41 @@ export function ServiciosHourDistributionChart({ data = [], isLoading }: Servici
           return;
         }
         
-        // Parse the date from the service
-        let serviceDate: Date | null = null;
+        // Parse the date string as local time to maintain the original hour
+        // This assumes dates are stored with Mexico City timezone (UTC-6)
+        let dateStr = service.fecha_hora_cita;
+        let serviceDate: Date;
         
-        if (typeof service.fecha_hora_cita === 'string') {
-          serviceDate = new Date(service.fecha_hora_cita);
+        if (typeof dateStr === 'string') {
+          // Create a date object without timezone conversion
+          // This is important because we want to preserve the original hour as stored
+          
+          // First try ISO format
+          if (dateStr.includes('T') || dateStr.includes(' ')) {
+            // Parse the date while preserving local time
+            const parts = dateStr.replace('T', ' ').split(' ');
+            const datePart = parts[0];
+            const timePart = parts[1].split('.')[0]; // Remove milliseconds if any
+            
+            const [year, month, day] = datePart.includes('-') 
+              ? datePart.split('-')
+              : datePart.split('/').reverse();
+            
+            const [hour, minute, second = '00'] = timePart.split(':');
+            
+            // Create date using local components (no timezone conversion)
+            serviceDate = new Date(
+              parseInt(year),
+              parseInt(month) - 1, // Month is 0-indexed in JS
+              parseInt(day),
+              parseInt(hour),
+              parseInt(minute),
+              parseInt(second)
+            );
+          } else {
+            // Fallback to standard date parsing
+            serviceDate = new Date(dateStr);
+          }
         } else if (service.fecha_hora_cita instanceof Date) {
           serviceDate = service.fecha_hora_cita;
         } else {
