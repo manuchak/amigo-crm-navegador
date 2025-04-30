@@ -12,26 +12,15 @@ import {
   Card, 
   CardContent, 
   CardHeader, 
-  CardTitle,
-  CardDescription
+  CardTitle, 
+  CardDescription 
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Pencil, Trash, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
-import { Skeleton } from "@/components/ui/skeleton";
-import { ProductivityParameter } from "../../types/productivity.types";
-import { ProductivityParametersDialog } from "./ProductivityParametersDialog";
-import { deleteProductivityParameter } from "../../services/productivity/productivityService";
+import { Pencil, Plus, Trash2, AlertTriangle, RefreshCw } from "lucide-react";
+import { ProductivityParameter } from '../../types/productivity.types';
+import { ProductivityParametersDialog } from './ProductivityParametersDialog';
+import { deleteProductivityParameter } from '../../services/productivity/productivityService';
 
 interface ProductivityParametersTableProps {
   parameters: ProductivityParameter[];
@@ -39,6 +28,7 @@ interface ProductivityParametersTableProps {
   driverGroups: string[];
   isLoading: boolean;
   onRefresh: () => void;
+  currentFuelPrice?: number | null;
 }
 
 export function ProductivityParametersTable({
@@ -46,90 +36,98 @@ export function ProductivityParametersTable({
   clients,
   driverGroups,
   isLoading,
-  onRefresh
+  onRefresh,
+  currentFuelPrice
 }: ProductivityParametersTableProps) {
-  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
-  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
-  const [editingParameter, setEditingParameter] = useState<ProductivityParameter | undefined>();
-  const [deletingParameter, setDeletingParameter] = useState<ProductivityParameter | undefined>();
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [editParameter, setEditParameter] = useState<ProductivityParameter | undefined>();
+  const [isDeleting, setIsDeleting] = useState(false);
+  
+  const handleOpenDialog = () => {
+    setEditParameter(undefined);
+    setIsDialogOpen(true);
+  };
   
   const handleEditParameter = (parameter: ProductivityParameter) => {
-    setEditingParameter(parameter);
-    setIsAddDialogOpen(true);
+    setEditParameter(parameter);
+    setIsDialogOpen(true);
   };
   
-  const handleDeleteParameter = (parameter: ProductivityParameter) => {
-    setDeletingParameter(parameter);
-    setIsDeleteDialogOpen(true);
-  };
-  
-  const confirmDeleteParameter = async () => {
-    if (!deletingParameter) return;
+  const handleDeleteParameter = async (parameter: ProductivityParameter) => {
+    if (!confirm(`¿Estás seguro que deseas eliminar los parámetros para ${parameter.client}${parameter.driver_group ? ` - ${parameter.driver_group}` : ''}?`)) {
+      return;
+    }
     
     try {
-      await deleteProductivityParameter(deletingParameter.id);
-      toast.success("Parámetro eliminado", {
-        description: `Los parámetros para ${deletingParameter.client} ${deletingParameter.driver_group ? `(${deletingParameter.driver_group})` : ''} han sido eliminados.`
+      setIsDeleting(true);
+      await deleteProductivityParameter(parameter.id);
+      toast.success("Parámetros eliminados", {
+        description: `Se eliminaron los parámetros para ${parameter.client}${parameter.driver_group ? ` - ${parameter.driver_group}` : ''}`
       });
       onRefresh();
     } catch (error) {
       console.error("Error deleting parameter:", error);
-      toast.error("Error al eliminar parámetro", {
-        description: "Ha ocurrido un error al eliminar el parámetro de productividad."
+      toast.error("Error al eliminar", {
+        description: "No se pudo eliminar los parámetros."
       });
     } finally {
-      setIsDeleteDialogOpen(false);
-      setDeletingParameter(undefined);
+      setIsDeleting(false);
     }
   };
   
-  if (isLoading) {
-    return (
-      <Card className="border shadow-sm">
-        <CardHeader>
-          <CardTitle className="text-lg font-medium">Parámetros de Productividad</CardTitle>
-          <CardDescription>Define los parámetros de productividad por cliente y grupo</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Skeleton className="h-[300px] w-full" />
-        </CardContent>
-      </Card>
-    );
-  }
+  const handleCloseDialog = () => {
+    setIsDialogOpen(false);
+    setEditParameter(undefined);
+  };
   
+  const handleParameterSaved = () => {
+    onRefresh();
+  };
+
+  // Check if any parameter has outdated fuel price
+  const hasOutdatedFuelPrice = currentFuelPrice && parameters.some(
+    param => Math.abs(param.fuel_cost_per_liter - currentFuelPrice) > 0.5
+  );
+
   return (
     <>
-      <Card className="border shadow-sm">
+      <Card>
         <CardHeader className="flex flex-row items-center justify-between">
           <div>
             <CardTitle className="text-lg font-medium">Parámetros de Productividad</CardTitle>
-            <CardDescription>Define los parámetros de productividad por cliente y grupo</CardDescription>
+            <CardDescription>Define los valores esperados por cliente y grupo</CardDescription>
           </div>
-          <Button onClick={() => {
-            setEditingParameter(undefined);
-            setIsAddDialogOpen(true);
-          }}>
-            Agregar parámetros
-          </Button>
+          <div className="flex items-center gap-2">
+            {hasOutdatedFuelPrice && (
+              <div className="flex items-center text-amber-500 text-sm mr-2">
+                <AlertTriangle className="h-4 w-4 mr-1" />
+                <span>Precios de combustible desactualizados</span>
+              </div>
+            )}
+            <Button variant="outline" size="sm" onClick={onRefresh}>
+              <RefreshCw className="h-4 w-4 mr-2" />
+              Actualizar
+            </Button>
+            <Button size="sm" onClick={handleOpenDialog}>
+              <Plus className="h-4 w-4 mr-2" />
+              Nuevo Parámetro
+            </Button>
+          </div>
         </CardHeader>
         <CardContent>
-          {parameters.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-10 text-center border rounded-md border-dashed">
-              <AlertCircle className="w-10 h-10 text-muted-foreground mb-2" />
-              <h3 className="text-lg font-medium">No hay parámetros definidos</h3>
-              <p className="text-sm text-muted-foreground max-w-xs mt-1">
-                Agrega parámetros de productividad para empezar a medir el rendimiento de tus conductores.
-              </p>
-              <Button 
-                variant="outline" 
-                className="mt-4" 
-                onClick={() => {
-                  setEditingParameter(undefined);
-                  setIsAddDialogOpen(true);
-                }}
-              >
-                Agregar parámetros
-              </Button>
+          {isLoading ? (
+            <div className="py-8 text-center text-muted-foreground">
+              Cargando parámetros...
+            </div>
+          ) : parameters.length === 0 ? (
+            <div className="py-8 text-center text-muted-foreground">
+              No hay parámetros definidos.
+              <div className="mt-2">
+                <Button variant="outline" size="sm" onClick={handleOpenDialog}>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Agregar nuevo parámetro
+                </Button>
+              </div>
             </div>
           ) : (
             <div className="rounded-md border">
@@ -142,72 +140,67 @@ export function ProductivityParametersTable({
                     <TableHead className="text-right">Tiempo diario</TableHead>
                     <TableHead className="text-right">Costo combustible</TableHead>
                     <TableHead className="text-right">Rendimiento (km/l)</TableHead>
-                    <TableHead className="w-[100px]"></TableHead>
+                    <TableHead></TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {parameters.map((param) => (
-                    <TableRow key={param.id}>
-                      <TableCell className="font-medium">{param.client}</TableCell>
-                      <TableCell>{param.driver_group || 'Todos'}</TableCell>
-                      <TableCell className="text-right">{param.expected_daily_distance}</TableCell>
-                      <TableCell className="text-right">
-                        {Math.floor(param.expected_daily_time_minutes / 60)}h {param.expected_daily_time_minutes % 60}m
-                      </TableCell>
-                      <TableCell className="text-right">${param.fuel_cost_per_liter.toFixed(2)}</TableCell>
-                      <TableCell className="text-right">{param.expected_fuel_efficiency.toFixed(1)}</TableCell>
-                      <TableCell>
-                        <div className="flex justify-end gap-2">
-                          <Button variant="ghost" size="icon" onClick={() => handleEditParameter(param)}>
-                            <Pencil className="h-4 w-4" />
-                          </Button>
-                          <Button variant="ghost" size="icon" onClick={() => handleDeleteParameter(param)}>
-                            <Trash className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
+                  {parameters.map(param => {
+                    const outdatedFuelPrice = currentFuelPrice && 
+                      Math.abs(param.fuel_cost_per_liter - currentFuelPrice) > 0.5;
+                    
+                    return (
+                      <TableRow key={param.id}>
+                        <TableCell>{param.client}</TableCell>
+                        <TableCell>{param.driver_group || 'Todos'}</TableCell>
+                        <TableCell className="text-right">{param.expected_daily_distance}</TableCell>
+                        <TableCell className="text-right">
+                          {Math.floor(param.expected_daily_time_minutes / 60)}h {param.expected_daily_time_minutes % 60}m
+                        </TableCell>
+                        <TableCell className={`text-right ${outdatedFuelPrice ? 'text-amber-500 font-medium' : ''}`}>
+                          ${param.fuel_cost_per_liter.toFixed(2)}/litro
+                          {outdatedFuelPrice && <AlertTriangle className="inline-block ml-1 h-4 w-4" />}
+                        </TableCell>
+                        <TableCell className="text-right">{param.expected_fuel_efficiency}</TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex justify-end gap-2">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => handleEditParameter(param)}
+                              title="Editar"
+                            >
+                              <Pencil className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => handleDeleteParameter(param)}
+                              disabled={isDeleting}
+                              title="Eliminar"
+                            >
+                              <Trash2 className="h-4 w-4 text-red-500" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
                 </TableBody>
               </Table>
             </div>
           )}
         </CardContent>
       </Card>
-      
-      {isAddDialogOpen && (
-        <ProductivityParametersDialog
-          isOpen={isAddDialogOpen}
-          onClose={() => {
-            setIsAddDialogOpen(false);
-            setEditingParameter(undefined);
-          }}
-          onParameterSaved={onRefresh}
-          clients={clients}
-          driverGroups={driverGroups}
-          editParameter={editingParameter}
-        />
-      )}
-      
-      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Esta acción eliminará los parámetros de productividad para
-              {deletingParameter && (
-                <span className="font-semibold">
-                  {` ${deletingParameter.client} ${deletingParameter.driver_group ? `(${deletingParameter.driver_group})` : ''}`}
-                </span>
-              )}.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmDeleteParameter}>Eliminar</AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+
+      <ProductivityParametersDialog
+        isOpen={isDialogOpen}
+        onClose={handleCloseDialog}
+        onParameterSaved={handleParameterSaved}
+        clients={clients}
+        driverGroups={driverGroups}
+        editParameter={editParameter}
+        currentFuelPrice={currentFuelPrice}
+      />
     </>
   );
 }

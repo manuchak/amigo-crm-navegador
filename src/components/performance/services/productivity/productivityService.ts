@@ -3,7 +3,8 @@ import {
   ProductivityParameter, 
   NewProductivityParameter, 
   ProductivityAnalysis, 
-  ProductivitySummary 
+  ProductivitySummary,
+  FuelPrices
 } from "../../types/productivity.types";
 import { DateRange } from "react-day-picker";
 
@@ -84,20 +85,53 @@ export const deleteProductivityParameter = async (id: number): Promise<void> => 
   }
 };
 
-// Update all fuel prices to national average
-export const updateAllFuelPrices = async (): Promise<{ nationalPrice: number, recordsUpdated: number }> => {
-  const { data, error } = await supabase
-    .rpc('update_all_fuel_prices_to_national_average');
-  
-  if (error) {
-    console.error("Error updating fuel prices:", error);
+// Fetch current fuel prices from web scraper
+export const fetchCurrentFuelPrices = async (): Promise<FuelPrices> => {
+  try {
+    const { data, error } = await supabase.functions.invoke('fetch-fuel-prices');
+    
+    if (error) {
+      console.error("Error fetching fuel prices:", error);
+      throw error;
+    }
+    
+    return data;
+  } catch (error) {
+    console.error("Error invoking fetch-fuel-prices function:", error);
     throw error;
   }
-  
-  return {
-    nationalPrice: data.national_price,
-    recordsUpdated: data.records_updated
-  };
+};
+
+// Update all fuel prices to national average
+export const updateAllFuelPrices = async (): Promise<{ nationalPrice: number, recordsUpdated: number }> => {
+  try {
+    // First get the current price from our scraper
+    const fuelPrices = await fetchCurrentFuelPrices();
+    const regularPrice = fuelPrices.regular;
+    
+    if (!regularPrice) {
+      throw new Error("Could not retrieve regular fuel price");
+    }
+    
+    // Now use this price to update all parameters
+    const { data, error } = await supabase
+      .rpc('update_all_fuel_prices', {
+        new_price: regularPrice
+      });
+    
+    if (error) {
+      console.error("Error updating fuel prices:", error);
+      throw error;
+    }
+    
+    return {
+      nationalPrice: regularPrice,
+      recordsUpdated: data.records_updated
+    };
+  } catch (error) {
+    console.error("Error in updateAllFuelPrices:", error);
+    throw error;
+  }
 };
 
 // Fetch productivity analysis data

@@ -52,3 +52,10 @@ export interface ProductivitySummary {
   totalFuelCost: number;
   totalTimeSpent: string;
 }
+
+export interface FuelPrices {
+  regular: number | null;
+  premium: number | null;
+  diesel: number | null;
+  fetchedAt: string;
+}

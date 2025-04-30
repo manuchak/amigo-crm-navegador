@@ -16,7 +16,8 @@ import {
   fetchProductivityParameters, 
   fetchProductivityAnalysis,
   calculateProductivitySummary, 
-  updateAllFuelPrices 
+  updateAllFuelPrices,
+  fetchCurrentFuelPrices
 } from "../../services/productivity/productivityService";
 import { ProductivityMetricsCards } from "./ProductivityMetricsCards";
 import { ProductivityParametersTable } from "./ProductivityParametersTable";
@@ -34,6 +35,7 @@ export function ProductivityDashboard({
   selectedClients
 }: ProductivityDashboardProps) {
   const [isUpdatingFuelPrices, setIsUpdatingFuelPrices] = useState(false);
+  const [currentFuelPrice, setCurrentFuelPrice] = useState<number | null>(null);
   
   // Fetch productivity parameters
   const { 
@@ -45,6 +47,26 @@ export function ProductivityDashboard({
     queryFn: () => fetchProductivityParameters(),
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
+  
+  // Fetch current fuel prices
+  const { 
+    data: fuelPrices, 
+    isLoading: isLoadingFuelPrices, 
+    refetch: refetchFuelPrices
+  } = useQuery({
+    queryKey: ['current-fuel-prices'],
+    queryFn: fetchCurrentFuelPrices,
+    staleTime: 60 * 60 * 1000, // 1 hour
+    enabled: true,
+    retry: 1
+  });
+  
+  // Set current fuel price when data is fetched
+  useEffect(() => {
+    if (fuelPrices?.regular) {
+      setCurrentFuelPrice(fuelPrices.regular);
+    }
+  }, [fuelPrices]);
   
   // Extract unique driver groups for parameter setup
   const driverGroups = useMemo(() => {
@@ -104,6 +126,7 @@ export function ProductivityDashboard({
       });
       refetchParameters();
       refetchAnalysis();
+      setCurrentFuelPrice(result.nationalPrice);
     } catch (error) {
       console.error("Error updating fuel prices:", error);
       toast.error("Error al actualizar precios", {
@@ -118,6 +141,7 @@ export function ProductivityDashboard({
   const handleRefresh = () => {
     refetchParameters();
     refetchAnalysis();
+    refetchFuelPrices();
   };
   
   return (
@@ -130,7 +154,11 @@ export function ProductivityDashboard({
             onClick={handleUpdateFuelPrices}
             disabled={isUpdatingFuelPrices}
           >
-            {isUpdatingFuelPrices ? "Actualizando..." : "Actualizar precio combustible"}
+            {isUpdatingFuelPrices ? "Actualizando..." : 
+              currentFuelPrice ? 
+                `Actualizar precio: $${currentFuelPrice.toFixed(2)}/litro` : 
+                "Actualizar precio combustible"
+            }
           </Button>
           
           <Button 
@@ -162,7 +190,14 @@ export function ProductivityDashboard({
         <div className="lg:col-span-1">
           <Card className="border shadow-sm">
             <CardHeader>
-              <CardTitle className="text-lg font-medium">Herramientas</CardTitle>
+              <CardTitle className="text-lg font-medium">
+                Herramientas
+                {currentFuelPrice && (
+                  <span className="text-sm font-normal text-muted-foreground ml-2">
+                    (Precio actual: ${currentFuelPrice.toFixed(2)}/litro)
+                  </span>
+                )}
+              </CardTitle>
               <CardDescription>Acciones y exportación</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
@@ -172,7 +207,10 @@ export function ProductivityDashboard({
                 onClick={handleUpdateFuelPrices}
                 disabled={isUpdatingFuelPrices}
               >
-                Actualizar precio de combustible
+                {isUpdatingFuelPrices ? 
+                  "Actualizando precios..." : 
+                  "Actualizar precio de combustible"
+                }
               </Button>
               
               <Button 
@@ -189,6 +227,11 @@ export function ProductivityDashboard({
                   Los datos de productividad se basan en los parámetros definidos. 
                   Para modificarlos, administra los parámetros por cliente y grupo.
                 </p>
+                {fuelPrices?.fetchedAt && (
+                  <p className="text-xs text-muted-foreground">
+                    Última actualización de precios: {new Date(fuelPrices.fetchedAt).toLocaleString()}
+                  </p>
+                )}
               </div>
             </CardContent>
           </Card>
@@ -202,6 +245,7 @@ export function ProductivityDashboard({
         driverGroups={driverGroups}
         isLoading={isLoadingParameters}
         onRefresh={refetchParameters}
+        currentFuelPrice={currentFuelPrice}
       />
     </div>
   );

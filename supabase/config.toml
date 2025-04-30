@@ -1,5 +1,5 @@
 
-project_id = "beefjsdgrdeiymzxwxru"
+project_id = "your-project-id"
 
-[functions.import-servicios-data]
+[functions.fetch-fuel-prices]
 verify_jwt = true

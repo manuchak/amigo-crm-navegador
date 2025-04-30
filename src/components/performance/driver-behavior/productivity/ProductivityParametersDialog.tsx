@@ -38,6 +38,7 @@ interface ProductivityParametersDialogProps {
   clients: string[];
   driverGroups: string[];
   editParameter?: ProductivityParameter;
+  currentFuelPrice?: number | null;
 }
 
 export function ProductivityParametersDialog({
@@ -46,7 +47,8 @@ export function ProductivityParametersDialog({
   onParameterSaved,
   clients,
   driverGroups,
-  editParameter
+  editParameter,
+  currentFuelPrice
 }: ProductivityParametersDialogProps) {
   const [isSaving, setIsSaving] = useState(false);
   
@@ -56,7 +58,7 @@ export function ProductivityParametersDialog({
       driver_group: '',
       expected_daily_distance: 100,
       expected_daily_time_minutes: 480, // 8 hours
-      fuel_cost_per_liter: 24,
+      fuel_cost_per_liter: currentFuelPrice || 24,
       expected_fuel_efficiency: 10 // 10 km per liter
     }
   });
@@ -78,11 +80,11 @@ export function ProductivityParametersDialog({
         driver_group: '',
         expected_daily_distance: 100,
         expected_daily_time_minutes: 480,
-        fuel_cost_per_liter: 24,
+        fuel_cost_per_liter: currentFuelPrice || 24,
         expected_fuel_efficiency: 10
       });
     }
-  }, [editParameter, form]);
+  }, [editParameter, form, currentFuelPrice]);
   
   const handleSubmit = async (values: NewProductivityParameter) => {
     try {
@@ -252,6 +254,11 @@ export function ProductivityParametersDialog({
                         disabled={isSaving}
                       />
                     </FormControl>
+                    {currentFuelPrice && (
+                      <FormDescription>
+                        Precio actual: ${currentFuelPrice.toFixed(2)}/litro
+                      </FormDescription>
+                    )}
                     <FormMessage />
                   </FormItem>
                 )}
