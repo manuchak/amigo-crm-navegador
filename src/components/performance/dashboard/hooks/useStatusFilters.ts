@@ -39,14 +39,21 @@ export function useStatusFilters(rawData: any[] | undefined) {
     setStatusOptions(options);
   }, [rawData]);
   
-  // Get appropriate color based on status
+  // Get appropriate color based on status with more subtle colors
   const getStatusColor = (status: string): string => {
     const normalized = status.toLowerCase();
     if (normalized.includes('completado')) return 'success';
     if (normalized.includes('pendiente')) return 'warning';
     if (normalized.includes('progreso')) return 'info';
     if (normalized.includes('cancel')) return 'destructive';
-    return 'secondary';
+    if (normalized.includes('aprobado')) return 'success';
+    if (normalized.includes('rechaz')) return 'destructive';
+    if (normalized.includes('espera')) return 'warning';
+    if (normalized.includes('proceso')) return 'info';
+    if (normalized.includes('finaliz')) return 'success';
+    if (normalized.includes('activ')) return 'purple';
+    if (normalized.includes('inactiv')) return 'secondary';
+    return 'primary';
   };
   
   // Handle status filter changes

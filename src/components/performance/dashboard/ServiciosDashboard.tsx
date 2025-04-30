@@ -88,22 +88,22 @@ export function ServiciosDashboard({ dateRange, comparisonRange }: ServiciosDash
       hasData={hasData && hasFilteredData}
       dateRange={dateRange}
     >
-      <div className="space-y-6">
-        {/* Modern badge-style status filter */}
-        <div className="animate-fade-in duration-300">
-          <StatusBadgeFilter 
-            statusOptions={statusOptions} 
-            onStatusFilterChange={handleStatusFilterChange}
-            onToggleAll={toggleAllFilters}
-          />
-        </div>
-        
+      <div className="space-y-4">
         {/* Metrics cards at the top */}
         <div className="animate-fade-in duration-300">
           <ServiciosMetricsCards 
             data={data} 
             isLoading={isLoading}
             filteredData={filteredData}
+          />
+        </div>
+        
+        {/* Subtle filter bar */}
+        <div className="bg-white/50 backdrop-blur-sm border border-border/40 rounded-md px-3 py-2 animate-fade-in duration-300">
+          <StatusBadgeFilter 
+            statusOptions={statusOptions} 
+            onStatusFilterChange={handleStatusFilterChange}
+            onToggleAll={toggleAllFilters}
           />
         </div>
         
