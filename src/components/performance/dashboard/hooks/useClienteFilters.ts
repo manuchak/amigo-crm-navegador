@@ -45,14 +45,37 @@ export function useClienteFilters(
       
       const avgKm = filteredClientServices.length > 0 ? totalKm / filteredClientServices.length : 0;
       
-      // Calculate AOV (Average Order Value) - Sum of cobro_cliente divided by distinct service count
+      // Calculate AOV (Average Order Value) - Sum of cobro_cliente divided by service count
+      // Debug logging to identify issues with cobro_cliente values
+      console.log(`Client ${cliente.nombre_cliente} services:`, filteredClientServices.map(s => ({
+        id: s.id,
+        cobro_cliente: s.cobro_cliente,
+        cobro_cliente_type: typeof s.cobro_cliente
+      })));
+      
+      // Fix: Ensure cobro_cliente values are properly converted to numbers
       let totalCobro = 0;
       filteredClientServices.forEach((servicio: any) => {
-        const cobroValue = servicio.cobro_cliente || 0;
-        totalCobro += Number(cobroValue);
+        // Check if cobro_cliente exists and convert it properly to a number
+        if (servicio.cobro_cliente !== null && servicio.cobro_cliente !== undefined) {
+          // Handle both numeric and string representations
+          const cobroValue = typeof servicio.cobro_cliente === 'string' 
+            ? parseFloat(servicio.cobro_cliente.replace(/[^0-9.-]+/g, '')) 
+            : Number(servicio.cobro_cliente);
+            
+          if (!isNaN(cobroValue)) {
+            totalCobro += cobroValue;
+          }
+        }
       });
       
       const avgCobro = filteredClientServices.length > 0 ? totalCobro / filteredClientServices.length : 0;
+      
+      console.log(`Client ${cliente.nombre_cliente} AOV calculation:`, {
+        totalCobro,
+        serviceCount: filteredClientServices.length,
+        avgCobro
+      });
       
       return {
         ...cliente,
