@@ -26,13 +26,11 @@ import { ProductivityAnalysisTable } from "./ProductivityAnalysisTable";
 interface ProductivityDashboardProps {
   dateRange: DateRange;
   clients: string[];
-  selectedClients?: string[];
 }
 
 export function ProductivityDashboard({
   dateRange,
-  clients,
-  selectedClients
+  clients
 }: ProductivityDashboardProps) {
   const [isUpdatingFuelPrices, setIsUpdatingFuelPrices] = useState(false);
   const [currentFuelPrice, setCurrentFuelPrice] = useState<number | null>(null);
@@ -86,7 +84,7 @@ export function ProductivityDashboard({
     isLoading: isLoadingAnalysis,
     refetch: refetchAnalysis
   } = useQuery({
-    queryKey: ['productivity-analysis', dateRange, selectedClients],
+    queryKey: ['productivity-analysis', dateRange],
     queryFn: () => {
       // Make sure we have valid dates before fetching
       if (!dateRange.from || !dateRange.to) {
@@ -94,9 +92,7 @@ export function ProductivityDashboard({
         return Promise.resolve([]);
       }
       
-      return fetchProductivityAnalysis(dateRange, {
-        client: selectedClients && selectedClients.length === 1 ? selectedClients[0] : undefined
-      });
+      return fetchProductivityAnalysis(dateRange);
     },
     enabled: !!dateRange.from && !!dateRange.to,
     staleTime: 5 * 60 * 1000, // 5 minutes
@@ -107,14 +103,6 @@ export function ProductivityDashboard({
     if (!analysisData) return null;
     return calculateProductivitySummary(analysisData);
   }, [analysisData]);
-  
-  // Filter analysis data based on selected clients
-  const filteredAnalysisData = useMemo(() => {
-    if (!analysisData) return [];
-    if (!selectedClients || selectedClients.length === 0) return analysisData;
-    
-    return analysisData.filter(item => selectedClients.includes(item.client));
-  }, [analysisData, selectedClients]);
   
   // Handle updating fuel prices
   const handleUpdateFuelPrices = async () => {
@@ -182,7 +170,7 @@ export function ProductivityDashboard({
         {/* Productivity Parameters Management */}
         <div className="lg:col-span-2">
           <ProductivityAnalysisTable 
-            data={filteredAnalysisData} 
+            data={analysisData || []} 
             isLoading={isLoadingAnalysis} 
           />
         </div>
@@ -216,7 +204,7 @@ export function ProductivityDashboard({
               <Button 
                 className="w-full" 
                 variant="outline"
-                disabled={!filteredAnalysisData.length}
+                disabled={!analysisData?.length}
               >
                 <Download className="mr-2 h-4 w-4" />
                 Exportar datos

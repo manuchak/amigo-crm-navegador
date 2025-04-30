@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { 
   ProductivityParameter, 
@@ -146,10 +145,9 @@ export const updateAllFuelPrices = async (): Promise<{ nationalPrice: number, re
 };
 
 // Fetch productivity analysis data
-// Updated to accept DateRange type from react-day-picker
+// Updated to remove client filtering
 export const fetchProductivityAnalysis = async (
-  dateRange: DateRange,
-  filters?: { client?: string; driver_group?: string }
+  dateRange: DateRange
 ): Promise<ProductivityAnalysis[]> => {
   // Validate that both from and to dates exist
   if (!dateRange.from || !dateRange.to) {
@@ -162,14 +160,6 @@ export const fetchProductivityAnalysis = async (
     .select('*')
     .gte('start_date', dateRange.from.toISOString())
     .lte('end_date', dateRange.to.toISOString());
-  
-  if (filters?.client) {
-    query = query.eq('client', filters.client);
-  }
-  
-  if (filters?.driver_group) {
-    query = query.eq('driver_group', filters.driver_group);
-  }
   
   const { data, error } = await query;
   

@@ -6,7 +6,7 @@ import { fetchDriverBehaviorData, fetchClientList } from "../services/driverBeha
 import { DriverBehaviorMetricsCards } from './DriverBehaviorMetricsCards';
 import { DriverBehaviorTable } from './DriverBehaviorTable';
 import { DriverBehaviorChart } from './DriverBehaviorChart';
-import { DriverBehaviorData, DriverBehaviorFilters } from '../types/driver-behavior.types';
+import { DriverBehaviorFilters } from '../types/driver-behavior.types';
 import { DriverBehaviorFiltersPanel } from './DriverBehaviorFiltersPanel';
 import { DriverRiskAssessment } from './DriverRiskAssessment';
 import { TopDriversPanel } from './TopDriversPanel';
@@ -26,30 +26,30 @@ export function DriverBehaviorDashboard({ dateRange, comparisonRange }: DriverBe
   const [filters, setFilters] = useState<DriverBehaviorFilters>({});
   const queryClient = useQueryClient();
 
-  // Obtener la lista de clientes para el filtrado
-  const { data: clientList = [], isLoading: isClientsLoading } = useQuery({
+  // Fetch client list for reference (clients will still be loaded for the ProductivityDashboard)
+  const { data: clientList = [] } = useQuery({
     queryKey: ['driver-behavior-clients'],
     queryFn: fetchClientList,
-    staleTime: 5 * 60 * 1000, // 5 minutos
+    staleTime: 5 * 60 * 1000, // 5 minutes
     retry: 2,
   });
 
-  // Obtener los datos de comportamiento del conductor con filtros aplicados
+  // Get driver behavior data
   const { data: driverData, isLoading, error } = useQuery({
     queryKey: ['driver-behavior-data', dateRange, filters],
     queryFn: () => fetchDriverBehaviorData(dateRange, filters),
   });
 
-  // Obtener datos de comparación si se proporciona un rango de comparación
+  // Get comparison data if comparison range is provided
   const { data: comparisonData } = useQuery({
     queryKey: ['driver-behavior-comparison-data', comparisonRange, filters],
     queryFn: () => comparisonRange ? fetchDriverBehaviorData(comparisonRange, filters) : null,
     enabled: !!comparisonRange && comparisonRange.from !== null && comparisonRange.to !== null,
   });
 
-  // Manejar cambios de filtro
+  // Handle filter changes
   const handleFilterChange = useCallback((newFilters: DriverBehaviorFilters) => {
-    console.log('Aplicando filtros:', newFilters);
+    console.log('Applying filters:', newFilters);
     setFilters(newFilters);
   }, []);
   
@@ -70,23 +70,10 @@ export function DriverBehaviorDashboard({ dateRange, comparisonRange }: DriverBe
     );
   }
 
-  // Información de debug importante para verificar fechas
-  console.log('DateRange in dashboard:', dateRange);
-  if (driverData) {
-    console.log(`Datos cargados: ${driverData.driverScores?.length || 0} registros de conductores`);
-    if (driverData.driverScores && driverData.driverScores.length > 0) {
-      console.log('Muestra de fechas:', {
-        start: new Date(driverData.driverScores[0].start_date).toLocaleDateString(),
-        end: new Date(driverData.driverScores[0].end_date).toLocaleDateString()
-      });
-    }
-  }
-
   return (
     <div className="space-y-6 animate-fade-in">
       <div className="flex items-center justify-between mb-6">
         <DriverBehaviorFiltersPanel 
-          clientList={Array.isArray(clientList) ? clientList : []} 
           onFilterChange={handleFilterChange} 
           filters={filters} 
         />
@@ -154,7 +141,6 @@ export function DriverBehaviorDashboard({ dateRange, comparisonRange }: DriverBe
           <ProductivityDashboard 
             dateRange={dateRange}
             clients={Array.isArray(clientList) ? clientList : []}
-            selectedClients={filters.selectedClients}
           />
         </TabsContent>
         
