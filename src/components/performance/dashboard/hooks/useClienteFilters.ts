@@ -25,21 +25,17 @@ export function useClienteFilters(
       return clientServices.some((servicio: any) => filteredIds.has(servicio.id));
     }).map(cliente => {
       // Count only services that match our filter for this client
-      const filteredCount = serviciosData.filter(
-        (servicio: any) => 
-          servicio.nombre_cliente === cliente.nombre_cliente && 
-          filteredIds.has(servicio.id)
-      ).length;
-      
-      // Calculate average KM for filtered services, prioritizing km_teorico over km_recorridos
-      const filteredServices = serviciosData.filter(
+      const filteredClientServices = serviciosData.filter(
         (servicio: any) => 
           servicio.nombre_cliente === cliente.nombre_cliente && 
           filteredIds.has(servicio.id)
       );
       
+      const filteredCount = filteredClientServices.length;
+      
+      // Calculate average KM for filtered services, prioritizing km_teorico over km_recorridos
       let totalKm = 0;
-      filteredServices.forEach((servicio: any) => {
+      filteredClientServices.forEach((servicio: any) => {
         // Prioritize km_teorico over km_recorridos
         const kmValue = servicio.km_teorico !== null && servicio.km_teorico !== undefined ? 
           servicio.km_teorico : 
@@ -47,12 +43,22 @@ export function useClienteFilters(
         totalKm += Number(kmValue);
       });
       
-      const avgKm = filteredServices.length > 0 ? totalKm / filteredServices.length : 0;
+      const avgKm = filteredClientServices.length > 0 ? totalKm / filteredClientServices.length : 0;
+      
+      // Calculate AOV (Average Order Value) - Sum of cobro_cliente divided by distinct service count
+      let totalCobro = 0;
+      filteredClientServices.forEach((servicio: any) => {
+        const cobroValue = servicio.cobro_cliente || 0;
+        totalCobro += Number(cobroValue);
+      });
+      
+      const avgCobro = filteredClientServices.length > 0 ? totalCobro / filteredClientServices.length : 0;
       
       return {
         ...cliente,
         totalServicios: filteredCount,
-        kmPromedio: avgKm // Override with our recalculated value
+        kmPromedio: avgKm, // Override with our recalculated value
+        costoPromedio: avgCobro // AOV calculation
       };
     });
     

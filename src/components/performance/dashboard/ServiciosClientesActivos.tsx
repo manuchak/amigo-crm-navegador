@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Users, TrendingUp, TrendingDown, Minus } from "lucide-react";
@@ -30,6 +31,10 @@ export function ServiciosClientesActivos({ clientes = [], isLoading }: Servicios
   const clientesProcessed = clientes.map(cliente => {
     // Get valid averages or zero if NaN - prioritize km_teorico over km_recorridos
     const kmPromedio = getValidNumberOrZero(cliente.kmPromedio);
+    // Round to 2 decimal places for display
+    const kmPromedioFormatted = Number(kmPromedio.toFixed(2));
+    
+    // Get valid cost average (AOV) or zero if NaN
     const costoPromedio = getValidNumberOrZero(cliente.costoPromedio);
     
     // Simple trend calculation (for illustrative purposes)
@@ -41,7 +46,7 @@ export function ServiciosClientesActivos({ clientes = [], isLoading }: Servicios
       ...cliente,
       // Count only non-cancelled services
       totalServicios: cliente.totalServicios || 0, // This value now comes pre-filtered from the database
-      kmPromedio: kmPromedio,
+      kmPromedio: kmPromedioFormatted,
       costoPromedio: costoPromedio, // This represents AOV (Average Order Value)
       kmTrend,
       costTrend
