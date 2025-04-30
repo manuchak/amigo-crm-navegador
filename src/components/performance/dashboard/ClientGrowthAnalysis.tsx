@@ -1,5 +1,5 @@
 
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
@@ -8,6 +8,7 @@ import { ChevronDown, ChevronUp, ArrowUp, ArrowDown, TrendingUp, TrendingDown } 
 import { formatCurrency, formatNumber, formatPercentage } from '../utils/formatters';
 import { parseCurrencyValue } from '../services/servicios/utils';
 import { Badge } from '@/components/ui/badge';
+import { toast } from 'sonner';
 
 interface ClientGrowthData {
   nombre_cliente: string;
@@ -41,6 +42,38 @@ export function ClientGrowthAnalysis({
   const [expandedGrowth, setExpandedGrowth] = useState(false);
   const [expandedDecline, setExpandedDecline] = useState(false);
   const [sortMetric, setSortMetric] = useState<'services' | 'gmv'>('services');
+  const [dataCheckComplete, setDataCheckComplete] = useState(false);
+
+  // Run initial diagnostic check on the data
+  useEffect(() => {
+    if (serviciosData && serviciosData.length > 0) {
+      // Count how many services have non-zero cobro_cliente values
+      const servicesWithGmv = serviciosData.filter(service => {
+        const gmvValue = parseCurrencyValue(service.cobro_cliente);
+        return gmvValue > 0;
+      }).length;
+
+      const totalGmv = serviciosData.reduce((sum, service) => {
+        return sum + parseCurrencyValue(service.cobro_cliente);
+      }, 0);
+
+      console.log(`GMV Data Check: ${servicesWithGmv} out of ${serviciosData.length} services have GMV data`);
+      console.log(`Total GMV value in data: ${totalGmv}`);
+
+      if (servicesWithGmv === 0) {
+        toast.warning('No hay datos de GMV disponibles', {
+          description: 'Los valores de "cobro_cliente" no están disponibles o no son válidos'
+        });
+      } else if (servicesWithGmv < serviciosData.length * 0.1) {
+        // Less than 10% of services have GMV data
+        toast.info('Datos de GMV limitados', {
+          description: `Solo ${servicesWithGmv} de ${serviciosData.length} servicios tienen datos de GMV`
+        });
+      }
+      
+      setDataCheckComplete(true);
+    }
+  }, [serviciosData]);
 
   // Process data to calculate growth/decline by client
   const clientGrowthData = useMemo(() => {
@@ -79,20 +112,35 @@ export function ClientGrowthAnalysis({
       previousGMV: number;
       serviciosIds: Set<string>;
       previousServiciosIds: Set<string>;
+      rawCurrentGmvValues: number[];  // Store raw values for debugging
+      rawPreviousGmvValues: number[]; // Store raw values for debugging
     }> = {};
 
-    // DEBUG: First check what type of values we're getting for cobro_cliente
-    console.log("Sample of cobro_cliente values in serviciosData:");
-    const sampleServices = serviciosData.slice(0, 5);
-    sampleServices.forEach((service, idx) => {
-      console.log(`Sample ${idx + 1}:`, {
-        id: service.id || service.id_servicio,
-        cobro_cliente: service.cobro_cliente,
-        cobro_type: typeof service.cobro_cliente,
-        parsed: parseCurrencyValue(service.cobro_cliente)
-      });
-    });
-
+    // DEBUG: Check multiple services for cobro_cliente handling
+    const sampleSize = Math.min(20, serviciosData.length);
+    console.log(`Examining ${sampleSize} sample services for cobro_cliente values:`);
+    
+    for (let i = 0; i < sampleSize; i++) {
+      const service = serviciosData[i];
+      console.log(`Service #${i+1} (${service.id_servicio || service.id}):`);
+      console.log(`  - cobro_cliente (raw): ${service.cobro_cliente}`);
+      console.log(`  - cobro_cliente (type): ${typeof service.cobro_cliente}`);
+      
+      // Try parsing with our utility
+      const parsedValue = parseCurrencyValue(service.cobro_cliente);
+      console.log(`  - cobro_cliente (parsed): ${parsedValue}`);
+      
+      // Alternative parsing attempts for comparison
+      let altParsed = null;
+      if (typeof service.cobro_cliente === 'string') {
+        const cleanString = service.cobro_cliente.replace(/[^\d.,]/g, '').replace(',', '.');
+        altParsed = parseFloat(cleanString);
+      } else if (typeof service.cobro_cliente === 'number') {
+        altParsed = service.cobro_cliente;
+      }
+      console.log(`  - cobro_cliente (alt parse): ${altParsed}`);
+    }
+    
     // Process each service
     serviciosData.forEach(servicio => {
       if (!servicio.nombre_cliente) return;
@@ -112,12 +160,21 @@ export function ClientGrowthAnalysis({
           currentGMV: 0,
           previousGMV: 0,
           serviciosIds: new Set(),
-          previousServiciosIds: new Set()
+          previousServiciosIds: new Set(),
+          rawCurrentGmvValues: [],
+          rawPreviousGmvValues: []
         };
       }
       
-      // Get the GMV value (cobro_cliente) using our enhanced parser
-      const gmvValue = parseCurrencyValue(servicio.cobro_cliente);
+      // Parse cobro_cliente value - use Number() as fallback if parseCurrencyValue fails
+      const rawCobroCliente = servicio.cobro_cliente;
+      let gmvValue = parseCurrencyValue(rawCobroCliente);
+      
+      // Additional fallback if cobro_cliente is a number but parseCurrencyValue didn't handle it
+      if (gmvValue === 0 && typeof rawCobroCliente === 'number' && !isNaN(rawCobroCliente) && rawCobroCliente > 0) {
+        gmvValue = rawCobroCliente;
+        console.log(`Used numeric fallback for ${servicio.id_servicio}: ${gmvValue}`);
+      }
       
       // Track unique service IDs per period (to avoid double-counting)
       if (isCurrentPeriod) {
@@ -127,8 +184,9 @@ export function ClientGrowthAnalysis({
         }
         
         // Add GMV value to current period
-        if (gmvValue > 0) { // Only add positive values
+        if (gmvValue > 0) {
           clientData[servicio.nombre_cliente].currentGMV += gmvValue;
+          clientData[servicio.nombre_cliente].rawCurrentGmvValues.push(gmvValue);
         }
         
       } else if (isPreviousPeriod) {
@@ -138,20 +196,26 @@ export function ClientGrowthAnalysis({
         }
         
         // Add GMV value to previous period
-        if (gmvValue > 0) { // Only add positive values
+        if (gmvValue > 0) {
           clientData[servicio.nombre_cliente].previousGMV += gmvValue;
+          clientData[servicio.nombre_cliente].rawPreviousGmvValues.push(gmvValue);
         }
       }
     });
     
     // Debug: log GMV data for top clients
-    console.log("GMV data for some clients:");
-    Object.entries(clientData)
-      .sort((a, b) => b[1].currentGMV - a[1].currentGMV)
-      .slice(0, 5)
-      .forEach(([client, data]) => {
-        console.log(`${client}: Current GMV=${data.currentGMV}, Previous GMV=${data.previousGMV}`);
-      });
+    console.log("GMV data for all clients:");
+    Object.entries(clientData).forEach(([client, data]) => {
+      // Sample of raw values (up to 5) for debugging
+      const currentSamples = data.rawCurrentGmvValues.slice(0, 5);
+      const previousSamples = data.rawPreviousGmvValues.slice(0, 5);
+      
+      console.log(`${client}:`);
+      console.log(`  - Current GMV: ${data.currentGMV} (from ${data.rawCurrentGmvValues.length} values)`);
+      console.log(`  - Current GMV samples: [${currentSamples.join(', ')}]`);
+      console.log(`  - Previous GMV: ${data.previousGMV} (from ${data.rawPreviousGmvValues.length} values)`);
+      console.log(`  - Previous GMV samples: [${previousSamples.join(', ')}]`);
+    });
     
     // Calculate final metrics for each client
     const growthData: ClientGrowthData[] = Object.entries(clientData).map(([nombre_cliente, data]) => {

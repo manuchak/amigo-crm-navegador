@@ -68,6 +68,9 @@ export function parseCurrencyValue(value: any): number {
   
   // If it's a string, clean it and convert it
   if (typeof value === 'string') {
+    // Skip empty strings
+    if (value.trim() === '') return 0;
+    
     // Handle Mexican currency format: "$1,234.56" or "$ 1 234,56"
     let cleanVal = value
       .replace(/\$/g, '')   // Remove dollar signs
