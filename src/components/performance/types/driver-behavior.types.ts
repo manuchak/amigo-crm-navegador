@@ -84,7 +84,7 @@ export interface DriverGroupDetails {
   name: string;
   client: string;
   description?: string;
-  driver_ids?: string[];
+  driver_ids: string[];
   created_at?: string;
   updated_at?: string;
 }

@@ -44,7 +44,7 @@ const formSchema = z.object({
   name: z.string().min(2, { message: "El nombre del grupo debe tener al menos 2 caracteres" }),
   client: z.string().min(1, { message: "Debe seleccionar un cliente" }),
   description: z.string().optional(),
-  driver_ids: z.array(z.string()).optional()
+  driver_ids: z.array(z.string()).min(1, { message: "Debe seleccionar al menos un conductor" })
 });
 
 type DriverGroupFormValues = z.infer<typeof formSchema>;
@@ -142,7 +142,7 @@ export function DriverGroupFormDialog({ isOpen, onClose, group, onSuccess }: Dri
   useEffect(() => {
     const driverIds = selectedDrivers.map(driver => driver.id);
     console.log("Setting driver_ids in form:", driverIds);
-    form.setValue('driver_ids', driverIds);
+    form.setValue('driver_ids', driverIds, { shouldValidate: true });
   }, [selectedDrivers]);
 
   // Handle form submission
@@ -431,8 +431,9 @@ export function DriverGroupFormDialog({ isOpen, onClose, group, onSuccess }: Dri
                         </div>
                       </div>
                     )}
+                    
+                    <FormMessage />
                   </div>
-                  <FormMessage />
                 </FormItem>
               )}
             />

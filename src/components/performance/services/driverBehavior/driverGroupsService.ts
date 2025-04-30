@@ -27,12 +27,60 @@ export const fetchDriverGroups = async (clientName?: string): Promise<DriverGrou
     }
     
     console.log(`Found ${data?.length || 0} driver groups`);
+
+    // If no groups found for this client, create default group
+    if (clientName && clientName !== 'all' && (!data || data.length === 0)) {
+      console.log("No groups found for client, creating default group");
+      const defaultGroup = await createDefaultGroupForClient(clientName);
+      return defaultGroup ? [defaultGroup] : [];
+    }
+    
     return data || [];
     
   } catch (error) {
     console.error("Exception when fetching driver groups:", error);
     toast.error("Error inesperado al cargar grupos");
     return [];
+  }
+};
+
+// Create a default group for a client that includes all drivers
+export const createDefaultGroupForClient = async (clientName: string): Promise<DriverGroupDetails | null> => {
+  try {
+    console.log("Creating default group for client:", clientName);
+    
+    // 1. Get all drivers for this client
+    const drivers = await fetchDriversByClient(clientName);
+    
+    if (!drivers || drivers.length === 0) {
+      console.log("No drivers found for client, skipping default group creation");
+      return null;
+    }
+    
+    // 2. Create a default group with all drivers
+    const driverIds = drivers.map(driver => driver.id);
+    
+    const defaultGroup: Partial<DriverGroupDetails> = {
+      name: clientName, // Use client name as group name
+      client: clientName,
+      description: 'Grupo predeterminado con todos los conductores',
+      driver_ids: driverIds
+    };
+    
+    // 3. Create the group
+    const createdGroup = await createDriverGroup(defaultGroup);
+    
+    if (createdGroup) {
+      toast.success("Grupo predeterminado creado", { 
+        description: `Se ha creado automáticamente un grupo con todos los conductores de ${clientName}` 
+      });
+    }
+    
+    return createdGroup;
+    
+  } catch (error) {
+    console.error("Error creating default group for client:", error);
+    return null;
   }
 };
 
@@ -113,18 +161,23 @@ export const createDriverGroup = async (group: Partial<DriverGroupDetails>): Pro
       return null;
     }
     
+    // Validate driver_ids
+    if (!group.driver_ids || !Array.isArray(group.driver_ids) || group.driver_ids.length === 0) {
+      toast.error("Sin conductores", {
+        description: "Debe seleccionar al menos un conductor para crear un grupo"
+      });
+      return null;
+    }
+    
     // Create a unique ID for the group
     const groupId = `${group.name}-${group.client}`.toLowerCase().replace(/\s+/g, '-');
-    
-    // Ensure driver_ids is defined and is an array
-    const driver_ids = Array.isArray(group.driver_ids) ? group.driver_ids : [];
     
     const newGroup = {
       id: groupId,
       name: group.name,
       client: group.client,
       description: group.description || '',
-      driver_ids: driver_ids,
+      driver_ids: group.driver_ids,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString()
     };
@@ -166,12 +219,16 @@ export const updateDriverGroup = async (group: DriverGroupDetails): Promise<bool
   try {
     console.log("Updating driver group:", group);
     
-    // Ensure driver_ids is an array
-    const driver_ids = Array.isArray(group.driver_ids) ? group.driver_ids : [];
+    // Validate driver_ids
+    if (!group.driver_ids || !Array.isArray(group.driver_ids) || group.driver_ids.length === 0) {
+      toast.error("Sin conductores", {
+        description: "Debe seleccionar al menos un conductor para actualizar un grupo"
+      });
+      return false;
+    }
     
     const updatedGroup = {
       ...group,
-      driver_ids: driver_ids,
       updated_at: new Date().toISOString()
     };
     

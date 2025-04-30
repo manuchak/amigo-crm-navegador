@@ -9,7 +9,8 @@ import {
   fetchDriversByClient, 
   createDriverGroup, 
   updateDriverGroup, 
-  deleteDriverGroup 
+  deleteDriverGroup,
+  createDefaultGroupForClient
 } from './driverGroupsService';
 
 export {
@@ -21,5 +22,6 @@ export {
   fetchDriversByClient,
   createDriverGroup,
   updateDriverGroup,
-  deleteDriverGroup
+  deleteDriverGroup,
+  createDefaultGroupForClient
 };
