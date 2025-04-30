@@ -53,8 +53,10 @@ export function ProductivityDashboard({ dateRange, filters = {} }: ProductivityD
     refetchParameters();
   };
   
-  // Get group names for the select dropdown
-  const groupNames = driverGroups.map(group => group.name);
+  // Get group names for the select dropdown - now handling both string[] and object[] cases
+  const groupNames = Array.isArray(driverGroups) 
+    ? driverGroups.map(group => typeof group === 'string' ? group : group.name)
+    : [];
   
   return (
     <motion.div 
