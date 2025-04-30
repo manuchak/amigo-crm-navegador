@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Users, TrendingUp, TrendingDown, Minus } from "lucide-react";
@@ -20,6 +19,9 @@ interface ServiciosClientesActivosProps {
   isLoading: boolean;
 }
 
+// Define the trend type to ensure type safety
+type TrendType = 'up' | 'down' | 'neutral';
+
 export function ServiciosClientesActivos({ clientes = [], isLoading }: ServiciosClientesActivosProps) {
   // Process client data to:
   // 1. Filter out services with estado "Cancelado" when calculating total services
@@ -32,8 +34,8 @@ export function ServiciosClientesActivos({ clientes = [], isLoading }: Servicios
     
     // Simple trend calculation (for illustrative purposes)
     // In a real scenario, you would compare with historical data from previous periods
-    const kmTrend = kmPromedio > 0 ? (kmPromedio > 100 ? 'up' : 'down') : 'neutral';
-    const costTrend = costoPromedio > 0 ? (costoPromedio > 2000 ? 'up' : 'down') : 'neutral';
+    const kmTrend: TrendType = kmPromedio > 0 ? (kmPromedio > 100 ? 'up' : 'down') : 'neutral';
+    const costTrend: TrendType = costoPromedio > 0 ? (costoPromedio > 2000 ? 'up' : 'down') : 'neutral';
     
     return {
       ...cliente,
@@ -52,7 +54,7 @@ export function ServiciosClientesActivos({ clientes = [], isLoading }: Servicios
     .slice(0, 5);
   
   // Render trend icon based on trend direction
-  const renderTrendIcon = (trend: 'up' | 'down' | 'neutral') => {
+  const renderTrendIcon = (trend: TrendType) => {
     switch(trend) {
       case 'up':
         return <TrendingUp className="h-4 w-4 text-green-500" />;
@@ -133,7 +135,7 @@ export function ServiciosClientesActivos({ clientes = [], isLoading }: Servicios
                       <TooltipProvider>
                         <Tooltip>
                           <TooltipTrigger asChild>
-                            <span>{renderTrendIcon(cliente.kmTrend)}</span>
+                            <span>{renderTrendIcon(cliente.kmTrend as TrendType)}</span>
                           </TooltipTrigger>
                           <TooltipContent>
                             {cliente.kmTrend === 'up' ? 'Incrementando' : 
@@ -149,7 +151,7 @@ export function ServiciosClientesActivos({ clientes = [], isLoading }: Servicios
                       <TooltipProvider>
                         <Tooltip>
                           <TooltipTrigger asChild>
-                            <span>{renderTrendIcon(cliente.costTrend)}</span>
+                            <span>{renderTrendIcon(cliente.costTrend as TrendType)}</span>
                           </TooltipTrigger>
                           <TooltipContent>
                             {cliente.costTrend === 'up' ? 'Incrementando' : 
