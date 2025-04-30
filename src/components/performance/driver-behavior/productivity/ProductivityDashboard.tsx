@@ -66,7 +66,9 @@ export function ProductivityDashboard({
   } = useQuery({
     queryKey: ['productivity-analysis', dateRange, selectedClients],
     queryFn: () => {
+      // Make sure we have valid dates before fetching
       if (!dateRange.from || !dateRange.to) {
+        console.log("Date range is incomplete:", dateRange);
         return Promise.resolve([]);
       }
       

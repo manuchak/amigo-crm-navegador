@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { 
   ProductivityParameter, 
@@ -6,6 +5,7 @@ import {
   ProductivityAnalysis, 
   ProductivitySummary 
 } from "../../types/productivity.types";
+import { DateRange } from "react-day-picker";
 
 // Fetch productivity parameters for a specific client and driver group
 export const fetchProductivityParameters = async (
@@ -101,12 +101,15 @@ export const updateAllFuelPrices = async (): Promise<{ nationalPrice: number, re
 };
 
 // Fetch productivity analysis data
+// Updated to accept DateRange type from react-day-picker
 export const fetchProductivityAnalysis = async (
-  dateRange: { from: Date, to: Date },
+  dateRange: DateRange,
   filters?: { client?: string; driver_group?: string }
 ): Promise<ProductivityAnalysis[]> => {
+  // Validate that both from and to dates exist
   if (!dateRange.from || !dateRange.to) {
-    throw new Error("Invalid date range");
+    console.warn("Invalid date range provided to fetchProductivityAnalysis");
+    return [];
   }
   
   let query = supabase
