@@ -89,17 +89,19 @@ export function ServiciosDashboard({ dateRange, comparisonRange }: ServiciosDash
       
       console.log("Filtering data with statuses:", activeStatuses);
       
-      // Apply filters to data - using case-insensitive comparison
+      // Apply filters to data - with better string normalization
       const filtered = data.serviciosData.filter((item: any) => {
         // If estado (status) is present, filter by it
         if (item.estado) {
-          // Use case-insensitive matching for more reliable filtering
+          const normalizedItemStatus = item.estado.trim().toLowerCase();
+          
+          // Check if any active status matches this item's status
           return activeStatuses.some(status => 
-            item.estado.toLowerCase() === status.toLowerCase()
+            normalizedItemStatus === status.trim().toLowerCase()
           );
         }
-        // If no estado field, include it (don't filter)
-        return true;
+        // If no estado field, include it only if we're showing all statuses
+        return activeStatuses.length === statusOptions.length;
       });
       
       console.log(`Filtered data count: ${filtered.length} out of ${data.serviciosData.length}`);

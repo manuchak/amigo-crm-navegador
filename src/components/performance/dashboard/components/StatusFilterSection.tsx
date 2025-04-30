@@ -41,7 +41,7 @@ export function StatusFilterSection({
             <Badge 
               key={option.value}
               variant={option.checked ? getBadgeVariant(option.value) : "outline"}
-              className={`px-3 py-1 cursor-pointer transition-all ${option.checked ? 'font-medium' : 'opacity-70'}`}
+              className={`px-3 py-1 cursor-pointer transition-all ${option.checked ? 'font-medium' : 'opacity-60'}`}
               onClick={() => onStatusFilterChange(option.value, !option.checked)}
             >
               {option.label}
