@@ -37,12 +37,12 @@ export function ServiciosHourDistributionChart({ data = [], isLoading }: Servici
 
     console.log(`Processing ${data.length} services for hour distribution`);
     
-    // Debug: Log the first few service dates to verify the format
+    // Debug: Log a sample of services to verify data format
     const sampleServices = data.slice(0, 5);
     console.log('Sample services:', sampleServices.map(s => ({
       id: s.id_servicio || s.id || 'no-id',
       date: s.fecha_hora_cita,
-      type: typeof s.fecha_hora_cita
+      isDateObject: s.fecha_hora_cita instanceof Date
     })));
     
     // Count service IDs per hour
@@ -53,61 +53,66 @@ export function ServiciosHourDistributionChart({ data = [], isLoading }: Servici
           return;
         }
         
-        // Handle different date formats and types
-        let serviceDate: Date;
-        let rawDate = service.fecha_hora_cita;
+        // Extract date and handle timezone correctly
+        let dateObj: Date | null = null;
         
-        if (typeof rawDate === 'string') {
-          // Try to parse with native Date first (better timezone handling)
-          serviceDate = new Date(rawDate);
+        if (typeof service.fecha_hora_cita === 'string') {
+          // Try to create a date object from the string
+          dateObj = new Date(service.fecha_hora_cita);
           
-          // If invalid, try parseISO as fallback
-          if (isNaN(serviceDate.getTime())) {
-            serviceDate = parseISO(rawDate);
+          // If invalid, try parseISO
+          if (isNaN(dateObj.getTime())) {
+            try {
+              dateObj = parseISO(service.fecha_hora_cita);
+            } catch (error) {
+              console.error('Error parsing date string:', service.fecha_hora_cita);
+              return;
+            }
           }
-        } else if (rawDate instanceof Date) {
-          serviceDate = rawDate;
+        } else if (service.fecha_hora_cita instanceof Date) {
+          dateObj = service.fecha_hora_cita;
         } else {
-          console.log('Unrecognized date format:', rawDate);
+          console.log('Unrecognized date format:', typeof service.fecha_hora_cita);
           return;
         }
         
-        if (isNaN(serviceDate.getTime())) {
-          console.log('Invalid date for service:', service.id_servicio || 'unknown ID');
+        if (!dateObj || isNaN(dateObj.getTime())) {
+          console.error('Invalid date for service:', service.id_servicio || 'unknown');
           return;
         }
-        
-        // Extract the hour in 24-hour format and pad with leading zero if needed
-        const hourNum = serviceDate.getHours();
+
+        // Get the hour in 24-hour format and pad with leading zero if needed
+        const hourNum = dateObj.getHours();
         const hour = hourNum.toString().padStart(2, '0');
         
-        // Log for debugging
-        if (Math.random() < 0.05) { // Only log ~5% of dates to avoid console flood
-          console.log(`Service ${service.id_servicio || 'unknown'}: Date=${serviceDate.toISOString()}, Hour=${hour}`);
+        // Log every 20th service for debugging (to avoid console flood)
+        if (Math.random() < 0.05) {
+          console.log(`Service ${service.id_servicio || service.id || 'unknown'} at hour ${hour} (${formatHourDisplay(hourNum)}): ${dateObj.toISOString()}`);
         }
         
-        // Add the service ID to the set for this hour
+        // Get a unique ID for this service
         const serviceId = service.id_servicio || service.id || `service-${Math.random()}`;
         
+        // Add the service to the appropriate hour bucket
         if (hoursMap[hour]) {
           hoursMap[hour].uniqueServices.add(serviceId);
         } else {
           console.error(`Invalid hour extracted: ${hour}`);
         }
       } catch (error) {
-        console.error("Error processing service date:", service.fecha_hora_cita, error);
+        console.error("Error processing service:", error);
       }
     });
     
-    // Debug: Log the counts for each hour
+    // Log the distribution for debugging
     console.log('Hour distribution:');
-    let totalCounted = 0;
+    let totalServices = 0;
     Object.entries(hoursMap).forEach(([hour, data]) => {
       const count = data.uniqueServices.size;
       console.log(`Hour ${hour} (${formatHourDisplay(parseInt(hour))}): ${count} services`);
-      totalCounted += count;
+      totalServices += count;
     });
-    console.log(`Total services counted in hour distribution: ${totalCounted} / ${data.length}`);
+    console.log(`Total services counted: ${totalServices} / ${data.length}`);
     
     // Convert to array for chart display
     const result = Object.values(hoursMap).map(hourData => ({
@@ -116,7 +121,7 @@ export function ServiciosHourDistributionChart({ data = [], isLoading }: Servici
       count: hourData.uniqueServices.size
     }));
     
-    // Sort by hour for chart display
+    // Sort by hour
     return result.sort((a, b) => parseInt(a.hour) - parseInt(b.hour));
   }, [data]);
   
