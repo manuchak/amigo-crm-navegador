@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { 
   ProductivityParameter, 
@@ -40,36 +41,45 @@ export const fetchProductivityParameters = async (
 export const saveProductivityParameter = async (
   parameter: NewProductivityParameter
 ): Promise<ProductivityParameter> => {
-  const { data, error } = await supabase
-    .rpc('update_productivity_parameters', {
-      p_id: parameter.id || null,
-      p_client: parameter.client,
-      p_driver_group: parameter.driver_group || null,
-      p_expected_daily_distance: parameter.expected_daily_distance,
-      p_expected_daily_time_minutes: parameter.expected_daily_time_minutes,
-      p_fuel_cost_per_liter: parameter.fuel_cost_per_liter,
-      p_expected_fuel_efficiency: parameter.expected_fuel_efficiency,
-      p_user_id: (await supabase.auth.getUser()).data.user?.id
-    });
-  
-  if (error) {
-    console.error("Error saving productivity parameter:", error);
+  try {
+    const { data, error } = await supabase
+      .rpc('update_productivity_parameters', {
+        p_id: parameter.id || null,
+        p_client: parameter.client,
+        p_driver_group: parameter.driver_group || null,
+        p_expected_daily_distance: parameter.expected_daily_distance,
+        p_expected_daily_time_minutes: parameter.expected_daily_time_minutes,
+        p_fuel_cost_per_liter: parameter.fuel_cost_per_liter,
+        p_expected_fuel_efficiency: parameter.expected_fuel_efficiency,
+        p_user_id: (await supabase.auth.getUser()).data.user?.id
+      });
+    
+    if (error) {
+      console.error("Error saving productivity parameter:", error);
+      throw error;
+    }
+    
+    if (!data || data.length === 0) {
+      throw new Error("No data returned from save operation");
+    }
+    
+    // Fetch the saved parameter to return the complete record
+    const { data: savedParameter, error: fetchError } = await supabase
+      .from('driver_productivity_parameters')
+      .select('*')
+      .eq('id', data[0].id)
+      .single();
+      
+    if (fetchError) {
+      console.error("Error fetching saved parameter:", fetchError);
+      throw fetchError;
+    }
+    
+    return savedParameter;
+  } catch (error) {
+    console.error("Exception in saveProductivityParameter:", error);
     throw error;
   }
-  
-  // Fetch the saved parameter to return the complete record
-  const { data: savedParameter, error: fetchError } = await supabase
-    .from('driver_productivity_parameters')
-    .select('*')
-    .eq('id', data.id)
-    .single();
-    
-  if (fetchError) {
-    console.error("Error fetching saved parameter:", fetchError);
-    throw fetchError;
-  }
-  
-  return savedParameter;
 };
 
 // Delete a productivity parameter
@@ -113,11 +123,12 @@ export const updateAllFuelPrices = async (): Promise<{ nationalPrice: number, re
       throw new Error("Could not retrieve regular fuel price");
     }
     
-    // Now use this price to update all parameters
+    // Now update all parameters with the new price
     const { data, error } = await supabase
-      .rpc('update_all_fuel_prices', {
-        new_price: regularPrice
-      });
+      .from('driver_productivity_parameters')
+      .update({ fuel_cost_per_liter: regularPrice, updated_at: new Date().toISOString() })
+      .neq('id', 0) // Update all records
+      .select('id');
     
     if (error) {
       console.error("Error updating fuel prices:", error);
@@ -126,7 +137,7 @@ export const updateAllFuelPrices = async (): Promise<{ nationalPrice: number, re
     
     return {
       nationalPrice: regularPrice,
-      recordsUpdated: data.records_updated
+      recordsUpdated: data?.length || 0
     };
   } catch (error) {
     console.error("Error in updateAllFuelPrices:", error);

@@ -242,6 +242,114 @@ export type Database = {
         }
         Relationships: []
       }
+      driver_productivity_analysis: {
+        Row: {
+          actual_daily_distance: number | null
+          client: string
+          created_at: string
+          days_count: number
+          distance: number
+          driver_group: string
+          driver_name: string
+          duration_interval: unknown | null
+          end_date: string
+          estimated_fuel_cost: number | null
+          estimated_fuel_usage_liters: number | null
+          expected_daily_distance: number | null
+          expected_daily_time_minutes: number | null
+          expected_fuel_efficiency: number | null
+          fuel_cost_per_liter: number | null
+          id: number
+          productivity_score: number | null
+          start_date: string
+          trips_count: number
+          updated_at: string
+        }
+        Insert: {
+          actual_daily_distance?: number | null
+          client: string
+          created_at?: string
+          days_count: number
+          distance: number
+          driver_group: string
+          driver_name: string
+          duration_interval?: unknown | null
+          end_date: string
+          estimated_fuel_cost?: number | null
+          estimated_fuel_usage_liters?: number | null
+          expected_daily_distance?: number | null
+          expected_daily_time_minutes?: number | null
+          expected_fuel_efficiency?: number | null
+          fuel_cost_per_liter?: number | null
+          id?: number
+          productivity_score?: number | null
+          start_date: string
+          trips_count: number
+          updated_at?: string
+        }
+        Update: {
+          actual_daily_distance?: number | null
+          client?: string
+          created_at?: string
+          days_count?: number
+          distance?: number
+          driver_group?: string
+          driver_name?: string
+          duration_interval?: unknown | null
+          end_date?: string
+          estimated_fuel_cost?: number | null
+          estimated_fuel_usage_liters?: number | null
+          expected_daily_distance?: number | null
+          expected_daily_time_minutes?: number | null
+          expected_fuel_efficiency?: number | null
+          fuel_cost_per_liter?: number | null
+          id?: number
+          productivity_score?: number | null
+          start_date?: string
+          trips_count?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      driver_productivity_parameters: {
+        Row: {
+          client: string
+          created_at: string
+          driver_group: string | null
+          expected_daily_distance: number
+          expected_daily_time_minutes: number
+          expected_fuel_efficiency: number
+          fuel_cost_per_liter: number
+          id: number
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          client: string
+          created_at?: string
+          driver_group?: string | null
+          expected_daily_distance: number
+          expected_daily_time_minutes: number
+          expected_fuel_efficiency: number
+          fuel_cost_per_liter: number
+          id?: number
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          client?: string
+          created_at?: string
+          driver_group?: string | null
+          expected_daily_distance?: number
+          expected_daily_time_minutes?: number
+          expected_fuel_efficiency?: number
+          fuel_cost_per_liter?: number
+          id?: number
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       gps_installations: {
         Row: {
           created_at: string
@@ -1391,6 +1499,21 @@ export type Database = {
         Returns: {
           tipo: string
           count: number
+        }[]
+      }
+      update_productivity_parameters: {
+        Args: {
+          p_id: number
+          p_client: string
+          p_driver_group: string
+          p_expected_daily_distance: number
+          p_expected_daily_time_minutes: number
+          p_fuel_cost_per_liter: number
+          p_expected_fuel_efficiency: number
+          p_user_id: string
+        }
+        Returns: {
+          id: number
         }[]
       }
       update_user_role: {

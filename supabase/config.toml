@@ -1,5 +1,5 @@
 
-project_id = "your-project-id"
+project_id = "beefjsdgrdeiymzxwxru"
 
 [functions.fetch-fuel-prices]
-verify_jwt = true
+verify_jwt = false
