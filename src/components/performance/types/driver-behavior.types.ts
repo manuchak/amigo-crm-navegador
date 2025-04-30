@@ -1,6 +1,4 @@
 
-// If this file doesn't exist, we'll create it with the necessary types
-
 // Driver behavior filters
 export interface DriverBehaviorFilters {
   selectedClient?: string;
@@ -28,35 +26,49 @@ export interface DriverForGroup {
   client: string;
 }
 
+// Score calculation result
+export interface ScoreCalculationResult {
+  score: number;
+  penaltyPoints: number;
+  scoreCategory: 'excellent' | 'good' | 'fair' | 'poor' | 'critical';
+  colorClass: string;
+}
+
+// Risk assessment structure
+export interface RiskAssessment {
+  level: 'low' | 'moderate' | 'high' | 'critical';
+  score: number;
+  description: string;
+  recommendations: string[];
+}
+
+// Driver performance structure for top/worst drivers
+export interface DriverPerformance {
+  topDrivers: DriverScore[];
+  worstDrivers?: DriverScore[];
+  needsImprovement?: DriverScore[];
+  ecoDrivers?: DriverScore[];
+}
+
 // Main driver behavior data structure
 export interface DriverBehaviorData {
+  metrics?: {
+    label: string;
+    value: number;
+  }[];
   driverScores: DriverScore[];
-  summaryMetrics: {
-    averageScore: number;
-    totalDrivers: number;
-    totalDistance: number;
-    totalTrips: number;
-    highRiskDrivers: number;
-    mediumRiskDrivers: number;
-    lowRiskDrivers: number;
+  scoreDistribution?: {
+    excellent: number;
+    good: number;
+    fair: number;
+    poor: number;
+    critical: number;
   };
-  driverPerformance: {
-    topDrivers: DriverScore[];
-    worstDrivers: DriverScore[];
-  };
-  riskAssessment: {
-    riskDistribution: {
-      highRisk: number;
-      mediumRisk: number;
-      lowRisk: number;
-    };
-    riskByClient: {
-      client: string;
-      highRisk: number;
-      mediumRisk: number;
-      lowRisk: number;
-    }[];
-  };
+  averageScore: number;
+  totalPenaltyPoints?: number;
+  totalTrips: number;
+  totalDrivingTime?: number;
+  totalDistance: number;
   co2Emissions: {
     totalEmissions: number;
     emissionsByClient: {
@@ -67,6 +79,17 @@ export interface DriverBehaviorData {
       date: string;
       emissions: number;
     }[];
+  };
+  riskAssessment: RiskAssessment;
+  driverPerformance: DriverPerformance;
+  summaryMetrics?: {
+    averageScore: number;
+    totalDrivers: number;
+    totalDistance: number;
+    totalTrips: number;
+    highRiskDrivers: number;
+    mediumRiskDrivers: number;
+    lowRiskDrivers: number;
   };
 }
 

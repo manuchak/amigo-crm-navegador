@@ -21,7 +21,11 @@ export const createEmptyDriverBehaviorData = (): DriverBehaviorData => ({
   totalTrips: 0,
   totalDrivingTime: 0,
   totalDistance: 0,
-  co2Emissions: 0,
+  co2Emissions: {
+    totalEmissions: 0,
+    emissionsByClient: [],
+    emissionsTrend: []
+  },
   riskAssessment: {
     level: 'low',
     score: 0,
@@ -79,7 +83,32 @@ export const processDriverBehaviorData = (driverScores: any[]): DriverBehaviorDa
     
     // Calculate CO2 emissions (simplified estimate based on distance)
     // Average car emissions: 0.15 kg CO2 per km
-    const co2Emissions = totalDistance * 0.15;
+    const co2EmissionsValue = totalDistance * 0.15;
+    
+    // Create emissions trend data (mock data for now)
+    const emissionsTrend = Array.from({ length: 7 }, (_, i) => {
+      const date = new Date();
+      date.setDate(date.getDate() - i);
+      return {
+        date: date.toISOString().split('T')[0],
+        emissions: co2EmissionsValue / 7 * (0.85 + Math.random() * 0.3)
+      };
+    }).reverse();
+    
+    // Create emissions by client (mock data grouped by client)
+    const clientEmissions = driverScores.reduce((acc, driver) => {
+      if (!acc[driver.client]) {
+        acc[driver.client] = 0;
+      }
+      const driverDistance = Number(driver.distance) || 0;
+      acc[driver.client] += driverDistance * 0.15;
+      return acc;
+    }, {} as Record<string, number>);
+    
+    const emissionsByClient = Object.entries(clientEmissions).map(([client, emissions]) => ({
+      client,
+      emissions
+    }));
     
     // Estimate driving time based on trips (average 45 mins per trip)
     const totalDrivingTime = totalTrips * 45; // in minutes
@@ -153,7 +182,11 @@ export const processDriverBehaviorData = (driverScores: any[]): DriverBehaviorDa
       totalTrips,
       totalDrivingTime,
       totalDistance,
-      co2Emissions,
+      co2Emissions: {
+        totalEmissions: co2EmissionsValue,
+        emissionsByClient,
+        emissionsTrend
+      },
       riskAssessment: {
         level: riskLevel,
         score: Math.round(riskScore),

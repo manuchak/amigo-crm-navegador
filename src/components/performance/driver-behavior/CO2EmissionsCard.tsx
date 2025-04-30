@@ -36,7 +36,7 @@ export function CO2EmissionsCard({ data, isLoading }: CO2EmissionsCardProps) {
   }
 
   // If no data is available
-  if (!data || data.co2Emissions === undefined) {
+  if (!data || !data.co2Emissions) {
     return (
       <Card className="border-0 shadow-md">
         <CardHeader>
@@ -58,7 +58,7 @@ export function CO2EmissionsCard({ data, isLoading }: CO2EmissionsCardProps) {
   }
 
   // Extract values from the data
-  const co2EmissionsValue = data.co2Emissions || 0;
+  const co2EmissionsValue = data.co2Emissions.totalEmissions || 0;
   const wastageValue = co2EmissionsValue * 0.15; // Estimated wastage due to poor driving habits
   const savedValue = co2EmissionsValue * 0.05; // Estimated savings from good driving habits
   
@@ -91,7 +91,7 @@ export function CO2EmissionsCard({ data, isLoading }: CO2EmissionsCardProps) {
               <span className="text-sm font-medium text-amber-600">CO2 adicional por mala conducción</span>
               <span className="text-lg font-medium text-amber-600">+{wastageValue.toFixed(1)} kg</span>
             </div>
-            <Progress value={Math.min(wastageValue / co2EmissionsValue * 100, 100)} className="h-2 bg-gray-100" indicatorClassName="bg-amber-500" />
+            <Progress value={Math.min((wastageValue / co2EmissionsValue) * 100, 100)} className="h-2 bg-gray-100" indicatorClassName="bg-amber-500" />
           </div>
           
           <div>
@@ -99,7 +99,7 @@ export function CO2EmissionsCard({ data, isLoading }: CO2EmissionsCardProps) {
               <span className="text-sm font-medium text-green-600">CO2 ahorrado con buena conducción</span>
               <span className="text-lg font-medium text-green-600">-{savedValue.toFixed(1)} kg</span>
             </div>
-            <Progress value={Math.min(savedValue / co2EmissionsValue * 100, 100)} className="h-2 bg-gray-100" indicatorClassName="bg-green-500" />
+            <Progress value={Math.min((savedValue / co2EmissionsValue) * 100, 100)} className="h-2 bg-gray-100" indicatorClassName="bg-green-500" />
           </div>
           
           <div className="pt-2 border-t">
