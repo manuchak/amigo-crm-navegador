@@ -66,7 +66,7 @@ export function DriverBehaviorDashboard({ dateRange, comparisonRange }: DriverBe
 
   return (
     <motion.div 
-      className="space-y-6"
+      className="space-y-8"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ duration: 0.3 }}
@@ -98,36 +98,36 @@ export function DriverBehaviorDashboard({ dateRange, comparisonRange }: DriverBe
       />
       
       <Tabs defaultValue="overview" className="w-full">
-        <TabsList className="bg-white/70 backdrop-blur-sm border shadow-sm rounded-xl p-1 w-auto inline-flex">
+        <TabsList className="bg-white/70 backdrop-blur-sm border shadow-sm rounded-xl p-1.5 w-auto inline-flex">
           <TabsTrigger 
             value="overview" 
-            className="data-[state=active]:bg-white data-[state=active]:shadow-sm rounded-lg px-4 py-2 text-sm"
+            className="data-[state=active]:bg-white data-[state=active]:shadow-sm rounded-lg px-5 py-2.5 text-sm"
           >
             Resumen
           </TabsTrigger>
           <TabsTrigger 
             value="risk" 
-            className="data-[state=active]:bg-white data-[state=active]:shadow-sm rounded-lg px-4 py-2 text-sm"
+            className="data-[state=active]:bg-white data-[state=active]:shadow-sm rounded-lg px-5 py-2.5 text-sm"
           >
             Riesgo y Conductores
           </TabsTrigger>
           <TabsTrigger 
             value="productivity" 
-            className="data-[state=active]:bg-white data-[state=active]:shadow-sm rounded-lg px-4 py-2 text-sm"
+            className="data-[state=active]:bg-white data-[state=active]:shadow-sm rounded-lg px-5 py-2.5 text-sm"
           >
             Productividad
           </TabsTrigger>
           <TabsTrigger 
             value="details" 
-            className="data-[state=active]:bg-white data-[state=active]:shadow-sm rounded-lg px-4 py-2 text-sm"
+            className="data-[state=active]:bg-white data-[state=active]:shadow-sm rounded-lg px-5 py-2.5 text-sm"
           >
             Detalles
           </TabsTrigger>
         </TabsList>
         
-        <TabsContent value="overview" className="mt-6 space-y-6">
-          <div className="grid grid-cols-1 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            <div className="lg:col-span-2 xl:col-span-3">
+        <TabsContent value="overview" className="mt-8 space-y-8">
+          <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+            <div className="lg:col-span-3">
               <DriverBehaviorChart 
                 data={driverData?.driverScores} 
                 isLoading={isLoading} 
@@ -143,7 +143,7 @@ export function DriverBehaviorDashboard({ dateRange, comparisonRange }: DriverBe
           </div>
         </TabsContent>
         
-        <TabsContent value="risk" className="mt-6 space-y-6">
+        <TabsContent value="risk" className="mt-8 space-y-8">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <DriverRiskAssessment 
               riskData={driverData?.riskAssessment} 
@@ -156,14 +156,14 @@ export function DriverBehaviorDashboard({ dateRange, comparisonRange }: DriverBe
           </div>
         </TabsContent>
         
-        <TabsContent value="productivity" className="mt-6">
+        <TabsContent value="productivity" className="mt-8">
           <ProductivityDashboard 
             dateRange={dateRange}
             filters={filters}
           />
         </TabsContent>
         
-        <TabsContent value="details" className="mt-6">
+        <TabsContent value="details" className="mt-8">
           <DriverBehaviorTable 
             dateRange={dateRange}
             filters={filters}

@@ -155,7 +155,7 @@ export default function Performance() {
   };
 
   return (
-    <div className="container-fluid max-w-[2100px] mx-auto space-y-5 py-5 px-3 md:px-5 lg:px-6 xl:px-8">
+    <div className="max-w-[2400px] w-full mx-auto space-y-6 py-6 px-4 md:px-6 lg:px-8 xl:px-10 2xl:px-12">
       <div className="mb-2">
         {renderHeader()}
       </div>
@@ -183,14 +183,14 @@ export default function Performance() {
           value={activeTab}
           onValueChange={setActiveTab}
         >
-          <TabsList className="mb-5 bg-background/70 border shadow-sm rounded-xl p-1.5 w-auto inline-flex">
-            <TabsTrigger value="servicios" className="data-[state=active]:bg-white data-[state=active]:shadow-sm rounded-lg px-4 py-2 text-sm">
+          <TabsList className="mb-6 bg-background/70 border shadow-sm rounded-xl p-1.5 w-auto inline-flex">
+            <TabsTrigger value="servicios" className="data-[state=active]:bg-white data-[state=active]:shadow-sm rounded-lg px-5 py-2.5 text-sm">
               Servicios
             </TabsTrigger>
-            <TabsTrigger value="custodios" className="data-[state=active]:bg-white data-[state=active]:shadow-sm rounded-lg px-4 py-2 text-sm">
+            <TabsTrigger value="custodios" className="data-[state=active]:bg-white data-[state=active]:shadow-sm rounded-lg px-5 py-2.5 text-sm">
               Custodios
             </TabsTrigger>
-            <TabsTrigger value="driverBehavior" className="data-[state=active]:bg-white data-[state=active]:shadow-sm rounded-lg px-4 py-2 text-sm">
+            <TabsTrigger value="driverBehavior" className="data-[state=active]:bg-white data-[state=active]:shadow-sm rounded-lg px-5 py-2.5 text-sm">
               Comportamiento de Conducción
             </TabsTrigger>
           </TabsList>

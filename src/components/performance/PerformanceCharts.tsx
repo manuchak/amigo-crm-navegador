@@ -39,15 +39,15 @@ export function PerformanceCharts() {
   }));
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
-      <Card className="border shadow-sm rounded-xl bg-white/90 backdrop-blur-sm xl:col-span-2">
+    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <Card className="border shadow-sm rounded-xl bg-white/90 backdrop-blur-sm lg:col-span-2">
         <CardHeader className="pb-2">
           <CardTitle className="text-lg font-medium">
             Métricas de Calidad
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="h-[320px]">
+          <div className="h-[380px]">
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={chartData} margin={{top: 10, right: 30, left: 0, bottom: 10}}>
                 <CartesianGrid strokeDasharray="3 3" opacity={0.2} />
@@ -102,7 +102,7 @@ export function PerformanceCharts() {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="h-[320px]">
+          <div className="h-[380px]">
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={chartData} margin={{top: 10, right: 30, left: 0, bottom: 10}}>
                 <CartesianGrid strokeDasharray="3 3" opacity={0.2} />

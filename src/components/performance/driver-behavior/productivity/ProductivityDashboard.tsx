@@ -55,7 +55,7 @@ export function ProductivityDashboard({ dateRange, filters = {} }: ProductivityD
   
   return (
     <motion.div 
-      className="space-y-6"
+      className="space-y-8"
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ duration: 0.3 }}
@@ -78,7 +78,7 @@ export function ProductivityDashboard({ dateRange, filters = {} }: ProductivityD
         filters={filters}
       />
       
-      <div className="grid grid-cols-1 gap-6">
+      <div className="grid grid-cols-1 gap-8">
         <Card className="border shadow-sm rounded-xl bg-white/90 backdrop-blur-sm">
           <CardHeader className="pb-3">
             <CardTitle className="text-lg font-medium">Análisis por Conductor</CardTitle>

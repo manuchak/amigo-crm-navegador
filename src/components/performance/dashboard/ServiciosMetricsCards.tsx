@@ -43,9 +43,9 @@ export function ServiciosMetricsCards({
 
   if (isLoading) {
     return (
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-8">
         {Array.from({ length: 4 }).map((_, i) => (
-          <Card key={i} className="border shadow-sm">
+          <Card key={i} className="border shadow-sm bg-white hover:shadow-md transition-shadow duration-200">
             <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
               <CardTitle className="text-sm font-medium">Cargando...</CardTitle>
             </CardHeader>
@@ -68,8 +68,8 @@ export function ServiciosMetricsCards({
   const { serviciosMoM, serviciosWoW, kmPromedioMoM } = data;
 
   return (
-    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-      <Card className="border shadow-sm">
+    <div className="grid gap-5 md:grid-cols-2 lg:grid-cols-4">
+      <Card className="border shadow-sm bg-white hover:shadow-md transition-shadow duration-200">
         <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
           <CardTitle className="text-sm font-medium">Total Servicios</CardTitle>
         </CardHeader>
@@ -88,7 +88,7 @@ export function ServiciosMetricsCards({
         </CardContent>
       </Card>
 
-      <Card className="border shadow-sm">
+      <Card className="border shadow-sm bg-white hover:shadow-md transition-shadow duration-200">
         <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
           <CardTitle className="text-sm font-medium">KM Totales</CardTitle>
         </CardHeader>
@@ -107,7 +107,7 @@ export function ServiciosMetricsCards({
         </CardContent>
       </Card>
 
-      <Card className="border shadow-sm">
+      <Card className="border shadow-sm bg-white hover:shadow-md transition-shadow duration-200">
         <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
           <CardTitle className="text-sm font-medium">Clientes Activos</CardTitle>
         </CardHeader>
@@ -119,7 +119,7 @@ export function ServiciosMetricsCards({
         </CardContent>
       </Card>
 
-      <Card className="border shadow-sm">
+      <Card className="border shadow-sm bg-white hover:shadow-md transition-shadow duration-200">
         <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
           <CardTitle className="text-sm font-medium">Clientes Nuevos</CardTitle>
         </CardHeader>

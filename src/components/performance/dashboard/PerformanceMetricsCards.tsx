@@ -58,11 +58,11 @@ export function PerformanceMetricsCards({ data, isLoading }: PerformanceMetricsC
   };
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-8 gap-5">
       {isLoading ? (
         // Skeleton loaders when loading
         Array(8).fill(0).map((_, i) => (
-          <Card key={i} className="border-0 shadow-sm">
+          <Card key={i} className="border shadow-sm bg-white hover:shadow-md transition-shadow duration-200">
             <CardContent className="p-6">
               <div className="flex items-center gap-4">
                 <Skeleton className="h-12 w-12 rounded-lg" />
@@ -78,7 +78,7 @@ export function PerformanceMetricsCards({ data, isLoading }: PerformanceMetricsC
       ) : data?.map((metric, i) => {
         const Icon = getIcon(metric.label);
         return (
-          <Card key={i} className="border-0 shadow-sm">
+          <Card key={i} className="border shadow-sm bg-white hover:shadow-md transition-shadow duration-200">
             <CardContent className="p-6">
               <div className="flex items-center gap-4">
                 <div className={`${getBackgroundClass(metric.label)} p-3 rounded-xl`}>
