@@ -9,38 +9,31 @@ export function formatNumber(value: number | undefined | null): string {
 
 /**
  * Formatea un número como moneda (pesos mexicanos)
- * Enhanced to handle problematic values better with improved logging
+ * Con manejo mejorado para valores en diferentes formatos
  */
 export function formatCurrency(value: number | undefined | null): string {
-  // Log the incoming value for debugging purposes
-  console.log(`formatCurrency called with: ${value} (type: ${typeof value})`);
-  
+  // Si el valor es undefined o null, retornamos $0
   if (value === undefined || value === null) {
-    console.log('Value is null/undefined, returning $0');
     return '$0';
   }
   
-  // Handle NaN values explicitly
+  // Manejo explícito para NaN
   if (typeof value === 'number' && isNaN(value)) {
-    console.log('Value is NaN, returning $0');
     return '$0';
   }
   
-  // For very small but non-zero values, show as $0.1 to indicate there is some value
+  // Para valores muy pequeños pero no cero, mostrar como $0.1 para indicar que hay algún valor
   if (Math.abs(value) > 0 && Math.abs(value) < 0.1) {
-    console.log(`Small value ${value}, displaying as $0.1`);
     return '$0.1';
   }
   
-  // For zero value, just return $0 without decimals
+  // Para valor cero, simplemente retornar $0 sin decimales
   if (value === 0) {
-    console.log('Value is 0, returning $0');
     return '$0';
   }
   
-  // For non-zero values, format with 1 decimal place as requested
   try {
-    // Forcing Spanish-Mexico format to ensure consistent $ symbol and separators
+    // Forzamos formato español-México para asegurar símbolos $ y separadores consistentes
     const formatter = new Intl.NumberFormat('es-MX', {
       style: 'currency',
       currency: 'MXN',
@@ -48,13 +41,9 @@ export function formatCurrency(value: number | undefined | null): string {
       maximumFractionDigits: 1
     });
     
-    const formatted = formatter.format(value);
-    console.log(`Formatted ${value} as: ${formatted}`);
-    return formatted;
+    return formatter.format(value);
   } catch (error) {
-    console.error(`Error formatting value ${value}:`, error);
-    
-    // Fall back to a simple formatting method if Intl fails
+    // Si falla Intl, caemos en un método simple de formateo
     return `$${value.toFixed(1)}`;
   }
 }

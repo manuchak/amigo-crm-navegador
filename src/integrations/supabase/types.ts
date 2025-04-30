@@ -1197,6 +1197,10 @@ export type Database = {
           servicios_por_dia: number
         }[]
       }
+      clean_cobro_cliente_values: {
+        Args: Record<PropertyKey, never>
+        Returns: string
+      }
       deduplicate_leads: {
         Args: Record<PropertyKey, never>
         Returns: undefined
@@ -1321,6 +1325,10 @@ export type Database = {
       invoke_deduplicate_function: {
         Args: Record<PropertyKey, never>
         Returns: undefined
+      }
+      normalize_currency_value: {
+        Args: { value_to_clean: string }
+        Returns: number
       }
       obtener_alertas_clientes: {
         Args: {

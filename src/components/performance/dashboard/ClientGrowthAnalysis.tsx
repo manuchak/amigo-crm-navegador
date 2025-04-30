@@ -9,9 +9,7 @@ import {
   CardDescription 
 } from "@/components/ui/card";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
-import { parseCurrencyValue, directCurrencyConverter } from '../services/servicios/utils';
 import { formatCurrency } from '../utils/formatters';
-import { analyzeDataQuality, tryParseNumber } from '../utils/dataValidator';
 import { AlertTriangle, Info } from 'lucide-react';
 
 interface ClientGrowthAnalysisProps {
@@ -22,125 +20,73 @@ interface ClientGrowthAnalysisProps {
 }
 
 export function ClientGrowthAnalysis({ serviciosData, isLoading, dateRange, comparisonDateRange }: ClientGrowthAnalysisProps) {
-  // Calculate GMV (Gross Merchandise Value)
-  const { gmv, avgOrderValue, totalClients, dataQuality, hasValidGmvData } = useMemo(() => {
+  // Calcular GMV (Gross Merchandise Value)
+  const { gmv, avgOrderValue, totalClients, hasValidGmvData } = useMemo(() => {
     if (!serviciosData || serviciosData.length === 0) {
       return { 
         gmv: 0, 
         avgOrderValue: 0, 
         totalClients: 0,
-        dataQuality: null,
         hasValidGmvData: false
       };
     }
     
-    // Analyze data quality first
-    const dataQuality = analyzeDataQuality(serviciosData, 'cobro_cliente');
-    console.log('cobro_cliente data quality analysis:', dataQuality);
-    
-    // Show detailed logging for debugging
-    console.log('GMV calculation started with:', {
-      totalServices: serviciosData.length,
-      validCurrencyValues: dataQuality.validItems,
-      sampleData: dataQuality.sampleData
+    console.log('Iniciando cálculo de GMV con:', {
+      totalServices: serviciosData.length
     });
     
-    // Sum all valid cobro_cliente values
+    // Sumar todos los valores cobro_cliente válidos
     let totalValue = 0;
     let validValueCount = 0;
     let uniqueClients = new Set();
-    let processedItems = 0;
-    
-    // If no values are valid through the normal validator, try a more direct approach
-    const useDirectParser = dataQuality.validItems === 0;
-    console.log(`Using ${useDirectParser ? 'direct' : 'standard'} parser due to ${dataQuality.validItems} valid items`);
     
     serviciosData.forEach((servicio, index) => {
-      // Track unique clients
+      // Seguir clientes únicos
       if (servicio.nombre_cliente) {
         uniqueClients.add(servicio.nombre_cliente);
       }
       
-      // Process cobro_cliente for GMV
-      const rawValue = servicio.cobro_cliente;
+      // Procesar cobro_cliente para GMV (ahora los valores deberían estar normalizados)
+      const amount = servicio.cobro_cliente;
       
-      // Skip null/undefined/empty values
-      if (rawValue === null || rawValue === undefined || rawValue === '') {
-        // Log some samples of missing values
-        if (processedItems < 5) {
-          console.log(`Item ${index}: Missing cobro_cliente value`, { 
-            id: servicio.id,
-            cobro_cliente: rawValue,
-            nombre_cliente: servicio.nombre_cliente
-          });
-          processedItems++;
-        }
+      // Omitir valores null/undefined/0
+      if (amount === null || amount === undefined || amount === 0) {
         return;
       }
       
-      try {
-        // Parse the currency value - use direct method if standard failed for all values
-        let amount;
-        if (useDirectParser) {
-          amount = directCurrencyConverter(rawValue);
-        } else {
-          amount = parseCurrencyValue(rawValue);
-        }
+      // Los valores ahora deberían ser numéricos gracias a la normalización
+      if (typeof amount === 'number' && !isNaN(amount) && isFinite(amount) && amount > 0) {
+        totalValue += amount;
+        validValueCount++;
         
-        // As a fallback, try the simple number parser
-        if (amount === 0) {
-          const parsed = tryParseNumber(rawValue);
-          if (parsed !== null) amount = parsed;
+        // Registrar algunos ejemplos para depuración
+        if (index < 5) {
+          console.log(`Ítem ${index}: Valor cobro_cliente procesado`, { 
+            id: servicio.id,
+            valor: amount,
+            acumulado: totalValue
+          });
         }
-        
-        if (amount > 0) {
-          totalValue += amount;
-          validValueCount++;
-          
-          // Log some samples of successful parsing
-          if (processedItems < 5) {
-            console.log(`Item ${index}: Parsed cobro_cliente`, { 
-              id: servicio.id,
-              rawValue,
-              parsedValue: amount,
-              runningTotal: totalValue
-            });
-            processedItems++;
-          }
-        } else {
-          // Log some samples of zero values
-          if (processedItems < 5) {
-            console.log(`Item ${index}: Zero value cobro_cliente`, { 
-              id: servicio.id,
-              rawValue,
-              parsedValue: amount
-            });
-            processedItems++;
-          }
-        }
-      } catch (error) {
-        console.error(`Error processing cobro_cliente for item ${index}:`, error);
       }
     });
     
-    // Calculate final values
+    // Calcular valores finales
     const gmv = totalValue;
     const avgOrderValue = validValueCount > 0 ? totalValue / validValueCount : 0;
     const totalClients = uniqueClients.size;
     
-    console.log('GMV calculation results:', {
+    console.log('Resultados del cálculo de GMV:', {
       gmv,
       avgOrderValue,
       totalClients,
       validValueCount,
-      parseSuccessRate: `${Math.round((validValueCount / serviciosData.length) * 100)}%`
+      tasaÉxitoParseo: `${Math.round((validValueCount / serviciosData.length) * 100)}%`
     });
     
     return { 
       gmv, 
       avgOrderValue, 
       totalClients,
-      dataQuality,
       hasValidGmvData: validValueCount > 0
     };
   }, [serviciosData]);
@@ -162,7 +108,7 @@ export function ClientGrowthAnalysis({ serviciosData, isLoading, dateRange, comp
     );
   }
   
-  // If we don't have valid GMV data, show an alert
+  // Si no tenemos datos GMV válidos, mostrar una alerta
   if (!hasValidGmvData && serviciosData && serviciosData.length > 0) {
     return (
       <Card className="border shadow-sm">
@@ -175,34 +121,9 @@ export function ClientGrowthAnalysis({ serviciosData, isLoading, dateRange, comp
             <AlertTitle className="text-amber-800">No hay datos de GMV disponibles</AlertTitle>
             <AlertDescription className="text-amber-700">
               Los valores de "cobro_cliente" no están disponibles o no son válidos.
-              {dataQuality && (
-                <div className="mt-2 text-sm text-amber-600">
-                  <p>Análisis de datos:</p>
-                  <ul className="list-disc pl-5 mt-1 space-y-1">
-                    <li>Total de registros: {dataQuality.totalItems}</li>
-                    <li>Con valores válidos: {dataQuality.validItems} ({dataQuality.percentValid}%)</li>
-                    <li>Con valores nulos: {dataQuality.nullOrUndefined}</li>
-                    <li>Con valores vacíos: {dataQuality.emptyString}</li>
-                    <li>Con valores no numéricos: {dataQuality.nonNumeric}</li>
-                  </ul>
-                  
-                  {dataQuality.originalValues && dataQuality.originalValues.length > 0 && (
-                    <div className="mt-3">
-                      <p className="font-medium">Ejemplos de valores en la base de datos:</p>
-                      <ul className="list-disc pl-5 mt-1 space-y-1">
-                        {dataQuality.originalValues.slice(0, 5).map((sample, idx) => (
-                          <li key={idx}>
-                            Valor: "{sample.value}" (tipo: {sample.type})
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-                </div>
-              )}
               <div className="mt-3 p-3 bg-white/50 rounded border border-amber-200">
-                <p className="font-medium text-amber-800">Solución recomendada:</p>
-                <p>Verifique que los valores de "cobro_cliente" en la base de datos sean numéricos o estén en un formato de moneda válido.</p>
+                <p className="font-medium text-amber-800">Posible solución:</p>
+                <p>Ejecute la función de limpieza de datos con: SELECT public.clean_cobro_cliente_values();</p>
               </div>
             </AlertDescription>
           </Alert>
@@ -222,31 +143,29 @@ export function ClientGrowthAnalysis({ serviciosData, isLoading, dateRange, comp
       <CardContent>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <div className="p-4 bg-white border rounded-lg shadow-sm">
-            <h3 className="text-sm font-medium text-gray-500">GMV</h3>
-            <p className="text-2xl font-bold mt-1">{formatCurrency(gmv)}</p>
+            <p className="text-sm text-gray-500">GMV Total</p>
+            <h3 className="text-2xl font-bold mt-1">{formatCurrency(gmv)}</h3>
+            <p className="text-xs text-gray-400 mt-1">
+              Valor bruto de mercancía
+            </p>
           </div>
           
           <div className="p-4 bg-white border rounded-lg shadow-sm">
-            <h3 className="text-sm font-medium text-gray-500">AOV</h3>
-            <p className="text-2xl font-bold mt-1">{formatCurrency(avgOrderValue)}</p>
+            <p className="text-sm text-gray-500">Valor de Orden Promedio</p>
+            <h3 className="text-2xl font-bold mt-1">{formatCurrency(avgOrderValue)}</h3>
+            <p className="text-xs text-gray-400 mt-1">
+              Por servicio
+            </p>
           </div>
           
           <div className="p-4 bg-white border rounded-lg shadow-sm">
-            <h3 className="text-sm font-medium text-gray-500">Clientes</h3>
-            <p className="text-2xl font-bold mt-1">{totalClients}</p>
+            <p className="text-sm text-gray-500">Total de Clientes</p>
+            <h3 className="text-2xl font-bold mt-1">{totalClients}</h3>
+            <p className="text-xs text-gray-400 mt-1">
+              En el período seleccionado
+            </p>
           </div>
         </div>
-        
-        {dataQuality && dataQuality.percentValid < 50 && dataQuality.percentValid > 0 && (
-          <Alert variant="default" className="mt-4 bg-blue-50 border-blue-200">
-            <Info className="h-4 w-4 text-blue-500" />
-            <AlertTitle className="text-blue-800">Calidad de datos limitada</AlertTitle>
-            <AlertDescription className="text-blue-700">
-              Solo el {dataQuality.percentValid}% de los registros tienen valores válidos para "cobro_cliente".
-              Las métricas mostradas se han calculado usando los datos disponibles.
-            </AlertDescription>
-          </Alert>
-        )}
       </CardContent>
     </Card>
   );

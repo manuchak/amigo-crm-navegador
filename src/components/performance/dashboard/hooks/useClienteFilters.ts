@@ -1,53 +1,33 @@
 
+
 import { useMemo } from 'react';
 import { ClienteServicios } from '../../services/servicios';
-import { parseCurrencyValue, directCurrencyConverter } from '../../services/servicios/utils';
-import { tryParseNumber } from '../../utils/dataValidator';
 
 export function useClienteFilters(
   serviciosPorCliente: any[] | undefined, 
   serviciosData: any[] | undefined,
   filteredData: any[]
 ) {
-  // Filter client data by status
+  // Filtrar datos de clientes por estado
   const filteredClientesData = useMemo(() => {
     if (!serviciosPorCliente || !serviciosData || !filteredData) return [];
     
-    // Get the IDs of filtered services
+    // Obtener los IDs de servicios filtrados
     const filteredIds = new Set(filteredData.map((item: any) => item.id));
     
-    console.log("Starting client filtering - filtered services count:", filteredIds.size);
-
-    // Data integrity check - log raw cobro_cliente values to help diagnose issues
-    console.log("Sampling cobro_cliente values to diagnose formatting issues:");
-    const sampleSize = Math.min(10, serviciosData.length);
-    const samples = serviciosData.slice(0, sampleSize);
-    samples.forEach((s, i) => {
-      console.log(`Sample ${i+1}: cobro_cliente="${s.cobro_cliente}", type=${typeof s.cobro_cliente}`);
-    });
+    console.log("Iniciando filtrado de clientes - servicios filtrados:", filteredIds.size);
     
-    // Check for any valid cobro_cliente values
-    let validCurrencyValueCount = 0;
-    samples.forEach(s => {
-      const parsed = parseCurrencyValue(s.cobro_cliente);
-      if (parsed > 0) validCurrencyValueCount++;
-    });
-    
-    // Decide which parser to use based on the test
-    const useDirectParser = validCurrencyValueCount === 0;
-    console.log(`Using ${useDirectParser ? 'direct' : 'standard'} currency parser based on sample analysis`);
-    
-    // Only return clients that have services in the filtered set
+    // Solo retornar clientes que tengan servicios en el conjunto filtrado
     const activeClientes = serviciosPorCliente.filter(cliente => {
-      // Find services for this client in the raw data
+      // Encontrar servicios para este cliente en los datos sin procesar
       const clientServices = serviciosData.filter(
         (servicio: any) => servicio.nombre_cliente === cliente.nombre_cliente
       );
       
-      // Check if any of these services are in our filtered set
+      // Verificar si alguno de estos servicios está en nuestro conjunto filtrado
       return clientServices.some((servicio: any) => filteredIds.has(servicio.id));
     }).map(cliente => {
-      // Count only services that match our filter for this client
+      // Contar solo los servicios que coinciden con nuestro filtro para este cliente
       const filteredClientServices = serviciosData.filter(
         (servicio: any) => 
           servicio.nombre_cliente === cliente.nombre_cliente && 
@@ -56,92 +36,44 @@ export function useClienteFilters(
       
       const filteredCount = filteredClientServices.length;
       
-      // Calculate average KM for filtered services, prioritizing km_teorico over km_recorridos
+      // Calcular KM promedio para servicios filtrados, priorizando km_teorico sobre km_recorridos
       let totalKm = 0;
       filteredClientServices.forEach((servicio: any) => {
-        // Prioritize km_teorico over km_recorridos
+        // Priorizar km_teorico sobre km_recorridos
         const kmValue = servicio.km_teorico !== null && servicio.km_teorico !== undefined ? 
           servicio.km_teorico : 
           (servicio.km_recorridos || 0);
         totalKm += Number(kmValue);
       });
       
-      // Round to 2 decimal places
+      // Redondear a 2 decimales
       const avgKm = filteredClientServices.length > 0 ? 
         Number((totalKm / filteredClientServices.length).toFixed(2)) : 0;
 
-      // Log cliente details to help with debugging
-      console.log(`Processing client ${cliente.nombre_cliente} with ${filteredClientServices.length} services`);
-      
-      // Track total valid amount and count for averaging
+      // Calcular costo promedio (ahora los valores son numéricos gracias a la normalización)
       let totalAmount = 0;
       let validServiceCount = 0;
-      let rawValuesSample = [];
       
-      // Process each service to calculate total amount
-      filteredClientServices.forEach((servicio, idx) => {
-        // Extract cobro_cliente (revenue/AOV value)
-        const rawValue = servicio.cobro_cliente;
+      filteredClientServices.forEach((servicio) => {
+        // Extraer cobro_cliente (valor de ingresos/AOV)
+        const amount = servicio.cobro_cliente;
         
-        // Debug: Collect raw values for first few services to understand the issue
-        if (idx < 5) {
-          rawValuesSample.push({
-            id: servicio.id,
-            rawValue,
-            type: typeof rawValue
-          });
-        }
-        
-        // Skip services with no cobro_cliente value
-        if (rawValue === null || rawValue === undefined || rawValue === '') {
+        // Omitir servicios sin valor cobro_cliente
+        if (amount === null || amount === undefined) {
           return;
         }
         
-        // Parse the value (our enhanced parser handles various formats)
-        let amount;
-        
-        // Try multiple parsing methods to ensure we get a valid value
-        if (useDirectParser) {
-          // Use the direct converter for problematic data
-          amount = directCurrencyConverter(rawValue);
-        } else {
-          // Use the enhanced parser
-          amount = parseCurrencyValue(rawValue);
-        }
-        
-        // As a last resort, try the simple number parser
-        if (amount === 0) {
-          const parsed = tryParseNumber(rawValue);
-          if (parsed !== null) amount = parsed;
-        }
-        
-        if (amount > 0) {
+        // Los valores ahora deberían ser numéricos
+        if (typeof amount === 'number' && !isNaN(amount) && amount > 0) {
           totalAmount += amount;
           validServiceCount++;
-          
-          // Log some samples for debugging
-          if (idx < 3) {
-            console.log(`Service ${servicio.id}: Raw cobro_cliente "${rawValue}" → Parsed: ${amount}`);
-          }
         }
       });
       
-      // Log the sample of raw values to understand what we're dealing with
-      if (rawValuesSample.length > 0) {
-        console.log(`${cliente.nombre_cliente} cobro_cliente samples:`, rawValuesSample);
-      }
+      // Calcular el promedio
+      const avgCost = validServiceCount > 0 ? totalAmount / validServiceCount : 0;
       
-      // Calculate the average
-      let avgCost = 0;
-      
-      if (validServiceCount > 0) {
-        avgCost = totalAmount / validServiceCount;
-        console.log(`${cliente.nombre_cliente}: AOV calculation: ${totalAmount} ÷ ${validServiceCount} services = ${avgCost}`);
-      } else {
-        console.log(`${cliente.nombre_cliente}: No valid cobro_cliente values found`);
-      }
-      
-      // Add trend info based on client metrics
+      // Agregar información de tendencia basada en métricas del cliente
       const serviciosTrend = filteredCount > 50 ? 'up' : (filteredCount > 20 ? 'neutral' : 'down');
       const kmTrend = avgKm > 200 ? 'up' : (avgKm > 100 ? 'neutral' : 'down');
       const costTrend = avgCost > 5000 ? 'up' : (avgCost > 1000 ? 'neutral' : 'down');
@@ -150,14 +82,14 @@ export function useClienteFilters(
         ...cliente,
         totalServicios: filteredCount,
         kmPromedio: avgKm,
-        costoPromedio: avgCost, // Store the raw numeric value
+        costoPromedio: avgCost, // Almacenar el valor numérico sin formato
         serviciosTrend,
         kmTrend,
         costTrend
       };
     });
     
-    console.log("Final filtered client count:", activeClientes.length);
+    console.log("Número final de clientes filtrados:", activeClientes.length);
     
     return activeClientes;
   }, [serviciosPorCliente, serviciosData, filteredData]);
