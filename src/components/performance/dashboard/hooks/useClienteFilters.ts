@@ -16,6 +16,14 @@ export function useClienteFilters(
     const filteredIds = new Set(filteredData.map((item: any) => item.id));
     
     console.log("Starting client filtering - filtered services count:", filteredIds.size);
+
+    // Data integrity check - log raw cobro_cliente values to help diagnose issues
+    console.log("Sampling cobro_cliente values to diagnose formatting issues:");
+    const sampleSize = Math.min(10, serviciosData.length);
+    const samples = serviciosData.slice(0, sampleSize);
+    samples.forEach((s, i) => {
+      console.log(`Sample ${i+1}: cobro_cliente="${s.cobro_cliente}", type=${typeof s.cobro_cliente}`);
+    });
     
     // Only return clients that have services in the filtered set
     const activeClientes = serviciosPorCliente.filter(cliente => {
@@ -56,11 +64,21 @@ export function useClienteFilters(
       // Track total valid amount and count for averaging
       let totalAmount = 0;
       let validServiceCount = 0;
+      let rawValuesSample = [];
       
       // Process each service to calculate total amount
       filteredClientServices.forEach((servicio, idx) => {
         // Extract cobro_cliente (revenue/AOV value)
         const rawValue = servicio.cobro_cliente;
+        
+        // Debug: Collect raw values for first few services to understand the issue
+        if (idx < 5) {
+          rawValuesSample.push({
+            id: servicio.id,
+            rawValue,
+            type: typeof rawValue
+          });
+        }
         
         // Skip services with no cobro_cliente value
         if (rawValue === null || rawValue === undefined || rawValue === '') {
@@ -80,6 +98,11 @@ export function useClienteFilters(
           }
         }
       });
+      
+      // Log the sample of raw values to understand what we're dealing with
+      if (rawValuesSample.length > 0) {
+        console.log(`${cliente.nombre_cliente} cobro_cliente samples:`, rawValuesSample);
+      }
       
       // Calculate the average
       let avgCost = 0;

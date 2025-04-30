@@ -10,35 +10,51 @@ export function formatNumber(value: number | undefined | null): string {
 
 /**
  * Formatea un número como moneda (pesos mexicanos)
- * Improved to handle zero values and small amounts better
+ * Enhanced to handle problematic values better and with additional logging
  */
 export function formatCurrency(value: number | undefined | null): string {
-  if (value === undefined || value === null) return '$0';
+  // Log the incoming value for debugging purposes
+  console.log(`formatCurrency called with: ${value} (type: ${typeof value})`);
   
-  // Log the value for debugging
-  console.log(`formatCurrency received: ${value}, type: ${typeof value}`);
+  if (value === undefined || value === null) {
+    console.log('Value is null/undefined, returning $0');
+    return '$0';
+  }
   
-  // If value is very close to zero but not exactly zero, display as $0.1
+  // Handle NaN values explicitly
+  if (typeof value === 'number' && isNaN(value)) {
+    console.log('Value is NaN, returning $0');
+    return '$0';
+  }
+  
+  // For very small but non-zero values, show as $0.1 to indicate there is some value
   if (Math.abs(value) > 0 && Math.abs(value) < 0.1) {
+    console.log(`Small value ${value}, displaying as $0.1`);
     return '$0.1';
   }
   
   // For zero value, just return $0 without decimals
-  if (value === 0) return '$0';
+  if (value === 0) {
+    console.log('Value is 0, returning $0');
+    return '$0';
+  }
   
   // For non-zero values, format with 1 decimal place as requested
   try {
-    const formatted = new Intl.NumberFormat('es-MX', {
+    const formatter = new Intl.NumberFormat('es-MX', {
       style: 'currency',
       currency: 'MXN',
       minimumFractionDigits: 1,
       maximumFractionDigits: 1
-    }).format(value);
+    });
     
-    console.log(`Formatted currency ${value} to: ${formatted}`);
+    const formatted = formatter.format(value);
+    console.log(`Formatted ${value} as: ${formatted}`);
     return formatted;
   } catch (error) {
-    console.error(`Error formatting currency value ${value}:`, error);
+    console.error(`Error formatting value ${value}:`, error);
+    
+    // Fall back to a simple formatting method if Intl fails
     return `$${value.toFixed(1)}`;
   }
 }

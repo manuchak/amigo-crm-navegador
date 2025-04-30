@@ -40,7 +40,7 @@ export function ServiciosDashboard({ dateRange, comparisonRange }: ServiciosDash
     retry: 1,
   });
 
-  // Debug logging after data fetch
+  // Debug logging after data fetch to understand data integrity issues
   useEffect(() => {
     console.log("Data fetched:", data);
     if (data?.serviciosData) {
@@ -52,6 +52,34 @@ export function ServiciosDashboard({ dateRange, comparisonRange }: ServiciosDash
         if (item.estado) uniqueStatuses.add(`"${item.estado}"`);
       });
       console.log("Unique statuses in data:", Array.from(uniqueStatuses).join(", "));
+
+      // Check cobro_cliente data integrity
+      const cobroClienteValues = data.serviciosData.slice(0, 20).map(s => ({
+        id: s.id,
+        cobro_cliente: s.cobro_cliente,
+        type: typeof s.cobro_cliente
+      }));
+      console.log("Sample cobro_cliente values:", cobroClienteValues);
+      
+      // Analyze cobro_cliente data distribution
+      const totalServices = data.serviciosData.length;
+      const withCobro = data.serviciosData.filter(s => 
+        s.cobro_cliente !== null && 
+        s.cobro_cliente !== undefined && 
+        s.cobro_cliente !== ''
+      ).length;
+      const validNumericCobro = data.serviciosData.filter(s => {
+        const val = Number(s.cobro_cliente);
+        return !isNaN(val) && val > 0;
+      }).length;
+      
+      console.log("cobro_cliente data analysis:", {
+        total: totalServices,
+        withAnyValue: withCobro,
+        withValidNumericValue: validNumericCobro,
+        percentWithValue: ((withCobro / totalServices) * 100).toFixed(1) + '%',
+        percentWithValidValue: ((validNumericCobro / totalServices) * 100).toFixed(1) + '%'
+      });
     }
   }, [data]);
   

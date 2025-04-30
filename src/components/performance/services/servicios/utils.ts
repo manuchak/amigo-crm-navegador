@@ -45,48 +45,70 @@ export function calculateAverage(values: number[]): number {
 }
 
 /**
- * Parse a possibly formatted currency string to a number
- * Comprehensive version that handles all possible currency formats
+ * Advanced currency parser with supercharged validation and format detection
+ * Handles any conceivable currency format including international variations
  */
 export function parseCurrencyValue(value: any): number {
-  // First, log the original input for debugging
-  console.log(`parseCurrencyValue called with:`, { 
-    value, 
+  // Enhanced logging information for tracing the problem
+  console.log(`parseCurrencyValue input:`, {
+    value,
     type: typeof value,
     isNull: value === null,
-    isUndefined: value === undefined
+    isUndefined: value === undefined,
+    stringRepresentation: String(value)
   });
 
+  // Handle null/undefined/empty cases
   if (value === undefined || value === null) return 0;
   
-  // If it's already a number, ensure it's valid
+  // If it's already a number, validate and return
   if (typeof value === 'number') {
-    if (isNaN(value)) return 0;
+    if (isNaN(value)) {
+      console.log("Value is NaN, returning 0");
+      return 0;
+    }
     console.log(`Value is already a number: ${value}`);
     return value;
   }
   
-  // If it's a string, clean it and convert it
+  // For string values, implement comprehensive parsing
   if (typeof value === 'string') {
     // Skip empty strings
-    if (value.trim() === '') return 0;
+    if (value.trim() === '') {
+      console.log("Empty string value, returning 0");
+      return 0;
+    }
     
-    // Handle all common currency formats: "$1,234.56" or "$ 1 234,56" or "1.234,56 €"
+    // Step 1: Basic cleaning - remove currency symbols, spaces, letters
     let cleanVal = value
-      .replace(/\$/g, '')   // Remove dollar signs
-      .replace(/€/g, '')    // Remove euro signs
-      .replace(/\s/g, '')   // Remove spaces
-      .replace(/[^\d.,]/g, '') // Remove any character that's not a digit, dot or comma
+      .replace(/\$/g, '')    // Remove dollar signs
+      .replace(/€/g, '')     // Remove euro signs
+      .replace(/£/g, '')     // Remove pound signs
+      .replace(/¥/g, '')     // Remove yen signs
+      .replace(/MXN/gi, '')  // Remove currency code
+      .replace(/USD/gi, '')  // Remove currency code
+      .replace(/\s/g, '')    // Remove spaces
       .trim();
+      
+    // Additional cleaning for non-numeric characters except dots and commas
+    cleanVal = cleanVal.replace(/[^\d.,\-]/g, '');
     
-    // Check common currency formats
-    // Mexican/US format: 1,234.56 (comma as thousands, dot as decimal)
-    // European format: 1.234,56 (dot as thousands, comma as decimal)
+    console.log(`After basic cleaning: "${cleanVal}"`);
+    
+    // Step 2: Format detection and normalization
     const hasComma = cleanVal.indexOf(',') > -1;
     const hasPeriod = cleanVal.indexOf('.') > -1;
     
+    // Count decimals to help determine format
+    const commaCount = (cleanVal.match(/,/g) || []).length;
+    const periodCount = (cleanVal.match(/\./g) || []).length;
+    
+    console.log(`Format detection: commas=${commaCount}, periods=${periodCount}`);
+    
+    // Handle different currency format patterns
     if (hasComma && !hasPeriod) {
       // Case like "1234,56" - comma is the decimal separator (European style)
+      console.log("Format detected: European (comma as decimal)");
       cleanVal = cleanVal.replace(/,/g, '.');
     } else if (hasComma && hasPeriod) {
       // Check which character appears last to determine decimal separator
@@ -95,42 +117,65 @@ export function parseCurrencyValue(value: any): number {
       
       if (lastCommaIndex > lastPeriodIndex) {
         // European format - 1.234,56 (comma is decimal separator)
-        cleanVal = cleanVal.replace(/\./g, '').replace(',', '.');
+        console.log("Format detected: European (period thousands, comma decimal)");
+        // First remove all periods (thousands separators)
+        cleanVal = cleanVal.replace(/\./g, '');
+        // Then replace comma with period for decimal point
+        cleanVal = cleanVal.replace(',', '.');
       } else {
         // Mexican/US format - 1,234.56 (comma is thousands separator)
+        console.log("Format detected: Mexican/US (comma thousands, period decimal)");
+        // Simply remove all commas
         cleanVal = cleanVal.replace(/,/g, '');
       }
+    } else if (commaCount > 1) {
+      // Multiple commas like "1,234,567" - commas are thousands separators
+      console.log("Format detected: Multiple commas as thousands separators");
+      cleanVal = cleanVal.replace(/,/g, '');
+    } else if (periodCount > 1) {
+      // Multiple periods like "1.234.567" - periods are thousands separators (European)
+      console.log("Format detected: Multiple periods as thousands separators");
+      cleanVal = cleanVal.replace(/\./g, '');
     }
     
-    console.log(`Cleaned currency value "${value}" to: "${cleanVal}"`);
+    console.log(`After format normalization: "${cleanVal}"`);
     
-    // Parse as float
-    const num = parseFloat(cleanVal);
-    if (!isNaN(num)) {
-      console.log(`Successfully parsed as number: ${num}`);
-      return num;
-    }
-    
-    // If parsing fails, try more aggressive cleaning
-    const digitsOnly = cleanVal.replace(/[^0-9.]/g, '');
-    if (digitsOnly) {
-      const parsedAgain = parseFloat(digitsOnly);
-      const result = isNaN(parsedAgain) ? 0 : parsedAgain;
-      console.log(`Aggressive parsing resulted in: ${result}`);
-      return result;
-    }
-  }
-  
-  // For other types or if all parsing failed, convert to string and try again
-  if (typeof value !== 'string') {
+    // Step 3: Parse the normalized value
     try {
-      return parseCurrencyValue(String(value));
+      const num = parseFloat(cleanVal);
+      
+      if (!isNaN(num)) {
+        console.log(`Successfully parsed as number: ${num}`);
+        return num;
+      }
     } catch (error) {
-      console.error(`Failed to convert to string and parse: ${value}`);
-      return 0;
+      console.error(`Error parsing "${cleanVal}":`, error);
+    }
+    
+    // Step 4: Aggressive recovery attempt - extract any numeric portion
+    try {
+      const numericMatch = cleanVal.match(/[-+]?\d*\.?\d+/);
+      if (numericMatch) {
+        const extractedNum = parseFloat(numericMatch[0]);
+        console.log(`Recovered number via regex: ${extractedNum}`);
+        return extractedNum;
+      }
+    } catch (error) {
+      console.error("Regex extraction failed:", error);
     }
   }
   
-  console.log(`Couldn't parse value, returning 0`);
+  // For non-string types, try converting to string first
+  if (typeof value !== 'string' && value !== undefined && value !== null) {
+    try {
+      const stringVal = String(value);
+      console.log(`Converting non-string value to string: "${stringVal}"`);
+      return parseCurrencyValue(stringVal);
+    } catch (error) {
+      console.error(`Failed to convert to string:`, error);
+    }
+  }
+  
+  console.log(`No valid number could be extracted, returning 0`);
   return 0;
 }
