@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Users, TrendingUp, TrendingDown, Minus } from "lucide-react";
@@ -48,9 +47,9 @@ export function ServiciosClientesActivos({ clientes = [], isLoading }: Servicios
     return {
       ...cliente,
       // Count only non-cancelled services
-      totalServicios: cliente.totalServicios || 0, // This value now comes pre-filtered from the database
+      totalServicios: cliente.totalServicios || 0, 
       kmPromedio: kmPromedioFormatted,
-      costoPromedio: costoPromedio, // This represents AOV (Average Order Value)
+      costoPromedio: costoPromedio, 
       kmTrend,
       costTrend
     };

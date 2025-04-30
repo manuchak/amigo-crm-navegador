@@ -1,4 +1,3 @@
-
 /**
  * Formatea un número con separadores de miles
  */
@@ -14,23 +13,15 @@ export function formatNumber(value: number | undefined | null): string {
 export function formatCurrency(value: number | undefined | null): string {
   if (value === undefined || value === null) return '$0';
   
-  // If value is extremely small but not zero, show it without rounding
-  // This prevents displaying $0 when there's actually a very small value
-  if (value > 0 && value < 1) {
-    // For small values, show full precision
-    return new Intl.NumberFormat('es-MX', {
-      style: 'currency',
-      currency: 'MXN',
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2
-    }).format(value);
-  }
+  // If value is 0, just return $0 without decimals
+  if (value === 0) return '$0';
   
+  // For non-zero values, format with 1 decimal place as requested
   return new Intl.NumberFormat('es-MX', {
     style: 'currency',
     currency: 'MXN',
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0
+    minimumFractionDigits: 1,
+    maximumFractionDigits: 1
   }).format(value);
 }
 

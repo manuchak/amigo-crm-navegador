@@ -34,7 +34,6 @@ export function useClienteFilters(
       );
       
       const filteredCount = filteredClientServices.length;
-      console.log(`Client: ${cliente.nombre_cliente}, Services: ${filteredCount}`);
       
       // Calculate average KM for filtered services, prioritizing km_teorico over km_recorridos
       let totalKm = 0;
@@ -52,90 +51,71 @@ export function useClienteFilters(
       
       console.log(`Client ${cliente.nombre_cliente} - Total KM: ${totalKm}, Avg KM: ${avgKm}`);
 
-      // DETAILED DEBUG FOR AOV CALCULATION
-      console.log(`------- AOV Debug for ${cliente.nombre_cliente} -------`);
+      // Calculate AOV (Average Order Value) from cobro_cliente values
+      let totalCobro = 0;
       
       // Get distinct service IDs to avoid counting duplicates
-      const distinctServiceIds = new Set();
-      filteredClientServices.forEach(s => {
-        if (s.id_servicio) distinctServiceIds.add(s.id_servicio);
-      });
+      const uniqueServices = new Map();
       
-      console.log(`Distinct service IDs: ${distinctServiceIds.size}`);
-      
-      // Debug log each service's cobro_cliente value
-      const serviceValues = filteredClientServices.map(s => ({
-        id: s.id,
-        id_servicio: s.id_servicio,
-        cobro_cliente: s.cobro_cliente,
-        cobro_cliente_type: typeof s.cobro_cliente
-      }));
-      
-      console.log("Service values:", JSON.stringify(serviceValues, null, 2));
-      
-      // Calculate AOV (Average Order Value) - Sum of cobro_cliente values
-      let totalCobro = 0;
-      let validCobroCount = 0;
-      let debugValues = [];
+      // Track raw values for debugging
+      const rawValues = [];
       
       filteredClientServices.forEach((servicio: any) => {
-        // Only process services with valid cobro_cliente values
+        // Skip if we've already counted this service ID
+        if (servicio.id_servicio && uniqueServices.has(servicio.id_servicio)) return;
+        if (servicio.id_servicio) uniqueServices.set(servicio.id_servicio, true);
+        
+        // Process cobro_cliente value
         if (servicio.cobro_cliente !== null && servicio.cobro_cliente !== undefined) {
-          // Parse the value as a number
-          let cobroValue;
-          let originalValue = servicio.cobro_cliente;
+          let cobroValue = 0;
+          
+          // Store raw value for debugging
+          rawValues.push({
+            id: servicio.id,
+            raw: servicio.cobro_cliente,
+            type: typeof servicio.cobro_cliente
+          });
           
           try {
-            if (typeof servicio.cobro_cliente === 'string') {
-              // Handle various string formats (common in Mexico: "$1,234.56", "1.234,56", etc)
-              // Remove currency symbols, spaces and commas
-              const cleanValue = servicio.cobro_cliente
-                .replace(/\$/g, '')  // Remove $ signs
-                .replace(/,/g, '')   // Remove commas
-                .trim();             // Remove spaces
+            // Handle different data types
+            if (typeof servicio.cobro_cliente === 'number') {
+              cobroValue = servicio.cobro_cliente;
+            } else if (typeof servicio.cobro_cliente === 'string') {
+              // Clean up the string value (remove currency symbols, spaces, commas)
+              // Handle Mexican currency format which might use commas as decimal separators
+              const cleanVal = servicio.cobro_cliente
+                .replace(/\$/g, '') // Remove dollar signs
+                .replace(/\s/g, '') // Remove spaces
+                .replace(/,/g, '.'); // Replace commas with periods for decimal
               
-              cobroValue = parseFloat(cleanValue);
-              debugValues.push({
-                original: originalValue,
-                cleaned: cleanValue,
-                parsed: cobroValue,
-                type: typeof cobroValue
-              });
-            } else {
-              cobroValue = Number(servicio.cobro_cliente);
-              debugValues.push({
-                original: originalValue,
-                parsed: cobroValue,
-                type: typeof cobroValue
-              });
+              cobroValue = parseFloat(cleanVal);
             }
             
+            // Only add valid numbers
             if (!isNaN(cobroValue)) {
               totalCobro += cobroValue;
-              validCobroCount++;
             }
-          } catch (error) {
-            console.error(`Error parsing cobro_cliente: ${servicio.cobro_cliente}`, error);
+          } catch (err) {
+            console.error(`Error parsing cobro_cliente value for ${servicio.id}:`, err);
           }
         }
       });
       
-      console.log("Cobro value parsing:", debugValues);
-      console.log(`Total cobro: ${totalCobro}, Valid count: ${validCobroCount}`);
+      // For debugging
+      console.log(`${cliente.nombre_cliente} - Raw cobro_cliente values:`, rawValues);
+      console.log(`${cliente.nombre_cliente} - Total cobro: ${totalCobro}, Unique services: ${uniqueServices.size}`);
       
-      // Use the number of distinct service IDs for the calculation
-      const distinctCount = distinctServiceIds.size || filteredCount;
-      console.log(`Using count for division: ${distinctCount}`);
+      // Calculate average - use unique service count or filtered count if no unique IDs
+      const serviceCount = uniqueServices.size > 0 ? uniqueServices.size : filteredCount;
+      const avgCobro = serviceCount > 0 ? totalCobro / serviceCount : 0;
       
-      const avgCobro = distinctCount > 0 ? totalCobro / distinctCount : 0;
-      console.log(`Final AOV: ${avgCobro}`);
-      console.log("----------------------------------------");
+      console.log(`${cliente.nombre_cliente} - Final AOV calculation: ${totalCobro} / ${serviceCount} = ${avgCobro}`);
       
       return {
         ...cliente,
         totalServicios: filteredCount,
-        kmPromedio: avgKm, // Override with our recalculated value
-        costoPromedio: avgCobro // AOV calculation
+        kmPromedio: avgKm,
+        costoPromedio: Number(avgCobro.toFixed(1)) // Format to 1 decimal place as requested
       };
     });
     
