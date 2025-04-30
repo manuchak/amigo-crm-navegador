@@ -1201,6 +1201,10 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: string
       }
+      convert_cobro_cliente_to_integer: {
+        Args: Record<PropertyKey, never>
+        Returns: string
+      }
       deduplicate_leads: {
         Args: Record<PropertyKey, never>
         Returns: undefined

@@ -9,7 +9,7 @@ import {
   CardDescription 
 } from "@/components/ui/card";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
-import { formatCurrency } from './utils/formatters';
+import { formatCurrency } from '@/components/performance/utils/formatters';
 import { AlertTriangle, Info } from 'lucide-react';
 
 interface ClientGrowthAnalysisProps {
