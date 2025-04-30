@@ -3,8 +3,31 @@ import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { PieChart, Pie, ResponsiveContainer, Cell, BarChart, Bar, XAxis, YAxis, Tooltip } from 'recharts';
-import { ClientData } from '@/components/ClientCard';
-import { mockClients } from '@/pages/Clients';
+
+// Define the ClientData interface to avoid type errors
+interface ClientData {
+  id: number;
+  nombre: string;
+  empresa: string;
+  etapa: string;
+  valor: number;
+  fechaCreacion: string;
+}
+
+// Import mock data
+// This import was likely causing an issue, so defining mockClients inline
+const mockClients: ClientData[] = [
+  { id: 1, nombre: "Juan Pérez", empresa: "Seguridad Total", etapa: "Prospecto", valor: 5000, fechaCreacion: "2025-03-25" },
+  { id: 2, nombre: "María López", empresa: "Custodios Armados", etapa: "Contactado", valor: 7500, fechaCreacion: "2025-03-27" },
+  { id: 3, nombre: "Carlos Ruiz", empresa: "Protección Ejecutiva", etapa: "Negociación", valor: 12000, fechaCreacion: "2025-03-28" },
+  { id: 4, nombre: "Ana Martínez", empresa: "Seguridad Privada", etapa: "Ganado", valor: 20000, fechaCreacion: "2025-04-01" },
+  { id: 5, nombre: "Roberto Sánchez", empresa: "Guardias Express", etapa: "Perdido", valor: 3000, fechaCreacion: "2025-04-05" },
+  { id: 6, nombre: "Daniela Torres", empresa: "Custodios Elite", etapa: "Prospecto", valor: 8000, fechaCreacion: "2025-04-10" },
+  { id: 7, nombre: "Miguel Álvarez", empresa: "Protección Total", etapa: "Ganado", valor: 15000, fechaCreacion: "2025-04-12" },
+  { id: 8, nombre: "Sofía Ramírez", empresa: "Guardias Premium", etapa: "Negociación", valor: 10000, fechaCreacion: "2025-04-15" },
+  { id: 9, nombre: "Javier Morales", empresa: "Seguridad Express", etapa: "Contactado", valor: 6500, fechaCreacion: "2025-04-18" },
+  { id: 10, nombre: "Lucía Castillo", empresa: "Custodios 24/7", etapa: "Prospecto", valor: 9000, fechaCreacion: "2025-04-20" }
+];
 
 const Dashboard = () => {
   const [activeTab, setActiveTab] = useState('overview');
