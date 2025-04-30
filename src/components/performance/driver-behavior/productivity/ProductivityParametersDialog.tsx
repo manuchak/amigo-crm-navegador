@@ -180,7 +180,7 @@ export function ProductivityParametersDialog({
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value="">Sin grupo específico</SelectItem>
+                        <SelectItem value="no_group">Sin grupo específico</SelectItem>
                         {availableGroups.map((group) => (
                           <SelectItem key={group} value={group}>{group}</SelectItem>
                         ))}

@@ -122,7 +122,7 @@ export function DriverBehaviorFiltersPanel({
             <SelectValue placeholder="Filtrar por cliente" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="">Todos los clientes</SelectItem>
+            <SelectItem value="all">Todos los clientes</SelectItem>
             {clientsData?.map((client: string) => (
               <SelectItem key={client} value={client}>{client}</SelectItem>
             ))}
