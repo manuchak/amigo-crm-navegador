@@ -37,11 +37,15 @@ export function ServiciosHourDistributionChart({ data = [], isLoading }: Servici
 
     console.log(`Processing ${data.length} services for hour distribution`);
     
-    // DEBUG: Log a sample of date values to understand the format
-    const sampleDates = data.slice(0, 5).map(s => s.fecha_hora_cita);
-    console.log('Sample date values:', sampleDates);
+    // Debug: Log the first few service dates to verify the format
+    const sampleServices = data.slice(0, 5);
+    console.log('Sample services:', sampleServices.map(s => ({
+      id: s.id_servicio || s.id || 'no-id',
+      date: s.fecha_hora_cita,
+      type: typeof s.fecha_hora_cita
+    })));
     
-    // Count unique service IDs per hour
+    // Count service IDs per hour
     data.forEach(service => {
       try {
         if (!service.fecha_hora_cita) {
@@ -51,13 +55,20 @@ export function ServiciosHourDistributionChart({ data = [], isLoading }: Servici
         
         // Handle different date formats and types
         let serviceDate: Date;
+        let rawDate = service.fecha_hora_cita;
         
-        if (typeof service.fecha_hora_cita === 'string') {
-          serviceDate = parseISO(service.fecha_hora_cita);
-        } else if (service.fecha_hora_cita instanceof Date) {
-          serviceDate = service.fecha_hora_cita;
+        if (typeof rawDate === 'string') {
+          // Try to parse with native Date first (better timezone handling)
+          serviceDate = new Date(rawDate);
+          
+          // If invalid, try parseISO as fallback
+          if (isNaN(serviceDate.getTime())) {
+            serviceDate = parseISO(rawDate);
+          }
+        } else if (rawDate instanceof Date) {
+          serviceDate = rawDate;
         } else {
-          console.log('Unrecognized date format:', service.fecha_hora_cita);
+          console.log('Unrecognized date format:', rawDate);
           return;
         }
         
@@ -66,34 +77,47 @@ export function ServiciosHourDistributionChart({ data = [], isLoading }: Servici
           return;
         }
         
-        // Get JUST the hour in 24-hour format (0-23)
-        const hour = serviceDate.getHours().toString().padStart(2, '0');
-        console.log(`Extracted hour: ${hour} from date: ${serviceDate.toISOString()} for service: ${service.id_servicio || 'unknown'}`);
+        // Extract the hour in 24-hour format and pad with leading zero if needed
+        const hourNum = serviceDate.getHours();
+        const hour = hourNum.toString().padStart(2, '0');
         
+        // Log for debugging
+        if (Math.random() < 0.05) { // Only log ~5% of dates to avoid console flood
+          console.log(`Service ${service.id_servicio || 'unknown'}: Date=${serviceDate.toISOString()}, Hour=${hour}`);
+        }
+        
+        // Add the service ID to the set for this hour
         const serviceId = service.id_servicio || service.id || `service-${Math.random()}`;
         
         if (hoursMap[hour]) {
           hoursMap[hour].uniqueServices.add(serviceId);
+        } else {
+          console.error(`Invalid hour extracted: ${hour}`);
         }
       } catch (error) {
         console.error("Error processing service date:", service.fecha_hora_cita, error);
       }
     });
     
-    // Debug hour distribution counts
+    // Debug: Log the counts for each hour
+    console.log('Hour distribution:');
+    let totalCounted = 0;
     Object.entries(hoursMap).forEach(([hour, data]) => {
-      console.log(`Hour ${hour}: ${data.uniqueServices.size} unique services`);
+      const count = data.uniqueServices.size;
+      console.log(`Hour ${hour} (${formatHourDisplay(parseInt(hour))}): ${count} services`);
+      totalCounted += count;
     });
+    console.log(`Total services counted in hour distribution: ${totalCounted} / ${data.length}`);
     
-    // Convert to array for chart and count unique services
+    // Convert to array for chart display
     const result = Object.values(hoursMap).map(hourData => ({
       hour: hourData.hour,
       displayHour: hourData.displayHour,
       count: hourData.uniqueServices.size
     }));
     
-    console.log('Final hour distribution data:', result);
-    return result;
+    // Sort by hour for chart display
+    return result.sort((a, b) => parseInt(a.hour) - parseInt(b.hour));
   }, [data]);
   
   // Format hour for display (12-hour format with am/pm)
@@ -178,7 +202,7 @@ export function ServiciosHourDistributionChart({ data = [], isLoading }: Servici
                 width={30}
               />
               <Tooltip
-                formatter={(value) => [`${value} servicios únicos`, 'Cantidad']}
+                formatter={(value) => [`${value} servicios`, 'Cantidad']}
                 contentStyle={{
                   borderRadius: '8px',
                   boxShadow: '0 2px 5px rgba(0,0,0,0.1)',
@@ -190,8 +214,13 @@ export function ServiciosHourDistributionChart({ data = [], isLoading }: Servici
                 dataKey="count" 
                 fill="#0EA5E9" 
                 radius={[4, 4, 0, 0]}
-                name="Servicios Únicos"
-                label={{ position: 'top', fontSize: 10, fill: '#666', formatter: (value) => value > 0 ? value : '' }}
+                name="Servicios"
+                label={{ 
+                  position: 'top', 
+                  fontSize: 10, 
+                  fill: '#666', 
+                  formatter: (value: number) => (value > 0 ? value.toString() : '') 
+                }}
               />
             </BarChart>
           </ResponsiveContainer>
