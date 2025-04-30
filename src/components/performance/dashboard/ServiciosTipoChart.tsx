@@ -1,134 +1,129 @@
 
-import React, { useMemo } from 'react';
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import { Skeleton } from "@/components/ui/skeleton";
+import React from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from 'recharts';
+import { TagIcon } from "lucide-react";
 
-interface ServiciosTipoProps {
+interface ServiciosTipoChartProps {
   data: any[];
   isLoading: boolean;
 }
 
-const COLORS = ['#0EA5E9', '#8B5CF6', '#10B981', '#F59E0B', '#6366F1'];
-
-const RADIAN = Math.PI / 180;
-const renderCustomizedLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, percent, index }: any) => {
-  const radius = innerRadius + (outerRadius - innerRadius) * 0.5;
-  const x = cx + radius * Math.cos(-midAngle * RADIAN);
-  const y = cy + radius * Math.sin(-midAngle * RADIAN);
-
-  return (
-    <text 
-      x={x} 
-      y={y} 
-      fill="white" 
-      textAnchor={x > cx ? 'start' : 'end'} 
-      dominantBaseline="central"
-      fontSize={12}
-      fontWeight={500}
-    >
-      {`${(percent * 100).toFixed(0)}%`}
-    </text>
-  );
-};
-
-export function ServiciosTipoChart({ data, isLoading }: ServiciosTipoProps) {
-  // Process data to focus on local/foráneo distribution
-  const chartData = useMemo(() => {
-    if (!data || data.length === 0) return [];
-
-    const localForaneoCount = {
-      "Local": 0,
-      "Foraneo": 0,
-      "Sin especificar": 0
+export function ServiciosTipoChart({ data = [], isLoading }: ServiciosTipoChartProps) {
+  // Process data to count local, foraneo, and unspecified services
+  const processedData = React.useMemo(() => {
+    const counts = {
+      local: 0,
+      foraneo: 0,
+      unspecified: 0
     };
 
-    // Count by local_foraneo field
     data.forEach(item => {
-      if (item.local_foraneo) {
-        if (item.local_foraneo.toLowerCase() === 'local') {
-          localForaneoCount["Local"] += 1;
-        } else if (item.local_foraneo.toLowerCase() === 'foraneo') {
-          localForaneoCount["Foraneo"] += 1;
-        } else {
-          localForaneoCount["Sin especificar"] += 1;
-        }
+      const localForaneo = item.local_foraneo?.toLowerCase();
+      
+      if (localForaneo === 'local') {
+        counts.local++;
+      } else if (localForaneo === 'foraneo' || localForaneo === 'foráneo') {
+        counts.foraneo++;
       } else {
-        localForaneoCount["Sin especificar"] += 1;
+        counts.unspecified++;
       }
     });
 
-    // Convert to array format for chart
-    return Object.entries(localForaneoCount)
-      .map(([tipo, count]) => ({ tipo, count }))
-      .filter(item => item.count > 0);
+    const result = [
+      { name: 'Local', value: counts.local, color: '#4f46e5' },
+      { name: 'Foráneo', value: counts.foraneo, color: '#10b981' }
+    ];
+
+    // Only add unspecified if there are any
+    if (counts.unspecified > 0) {
+      result.push({ name: 'Sin especificar', value: counts.unspecified, color: '#94a3b8' });
+    }
+
+    return result;
   }, [data]);
+
+  const totalServicios = processedData.reduce((sum, item) => sum + item.value, 0);
 
   if (isLoading) {
     return (
-      <Card className="border shadow-sm bg-white h-full">
+      <Card className="border-0 shadow-sm h-full">
         <CardHeader className="pb-2">
-          <CardTitle className="text-lg font-medium">Servicios por Tipo</CardTitle>
+          <CardTitle className="text-lg font-medium flex items-center">
+            <TagIcon className="h-5 w-5 mr-2 text-blue-500" />
+            Servicios por Tipo (Local/Foráneo)
+          </CardTitle>
         </CardHeader>
-        <CardContent className="pt-0 h-[320px]">
-          <Skeleton className="h-full w-full" />
+        <CardContent className="flex items-center justify-center h-[400px]">
+          <div className="w-full max-w-md space-y-4">
+            <div className="h-40 w-40 rounded-full bg-gray-100 animate-pulse mx-auto"></div>
+            <div className="space-y-2">
+              <div className="h-4 w-full bg-gray-100 rounded animate-pulse"></div>
+              <div className="h-4 w-3/4 bg-gray-100 rounded animate-pulse"></div>
+            </div>
+          </div>
         </CardContent>
       </Card>
     );
   }
 
-  // Make sure we have valid data
-  const displayData = chartData?.length > 0 
-    ? chartData 
-    : [{ tipo: 'Sin datos', count: 1 }];
-  
-  // Calculate total for percentage
-  const total = displayData.reduce((sum, item) => sum + item.count, 0);
+  if (totalServicios === 0) {
+    return (
+      <Card className="border-0 shadow-sm h-full">
+        <CardHeader className="pb-2">
+          <CardTitle className="text-lg font-medium flex items-center">
+            <TagIcon className="h-5 w-5 mr-2 text-blue-500" />
+            Servicios por Tipo (Local/Foráneo)
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="flex items-center justify-center h-[400px]">
+          <div className="text-center text-muted-foreground">
+            No hay datos disponibles
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
-    <Card className="border shadow-sm bg-white h-full">
+    <Card className="border-0 shadow-sm h-full">
       <CardHeader className="pb-2">
-        <CardTitle className="text-lg font-medium">Servicios Local/Foráneo</CardTitle>
+        <CardTitle className="text-lg font-medium flex items-center">
+          <TagIcon className="h-5 w-5 mr-2 text-blue-500" />
+          Servicios por Tipo (Local/Foráneo)
+        </CardTitle>
       </CardHeader>
-      <CardContent className="pt-0 h-[320px]">
-        <ResponsiveContainer width="100%" height="100%">
-          <PieChart>
-            <Pie
-              data={displayData}
-              cx="50%"
-              cy="50%"
-              labelLine={false}
-              label={renderCustomizedLabel}
-              outerRadius={80}
-              fill="#8884d8"
-              dataKey="count"
-              nameKey="tipo"
-            >
-              {displayData.map((entry, index) => (
-                <Cell 
-                  key={`cell-${index}`} 
-                  fill={COLORS[index % COLORS.length]} 
-                />
-              ))}
-            </Pie>
-            <Tooltip 
-              formatter={(value: any, name: any, props: any) => {
-                const percent = ((value / total) * 100).toFixed(1);
-                return [`${value} (${percent}%)`, props.payload.tipo];
-              }}
-            />
-            <Legend 
-              layout="vertical" 
-              verticalAlign="middle" 
-              align="right"
-              formatter={(value, entry, index) => {
-                const item = displayData[index];
-                return `${item.tipo}: ${item.count}`;
-              }}
-              wrapperStyle={{ fontSize: 12, paddingLeft: 20 }}
-            />
-          </PieChart>
-        </ResponsiveContainer>
+      <CardContent>
+        <div className="flex flex-col h-[400px]">
+          <ResponsiveContainer width="100%" height="80%">
+            <PieChart>
+              <Pie
+                data={processedData}
+                cx="50%"
+                cy="50%"
+                labelLine={false}
+                label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                outerRadius={80}
+                fill="#8884d8"
+                dataKey="value"
+              >
+                {processedData.map((entry, index) => (
+                  <Cell key={`cell-${index}`} fill={entry.color} />
+                ))}
+              </Pie>
+              <Tooltip
+                formatter={(value, name) => [`${value} (${((value / totalServicios) * 100).toFixed(1)}%)`, name]}
+                labelFormatter={() => ''}
+              />
+              <Legend />
+            </PieChart>
+          </ResponsiveContainer>
+          <div className="text-center mt-4">
+            <p className="text-sm text-muted-foreground">
+              Total: <span className="font-medium">{totalServicios} servicios</span>
+            </p>
+          </div>
+        </div>
       </CardContent>
     </Card>
   );
