@@ -26,14 +26,6 @@ export function DriverBehaviorDashboard({ dateRange, comparisonRange }: DriverBe
   const [filters, setFilters] = useState<DriverBehaviorFilters>({});
   const queryClient = useQueryClient();
 
-  // Fetch client list for reference (clients will still be loaded for the ProductivityDashboard)
-  const { data: clientList = [] } = useQuery({
-    queryKey: ['driver-behavior-clients'],
-    queryFn: fetchClientList,
-    staleTime: 5 * 60 * 1000, // 5 minutes
-    retry: 2,
-  });
-
   // Get driver behavior data
   const { data: driverData, isLoading, error } = useQuery({
     queryKey: ['driver-behavior-data', dateRange, filters],
@@ -140,7 +132,6 @@ export function DriverBehaviorDashboard({ dateRange, comparisonRange }: DriverBe
         <TabsContent value="productivity" className="mt-6">
           <ProductivityDashboard 
             dateRange={dateRange}
-            clients={Array.isArray(clientList) ? clientList : []}
           />
         </TabsContent>
         

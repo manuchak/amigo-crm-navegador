@@ -1,154 +1,30 @@
+
 import React, { useState } from 'react';
-import { Check, ChevronsUpDown, X } from "lucide-react";
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from "@/components/ui/command";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { X } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
 import { DriverBehaviorFilters } from '../types/driver-behavior.types';
-import { Checkbox } from "@/components/ui/checkbox";
 import { DriverBehaviorImport } from './DriverBehaviorImport';
-import { Badge } from '@/components/ui/badge';
 
 interface DriverBehaviorFiltersPanelProps {
-  clientList: string[];
   filters: DriverBehaviorFilters;
   onFilterChange: (filters: DriverBehaviorFilters) => void;
+  clientList?: string[]; // Make clientList optional
 }
 
 export function DriverBehaviorFiltersPanel({
-  clientList,
   filters,
   onFilterChange
 }: DriverBehaviorFiltersPanelProps) {
-  const [open, setOpen] = useState(false);
-  const [searchValue, setSearchValue] = useState('');
-  
-  const handleClientToggle = (client: string) => {
-    // Initialize selectedClients si no existe
-    const currentSelected = filters.selectedClients || [];
-    
-    // Toggle de la selección del cliente
-    let newSelectedClients: string[];
-    
-    if (currentSelected.includes(client)) {
-      // Eliminar cliente si ya está seleccionado
-      newSelectedClients = currentSelected.filter(c => c !== client);
-    } else {
-      // Añadir cliente si no está seleccionado
-      newSelectedClients = [...currentSelected, client];
-    }
-    
-    // Actualizar filtros con la nueva selección
-    onFilterChange({ 
-      ...filters, 
-      selectedClients: newSelectedClients.length > 0 ? newSelectedClients : undefined 
-    });
-  };
-  
-  const clearClientFilter = () => {
-    onFilterChange({ ...filters, selectedClients: undefined });
-  };
-  
   const handleClearFilters = () => {
     onFilterChange({});
-    setSearchValue('');
-  };
-  
-  // Obtener un resumen de los clientes seleccionados para mostrar
-  const getSelectedClientsDisplay = () => {
-    const selectedClients = filters.selectedClients || [];
-    if (selectedClients.length === 0) return "Todos los clientes";
-    if (selectedClients.length === 1) return selectedClients[0];
-    return `${selectedClients.length} clientes`;
   };
 
-  const handleImportComplete = () => {
-    // Actualizar datos después de importar
-  };
+  const hasFilters = Object.keys(filters).length > 0 && 
+    (filters.selectedClients?.length || Object.keys(filters).some(key => key !== 'selectedClients' && !!filters[key as keyof DriverBehaviorFilters]));
 
   return (
     <div className="flex flex-wrap gap-3 items-center">
-      <Popover open={open} onOpenChange={setOpen}>
-        <PopoverTrigger asChild>
-          <Button
-            variant="outline"
-            role="combobox"
-            aria-expanded={open}
-            className="h-9 justify-between rounded-full border-muted"
-          >
-            <span className="truncate max-w-[150px]">{getSelectedClientsDisplay()}</span>
-            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-          </Button>
-        </PopoverTrigger>
-        <PopoverContent className="w-[250px] p-0 z-50 bg-white border border-gray-200 shadow-md">
-          <Command>
-            <CommandInput 
-              placeholder="Buscar cliente..." 
-              value={searchValue}
-              onValueChange={setSearchValue}
-            />
-            <CommandEmpty>No se encontraron clientes.</CommandEmpty>
-            <CommandGroup className="max-h-[250px] overflow-y-auto">
-              {clientList && clientList.length > 0 ? (
-                clientList.map((client) => (
-                  <CommandItem
-                    key={client}
-                    value={client}
-                    onSelect={() => {
-                      handleClientToggle(client);
-                      // No cerramos el popover para permitir selección múltiple
-                    }}
-                    className="flex items-center gap-2 py-2 cursor-pointer hover:bg-gray-100"
-                  >
-                    <div className="flex items-center gap-2 w-full">
-                      <Checkbox
-                        id={`client-${client}`}
-                        checked={(filters.selectedClients || []).includes(client)}
-                        onCheckedChange={() => handleClientToggle(client)}
-                        className="mr-2 h-4 w-4"
-                      />
-                      <label 
-                        htmlFor={`client-${client}`}
-                        className="flex-1 cursor-pointer truncate"
-                      >
-                        {client}
-                      </label>
-                    </div>
-                  </CommandItem>
-                ))
-              ) : (
-                <CommandItem disabled className="opacity-50 cursor-default">
-                  No hay clientes disponibles
-                </CommandItem>
-              )}
-            </CommandGroup>
-          </Command>
-        </PopoverContent>
-      </Popover>
-
-      {(filters.selectedClients && filters.selectedClients.length > 0) &&
-        <div className="flex flex-wrap gap-1 max-w-[400px]">
-          {filters.selectedClients.map(client => (
-            <Badge 
-              key={client} 
-              variant="outline" 
-              className="h-7 px-2 gap-1"
-            >
-              {client}
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-4 w-4 p-0 ml-1"
-                onClick={() => handleClientToggle(client)}
-              >
-                <X className="h-3 w-3" />
-              </Button>
-            </Badge>
-          ))}
-        </div>
-      }
-      
-      {(filters.selectedClients && filters.selectedClients.length > 0) && (
+      {hasFilters && (
         <Button 
           variant="ghost" 
           size="sm" 
@@ -160,7 +36,7 @@ export function DriverBehaviorFiltersPanel({
       )}
       
       <div className="ml-auto">
-        <DriverBehaviorImport onImportComplete={handleImportComplete} />
+        <DriverBehaviorImport onImportComplete={() => {}} />
       </div>
     </div>
   );
