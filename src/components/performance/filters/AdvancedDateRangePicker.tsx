@@ -92,21 +92,32 @@ const DATE_RANGE_PRESETS = [
   }},
 ];
 
+export interface DateRangePreset {
+  label: string;
+  value: string;
+  getDateRange: () => { from: Date; to: Date };
+}
+
 interface AdvancedDateRangePickerProps {
   value: DateRangeWithComparison;
   onChange: (range: DateRangeWithComparison) => void;
   className?: string;
+  presets?: DateRangePreset[];
 }
 
 const AdvancedDateRangePicker: React.FC<AdvancedDateRangePickerProps> = ({ 
   value, 
   onChange,
-  className
+  className,
+  presets
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [localValue, setLocalValue] = useState<DateRangeWithComparison>(value);
   const [isMobile, setIsMobile] = useState(false);
+  
+  // Use provided presets or default presets
+  const activePresets = presets || DATE_RANGE_PRESETS;
   
   // Check if screen is mobile size
   useEffect(() => {
@@ -140,7 +151,7 @@ const AdvancedDateRangePicker: React.FC<AdvancedDateRangePickerProps> = ({
 
   // Get selected range name for display
   const getSelectedRangeName = () => {
-    const preset = DATE_RANGE_PRESETS.find(p => p.id === localValue.rangeType);
+    const preset = activePresets.find(p => p.value === localValue.rangeType);
     return preset ? preset.label : "Personalizado";
   };
 
@@ -148,10 +159,10 @@ const AdvancedDateRangePicker: React.FC<AdvancedDateRangePickerProps> = ({
   const applyPreset = (presetId: string) => {
     try {
       console.log(`Applying preset: ${presetId}`);
-      const preset = DATE_RANGE_PRESETS.find(p => p.id === presetId);
+      const preset = activePresets.find(p => p.value === presetId);
       if (!preset) return;
 
-      const primaryRange = preset.getRange();
+      const primaryRange = preset.getDateRange();
       
       const newValue = {
         ...localValue,
@@ -269,16 +280,16 @@ const AdvancedDateRangePicker: React.FC<AdvancedDateRangePickerProps> = ({
       <div>
         <h4 className="mb-2 text-sm font-medium">Seleccionar periodo</h4>
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-          {DATE_RANGE_PRESETS.map((preset) => (
+          {activePresets.map((preset) => (
             <Button
-              key={preset.id}
-              variant={localValue.rangeType === preset.id ? "default" : "outline"}
+              key={preset.value}
+              variant={localValue.rangeType === preset.value ? "default" : "outline"}
               size="sm"
               className="justify-start"
-              onClick={() => applyPreset(preset.id)}
+              onClick={() => applyPreset(preset.value)}
             >
               <span className="truncate">{preset.label}</span>
-              {localValue.rangeType === preset.id && (
+              {localValue.rangeType === preset.value && (
                 <Check className="w-4 h-4 ml-auto" />
               )}
             </Button>

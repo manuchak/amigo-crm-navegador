@@ -6,7 +6,7 @@ import { DriverBehaviorHeader } from "@/components/performance/DriverBehaviorHea
 import { ServiciosDashboard } from "@/components/performance/dashboard/ServiciosDashboard";
 import { DriverBehaviorDashboard } from "@/components/performance/driver-behavior/DriverBehaviorDashboard";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { DateRangeWithComparison } from "@/components/performance/filters/AdvancedDateRangePicker";
+import { DateRangeWithComparison, DateRangePreset } from "@/components/performance/filters/AdvancedDateRangePicker";
 import { subDays, startOfMonth, endOfMonth } from "date-fns";
 import { PerformanceDateFilter } from '@/components/performance/PerformanceDateFilter';
 import { ServiceImport } from '@/components/performance/filters/ServiceImport';
@@ -27,7 +27,7 @@ export default function Performance() {
   });
 
   // Add presets for the current month, previous month, etc.
-  const presets = [
+  const presets: DateRangePreset[] = [
     { 
       label: "Este mes", 
       value: "thisMonth",

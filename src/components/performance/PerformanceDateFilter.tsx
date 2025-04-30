@@ -1,16 +1,12 @@
 
 import React from 'react';
-import { DateRangeWithComparison } from "./filters/AdvancedDateRangePicker";
+import { DateRangeWithComparison, DateRangePreset } from "./filters/AdvancedDateRangePicker";
 import AdvancedDateRangePicker from './filters/AdvancedDateRangePicker';
 
 interface PerformanceDateFilterProps {
   dateRange: DateRangeWithComparison;
   setDateRange: (newRange: DateRangeWithComparison) => void;
-  presets?: Array<{
-    label: string;
-    value: string;
-    getDateRange: () => { from: Date; to: Date };
-  }>;
+  presets?: DateRangePreset[];
 }
 
 export function PerformanceDateFilter({ dateRange, setDateRange, presets }: PerformanceDateFilterProps) {
