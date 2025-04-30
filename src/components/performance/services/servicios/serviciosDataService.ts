@@ -1,4 +1,3 @@
-
 import { DateRange } from "react-day-picker";
 import { supabase } from "@/integrations/supabase/client";
 import { format, startOfMonth, endOfMonth, startOfWeek, endOfWeek } from "date-fns";
@@ -73,7 +72,7 @@ export async function fetchServiciosData(dateRange?: DateRange, comparisonRange?
       throw alertasError;
     }
 
-    // 3. Get services by client using database function
+    // 3. Get services by client using database function - updated to filter out cancelled services
     const { data: clientesData, error: clientesError } = await supabase
       .rpc('obtener_servicios_por_cliente', {
         fecha_inicio: startDate.toISOString(),

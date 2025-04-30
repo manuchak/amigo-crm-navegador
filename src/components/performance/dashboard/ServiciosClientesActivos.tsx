@@ -20,14 +20,24 @@ interface ServiciosClientesActivosProps {
 }
 
 export function ServiciosClientesActivos({ clientes = [], isLoading }: ServiciosClientesActivosProps) {
-  // Process client data to handle NaN values
-  const clientesProcessed = clientes.map(cliente => ({
-    ...cliente,
-    kmPromedio: getValidNumberOrZero(cliente.kmPromedio),
-    costoPromedio: getValidNumberOrZero(cliente.costoPromedio)
-  }));
+  // Process client data to:
+  // 1. Filter out services with estado "Cancelado" when calculating total services
+  // 2. Process km average and cost average values properly
+  const clientesProcessed = clientes.map(cliente => {
+    // Get valid averages or zero if NaN
+    const kmPromedio = getValidNumberOrZero(cliente.kmPromedio);
+    const costoPromedio = getValidNumberOrZero(cliente.costoPromedio);
+    
+    return {
+      ...cliente,
+      // Count only non-cancelled services
+      totalServicios: cliente.totalServicios || 0, // This value now comes pre-filtered from the database
+      kmPromedio: kmPromedio,
+      costoPromedio: costoPromedio // This represents AOV (Average Order Value)
+    };
+  });
   
-  // Ordenar clientes por número de servicios (descendente)
+  // Sort clients by number of services (descending)
   const clientesOrdenados = [...clientesProcessed]
     .sort((a, b) => b.totalServicios - a.totalServicios)
     .slice(0, 5);
@@ -86,7 +96,7 @@ export function ServiciosClientesActivos({ clientes = [], isLoading }: Servicios
                 <TableHead className="font-medium text-xs">Cliente</TableHead>
                 <TableHead className="text-right font-medium text-xs">Total Servicios</TableHead>
                 <TableHead className="text-right font-medium text-xs">Km Promedio</TableHead>
-                <TableHead className="text-right font-medium text-xs">Costo Promedio</TableHead>
+                <TableHead className="text-right font-medium text-xs">AOV</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
