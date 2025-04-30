@@ -11,6 +11,7 @@ import { DriverBehaviorFiltersPanel } from './DriverBehaviorFiltersPanel';
 import { DriverRiskAssessment } from './DriverRiskAssessment';
 import { TopDriversPanel } from './TopDriversPanel';
 import { CO2EmissionsCard } from './CO2EmissionsCard';
+import { ProductivityDashboard } from './productivity/ProductivityDashboard';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from "@/components/ui/button";
 import { RefreshCw } from "lucide-react";
@@ -114,6 +115,7 @@ export function DriverBehaviorDashboard({ dateRange, comparisonRange }: DriverBe
         <TabsList>
           <TabsTrigger value="overview">Resumen</TabsTrigger>
           <TabsTrigger value="risk">Riesgo y Conductores</TabsTrigger>
+          <TabsTrigger value="productivity">Productividad</TabsTrigger>
           <TabsTrigger value="details">Detalles</TabsTrigger>
         </TabsList>
         
@@ -146,6 +148,14 @@ export function DriverBehaviorDashboard({ dateRange, comparisonRange }: DriverBe
               isLoading={isLoading}
             />
           </div>
+        </TabsContent>
+        
+        <TabsContent value="productivity" className="mt-6">
+          <ProductivityDashboard 
+            dateRange={dateRange}
+            clients={Array.isArray(clientList) ? clientList : []}
+            selectedClients={filters.selectedClients}
+          />
         </TabsContent>
         
         <TabsContent value="details" className="mt-6">
