@@ -1,27 +1,56 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 
 export interface StatusOption {
   label: string;
   value: string;
   checked: boolean;
+  color?: string;
 }
 
 export function useStatusFilters(rawData: any[] | undefined) {
-  // Initialize status filter options
-  const [statusOptions, setStatusOptions] = useState<StatusOption[]>([
-    { label: "Completado", value: "Completado", checked: true },
-    { label: "Pendiente", value: "Pendiente", checked: true },
-    { label: "En progreso", value: "En progreso", checked: true },
-    { label: "Cancelado", value: "Cancelado", checked: true },
-  ]);
+  // Initialize status filter options with appropriate colors
+  const [statusOptions, setStatusOptions] = useState<StatusOption[]>([]);
   
   // Filtered data state
   const [filteredData, setFilteredData] = useState<any[]>([]);
   
+  // Dynamically generate status options from the data
+  useEffect(() => {
+    if (!rawData?.length) return;
+    
+    // Extract unique statuses from data
+    const uniqueStatuses = new Set<string>();
+    rawData.forEach(item => {
+      if (item.estado && typeof item.estado === 'string') {
+        uniqueStatuses.add(item.estado.trim());
+      }
+    });
+    
+    // Map to status options (all checked by default)
+    const options = Array.from(uniqueStatuses).map(status => ({
+      label: status,
+      value: status,
+      checked: true,
+      color: getStatusColor(status)
+    }));
+    
+    console.log("Generated status options:", options);
+    setStatusOptions(options);
+  }, [rawData]);
+  
+  // Get appropriate color based on status
+  const getStatusColor = (status: string): string => {
+    const normalized = status.toLowerCase();
+    if (normalized.includes('completado')) return 'success';
+    if (normalized.includes('pendiente')) return 'warning';
+    if (normalized.includes('progreso')) return 'info';
+    if (normalized.includes('cancel')) return 'destructive';
+    return 'secondary';
+  };
+  
   // Handle status filter changes
   const handleStatusFilterChange = (value: string, checked: boolean) => {
-    console.log(`Status filter changed: ${value} = ${checked}`);
     setStatusOptions(prev => 
       prev.map(option => 
         option.value === value ? { ...option, checked } : option
@@ -29,9 +58,19 @@ export function useStatusFilters(rawData: any[] | undefined) {
     );
   };
   
+  // Toggle all filters
+  const toggleAllFilters = (checked: boolean) => {
+    setStatusOptions(prev => 
+      prev.map(option => ({ ...option, checked }))
+    );
+  };
+  
   // Filter data when raw data or filters change
   useEffect(() => {
-    if (!rawData) return;
+    if (!rawData) {
+      setFilteredData([]);
+      return;
+    }
     
     // Get active status filters
     const activeStatuses = statusOptions
@@ -42,47 +81,33 @@ export function useStatusFilters(rawData: any[] | undefined) {
     
     if (activeStatuses.length === 0) {
       // If no status is selected, show no data
-      console.log("No status filters selected, showing no data");
       setFilteredData([]);
       return;
     }
     
     const filtered = rawData.filter((item: any) => {
-      // If item has no estado field or it's empty, include it only if we want to show "unspecified" items
+      // If item has no estado field, don't include it
       if (!item.estado || item.estado.trim() === '') {
-        return statusOptions.some(opt => opt.checked && opt.value === "Unspecified");
+        return false;
       }
       
       // Get normalized item status
       const normalizedItemStatus = item.estado.trim();
       
-      // Debug specific items
-      if (Math.random() < 0.05) { // Sample ~5% of items for logging
-        console.log(`Item status check: "${normalizedItemStatus}" against active statuses:`, activeStatuses);
-      }
-      
-      // Check if the status matches any of the active filters (case-insensitive)
-      return activeStatuses.some(activeStatus => {
-        const statusMatches = normalizedItemStatus.toLowerCase() === activeStatus.toLowerCase();
-        return statusMatches;
-      });
+      // Check if the status matches any of the active filters
+      return activeStatuses.some(activeStatus => 
+        normalizedItemStatus === activeStatus
+      );
     });
     
     console.log(`Filtering applied: ${filtered.length} out of ${rawData.length} items matched filters`);
-    
-    // Additional logging for some filtered items
-    if (filtered.length > 0 && filtered.length <= 5) {
-      filtered.forEach((item, idx) => {
-        console.log(`Filtered item ${idx}: estado=${item.estado}, id=${item.id}`);
-      });
-    }
-    
     setFilteredData(filtered);
   }, [rawData, statusOptions]);
 
   return {
     statusOptions,
     filteredData,
-    handleStatusFilterChange
+    handleStatusFilterChange,
+    toggleAllFilters
   };
 }

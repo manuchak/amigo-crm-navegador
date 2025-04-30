@@ -9,9 +9,10 @@ import {
   DashboardLayout,
   PerformanceChartsGrid,
   SecondaryChartsGrid,
-  AlertsSection
+  AlertsSection,
+  StatusBadgeFilter
 } from './components';
-import { useClienteFilters } from './hooks';
+import { useStatusFilters, useClienteFilters } from './hooks';
 
 export type { StatusOption } from './hooks/useStatusFilters';
 
@@ -54,8 +55,8 @@ export function ServiciosDashboard({ dateRange, comparisonRange }: ServiciosDash
     }
   }, [data]);
   
-  // Temporarily use raw data without status filtering
-  const filteredData = data?.serviciosData || [];
+  // Use our custom hooks for filtering
+  const { statusOptions, filteredData, handleStatusFilterChange, toggleAllFilters } = useStatusFilters(data?.serviciosData);
   const filteredClientesData = useClienteFilters(data?.serviciosPorCliente, data?.serviciosData, filteredData);
   
   // Show error toast if fetch fails
@@ -88,7 +89,14 @@ export function ServiciosDashboard({ dateRange, comparisonRange }: ServiciosDash
       dateRange={dateRange}
     >
       <div className="space-y-6">
-        {/* Status filter removed temporarily */}
+        {/* Modern badge-style status filter */}
+        <div className="animate-fade-in duration-300">
+          <StatusBadgeFilter 
+            statusOptions={statusOptions} 
+            onStatusFilterChange={handleStatusFilterChange}
+            onToggleAll={toggleAllFilters}
+          />
+        </div>
         
         {/* Metrics cards at the top */}
         <div className="animate-fade-in duration-300">
