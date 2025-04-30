@@ -5,7 +5,6 @@ import { useQuery } from "@tanstack/react-query";
 import { fetchServiciosData } from '../services/servicios';
 import { ServiciosMetricsCards } from './ServiciosMetricsCards';
 import { toast } from 'sonner';
-import { StatusOption } from "../filters/ServiceStatusFilter";
 import { 
   StatusFilterSection,
   DashboardLayout,
@@ -13,6 +12,12 @@ import {
   SecondaryChartsGrid,
   AlertsSection
 } from './components';
+
+export interface StatusOption {
+  label: string;
+  value: string;
+  checked: boolean;
+}
 
 interface ServiciosDashboardProps {
   dateRange: DateRange;
@@ -57,6 +62,7 @@ export function ServiciosDashboard({ dateRange, comparisonRange }: ServiciosDash
 
   // Handle status filter changes
   const handleStatusFilterChange = (value: string, checked: boolean) => {
+    console.log(`Status filter changed: ${value} = ${checked}`);
     setStatusOptions(prev => 
       prev.map(option => 
         option.value === value ? { ...option, checked } : option
@@ -67,12 +73,12 @@ export function ServiciosDashboard({ dateRange, comparisonRange }: ServiciosDash
   // Filter data when raw data or filters change
   useEffect(() => {
     if (data?.serviciosData) {
-      console.log("Filtering data with statuses:", statusOptions.filter(o => o.checked).map(o => o.value));
-      
       // Get active status filters
       const activeStatuses = statusOptions
         .filter(option => option.checked)
         .map(option => option.value);
+      
+      console.log("Filtering data with statuses:", activeStatuses);
       
       // Apply filters to data
       const filtered = data.serviciosData.filter((item: any) => {
@@ -88,6 +94,32 @@ export function ServiciosDashboard({ dateRange, comparisonRange }: ServiciosDash
       setFilteredData(filtered);
     }
   }, [data?.serviciosData, statusOptions]);
+  
+  // Also filter client data by status
+  const filteredClientesData = React.useMemo(() => {
+    if (!data?.serviciosPorCliente || !filteredData) return [];
+    
+    // Get the IDs of filtered services
+    const filteredIds = new Set(filteredData.map((item: any) => item.id));
+    
+    // Only return clients that have services in the filtered set
+    // This effectively applies the status filter to the clients chart
+    const activeClientes = data.serviciosPorCliente.map(cliente => {
+      // We need to count only services that match our filter
+      const filteredCount = data.serviciosData
+        .filter(servicio => 
+          servicio.nombre_cliente === cliente.nombre_cliente && 
+          filteredIds.has(servicio.id)
+        ).length;
+      
+      return {
+        ...cliente,
+        servicios_count: filteredCount
+      };
+    }).filter(cliente => cliente.servicios_count > 0);
+    
+    return activeClientes;
+  }, [data?.serviciosPorCliente, data?.serviciosData, filteredData]);
   
   // Show error toast if fetch fails
   React.useEffect(() => {
@@ -110,18 +142,21 @@ export function ServiciosDashboard({ dateRange, comparisonRange }: ServiciosDash
       hasData={hasData}
       dateRange={dateRange}
     >
-      <div className="space-y-8">
+      <div className="space-y-6">
         {/* Status filter */}
-        <StatusFilterSection 
-          statusOptions={statusOptions} 
-          onStatusFilterChange={handleStatusFilterChange}
-        />
+        <div className="animate-fade-in duration-300">
+          <StatusFilterSection 
+            statusOptions={statusOptions} 
+            onStatusFilterChange={handleStatusFilterChange}
+          />
+        </div>
         
         {/* Metrics cards at the top */}
         <div className="animate-fade-in duration-300">
           <ServiciosMetricsCards 
             data={data} 
-            isLoading={isLoading} 
+            isLoading={isLoading}
+            filteredData={filteredData}
           />
         </div>
         
@@ -136,7 +171,7 @@ export function ServiciosDashboard({ dateRange, comparisonRange }: ServiciosDash
         <SecondaryChartsGrid
           filteredData={filteredData}
           isLoading={isLoading}
-          serviciosPorCliente={data?.serviciosPorCliente || []}
+          serviciosPorCliente={filteredClientesData}
         />
         
         {/* Alerts section */}
