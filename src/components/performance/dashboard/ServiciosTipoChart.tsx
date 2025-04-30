@@ -102,7 +102,13 @@ export function ServiciosTipoChart({ data = [], isLoading }: ServiciosTipoChartP
                 cx="50%"
                 cy="50%"
                 labelLine={false}
-                label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                label={({ name, value }) => {
+                  // Convert value to number to ensure proper percentage calculation
+                  const numericValue = Number(value);
+                  const numericTotal = Number(totalServicios);
+                  const percent = (numericValue / numericTotal * 100).toFixed(0);
+                  return `${name}: ${percent}%`;
+                }}
                 outerRadius={80}
                 fill="#8884d8"
                 dataKey="value"
@@ -112,7 +118,12 @@ export function ServiciosTipoChart({ data = [], isLoading }: ServiciosTipoChartP
                 ))}
               </Pie>
               <Tooltip
-                formatter={(value, name) => [`${value} (${((value / totalServicios) * 100).toFixed(1)}%)`, name]}
+                formatter={(value, name) => {
+                  const numericValue = Number(value);
+                  const numericTotal = Number(totalServicios);
+                  const percentage = ((numericValue / numericTotal) * 100).toFixed(1);
+                  return [`${value} (${percentage}%)`, name];
+                }}
                 labelFormatter={() => ''}
               />
               <Legend />
