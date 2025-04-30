@@ -1,8 +1,8 @@
 
 import React, { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { fetchDriverGroups, deleteDriverGroup } from '../../../services/driverBehavior/driverGroupsService';
-import { DriverGroupDetails } from '../../../types/driver-behavior.types';
+import { fetchDriverGroups, deleteDriverGroup } from '../../services/driverBehavior/driverGroupsService';
+import { DriverGroupDetails } from '../../types/driver-behavior.types';
 import { DriverGroupFormDialog } from './DriverGroupFormDialog';
 import { Button } from "@/components/ui/button";
 import { 

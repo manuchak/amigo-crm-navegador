@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useForm } from "react-hook-form";
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -32,9 +31,9 @@ import {
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { Check, ChevronsUpDown, Loader2, PlusCircle, Search, X } from "lucide-react";
-import { DriverGroupDetails, DriverForGroup } from "../../../types/driver-behavior.types";
-import { createDriverGroup, updateDriverGroup, fetchDriversByClient } from "../../../services/driverBehavior/driverGroupsService";
-import { fetchClientList } from "../../../services/driverBehavior/dataService";
+import { DriverGroupDetails, DriverForGroup } from "../../types/driver-behavior.types";
+import { createDriverGroup, updateDriverGroup, fetchDriversByClient } from "../../services/driverBehavior/driverGroupsService";
+import { fetchClientList } from "../../services/driverBehavior/dataService";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { cn } from "@/lib/utils";
@@ -84,7 +83,7 @@ export function DriverGroupFormDialog({ isOpen, onClose, group, onSuccess }: Dri
   });
   
   // Fetch drivers for selected client
-  const { data: driversData, isLoading: isLoadingDrivers } = useQuery({
+  const { data: driversData = [], isLoading: isLoadingDrivers } = useQuery({
     queryKey: ['drivers-for-group', selectedClient],
     queryFn: () => fetchDriversByClient(selectedClient),
     enabled: !!selectedClient && selectedClient !== 'all',
