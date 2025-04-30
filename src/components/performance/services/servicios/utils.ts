@@ -1,3 +1,4 @@
+
 /**
  * Safely gets a valid number or returns zero
  */
@@ -45,7 +46,7 @@ export function calculateAverage(values: number[]): number {
 
 /**
  * Parse a possibly formatted currency string to a number
- * Improved version with better handling for Mexican currency format
+ * Enhanced version for Mexican currency formats and more edge cases
  */
 export function parseCurrencyValue(value: any): number {
   // First, log the original input for debugging
@@ -73,20 +74,31 @@ export function parseCurrencyValue(value: any): number {
       .replace(/\s/g, '')   // Remove spaces
       .trim();
     
-    // Handle comma as decimal separator (Mexican format)
+    // Check common currency formats
+    // Mexican/US format: 1,234.56 (comma as thousands, dot as decimal)
+    // European format: 1.234,56 (dot as thousands, comma as decimal)
     const hasComma = cleanVal.indexOf(',') > -1;
     const hasPeriod = cleanVal.indexOf('.') > -1;
     
     if (hasComma && !hasPeriod) {
-      // Cases like "1234,56" - comma is the decimal separator
+      // Case like "1234,56" - comma is the decimal separator (European style)
       cleanVal = cleanVal.replace(/,/g, '.');
     } else if (hasComma && hasPeriod) {
-      // Cases like "1,234.56" - comma is the thousands separator
-      cleanVal = cleanVal.replace(/,/g, '');
+      // Mexican format case like "1,234.56" - comma is thousands separator
+      // Check which character appears last to determine decimal separator
+      const lastCommaIndex = cleanVal.lastIndexOf(',');
+      const lastPeriodIndex = cleanVal.lastIndexOf('.');
+      
+      if (lastCommaIndex > lastPeriodIndex) {
+        // European format - 1.234,56 (comma is decimal separator)
+        cleanVal = cleanVal.replace(/\./g, '').replace(',', '.');
+      } else {
+        // Mexican/US format - 1,234.56 (comma is thousands separator)
+        cleanVal = cleanVal.replace(/,/g, '');
+      }
     }
-    // Otherwise, no need to change
     
-    console.log(`Cleaned value "${value}" to: "${cleanVal}"`);
+    console.log(`Cleaned currency value "${value}" to: "${cleanVal}"`);
     
     // Parse as float
     const num = parseFloat(cleanVal);

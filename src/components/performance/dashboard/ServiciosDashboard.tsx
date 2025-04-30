@@ -87,6 +87,8 @@ export function ServiciosDashboard({ dateRange, comparisonRange }: ServiciosDash
       isError={isError}
       hasData={hasData && hasFilteredData}
       dateRange={dateRange}
+      serviciosData={data?.serviciosData}
+      comparisonDateRange={comparisonRange}
     >
       <div className="space-y-4">
         {/* Metrics cards at the top */}
