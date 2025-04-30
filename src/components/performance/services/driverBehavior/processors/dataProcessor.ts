@@ -105,9 +105,10 @@ export const processDriverBehaviorData = (driverScores: any[]): DriverBehaviorDa
       return acc;
     }, {} as Record<string, number>);
     
+    // Fix: Explicitly cast the emissions property as number
     const emissionsByClient = Object.entries(clientEmissions).map(([client, emissions]) => ({
       client,
-      emissions
+      emissions: Number(emissions)
     }));
     
     // Estimate driving time based on trips (average 45 mins per trip)
