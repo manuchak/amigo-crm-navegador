@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { 
   ProductivityParameter, 
@@ -101,13 +100,14 @@ export const fetchDriverGroups = async (client?: string): Promise<string[]> => {
   try {
     let query = supabase
       .from('driver_behavior_scores')
-      .select('driver_group')
-      .distinct();
+      .select('driver_group');
     
     if (client) {
       query = query.eq('client', client);
     }
     
+    // Using "select distinct" approach to get unique values rather than
+    // using the incorrect .distinct() method
     const { data, error } = await query;
     
     if (error) {
@@ -119,7 +119,8 @@ export const fetchDriverGroups = async (client?: string): Promise<string[]> => {
       return [];
     }
     
-    const groups = data.map(item => item.driver_group).filter(Boolean) as string[];
+    // Extract unique driver groups by using Set to remove duplicates
+    const groups = Array.from(new Set(data.map(item => item.driver_group).filter(Boolean))) as string[];
     return groups.sort();
   } catch (err) {
     console.error("Exception when fetching driver groups:", err);
