@@ -14,6 +14,18 @@ export function formatNumber(value: number | undefined | null): string {
 export function formatCurrency(value: number | undefined | null): string {
   if (value === undefined || value === null) return '$0';
   
+  // If value is extremely small but not zero, show it without rounding
+  // This prevents displaying $0 when there's actually a very small value
+  if (value > 0 && value < 1) {
+    // For small values, show full precision
+    return new Intl.NumberFormat('es-MX', {
+      style: 'currency',
+      currency: 'MXN',
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    }).format(value);
+  }
+  
   return new Intl.NumberFormat('es-MX', {
     style: 'currency',
     currency: 'MXN',

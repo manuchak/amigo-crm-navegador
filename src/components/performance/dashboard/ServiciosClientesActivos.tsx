@@ -37,6 +37,9 @@ export function ServiciosClientesActivos({ clientes = [], isLoading }: Servicios
     // Get valid cost average (AOV) or zero if NaN
     const costoPromedio = getValidNumberOrZero(cliente.costoPromedio);
     
+    // Debug log AOV values
+    console.log(`Client ${cliente.nombre_cliente} - Display AOV: ${costoPromedio}, Raw: ${cliente.costoPromedio}`);
+    
     // Simple trend calculation (for illustrative purposes)
     // In a real scenario, you would compare with historical data from previous periods
     const kmTrend: TrendType = kmPromedio > 0 ? (kmPromedio > 100 ? 'up' : 'down') : 'neutral';
