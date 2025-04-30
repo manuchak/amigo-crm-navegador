@@ -11,7 +11,8 @@ import {
   YAxis,
   CartesianGrid,
   Tooltip,
-  ResponsiveContainer
+  ResponsiveContainer,
+  Legend
 } from 'recharts';
 
 export function PerformanceCharts() {
@@ -38,45 +39,93 @@ export function PerformanceCharts() {
   }));
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-      <Card className="border-0 shadow-md bg-white/90">
-        <CardHeader>
+    <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+      <Card className="border shadow-sm rounded-xl bg-white/90 backdrop-blur-sm xl:col-span-2">
+        <CardHeader className="pb-2">
           <CardTitle className="text-lg font-medium">
             Métricas de Calidad
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="h-[300px]">
+          <div className="h-[320px]">
             <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={chartData}>
-                <CartesianGrid strokeDasharray="3 3" />
+              <LineChart data={chartData} margin={{top: 10, right: 30, left: 0, bottom: 10}}>
+                <CartesianGrid strokeDasharray="3 3" opacity={0.2} />
                 <XAxis dataKey="date" />
                 <YAxis domain={[0, 5]} />
-                <Tooltip />
-                <Line type="monotone" dataKey="calidad" stroke="#8B5CF6" name="Calidad" />
-                <Line type="monotone" dataKey="comunicacion" stroke="#0EA5E9" name="Comunicación" />
-                <Line type="monotone" dataKey="confiabilidad" stroke="#F97316" name="Confiabilidad" />
+                <Tooltip 
+                  contentStyle={{
+                    backgroundColor: "rgba(255, 255, 255, 0.95)",
+                    borderRadius: "8px",
+                    border: "1px solid #eee",
+                    boxShadow: "0 4px 12px rgba(0, 0, 0, 0.1)"
+                  }} 
+                />
+                <Legend />
+                <Line 
+                  type="monotone" 
+                  dataKey="calidad" 
+                  stroke="#8B5CF6" 
+                  name="Calidad" 
+                  strokeWidth={2}
+                  dot={{ r: 3 }}
+                  activeDot={{ r: 5 }} 
+                />
+                <Line 
+                  type="monotone" 
+                  dataKey="comunicacion" 
+                  stroke="#0EA5E9" 
+                  name="Comunicación" 
+                  strokeWidth={2} 
+                  dot={{ r: 3 }}
+                  activeDot={{ r: 5 }} 
+                />
+                <Line 
+                  type="monotone" 
+                  dataKey="confiabilidad" 
+                  stroke="#F97316" 
+                  name="Confiabilidad" 
+                  strokeWidth={2} 
+                  dot={{ r: 3 }} 
+                  activeDot={{ r: 5 }}
+                />
               </LineChart>
             </ResponsiveContainer>
           </div>
         </CardContent>
       </Card>
 
-      <Card className="border-0 shadow-md bg-white/90">
-        <CardHeader>
+      <Card className="border shadow-sm rounded-xl bg-white/90 backdrop-blur-sm">
+        <CardHeader className="pb-2">
           <CardTitle className="text-lg font-medium">
             Validaciones por Día
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="h-[300px]">
+          <div className="h-[320px]">
             <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={chartData}>
-                <CartesianGrid strokeDasharray="3 3" />
+              <LineChart data={chartData} margin={{top: 10, right: 30, left: 0, bottom: 10}}>
+                <CartesianGrid strokeDasharray="3 3" opacity={0.2} />
                 <XAxis dataKey="date" />
                 <YAxis />
-                <Tooltip />
-                <Line type="monotone" dataKey="validaciones" stroke="#8B5CF6" name="Validaciones" />
+                <Tooltip 
+                  contentStyle={{
+                    backgroundColor: "rgba(255, 255, 255, 0.95)",
+                    borderRadius: "8px",
+                    border: "1px solid #eee",
+                    boxShadow: "0 4px 12px rgba(0, 0, 0, 0.1)"
+                  }}
+                />
+                <Legend />
+                <Line 
+                  type="monotone" 
+                  dataKey="validaciones" 
+                  stroke="#8B5CF6" 
+                  name="Validaciones"
+                  strokeWidth={2}
+                  dot={{ r: 3 }}
+                  activeDot={{ r: 5 }}
+                />
               </LineChart>
             </ResponsiveContainer>
           </div>

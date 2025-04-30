@@ -16,9 +16,9 @@ export function PerformanceChartsGrid({
   dateRange
 }: PerformanceChartsGridProps) {
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 animate-fade-in animate-delay-100 duration-300">
-      {/* Performance chart taking 2/3 width on large screens */}
-      <div className="lg:col-span-2 h-[500px]">
+    <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 animate-fade-in animate-delay-100 duration-300">
+      {/* Performance chart taking 3/4 width on large screens */}
+      <div className="lg:col-span-3 h-[520px]">
         <ServiciosPerformanceChart 
           data={filteredData} 
           isLoading={isLoading}
@@ -26,8 +26,8 @@ export function PerformanceChartsGrid({
         />
       </div>
       
-      {/* Services type chart taking 1/3 width */}
-      <div className="h-[500px]">
+      {/* Services type chart taking 1/4 width */}
+      <div className="h-[520px]">
         <ServiciosTipoChart 
           data={filteredData} 
           isLoading={isLoading} 

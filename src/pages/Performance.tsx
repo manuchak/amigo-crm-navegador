@@ -155,12 +155,12 @@ export default function Performance() {
   };
 
   return (
-    <div className="container mx-auto space-y-6 py-6 px-4 md:px-6">
-      <div>
+    <div className="container-fluid max-w-[2100px] mx-auto space-y-5 py-5 px-3 md:px-5 lg:px-6 xl:px-8">
+      <div className="mb-2">
         {renderHeader()}
       </div>
       
-      <Card className="border shadow-sm bg-white p-4">
+      <Card className="border shadow-sm bg-white/90 backdrop-blur-sm p-4 rounded-xl">
         <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <PerformanceDateFilter 
             dateRange={dateRange} 
@@ -183,10 +183,16 @@ export default function Performance() {
           value={activeTab}
           onValueChange={setActiveTab}
         >
-          <TabsList className="mb-6 bg-background border shadow-sm rounded-lg p-1">
-            <TabsTrigger value="servicios" className="data-[state=active]:bg-white data-[state=active]:shadow-sm rounded-md">Servicios</TabsTrigger>
-            <TabsTrigger value="custodios" className="data-[state=active]:bg-white data-[state=active]:shadow-sm rounded-md">Custodios</TabsTrigger>
-            <TabsTrigger value="driverBehavior" className="data-[state=active]:bg-white data-[state=active]:shadow-sm rounded-md">Comportamiento de Conducción</TabsTrigger>
+          <TabsList className="mb-5 bg-background/70 border shadow-sm rounded-xl p-1.5 w-auto inline-flex">
+            <TabsTrigger value="servicios" className="data-[state=active]:bg-white data-[state=active]:shadow-sm rounded-lg px-4 py-2 text-sm">
+              Servicios
+            </TabsTrigger>
+            <TabsTrigger value="custodios" className="data-[state=active]:bg-white data-[state=active]:shadow-sm rounded-lg px-4 py-2 text-sm">
+              Custodios
+            </TabsTrigger>
+            <TabsTrigger value="driverBehavior" className="data-[state=active]:bg-white data-[state=active]:shadow-sm rounded-lg px-4 py-2 text-sm">
+              Comportamiento de Conducción
+            </TabsTrigger>
           </TabsList>
           
           <TabsContent value="servicios" className="mt-0 animate-fade-in duration-300">

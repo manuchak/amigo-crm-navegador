@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { DateRange } from "react-day-picker";
 import { ProductivityMetricsCards } from './ProductivityMetricsCards';
@@ -11,6 +12,7 @@ import { Settings } from "lucide-react";
 import { DriverBehaviorFilters } from '../../types/driver-behavior.types';
 import { fetchProductivityParameters, fetchDriverGroups } from '../../services/productivity/productivityService';
 import { supabase } from "@/integrations/supabase/client";
+import { motion } from "framer-motion";
 
 interface ProductivityDashboardProps {
   dateRange: DateRange;
@@ -52,13 +54,18 @@ export function ProductivityDashboard({ dateRange, filters = {} }: ProductivityD
   };
   
   return (
-    <div className="space-y-6">
+    <motion.div 
+      className="space-y-6"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.3 }}
+    >
       <div className="flex items-center justify-between">
-        <h3 className="text-lg font-medium">Análisis de Productividad</h3>
+        <h3 className="text-lg font-medium text-gray-900">Análisis de Productividad</h3>
         <Button 
           variant="outline" 
           size="sm"
-          className="h-9"
+          className="h-9 bg-white hover:bg-gray-50 text-gray-700"
           onClick={() => setShowParameters(true)}
         >
           <Settings className="h-4 w-4 mr-2" />
@@ -72,7 +79,7 @@ export function ProductivityDashboard({ dateRange, filters = {} }: ProductivityD
       />
       
       <div className="grid grid-cols-1 gap-6">
-        <Card>
+        <Card className="border shadow-sm rounded-xl bg-white/90 backdrop-blur-sm">
           <CardHeader className="pb-3">
             <CardTitle className="text-lg font-medium">Análisis por Conductor</CardTitle>
           </CardHeader>
@@ -95,7 +102,7 @@ export function ProductivityDashboard({ dateRange, filters = {} }: ProductivityD
       />
       
       {/* Parameters Table */}
-      <Card>
+      <Card className="border shadow-sm rounded-xl bg-white/90 backdrop-blur-sm">
         <CardHeader className="pb-3">
           <CardTitle className="text-lg font-medium">Parámetros de Productividad</CardTitle>
         </CardHeader>
@@ -110,6 +117,6 @@ export function ProductivityDashboard({ dateRange, filters = {} }: ProductivityD
           />
         </CardContent>
       </Card>
-    </div>
+    </motion.div>
   );
 }

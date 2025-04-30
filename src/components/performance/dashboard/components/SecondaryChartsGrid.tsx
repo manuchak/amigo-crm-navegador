@@ -16,7 +16,7 @@ export function SecondaryChartsGrid({
   serviciosPorCliente
 }: SecondaryChartsGridProps) {
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 animate-fade-in animate-delay-150 duration-300">
+    <div className="grid grid-cols-1 lg:grid-cols-2 2xl:grid-cols-3 gap-6 animate-fade-in animate-delay-150 duration-300">
       <div className="h-[420px]">
         <ServiciosHourDistributionChart 
           data={filteredData}
@@ -24,7 +24,7 @@ export function SecondaryChartsGrid({
         />
       </div>
       
-      <div className="h-[420px]">
+      <div className="h-[420px] 2xl:col-span-2">
         <ServiciosClientesActivos 
           clientes={serviciosPorCliente || []}
           isLoading={isLoading}

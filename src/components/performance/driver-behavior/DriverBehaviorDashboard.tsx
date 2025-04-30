@@ -16,6 +16,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from "@/components/ui/button";
 import { RefreshCw } from "lucide-react";
 import { toast } from "sonner";
+import { motion } from "framer-motion";
 
 interface DriverBehaviorDashboardProps {
   dateRange: DateRange;
@@ -64,7 +65,12 @@ export function DriverBehaviorDashboard({ dateRange, comparisonRange }: DriverBe
   }
 
   return (
-    <div className="space-y-6 animate-fade-in">
+    <motion.div 
+      className="space-y-6"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.3 }}
+    >
       <div className="flex items-center justify-between mb-6">
         <DriverBehaviorFiltersPanel 
           onFilterChange={handleFilterChange} 
@@ -76,7 +82,7 @@ export function DriverBehaviorDashboard({ dateRange, comparisonRange }: DriverBe
             variant="outline"
             size="sm"
             onClick={refreshData}
-            className="h-9"
+            className="h-9 bg-white hover:bg-gray-50 text-gray-700"
             title="Actualizar datos"
           >
             <RefreshCw className="h-4 w-4 mr-2" />
@@ -92,16 +98,36 @@ export function DriverBehaviorDashboard({ dateRange, comparisonRange }: DriverBe
       />
       
       <Tabs defaultValue="overview" className="w-full">
-        <TabsList>
-          <TabsTrigger value="overview">Resumen</TabsTrigger>
-          <TabsTrigger value="risk">Riesgo y Conductores</TabsTrigger>
-          <TabsTrigger value="productivity">Productividad</TabsTrigger>
-          <TabsTrigger value="details">Detalles</TabsTrigger>
+        <TabsList className="bg-white/70 backdrop-blur-sm border shadow-sm rounded-xl p-1 w-auto inline-flex">
+          <TabsTrigger 
+            value="overview" 
+            className="data-[state=active]:bg-white data-[state=active]:shadow-sm rounded-lg px-4 py-2 text-sm"
+          >
+            Resumen
+          </TabsTrigger>
+          <TabsTrigger 
+            value="risk" 
+            className="data-[state=active]:bg-white data-[state=active]:shadow-sm rounded-lg px-4 py-2 text-sm"
+          >
+            Riesgo y Conductores
+          </TabsTrigger>
+          <TabsTrigger 
+            value="productivity" 
+            className="data-[state=active]:bg-white data-[state=active]:shadow-sm rounded-lg px-4 py-2 text-sm"
+          >
+            Productividad
+          </TabsTrigger>
+          <TabsTrigger 
+            value="details" 
+            className="data-[state=active]:bg-white data-[state=active]:shadow-sm rounded-lg px-4 py-2 text-sm"
+          >
+            Detalles
+          </TabsTrigger>
         </TabsList>
         
         <TabsContent value="overview" className="mt-6 space-y-6">
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <div className="lg:col-span-2">
+          <div className="grid grid-cols-1 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            <div className="lg:col-span-2 xl:col-span-3">
               <DriverBehaviorChart 
                 data={driverData?.driverScores} 
                 isLoading={isLoading} 
@@ -144,6 +170,6 @@ export function DriverBehaviorDashboard({ dateRange, comparisonRange }: DriverBe
           />
         </TabsContent>
       </Tabs>
-    </div>
+    </motion.div>
   );
 }

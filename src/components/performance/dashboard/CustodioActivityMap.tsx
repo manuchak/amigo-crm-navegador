@@ -15,7 +15,7 @@ interface CustodioActivityMapProps {
 
 export function CustodioActivityMap({ data, isLoading }: CustodioActivityMapProps) {
   return (
-    <Card className="border-0 shadow-md">
+    <Card className="border shadow-sm rounded-xl bg-white/90 backdrop-blur-sm">
       <CardHeader className="pb-3">
         <CardTitle className="text-lg font-medium">
           Mapa de Actividad de Custodios
@@ -23,12 +23,12 @@ export function CustodioActivityMap({ data, isLoading }: CustodioActivityMapProp
       </CardHeader>
       <CardContent className="pt-0">
         {isLoading ? (
-          <Skeleton className="h-[500px] w-full rounded-md" />
+          <Skeleton className="h-[540px] w-full rounded-md" />
         ) : (
-          <div className="h-[500px] bg-slate-100 rounded-md flex items-center justify-center text-muted-foreground">
-            <div className="text-center p-8">
+          <div className="h-[540px] bg-slate-50 rounded-md flex items-center justify-center text-muted-foreground">
+            <div className="text-center p-8 max-w-md">
               <h3 className="text-lg font-medium mb-2">Mapa de Actividad</h3>
-              <p>
+              <p className="text-gray-500 text-sm">
                 Esta sección mostrará un mapa de calor con la ubicación de actividad de los custodios.
                 <br />
                 Se requiere integración con una librería de mapas como Mapbox o Google Maps.

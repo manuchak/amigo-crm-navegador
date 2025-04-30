@@ -1,27 +1,14 @@
 
 import React from 'react';
-import { useQueryClient } from "@tanstack/react-query";
-import { DriverBehaviorImport } from './driver-behavior/DriverBehaviorImport';
 
 export function DriverBehaviorHeader() {
-  const queryClient = useQueryClient();
-  
-  const handleImportComplete = () => {
-    // Refresh data after import
-    queryClient.invalidateQueries({ queryKey: ['driver-behavior-data'] });
-    queryClient.invalidateQueries({ queryKey: ['driver-behavior-clients'] });
-  };
-  
   return (
-    <div className="flex flex-col md:flex-row md:items-center justify-between w-full">
+    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">Comportamiento de Conducción</h1>
-        <p className="text-muted-foreground">
-          Analiza el comportamiento de los conductores, evalúa riesgos y optimiza la seguridad vial
+        <h1 className="text-3xl font-medium tracking-tight text-gray-900">Comportamiento de Conducción</h1>
+        <p className="text-muted-foreground mt-1 text-gray-500">
+          Análisis detallado del comportamiento de conducción y productividad de los conductores
         </p>
-      </div>
-      <div className="mt-4 md:mt-0">
-        <DriverBehaviorImport onImportComplete={handleImportComplete} />
       </div>
     </div>
   );
