@@ -2,14 +2,18 @@
 import React from 'react';
 import { DateRangeWithComparison } from "./filters/AdvancedDateRangePicker";
 import AdvancedDateRangePicker from './filters/AdvancedDateRangePicker';
-import { CalendarIcon } from "lucide-react";
 
 interface PerformanceDateFilterProps {
   dateRange: DateRangeWithComparison;
-  setDateRange: React.Dispatch<React.SetStateAction<DateRangeWithComparison>>;
+  setDateRange: (newRange: DateRangeWithComparison) => void;
+  presets?: Array<{
+    label: string;
+    value: string;
+    getDateRange: () => { from: Date; to: Date };
+  }>;
 }
 
-export function PerformanceDateFilter({ dateRange, setDateRange }: PerformanceDateFilterProps) {
+export function PerformanceDateFilter({ dateRange, setDateRange, presets }: PerformanceDateFilterProps) {
   // Handle date range change
   const handleDateRangeChange = (newRange: DateRangeWithComparison) => {
     console.log("Date range changed:", newRange);
@@ -17,15 +21,13 @@ export function PerformanceDateFilter({ dateRange, setDateRange }: PerformanceDa
   };
   
   return (
-    <div className="flex flex-wrap items-center gap-3">
-      <div className="flex items-center gap-2 text-sm text-muted-foreground">
-        <CalendarIcon className="h-4 w-4" />
-        <span>Período:</span>
-      </div>
+    <div className="flex items-center gap-4">
+      <span className="font-medium text-sm text-muted-foreground whitespace-nowrap">Filtros:</span>
       
       <AdvancedDateRangePicker 
         value={dateRange}
         onChange={handleDateRangeChange}
+        presets={presets}
       />
     </div>
   );

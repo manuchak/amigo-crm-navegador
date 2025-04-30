@@ -43,15 +43,16 @@ export function ServiciosPerformanceChart({
     return Array.from(uniqueClientes).sort();
   }, [data]);
   
+  // Extract service types, focusing specifically on local_foraneo
   const tipoServicioOptions = useMemo(() => {
     if (!data?.length) return [];
     const uniqueTipos = new Set<string>();
     
     data.forEach(servicio => {
-      if (servicio.tipo_servicio && typeof servicio.tipo_servicio === 'string') {
-        uniqueTipos.add(servicio.tipo_servicio);
-      } else if (servicio.local_foraneo && typeof servicio.local_foraneo === 'string') {
+      if (servicio.local_foraneo && typeof servicio.local_foraneo === 'string') {
         uniqueTipos.add(servicio.local_foraneo);
+      } else if (servicio.tipo_servicio && typeof servicio.tipo_servicio === 'string') {
+        uniqueTipos.add(servicio.tipo_servicio);
       }
     });
     
@@ -81,12 +82,18 @@ export function ServiciosPerformanceChart({
         return false;
       }
       
-      // Tipo servicio filter (check both tipo_servicio and local_foraneo)
+      // Tipo servicio filter - prioritize local_foraneo field
       if (tipoServicioFilter !== "todos") {
-        const servicioTipo = servicio.tipo_servicio || servicio.local_foraneo || "";
-        if (servicioTipo !== tipoServicioFilter) {
-          return false;
+        // First check local_foraneo field
+        if (servicio.local_foraneo && servicio.local_foraneo === tipoServicioFilter) {
+          return true;
         }
+        // If no match in local_foraneo, check tipo_servicio
+        else if (servicio.tipo_servicio && servicio.tipo_servicio === tipoServicioFilter) {
+          return true;
+        }
+        // No match in either field
+        return false;
       }
       
       // Ruta filter

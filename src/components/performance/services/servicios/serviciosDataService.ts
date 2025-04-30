@@ -159,7 +159,8 @@ export async function fetchServiciosData(dateRange?: DateRange, comparisonRange?
     const kmPromedioMesActual = calculateAverage(kmMesActualValues);
     const kmPromedioMesAnterior = calculateAverage(kmMesAnteriorValues);
     
-    // Process services by type (Foraneo, Local, Reparto, etc.)
+    // Get services by type from database function
+    // This function prioritizes local_foraneo field for service type classification
     const { data: serviciosPorTipo, error: tiposError } = await supabase
       .rpc('obtener_servicios_por_tipo', {
         fecha_inicio: startDate.toISOString(),
