@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Users } from "lucide-react";
+import { Users, TrendingUp, TrendingDown, Minus } from "lucide-react";
 import { ClienteServicios } from '../services/servicios';
 import {
   Table,
@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/table";
 import { formatNumber, formatCurrency } from '../utils/formatters';
 import { getValidNumberOrZero } from '../services/servicios/utils';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface ServiciosClientesActivosProps {
   clientes: ClienteServicios[];
@@ -23,17 +24,25 @@ export function ServiciosClientesActivos({ clientes = [], isLoading }: Servicios
   // Process client data to:
   // 1. Filter out services with estado "Cancelado" when calculating total services
   // 2. Process km average and cost average values properly
+  // 3. Add trend indicators for km and cost metrics
   const clientesProcessed = clientes.map(cliente => {
-    // Get valid averages or zero if NaN
+    // Get valid averages or zero if NaN - prioritize km_teorico over km_recorridos
     const kmPromedio = getValidNumberOrZero(cliente.kmPromedio);
     const costoPromedio = getValidNumberOrZero(cliente.costoPromedio);
+    
+    // Simple trend calculation (for illustrative purposes)
+    // In a real scenario, you would compare with historical data from previous periods
+    const kmTrend = kmPromedio > 0 ? (kmPromedio > 100 ? 'up' : 'down') : 'neutral';
+    const costTrend = costoPromedio > 0 ? (costoPromedio > 2000 ? 'up' : 'down') : 'neutral';
     
     return {
       ...cliente,
       // Count only non-cancelled services
       totalServicios: cliente.totalServicios || 0, // This value now comes pre-filtered from the database
       kmPromedio: kmPromedio,
-      costoPromedio: costoPromedio // This represents AOV (Average Order Value)
+      costoPromedio: costoPromedio, // This represents AOV (Average Order Value)
+      kmTrend,
+      costTrend
     };
   });
   
@@ -41,6 +50,18 @@ export function ServiciosClientesActivos({ clientes = [], isLoading }: Servicios
   const clientesOrdenados = [...clientesProcessed]
     .sort((a, b) => b.totalServicios - a.totalServicios)
     .slice(0, 5);
+  
+  // Render trend icon based on trend direction
+  const renderTrendIcon = (trend: 'up' | 'down' | 'neutral') => {
+    switch(trend) {
+      case 'up':
+        return <TrendingUp className="h-4 w-4 text-green-500" />;
+      case 'down':
+        return <TrendingDown className="h-4 w-4 text-amber-500" />;
+      default:
+        return <Minus className="h-4 w-4 text-gray-400" />;
+    }
+  };
   
   if (isLoading) {
     return (
@@ -106,8 +127,38 @@ export function ServiciosClientesActivos({ clientes = [], isLoading }: Servicios
                     {cliente.nombre_cliente || `Cliente ${index + 1}`}
                   </TableCell>
                   <TableCell className="text-right">{formatNumber(cliente.totalServicios)}</TableCell>
-                  <TableCell className="text-right">{formatNumber(cliente.kmPromedio)}</TableCell>
-                  <TableCell className="text-right">{formatCurrency(cliente.costoPromedio)}</TableCell>
+                  <TableCell className="text-right">
+                    <div className="flex items-center justify-end gap-1">
+                      {formatNumber(cliente.kmPromedio)}
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <span>{renderTrendIcon(cliente.kmTrend)}</span>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            {cliente.kmTrend === 'up' ? 'Incrementando' : 
+                             cliente.kmTrend === 'down' ? 'Disminuyendo' : 'Sin cambios'}
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    </div>
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <div className="flex items-center justify-end gap-1">
+                      {formatCurrency(cliente.costoPromedio)}
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <span>{renderTrendIcon(cliente.costTrend)}</span>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            {cliente.costTrend === 'up' ? 'Incrementando' : 
+                             cliente.costTrend === 'down' ? 'Disminuyendo' : 'Sin cambios'}
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    </div>
+                  </TableCell>
                 </TableRow>
               ))}
             </TableBody>

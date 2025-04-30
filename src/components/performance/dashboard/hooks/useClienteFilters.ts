@@ -31,9 +31,28 @@ export function useClienteFilters(
           filteredIds.has(servicio.id)
       ).length;
       
+      // Calculate average KM for filtered services, prioritizing km_teorico over km_recorridos
+      const filteredServices = serviciosData.filter(
+        (servicio: any) => 
+          servicio.nombre_cliente === cliente.nombre_cliente && 
+          filteredIds.has(servicio.id)
+      );
+      
+      let totalKm = 0;
+      filteredServices.forEach((servicio: any) => {
+        // Prioritize km_teorico over km_recorridos
+        const kmValue = servicio.km_teorico !== null && servicio.km_teorico !== undefined ? 
+          servicio.km_teorico : 
+          (servicio.km_recorridos || 0);
+        totalKm += Number(kmValue);
+      });
+      
+      const avgKm = filteredServices.length > 0 ? totalKm / filteredServices.length : 0;
+      
       return {
         ...cliente,
-        totalServicios: filteredCount
+        totalServicios: filteredCount,
+        kmPromedio: avgKm // Override with our recalculated value
       };
     });
     
