@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { DateRange } from "react-day-picker";
 import { useQuery } from "@tanstack/react-query";
 import { fetchServiciosData } from '../services/servicios';
@@ -12,6 +12,7 @@ import { ServiciosTipoChart } from './ServiciosTipoChart';
 import { Card, CardContent } from '@/components/ui/card';
 import { Loader2 } from "lucide-react";
 import { toast } from 'sonner';
+import { ServiceStatusFilter, StatusOption } from "../filters/ServiceStatusFilter";
 
 interface ServiciosDashboardProps {
   dateRange: DateRange;
@@ -19,11 +20,53 @@ interface ServiciosDashboardProps {
 }
 
 export function ServiciosDashboard({ dateRange, comparisonRange }: ServiciosDashboardProps) {
+  // Initialize status filter options
+  const [statusOptions, setStatusOptions] = useState<StatusOption[]>([
+    { label: "Completado", value: "Completado", checked: true },
+    { label: "Pendiente", value: "Pendiente", checked: true },
+    { label: "En progreso", value: "En progreso", checked: true },
+    { label: "Cancelado", value: "Cancelado", checked: true },
+  ]);
+  
+  // Filtered data state
+  const [filteredData, setFilteredData] = useState<any[]>([]);
+  
   const { data, isLoading, isError } = useQuery({
     queryKey: ['servicios', dateRange, comparisonRange],
     queryFn: () => fetchServiciosData(dateRange, comparisonRange),
     refetchOnWindowFocus: false,
   });
+
+  // Handle status filter changes
+  const handleStatusFilterChange = (value: string, checked: boolean) => {
+    setStatusOptions(prev => 
+      prev.map(option => 
+        option.value === value ? { ...option, checked } : option
+      )
+    );
+  };
+  
+  // Filter data when raw data or filters change
+  useEffect(() => {
+    if (data?.serviciosData) {
+      // Get active status filters
+      const activeStatuses = statusOptions
+        .filter(option => option.checked)
+        .map(option => option.value);
+      
+      // Apply filters to data
+      const filtered = data.serviciosData.filter((item: any) => {
+        // If estado (status) is present, filter by it
+        if (item.estado) {
+          return activeStatuses.includes(item.estado);
+        }
+        // If no estado field, include it (don't filter)
+        return true;
+      });
+      
+      setFilteredData(filtered);
+    }
+  }, [data?.serviciosData, statusOptions]);
 
   // Debug logging for date range
   React.useEffect(() => {
@@ -85,6 +128,14 @@ export function ServiciosDashboard({ dateRange, comparisonRange }: ServiciosDash
 
   return (
     <div className="space-y-8">
+      {/* Status filter */}
+      <div className="animate-fade-in duration-300">
+        <ServiceStatusFilter 
+          statusOptions={statusOptions} 
+          onChange={handleStatusFilterChange}
+        />
+      </div>
+      
       {/* Metrics cards at the top */}
       <div className="animate-fade-in duration-300">
         <ServiciosMetricsCards 
@@ -98,7 +149,7 @@ export function ServiciosDashboard({ dateRange, comparisonRange }: ServiciosDash
         {/* Performance chart taking 2/3 width on large screens */}
         <div className="lg:col-span-2 h-[500px]">
           <ServiciosPerformanceChart 
-            data={data?.serviciosData} 
+            data={filteredData} 
             isLoading={isLoading}
             dateRange={dateRange}
           />
@@ -107,7 +158,7 @@ export function ServiciosDashboard({ dateRange, comparisonRange }: ServiciosDash
         {/* Services type chart taking 1/3 width */}
         <div className="h-[500px]">
           <ServiciosTipoChart 
-            data={data?.serviciosPorTipo || []} 
+            data={filteredData} 
             isLoading={isLoading} 
           />
         </div>
@@ -117,7 +168,7 @@ export function ServiciosDashboard({ dateRange, comparisonRange }: ServiciosDash
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 animate-fade-in animate-delay-150 duration-300">
         <div className="h-[420px]">
           <ServiciosHourDistributionChart 
-            data={data?.serviciosData}
+            data={filteredData}
             isLoading={isLoading}
           />
         </div>

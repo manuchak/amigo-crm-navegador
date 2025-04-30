@@ -1,11 +1,11 @@
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { PieChart, Pie, Cell, ResponsiveContainer, Legend, Tooltip } from 'recharts';
 
 interface ServiciosTipoProps {
-  data: { tipo: string; count: number }[];
+  data: any[];
   isLoading: boolean;
 }
 
@@ -33,6 +33,37 @@ const renderCustomizedLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, per
 };
 
 export function ServiciosTipoChart({ data, isLoading }: ServiciosTipoProps) {
+  // Process data to focus on local/foráneo distribution
+  const chartData = useMemo(() => {
+    if (!data || data.length === 0) return [];
+
+    const localForaneoCount = {
+      "Local": 0,
+      "Foraneo": 0,
+      "Sin especificar": 0
+    };
+
+    // Count by local_foraneo field
+    data.forEach(item => {
+      if (item.local_foraneo) {
+        if (item.local_foraneo.toLowerCase() === 'local') {
+          localForaneoCount["Local"] += 1;
+        } else if (item.local_foraneo.toLowerCase() === 'foraneo') {
+          localForaneoCount["Foraneo"] += 1;
+        } else {
+          localForaneoCount["Sin especificar"] += 1;
+        }
+      } else {
+        localForaneoCount["Sin especificar"] += 1;
+      }
+    });
+
+    // Convert to array format for chart
+    return Object.entries(localForaneoCount)
+      .map(([tipo, count]) => ({ tipo, count }))
+      .filter(item => item.count > 0);
+  }, [data]);
+
   if (isLoading) {
     return (
       <Card className="border shadow-sm bg-white h-full">
@@ -47,23 +78,23 @@ export function ServiciosTipoChart({ data, isLoading }: ServiciosTipoProps) {
   }
 
   // Make sure we have valid data
-  const chartData = data?.length > 0 
-    ? data 
+  const displayData = chartData?.length > 0 
+    ? chartData 
     : [{ tipo: 'Sin datos', count: 1 }];
   
   // Calculate total for percentage
-  const total = chartData.reduce((sum, item) => sum + item.count, 0);
+  const total = displayData.reduce((sum, item) => sum + item.count, 0);
 
   return (
     <Card className="border shadow-sm bg-white h-full">
       <CardHeader className="pb-2">
-        <CardTitle className="text-lg font-medium">Servicios por Tipo</CardTitle>
+        <CardTitle className="text-lg font-medium">Servicios Local/Foráneo</CardTitle>
       </CardHeader>
       <CardContent className="pt-0 h-[320px]">
         <ResponsiveContainer width="100%" height="100%">
           <PieChart>
             <Pie
-              data={chartData}
+              data={displayData}
               cx="50%"
               cy="50%"
               labelLine={false}
@@ -73,7 +104,7 @@ export function ServiciosTipoChart({ data, isLoading }: ServiciosTipoProps) {
               dataKey="count"
               nameKey="tipo"
             >
-              {chartData.map((entry, index) => (
+              {displayData.map((entry, index) => (
                 <Cell 
                   key={`cell-${index}`} 
                   fill={COLORS[index % COLORS.length]} 
@@ -91,7 +122,7 @@ export function ServiciosTipoChart({ data, isLoading }: ServiciosTipoProps) {
               verticalAlign="middle" 
               align="right"
               formatter={(value, entry, index) => {
-                const item = chartData[index];
+                const item = displayData[index];
                 return `${item.tipo}: ${item.count}`;
               }}
               wrapperStyle={{ fontSize: 12, paddingLeft: 20 }}
