@@ -12,7 +12,6 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { formatNumber, formatCurrency } from '../utils/formatters';
-import { getValidNumberOrZero, parseCurrencyValue } from '../services/servicios/utils';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface ServiciosClientesActivosProps {
@@ -24,34 +23,26 @@ interface ServiciosClientesActivosProps {
 type TrendType = 'up' | 'down' | 'neutral';
 
 export function ServiciosClientesActivos({ clientes = [], isLoading }: ServiciosClientesActivosProps) {
-  // Process client data to ensure all values are valid
+  // Process client data to ensure all values are valid and log for debugging
   const clientesProcessed = clientes.map(cliente => {
-    // Get valid averages or zero if NaN - prioritize km_teorico over km_recorridos
-    const kmPromedio = getValidNumberOrZero(cliente.kmPromedio);
-    // Round to 2 decimal places for display
-    const kmPromedioFormatted = Number(kmPromedio.toFixed(2));
-    
-    // Parse the cost average (AOV) using our enhanced parser
-    const costoPromedio = parseCurrencyValue(cliente.costoPromedio);
-    
-    // Debug log AOV values - this helps identify issues
-    console.log(`Client ${cliente.nombre_cliente} - Display AOV: ${costoPromedio}, Raw: ${cliente.costoPromedio}`);
+    // Log the raw AOV value
+    console.log(`Processing client ${cliente.nombre_cliente} - Raw AOV: ${cliente.costoPromedio}`);
     
     // Use provided trend values or set defaults based on metrics
     const serviciosTrend = cliente.serviciosTrend || 
       (cliente.totalServicios > 50 ? 'up' : (cliente.totalServicios > 20 ? 'neutral' : 'down'));
     
     const kmTrend = cliente.kmTrend || 
-      (kmPromedio > 200 ? 'up' : (kmPromedio > 100 ? 'neutral' : 'down'));
+      (cliente.kmPromedio > 200 ? 'up' : (cliente.kmPromedio > 100 ? 'neutral' : 'down'));
     
     const costTrend = cliente.costTrend || 
-      (costoPromedio > 5000 ? 'up' : (costoPromedio > 1000 ? 'neutral' : 'down'));
+      (cliente.costoPromedio > 5000 ? 'up' : (cliente.costoPromedio > 1000 ? 'neutral' : 'down'));
     
     return {
       ...cliente,
       totalServicios: cliente.totalServicios || 0, 
-      kmPromedio: kmPromedioFormatted,
-      costoPromedio: costoPromedio, 
+      kmPromedio: cliente.kmPromedio || 0,
+      costoPromedio: cliente.costoPromedio || 0, 
       kmTrend,
       costTrend,
       serviciosTrend
@@ -74,6 +65,14 @@ export function ServiciosClientesActivos({ clientes = [], isLoading }: Servicios
         return <Minus className="h-4 w-4 text-gray-400" />;
     }
   };
+  
+  // Log final sorted clients for debugging
+  console.log("Final processed clients for display:", clientesOrdenados.map(c => ({
+    name: c.nombre_cliente,
+    servicios: c.totalServicios,
+    km: c.kmPromedio,
+    aov: c.costoPromedio
+  })));
   
   if (isLoading) {
     return (

@@ -1,3 +1,4 @@
+
 /**
  * Formatea un número con separadores de miles
  */
@@ -17,14 +18,13 @@ export function formatCurrency(value: number | undefined | null): string {
   // Log the value for debugging
   console.log(`formatCurrency received: ${value}, type: ${typeof value}`);
   
-  // If value is 0, just return $0 without decimals
-  if (value === 0) return '$0';
-  
-  // Handle very small values (near-zero) to avoid displaying $0
-  if (Math.abs(value) < 0.1) {
-    console.log(`Very small currency value detected: ${value}, displaying as formatted`);
-    return `$${value.toFixed(1)}`;
+  // If value is very close to zero but not exactly zero, display as $0.1
+  if (Math.abs(value) > 0 && Math.abs(value) < 0.1) {
+    return '$0.1';
   }
+  
+  // For zero value, just return $0 without decimals
+  if (value === 0) return '$0';
   
   // For non-zero values, format with 1 decimal place as requested
   try {

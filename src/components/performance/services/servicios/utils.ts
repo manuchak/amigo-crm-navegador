@@ -1,4 +1,3 @@
-
 /**
  * Safely gets a valid number or returns zero
  */
@@ -46,7 +45,7 @@ export function calculateAverage(values: number[]): number {
 
 /**
  * Parse a possibly formatted currency string to a number
- * Enhanced version with detailed debugging
+ * Improved version with better handling for Mexican currency format
  */
 export function parseCurrencyValue(value: any): number {
   // First, log the original input for debugging
@@ -59,31 +58,44 @@ export function parseCurrencyValue(value: any): number {
 
   if (value === undefined || value === null) return 0;
   
-  // If it's already a number, return it
+  // If it's already a number, ensure it's valid
   if (typeof value === 'number') {
+    if (isNaN(value)) return 0;
     console.log(`Value is already a number: ${value}`);
     return value;
   }
   
-  // If it's a string, clean it up
+  // If it's a string, clean it and convert it
   if (typeof value === 'string') {
-    // Handle different currency formats (MX, US, etc.)
-    const cleanVal = value
-      .replace(/\$/g, '')  // Remove dollar signs
+    // Handle Mexican currency format: "$1,234.56" or "$ 1 234,56"
+    let cleanVal = value
+      .replace(/\$/g, '')   // Remove dollar signs
       .replace(/\s/g, '')   // Remove spaces
-      .replace(/,/g, '.')   // Replace commas with periods for decimal (Mexican format)
       .trim();
     
-    console.log(`Cleaned string value "${value}" to: "${cleanVal}"`);
+    // Handle comma as decimal separator (Mexican format)
+    const hasComma = cleanVal.indexOf(',') > -1;
+    const hasPeriod = cleanVal.indexOf('.') > -1;
     
-    // Try parsing as a float first
+    if (hasComma && !hasPeriod) {
+      // Cases like "1234,56" - comma is the decimal separator
+      cleanVal = cleanVal.replace(/,/g, '.');
+    } else if (hasComma && hasPeriod) {
+      // Cases like "1,234.56" - comma is the thousands separator
+      cleanVal = cleanVal.replace(/,/g, '');
+    }
+    // Otherwise, no need to change
+    
+    console.log(`Cleaned value "${value}" to: "${cleanVal}"`);
+    
+    // Parse as float
     const num = parseFloat(cleanVal);
     if (!isNaN(num)) {
       console.log(`Successfully parsed as number: ${num}`);
       return num;
     }
     
-    // If that fails, try more aggressive cleaning for unusual formats
+    // If parsing fails, try more aggressive cleaning
     const digitsOnly = cleanVal.replace(/[^0-9.]/g, '');
     if (digitsOnly) {
       const parsedAgain = parseFloat(digitsOnly);
