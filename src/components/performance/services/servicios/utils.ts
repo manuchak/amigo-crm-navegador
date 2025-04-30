@@ -46,6 +46,7 @@ export function calculateAverage(values: number[]): number {
 
 /**
  * Parse a possibly formatted currency string to a number
+ * Enhanced version with better handling of different formats
  */
 export function parseCurrencyValue(value: any): number {
   if (value === undefined || value === null) return 0;
@@ -62,9 +63,16 @@ export function parseCurrencyValue(value: any): number {
       .replace(/,/g, '.')   // Replace commas with periods for decimal (Mexican format)
       .trim();
     
-    // Parse the cleaned value
+    // Try parsing as a float first
     const num = parseFloat(cleanVal);
-    return isNaN(num) ? 0 : num;
+    if (!isNaN(num)) return num;
+    
+    // If that fails, try more aggressive cleaning for unusual formats
+    const digitsOnly = cleanVal.replace(/[^0-9.]/g, '');
+    if (digitsOnly) {
+      const parsedAgain = parseFloat(digitsOnly);
+      return isNaN(parsedAgain) ? 0 : parsedAgain;
+    }
   }
   
   return 0;

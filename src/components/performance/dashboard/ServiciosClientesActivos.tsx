@@ -12,7 +12,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { formatNumber, formatCurrency } from '../utils/formatters';
-import { getValidNumberOrZero } from '../services/servicios/utils';
+import { getValidNumberOrZero, parseCurrencyValue } from '../services/servicios/utils';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface ServiciosClientesActivosProps {
@@ -24,30 +24,31 @@ interface ServiciosClientesActivosProps {
 type TrendType = 'up' | 'down' | 'neutral';
 
 export function ServiciosClientesActivos({ clientes = [], isLoading }: ServiciosClientesActivosProps) {
-  // Process client data to:
-  // 1. Filter out services with estado "Cancelado" when calculating total services
-  // 2. Process km average and cost average values properly
-  // 3. Add trend indicators for km and cost metrics
+  // Process client data to ensure all values are valid
   const clientesProcessed = clientes.map(cliente => {
     // Get valid averages or zero if NaN - prioritize km_teorico over km_recorridos
     const kmPromedio = getValidNumberOrZero(cliente.kmPromedio);
     // Round to 2 decimal places for display
     const kmPromedioFormatted = Number(kmPromedio.toFixed(2));
     
-    // Get valid cost average (AOV) or zero if NaN
-    const costoPromedio = getValidNumberOrZero(cliente.costoPromedio);
+    // Parse the cost average (AOV) using our enhanced parser
+    const costoPromedio = parseCurrencyValue(cliente.costoPromedio);
     
-    // Debug log AOV values
+    // Debug log AOV values - this helps identify issues
     console.log(`Client ${cliente.nombre_cliente} - Display AOV: ${costoPromedio}, Raw: ${cliente.costoPromedio}`);
     
-    // Use provided trend or calculate based on thresholds
-    const serviciosTrend = cliente.serviciosTrend || (cliente.totalServicios > 50 ? 'up' : (cliente.totalServicios > 20 ? 'neutral' : 'down'));
-    const kmTrend: TrendType = kmPromedio > 0 ? (kmPromedio > 100 ? 'up' : 'down') : 'neutral';
-    const costTrend: TrendType = costoPromedio > 0 ? (costoPromedio > 2000 ? 'up' : 'down') : 'neutral';
+    // Use provided trend values or set defaults based on metrics
+    const serviciosTrend = cliente.serviciosTrend || 
+      (cliente.totalServicios > 50 ? 'up' : (cliente.totalServicios > 20 ? 'neutral' : 'down'));
+    
+    const kmTrend = cliente.kmTrend || 
+      (kmPromedio > 200 ? 'up' : (kmPromedio > 100 ? 'neutral' : 'down'));
+    
+    const costTrend = cliente.costTrend || 
+      (costoPromedio > 5000 ? 'up' : (costoPromedio > 1000 ? 'neutral' : 'down'));
     
     return {
       ...cliente,
-      // Count only non-cancelled services
       totalServicios: cliente.totalServicios || 0, 
       kmPromedio: kmPromedioFormatted,
       costoPromedio: costoPromedio, 

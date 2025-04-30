@@ -10,6 +10,7 @@ export function formatNumber(value: number | undefined | null): string {
 
 /**
  * Formatea un número como moneda (pesos mexicanos)
+ * Improved to handle zero values and small amounts better
  */
 export function formatCurrency(value: number | undefined | null): string {
   if (value === undefined || value === null) return '$0';

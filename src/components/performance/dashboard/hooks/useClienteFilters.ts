@@ -1,7 +1,7 @@
 
-
 import { useMemo } from 'react';
 import { ClienteServicios } from '../../services/servicios';
+import { parseCurrencyValue } from '../../services/servicios/utils';
 
 export function useClienteFilters(
   serviciosPorCliente: any[] | undefined, 
@@ -49,98 +49,79 @@ export function useClienteFilters(
       // Round to 2 decimal places
       const avgKm = filteredClientServices.length > 0 ? 
         Number((totalKm / filteredClientServices.length).toFixed(2)) : 0;
-      
-      console.log(`Client ${cliente.nombre_cliente} - Total KM: ${totalKm}, Avg KM: ${avgKm}`);
 
-      // IMPROVED: Calculate AOV (Average Order Value) from cobro_cliente values
-      let totalCobro = 0;
-      
-      // Get distinct service IDs to avoid counting duplicates
-      const uniqueServices = new Map();
-      
-      // DEBUG: Track all services and cobro values to identify issues
-      console.log(`------------------------`);
-      console.log(`Client: ${cliente.nombre_cliente} - Processing ${filteredClientServices.length} services`);
-      
-      // Counter for valid cobro values
+      // ========== IMPROVED AOV CALCULATION ==========
+      // 1. Track unique services and total charges
+      let totalCobroCliente = 0;
+      const processedServiceIds = new Set();
       let validCobroCount = 0;
       
+      console.log(`Processing AOV for client: ${cliente.nombre_cliente} with ${filteredClientServices.length} services`);
+      
       filteredClientServices.forEach((servicio: any) => {
-        // Skip if we've already counted this service ID
-        if (servicio.id_servicio && uniqueServices.has(servicio.id_servicio)) {
-          console.log(`Skipping duplicate service ID: ${servicio.id_servicio}`);
+        // Skip duplicates if we have service IDs
+        if (servicio.id_servicio && processedServiceIds.has(servicio.id_servicio)) {
           return;
         }
         
-        // Track service ID
+        // Add to processed set if it has an ID
         if (servicio.id_servicio) {
-          uniqueServices.set(servicio.id_servicio, true);
+          processedServiceIds.add(servicio.id_servicio);
         }
         
-        // DEBUG: Log each service
-        console.log(`Processing service ID: ${servicio.id} / ${servicio.id_servicio || 'no ID'}`);
-        console.log(`Raw cobro_cliente value:`, servicio.cobro_cliente, `Type: ${typeof servicio.cobro_cliente}`);
-        
-        // Process cobro_cliente value with improved parsing
+        // Extract and parse the cobro_cliente value
         if (servicio.cobro_cliente !== null && servicio.cobro_cliente !== undefined) {
-          let cobroValue = 0;
+          // Use our enhanced parsing function
+          const cobroValue = parseCurrencyValue(servicio.cobro_cliente);
           
-          try {
-            // Handle different data types
-            if (typeof servicio.cobro_cliente === 'number') {
-              cobroValue = servicio.cobro_cliente;
-              console.log(`  - Numeric value: ${cobroValue}`);
-            } else if (typeof servicio.cobro_cliente === 'string') {
-              // Handle different currency formats and clean them properly
-              const cleanVal = servicio.cobro_cliente
-                .replace(/\$/g, '') // Remove dollar signs
-                .replace(/\s/g, '') // Remove spaces
-                .replace(/,/g, '.'); // Replace commas with periods for decimal
-              
-              cobroValue = parseFloat(cleanVal);
-              console.log(`  - String value: "${servicio.cobro_cliente}" -> Cleaned: "${cleanVal}" -> Parsed: ${cobroValue}`);
-            }
-            
-            // Only add valid numbers
-            if (!isNaN(cobroValue) && cobroValue > 0) {
-              totalCobro += cobroValue;
-              validCobroCount++;
-              console.log(`  - Added to total: ${cobroValue} -> Running total: ${totalCobro}`);
-            } else if (isNaN(cobroValue)) {
-              console.log(`  - INVALID VALUE: Could not parse as number`);
-            } else if (cobroValue <= 0) {
-              console.log(`  - ZERO/NEGATIVE VALUE: ${cobroValue}, ignoring`);
-            }
-          } catch (err) {
-            console.error(`Error parsing cobro_cliente value for ${servicio.id}:`, err);
+          // Debug logging
+          if (typeof servicio.cobro_cliente === 'string') {
+            console.log(`Parsed string value "${servicio.cobro_cliente}" to: ${cobroValue}`);
+          } else {
+            console.log(`Parsed value type ${typeof servicio.cobro_cliente} to: ${cobroValue}`);
           }
-        } else {
-          console.log(`  - NO VALUE for cobro_cliente`);
+          
+          // Only count if we got a valid value
+          if (cobroValue > 0) {
+            totalCobroCliente += cobroValue;
+            validCobroCount++;
+            console.log(`Added ${cobroValue} to total, now: ${totalCobroCliente}`);
+          }
         }
       });
       
-      // Calculate average - use unique service count or filtered count if no unique IDs
-      const serviceCount = uniqueServices.size > 0 ? uniqueServices.size : filteredCount;
+      // Calculate AOV using the appropriate divisor
+      let avgCobro = 0;
+      if (validCobroCount > 0) {
+        // If we have valid cobro values, use that count
+        avgCobro = totalCobroCliente / validCobroCount;
+        console.log(`Calculated AOV using ${validCobroCount} valid values: ${avgCobro}`);
+      } else if (processedServiceIds.size > 0) {
+        // If we have unique service IDs but no cobro values, use that count
+        avgCobro = totalCobroCliente / processedServiceIds.size;
+        console.log(`Calculated AOV using ${processedServiceIds.size} unique services: ${avgCobro}`);
+      } else if (filteredCount > 0) {
+        // Last resort - use the total filtered count
+        avgCobro = totalCobroCliente / filteredCount;
+        console.log(`Calculated AOV using ${filteredCount} total services: ${avgCobro}`);
+      }
       
-      console.log(`Summary for ${cliente.nombre_cliente}:`);
-      console.log(`- Total cobro: ${totalCobro}`);
-      console.log(`- Service count for division: ${serviceCount}`);
-      console.log(`- Valid cobro values count: ${validCobroCount}`);
+      // Debug final calculation - this is important
+      console.log(`Final AOV for ${cliente.nombre_cliente}: ${avgCobro} (${totalCobroCliente} / divisor)`);
       
-      // Use the services with valid cobro values if available, otherwise use total service count
-      const divisor = validCobroCount > 0 ? validCobroCount : (serviceCount || 1);
-      const avgCobro = totalCobro / divisor;
-      
-      console.log(`- Final AOV calculation: ${totalCobro} / ${divisor} = ${avgCobro}`);
-      console.log(`------------------------`);
+      // Add trend info based on client metrics
+      const serviciosTrend = filteredCount > 50 ? 'up' : (filteredCount > 20 ? 'neutral' : 'down');
+      const kmTrend = avgKm > 200 ? 'up' : (avgKm > 100 ? 'neutral' : 'down');
+      const costTrend = avgCobro > 5000 ? 'up' : (avgCobro > 1000 ? 'neutral' : 'down');
       
       return {
         ...cliente,
         totalServicios: filteredCount,
         kmPromedio: avgKm,
         costoPromedio: Number(avgCobro.toFixed(1)), // Format to 1 decimal place as requested
-        // Add trend info based on simple thresholds for demo purposes
-        serviciosTrend: filteredCount > 50 ? 'up' : (filteredCount > 20 ? 'neutral' : 'down')
+        serviciosTrend,
+        kmTrend,
+        costTrend
       };
     });
     
