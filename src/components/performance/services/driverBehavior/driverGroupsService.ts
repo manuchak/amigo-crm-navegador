@@ -6,6 +6,8 @@ import { toast } from "sonner";
 // Fetch all driver groups for a specific client
 export const fetchDriverGroups = async (clientName?: string): Promise<DriverGroupDetails[]> => {
   try {
+    console.log("Fetching driver groups for client:", clientName || "all");
+    
     let query = supabase
       .from('driver_groups')
       .select('*');
@@ -18,13 +20,18 @@ export const fetchDriverGroups = async (clientName?: string): Promise<DriverGrou
     
     if (error) {
       console.error("Error fetching driver groups:", error);
+      toast.error("Error al cargar grupos", { 
+        description: error.message 
+      });
       return [];
     }
     
+    console.log(`Found ${data?.length || 0} driver groups`);
     return data || [];
     
   } catch (error) {
     console.error("Exception when fetching driver groups:", error);
+    toast.error("Error inesperado al cargar grupos");
     return [];
   }
 };
@@ -32,6 +39,7 @@ export const fetchDriverGroups = async (clientName?: string): Promise<DriverGrou
 // Fetch drivers for a specific client (to add to groups)
 export const fetchDriversByClient = async (clientName: string): Promise<DriverForGroup[]> => {
   console.log("Fetching drivers for client:", clientName);
+  
   if (!clientName || clientName === 'all') {
     console.warn("No client name provided for fetchDriversByClient");
     return [];
@@ -68,6 +76,7 @@ export const fetchDriversByClient = async (clientName: string): Promise<DriverFo
         return;
       }
       
+      // Create a unique ID based on name and client
       const driverId = `${driver.driver_name}-${driver.client}`.toLowerCase().replace(/\s+/g, '-');
       
       if (!driversMap.has(driverId)) {
@@ -81,7 +90,7 @@ export const fetchDriversByClient = async (clientName: string): Promise<DriverFo
     });
     
     const drivers = Array.from(driversMap.values());
-    console.log("Processed drivers:", drivers);
+    console.log("Processed unique drivers:", drivers.length);
     return drivers;
     
   } catch (error) {
@@ -96,6 +105,14 @@ export const createDriverGroup = async (group: Partial<DriverGroupDetails>): Pro
   try {
     console.log("Creating driver group:", group);
     
+    // Validate required fields
+    if (!group.name || !group.client) {
+      toast.error("Datos incompletos", {
+        description: "El nombre y cliente son requeridos para crear un grupo"
+      });
+      return null;
+    }
+    
     // Create a unique ID for the group
     const groupId = `${group.name}-${group.client}`.toLowerCase().replace(/\s+/g, '-');
     
@@ -109,6 +126,8 @@ export const createDriverGroup = async (group: Partial<DriverGroupDetails>): Pro
       updated_at: new Date().toISOString()
     };
     
+    console.log("Sending new group to database:", newGroup);
+    
     const { data, error } = await supabase
       .from('driver_groups')
       .insert(newGroup)
@@ -121,6 +140,7 @@ export const createDriverGroup = async (group: Partial<DriverGroupDetails>): Pro
       return null;
     }
     
+    console.log("Group created successfully:", data);
     toast.success("Grupo creado", { description: `El grupo "${group.name}" ha sido creado exitosamente` });
     return data;
     
@@ -152,6 +172,7 @@ export const updateDriverGroup = async (group: DriverGroupDetails): Promise<bool
       return false;
     }
     
+    console.log("Group updated successfully");
     toast.success("Grupo actualizado", { description: `El grupo "${group.name}" ha sido actualizado exitosamente` });
     return true;
     
@@ -178,6 +199,7 @@ export const deleteDriverGroup = async (groupId: string): Promise<boolean> => {
       return false;
     }
     
+    console.log("Group deleted successfully");
     toast.success("Grupo eliminado", { description: "El grupo ha sido eliminado exitosamente" });
     return true;
     

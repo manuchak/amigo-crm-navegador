@@ -95,3 +95,11 @@ export interface DriverForGroup {
   score?: number;
   client: string;
 }
+
+export interface DriverGroupsState {
+  groups: DriverGroupDetails[];
+  filteredGroups: DriverGroupDetails[];
+  searchTerm: string;
+  loading: boolean;
+  error: string | null;
+}

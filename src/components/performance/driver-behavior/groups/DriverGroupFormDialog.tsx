@@ -31,15 +31,13 @@ import {
 } from "@/components/ui/select";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
-import { Check, ChevronsUpDown, Loader2, X } from "lucide-react";
+import { Check, Loader2, Search, X } from "lucide-react";
 import { DriverGroupDetails, DriverForGroup } from "../../types/driver-behavior.types";
 import { createDriverGroup, updateDriverGroup, fetchDriversByClient } from "../../services/driverBehavior/driverGroupsService";
 import { fetchClientList } from "../../services/driverBehavior/dataService";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
-import { cn } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { cn } from "@/lib/utils";
 
 // Validation schema for the form
 const formSchema = z.object({
@@ -63,8 +61,8 @@ export function DriverGroupFormDialog({ isOpen, onClose, group, onSuccess }: Dri
   const [selectedClient, setSelectedClient] = useState<string>(group?.client || '');
   const [selectedDrivers, setSelectedDrivers] = useState<DriverForGroup[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [driverSearchTerm, setDriverSearchTerm] = useState('');
-  const [driverSelectorOpen, setDriverSelectorOpen] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [showDriversList, setShowDriversList] = useState(false);
 
   // Form definition
   const form = useForm<DriverGroupFormValues>({
@@ -85,40 +83,74 @@ export function DriverGroupFormDialog({ isOpen, onClose, group, onSuccess }: Dri
   });
   
   // Fetch drivers for selected client
-  const { data: driversData = [], isLoading: isLoadingDrivers } = useQuery({
+  const { data: drivers = [], isLoading: isLoadingDrivers, error: driversError, refetch: refetchDrivers } = useQuery({
     queryKey: ['drivers-for-group', selectedClient],
     queryFn: () => fetchDriversByClient(selectedClient),
     enabled: !!selectedClient && selectedClient !== 'all',
     staleTime: 1000 * 60 * 5, // 5 minutes
+    retry: 2,
   });
 
-  console.log("Drivers data fetched:", driversData);
-
-  // Initialize selected drivers when editing a group
+  console.log("Selected client:", selectedClient);
+  console.log("Fetched drivers:", drivers);
+  
+  // If there's an error fetching drivers, show a toast
   useEffect(() => {
-    if (group && driversData && group.driver_ids) {
+    if (driversError) {
+      console.error("Error fetching drivers:", driversError);
+      toast.error("Error al cargar conductores", {
+        description: "Intente seleccionar otro cliente o reintentar más tarde"
+      });
+    }
+  }, [driversError]);
+
+  // Initialize selected drivers when editing a group or when drivers data is loaded
+  useEffect(() => {
+    if (group && group.driver_ids && group.driver_ids.length > 0 && drivers && drivers.length > 0) {
       console.log("Setting selected drivers from group.driver_ids:", group.driver_ids);
-      const selectedDriversList = driversData.filter(driver => 
+      
+      // Find the drivers that match the IDs in the group
+      const driverMatches = drivers.filter(driver => 
         group.driver_ids?.includes(driver.id)
       );
-      setSelectedDrivers(selectedDriversList);
+      
+      if (driverMatches.length > 0) {
+        console.log("Found matching drivers:", driverMatches);
+        setSelectedDrivers(driverMatches);
+      } else {
+        console.log("No matching drivers found in the available drivers list");
+      }
     }
-  }, [group, driversData]);
+  }, [group, drivers]);
 
   // Update selected client when form value changes
   useEffect(() => {
     const clientValue = form.watch('client');
     if (clientValue && clientValue !== selectedClient) {
+      console.log("Client changed to:", clientValue);
       setSelectedClient(clientValue);
-      // Clear selected drivers when changing client
       setSelectedDrivers([]);
       form.setValue('driver_ids', []);
+      
+      // Close the drivers list when changing clients
+      setShowDriversList(false);
     }
   }, [form.watch('client')]);
 
+  // Set form driver_ids when selectedDrivers changes
+  useEffect(() => {
+    if (selectedDrivers.length > 0) {
+      const driverIds = selectedDrivers.map(driver => driver.id);
+      console.log("Setting driver_ids in form:", driverIds);
+      form.setValue('driver_ids', driverIds);
+    }
+  }, [selectedDrivers]);
+
   // Handle form submission
   const onSubmit = async (values: DriverGroupFormValues) => {
+    console.log("Form values on submit:", values);
     setIsSubmitting(true);
+    
     try {
       if (isEditing && group) {
         // Update existing group
@@ -126,18 +158,22 @@ export function DriverGroupFormDialog({ isOpen, onClose, group, onSuccess }: Dri
           ...group,
           name: values.name,
           description: values.description,
-          driver_ids: values.driver_ids
+          driver_ids: values.driver_ids || []
         };
         
+        console.log("Updating group with data:", updatedGroup);
         const success = await updateDriverGroup(updatedGroup);
         if (success && onSuccess) {
+          toast.success("Grupo actualizado exitosamente");
           onSuccess();
           onClose();
         }
       } else {
         // Create new group
+        console.log("Creating group with data:", values);
         const newGroup = await createDriverGroup(values);
         if (newGroup && onSuccess) {
+          toast.success("Grupo creado exitosamente");
           onSuccess();
           onClose();
         }
@@ -145,7 +181,7 @@ export function DriverGroupFormDialog({ isOpen, onClose, group, onSuccess }: Dri
     } catch (error) {
       console.error("Error submitting group:", error);
       toast.error("Error al guardar el grupo", {
-        description: "Hubo un problema al crear el grupo. Por favor intente nuevamente."
+        description: "Hubo un problema al procesar la solicitud. Por favor intente nuevamente."
       });
     } finally {
       setIsSubmitting(false);
@@ -157,40 +193,40 @@ export function DriverGroupFormDialog({ isOpen, onClose, group, onSuccess }: Dri
     console.log("Toggling driver selection:", driver);
     
     // Check if driver is already selected
-    const isSelected = selectedDrivers.some(d => d.id === driver.id);
-    let newSelectedDrivers: DriverForGroup[];
+    const isAlreadySelected = selectedDrivers.some(d => d.id === driver.id);
     
-    if (isSelected) {
+    if (isAlreadySelected) {
       // Remove driver from selection
-      newSelectedDrivers = selectedDrivers.filter(d => d.id !== driver.id);
+      setSelectedDrivers(prev => prev.filter(d => d.id !== driver.id));
     } else {
       // Add driver to selection
-      newSelectedDrivers = [...selectedDrivers, driver];
+      setSelectedDrivers(prev => [...prev, driver]);
     }
-    
-    console.log("New selected drivers:", newSelectedDrivers);
-    setSelectedDrivers(newSelectedDrivers);
-    
-    // Update form value
-    const newDriverIds = newSelectedDrivers.map(d => d.id);
-    form.setValue('driver_ids', newDriverIds);
   };
 
   // Filter drivers based on search term
-  const filteredDrivers = driversData.filter(driver => 
-    driver.name.toLowerCase().includes(driverSearchTerm.toLowerCase())
+  const filteredDrivers = drivers.filter(driver => 
+    driver.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  console.log("Driver selection state:", {
-    selectedDrivers,
-    filteredDrivers,
-    selectedClient,
-    driversDataCount: driversData.length
-  });
+  // Toggle drivers list visibility
+  const toggleDriversList = () => {
+    if (!selectedClient || selectedClient === 'all') {
+      toast.info("Seleccione un cliente primero");
+      return;
+    }
+    
+    if (showDriversList && selectedClient) {
+      // If we're closing the list, refetch drivers to ensure we have the latest data
+      refetchDrivers();
+    }
+    
+    setShowDriversList(!showDriversList);
+  };
   
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="sm:max-w-[500px]">
+      <DialogContent className="sm:max-w-[550px]">
         <DialogHeader>
           <DialogTitle>{isEditing ? 'Editar Grupo' : 'Crear Nuevo Grupo'}</DialogTitle>
           <DialogDescription>
@@ -283,120 +319,129 @@ export function DriverGroupFormDialog({ isOpen, onClose, group, onSuccess }: Dri
               render={({ field }) => (
                 <FormItem className="space-y-2">
                   <FormLabel>Conductores</FormLabel>
-                  <FormControl>
-                    <Popover open={driverSelectorOpen} onOpenChange={setDriverSelectorOpen}>
-                      <PopoverTrigger asChild>
-                        <Button
-                          variant="outline"
-                          role="combobox"
-                          disabled={!selectedClient || isSubmitting || selectedClient === 'all'}
-                          className="w-full justify-between"
-                          onClick={() => {
-                            console.log("Popover button clicked");
-                            setDriverSelectorOpen(true);
-                          }}
-                        >
-                          {selectedDrivers.length ? 
-                            `${selectedDrivers.length} conductor(es) seleccionado(s)` : 
-                            "Seleccionar conductores"}
-                          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-[300px] p-0" align="start">
-                        <Command>
-                          <CommandInput 
-                            placeholder="Buscar conductores..." 
-                            value={driverSearchTerm}
-                            onValueChange={setDriverSearchTerm}
-                          />
-                          <CommandList>
-                            <CommandEmpty>
-                              {isLoadingDrivers ? (
-                                <div className="flex items-center justify-center p-2">
-                                  <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
-                                  <span className="ml-2">Cargando conductores...</span>
-                                </div>
-                              ) : (
-                                <div className="py-6 text-center text-sm">
-                                  No se encontraron conductores
-                                </div>
-                              )}
-                            </CommandEmpty>
-                            <CommandGroup>
-                              {filteredDrivers.length > 0 ? (
-                                filteredDrivers.map((driver) => {
-                                  const isSelected = selectedDrivers.some(d => d.id === driver.id);
-                                  return (
-                                    <CommandItem
-                                      key={driver.id}
-                                      value={driver.name}
-                                      onSelect={() => {
-                                        toggleDriverSelection(driver);
-                                      }}
-                                      className="cursor-pointer flex items-center"
-                                    >
+                  <div className="space-y-4">
+                    {/* Driver Selection Button */}
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="w-full justify-between"
+                      onClick={toggleDriversList}
+                      disabled={!selectedClient || selectedClient === 'all' || isSubmitting}
+                    >
+                      {selectedDrivers.length > 0 ? 
+                        `${selectedDrivers.length} conductor(es) seleccionado(s)` : 
+                        "Seleccionar conductores"}
+                      {showDriversList ? <X className="ml-2 h-4 w-4" /> : <Search className="ml-2 h-4 w-4" />}
+                    </Button>
+                    
+                    {/* Drivers Dropdown Panel */}
+                    {showDriversList && (
+                      <div className="border rounded-md overflow-hidden mt-2">
+                        {/* Search Bar */}
+                        <div className="p-2 border-b bg-muted/30">
+                          <div className="relative">
+                            <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                            <Input
+                              placeholder="Buscar conductores..."
+                              className="pl-8"
+                              value={searchTerm}
+                              onChange={(e) => setSearchTerm(e.target.value)}
+                            />
+                          </div>
+                        </div>
+                        
+                        {/* Drivers List */}
+                        <ScrollArea className="h-[200px]">
+                          {isLoadingDrivers ? (
+                            <div className="flex flex-col items-center justify-center h-full p-4">
+                              <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                              <p className="mt-2 text-sm text-muted-foreground">Cargando conductores...</p>
+                            </div>
+                          ) : filteredDrivers.length === 0 ? (
+                            <div className="p-4 text-center text-muted-foreground">
+                              {searchTerm ? 
+                                "No se encontraron conductores con ese término de búsqueda" : 
+                                "No hay conductores disponibles para este cliente"}
+                            </div>
+                          ) : (
+                            <div className="divide-y">
+                              {filteredDrivers.map((driver) => {
+                                const isSelected = selectedDrivers.some(d => d.id === driver.id);
+                                return (
+                                  <div 
+                                    key={driver.id}
+                                    className={cn(
+                                      "flex items-center justify-between p-3 cursor-pointer hover:bg-muted/50 transition-colors",
+                                      isSelected && "bg-primary/10"
+                                    )}
+                                    onClick={() => toggleDriverSelection(driver)}
+                                  >
+                                    <div className="flex items-center gap-3">
                                       <div className={cn(
-                                        "mr-2 flex h-4 w-4 items-center justify-center rounded-sm border",
-                                        isSelected ? "bg-primary border-primary text-primary-foreground" : "opacity-50"
+                                        "flex h-5 w-5 items-center justify-center rounded border",
+                                        isSelected 
+                                          ? "bg-primary border-primary text-primary-foreground" 
+                                          : "border-input"
                                       )}>
                                         {isSelected && <Check className="h-3 w-3" />}
                                       </div>
-                                      <span>{driver.name}</span>
-                                      {driver.score !== undefined && (
-                                        <span className="ml-auto text-muted-foreground">
-                                          Score: {driver.score}
-                                        </span>
-                                      )}
-                                    </CommandItem>
-                                  );
-                                })
-                              ) : (
-                                <div className="py-6 text-center text-sm">
-                                  No hay conductores disponibles para este cliente
-                                </div>
-                              )}
-                            </CommandGroup>
-                          </CommandList>
-                        </Command>
-                      </PopoverContent>
-                    </Popover>
-                  </FormControl>
-                  
-                  {/* Selected Drivers Display */}
-                  {selectedDrivers.length > 0 && (
-                    <div className="border rounded-md p-2">
-                      <div className="text-sm text-muted-foreground mb-2">
-                        {selectedDrivers.length} conductor(es) seleccionado(s):
+                                      <span className="font-medium">{driver.name}</span>
+                                    </div>
+                                    {driver.score !== undefined && (
+                                      <span className="text-sm text-muted-foreground">
+                                        Score: {driver.score}
+                                      </span>
+                                    )}
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          )}
+                        </ScrollArea>
                       </div>
-                      <ScrollArea className="h-[100px]">
+                    )}
+                    
+                    {/* Selected Drivers Display */}
+                    {selectedDrivers.length > 0 && (
+                      <div className="border rounded-md p-3 bg-muted/30">
+                        <div className="text-sm text-muted-foreground mb-2">
+                          Conductores seleccionados:
+                        </div>
                         <div className="flex flex-wrap gap-2">
                           {selectedDrivers.map(driver => (
                             <Badge 
                               key={driver.id} 
                               variant="secondary" 
-                              className="flex items-center gap-1"
+                              className="flex items-center gap-1 py-1 px-2"
                             >
                               {driver.name}
                               <X 
-                                className="h-3 w-3 cursor-pointer" 
-                                onClick={() => toggleDriverSelection(driver)} 
+                                className="h-3 w-3 cursor-pointer ml-1" 
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  toggleDriverSelection(driver);
+                                }} 
                               />
                             </Badge>
                           ))}
                         </div>
-                      </ScrollArea>
-                    </div>
-                  )}
+                      </div>
+                    )}
+                  </div>
                   <FormMessage />
                 </FormItem>
               )}
             />
             
-            <DialogFooter>
+            <DialogFooter className="pt-4">
               <Button type="button" variant="outline" onClick={onClose} disabled={isSubmitting}>
                 Cancelar
               </Button>
-              <Button type="submit" disabled={isSubmitting}>
+              <Button 
+                type="submit" 
+                disabled={isSubmitting || !form.formState.isValid}
+                className="ml-2"
+              >
                 {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 {isEditing ? 'Actualizar' : 'Crear'}
               </Button>
