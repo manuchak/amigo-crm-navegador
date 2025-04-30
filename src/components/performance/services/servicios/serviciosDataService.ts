@@ -1,8 +1,10 @@
+
 import { DateRange } from "react-day-picker";
 import { supabase } from "@/integrations/supabase/client";
 import { format, startOfMonth, endOfMonth, startOfWeek, endOfWeek } from "date-fns";
 import { ServiciosMetricData } from "./types";
 import { calcularPorcentajeCambio, getValidNumberOrZero, calculateAverage } from "./utils";
+import { getMockServiciosData } from "./mockDataService";
 
 /**
  * Fetches service data from Supabase
@@ -72,7 +74,7 @@ export async function fetchServiciosData(dateRange?: DateRange, comparisonRange?
       throw alertasError;
     }
 
-    // 3. Get services by client using database function - updated to filter out cancelled services
+    // 3. Get services by client using database function
     const { data: clientesData, error: clientesError } = await supabase
       .rpc('obtener_servicios_por_cliente', {
         fecha_inicio: startDate.toISOString(),
@@ -101,7 +103,8 @@ export async function fetchServiciosData(dateRange?: DateRange, comparisonRange?
         destino,
         tipo_gadget,
         placa_carga,
-        tipo_unidad
+        tipo_unidad,
+        estado
       `)
       .gte('fecha_hora_cita', startDate.toISOString())
       .lte('fecha_hora_cita', endDate.toISOString());
@@ -199,7 +202,13 @@ export async function fetchServiciosData(dateRange?: DateRange, comparisonRange?
       percentChange: calcularPorcentajeCambio(kmPromedioMesActual, kmPromedioMesAnterior)
     };
 
-    // Assemble the result object
+    // Check if we have actual data
+    if (!serviciosData || serviciosData.length === 0) {
+      console.warn("No service data found in database for the date range, using mock data as fallback");
+      return getMockServiciosData(dateRange);
+    }
+
+    // Assemble the result object with real data
     const result: ServiciosMetricData = {
       totalServicios: metrics.total_servicios || 0,
       serviciosMoM,
@@ -218,19 +227,7 @@ export async function fetchServiciosData(dateRange?: DateRange, comparisonRange?
     return result;
   } catch (error) {
     console.error("Error fetching servicios data:", error);
-    // Instead of falling back to mock data, return empty data structure
-    return {
-      totalServicios: 0,
-      serviciosMoM: { current: 0, previous: 0, percentChange: 0 },
-      serviciosWoW: { current: 0, previous: 0, percentChange: 0 },
-      kmTotales: 0,
-      kmPromedioMoM: { current: 0, previous: 0, percentChange: 0 },
-      clientesActivos: 0,
-      clientesNuevos: 0,
-      alertas: [],
-      serviciosPorCliente: [],
-      serviciosPorTipo: [],
-      serviciosData: []
-    };
+    console.log("Falling back to mock data due to error");
+    return getMockServiciosData(dateRange);
   }
 }

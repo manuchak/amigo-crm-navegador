@@ -31,11 +31,29 @@ export function ServiciosDashboard({ dateRange, comparisonRange }: ServiciosDash
   // Filtered data state
   const [filteredData, setFilteredData] = useState<any[]>([]);
   
+  // Console logs added for debugging
+  console.log("ServiciosDashboard rendering with dateRange:", dateRange);
+  
   const { data, isLoading, isError } = useQuery({
     queryKey: ['servicios', dateRange, comparisonRange],
-    queryFn: () => fetchServiciosData(dateRange, comparisonRange),
+    queryFn: () => {
+      console.log("Fetching servicios data with date range:", dateRange);
+      
+      if (!dateRange?.from || !dateRange?.to) {
+        console.error("Invalid date range provided to fetchServiciosData", dateRange);
+        return Promise.reject(new Error("Invalid date range"));
+      }
+      
+      return fetchServiciosData(dateRange, comparisonRange);
+    },
     refetchOnWindowFocus: false,
+    retry: 1,
   });
+
+  // Debug logging after data fetch
+  useEffect(() => {
+    console.log("Data fetched:", data);
+  }, [data]);
 
   // Handle status filter changes
   const handleStatusFilterChange = (value: string, checked: boolean) => {
@@ -49,6 +67,8 @@ export function ServiciosDashboard({ dateRange, comparisonRange }: ServiciosDash
   // Filter data when raw data or filters change
   useEffect(() => {
     if (data?.serviciosData) {
+      console.log("Filtering data with statuses:", statusOptions.filter(o => o.checked).map(o => o.value));
+      
       // Get active status filters
       const activeStatuses = statusOptions
         .filter(option => option.checked)
@@ -64,21 +84,10 @@ export function ServiciosDashboard({ dateRange, comparisonRange }: ServiciosDash
         return true;
       });
       
+      console.log(`Filtered data count: ${filtered.length} out of ${data.serviciosData.length}`);
       setFilteredData(filtered);
     }
   }, [data?.serviciosData, statusOptions]);
-
-  // Debug logging for date range
-  React.useEffect(() => {
-    if (dateRange?.from && dateRange?.to) {
-      console.log("ServiciosDashboard date range:", {
-        from: dateRange.from.toISOString(),
-        to: dateRange.to.toISOString()
-      });
-    } else {
-      console.warn("ServiciosDashboard received invalid date range");
-    }
-  }, [dateRange]);
   
   // Show error toast if fetch fails
   React.useEffect(() => {
@@ -91,6 +100,8 @@ export function ServiciosDashboard({ dateRange, comparisonRange }: ServiciosDash
 
   // Check if we have data to display
   const hasData = !!(data && data.serviciosData && data.serviciosData.length > 0);
+  
+  console.log("Dashboard render state:", { isLoading, isError, hasData });
 
   return (
     <DashboardLayout
