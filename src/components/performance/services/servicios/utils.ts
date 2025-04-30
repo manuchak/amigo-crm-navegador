@@ -107,9 +107,16 @@ export function parseCurrencyValue(value: any): number {
     
     // Handle different currency format patterns
     if (hasComma && !hasPeriod) {
-      // Case like "1234,56" - comma is the decimal separator (European style)
-      console.log("Format detected: European (comma as decimal)");
-      cleanVal = cleanVal.replace(/,/g, '.');
+      // Check if this is a decimal comma (European style) or thousands separator
+      if (/,\d{1,2}$/.test(cleanVal)) {
+        // Comma is likely the decimal separator (European style like "1234,56")
+        console.log("Format detected: European (comma as decimal)");
+        cleanVal = cleanVal.replace(/,/g, '.');
+      } else {
+        // Comma is likely thousands separator (like "1,234")
+        console.log("Format detected: Commas as thousands separators");
+        cleanVal = cleanVal.replace(/,/g, '');
+      }
     } else if (hasComma && hasPeriod) {
       // Check which character appears last to determine decimal separator
       const lastCommaIndex = cleanVal.lastIndexOf(',');
@@ -135,7 +142,11 @@ export function parseCurrencyValue(value: any): number {
     } else if (periodCount > 1) {
       // Multiple periods like "1.234.567" - periods are thousands separators (European)
       console.log("Format detected: Multiple periods as thousands separators");
-      cleanVal = cleanVal.replace(/\./g, '');
+      // In this case, treating the last period as decimal separator
+      const parts = cleanVal.split('.');
+      const decimal = parts.pop();
+      const integer = parts.join('');
+      cleanVal = integer + '.' + decimal;
     }
     
     console.log(`After format normalization: "${cleanVal}"`);
@@ -177,5 +188,24 @@ export function parseCurrencyValue(value: any): number {
   }
   
   console.log(`No valid number could be extracted, returning 0`);
+  return 0;
+}
+
+/**
+ * Direct currency converter - simplest implementation
+ * For cases where we need to bypass the complex logic
+ */
+export function directCurrencyConverter(value: any): number {
+  if (value === null || value === undefined || value === '') return 0;
+  
+  if (typeof value === 'number') return isNaN(value) ? 0 : value;
+  
+  if (typeof value === 'string') {
+    // Remove any obvious non-numeric characters
+    const cleanVal = value.replace(/[^0-9.-]/g, '');
+    const num = parseFloat(cleanVal);
+    return isNaN(num) ? 0 : num;
+  }
+  
   return 0;
 }

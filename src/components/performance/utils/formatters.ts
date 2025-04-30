@@ -1,4 +1,3 @@
-
 /**
  * Formatea un número con separadores de miles
  */
@@ -10,7 +9,7 @@ export function formatNumber(value: number | undefined | null): string {
 
 /**
  * Formatea un número como moneda (pesos mexicanos)
- * Enhanced to handle problematic values better and with additional logging
+ * Enhanced to handle problematic values better with improved logging
  */
 export function formatCurrency(value: number | undefined | null): string {
   // Log the incoming value for debugging purposes
@@ -41,6 +40,7 @@ export function formatCurrency(value: number | undefined | null): string {
   
   // For non-zero values, format with 1 decimal place as requested
   try {
+    // Forcing Spanish-Mexico format to ensure consistent $ symbol and separators
     const formatter = new Intl.NumberFormat('es-MX', {
       style: 'currency',
       currency: 'MXN',

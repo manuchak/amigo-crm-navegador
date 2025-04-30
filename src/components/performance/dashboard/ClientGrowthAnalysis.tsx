@@ -9,10 +9,10 @@ import {
   CardDescription 
 } from "@/components/ui/card";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
-import { parseCurrencyValue } from '../services/servicios/utils';
+import { parseCurrencyValue, directCurrencyConverter } from '../services/servicios/utils';
 import { formatCurrency } from '../utils/formatters';
-import { analyzeDataQuality } from '../utils/dataValidator';
-import { AlertTriangle } from 'lucide-react';
+import { analyzeDataQuality, tryParseNumber } from '../utils/dataValidator';
+import { AlertTriangle, Info } from 'lucide-react';
 
 interface ClientGrowthAnalysisProps {
   serviciosData: any[];
@@ -51,6 +51,10 @@ export function ClientGrowthAnalysis({ serviciosData, isLoading, dateRange, comp
     let uniqueClients = new Set();
     let processedItems = 0;
     
+    // If no values are valid through the normal validator, try a more direct approach
+    const useDirectParser = dataQuality.validItems === 0;
+    console.log(`Using ${useDirectParser ? 'direct' : 'standard'} parser due to ${dataQuality.validItems} valid items`);
+    
     serviciosData.forEach((servicio, index) => {
       // Track unique clients
       if (servicio.nombre_cliente) {
@@ -75,8 +79,19 @@ export function ClientGrowthAnalysis({ serviciosData, isLoading, dateRange, comp
       }
       
       try {
-        // Parse the currency value
-        const amount = parseCurrencyValue(rawValue);
+        // Parse the currency value - use direct method if standard failed for all values
+        let amount;
+        if (useDirectParser) {
+          amount = directCurrencyConverter(rawValue);
+        } else {
+          amount = parseCurrencyValue(rawValue);
+        }
+        
+        // As a fallback, try the simple number parser
+        if (amount === 0) {
+          const parsed = tryParseNumber(rawValue);
+          if (parsed !== null) amount = parsed;
+        }
         
         if (amount > 0) {
           totalValue += amount;
@@ -170,8 +185,25 @@ export function ClientGrowthAnalysis({ serviciosData, isLoading, dateRange, comp
                     <li>Con valores vacíos: {dataQuality.emptyString}</li>
                     <li>Con valores no numéricos: {dataQuality.nonNumeric}</li>
                   </ul>
+                  
+                  {dataQuality.originalValues && dataQuality.originalValues.length > 0 && (
+                    <div className="mt-3">
+                      <p className="font-medium">Ejemplos de valores en la base de datos:</p>
+                      <ul className="list-disc pl-5 mt-1 space-y-1">
+                        {dataQuality.originalValues.slice(0, 5).map((sample, idx) => (
+                          <li key={idx}>
+                            Valor: "{sample.value}" (tipo: {sample.type})
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
                 </div>
               )}
+              <div className="mt-3 p-3 bg-white/50 rounded border border-amber-200">
+                <p className="font-medium text-amber-800">Solución recomendada:</p>
+                <p>Verifique que los valores de "cobro_cliente" en la base de datos sean numéricos o estén en un formato de moneda válido.</p>
+              </div>
             </AlertDescription>
           </Alert>
         </CardContent>
@@ -204,6 +236,17 @@ export function ClientGrowthAnalysis({ serviciosData, isLoading, dateRange, comp
             <p className="text-2xl font-bold mt-1">{totalClients}</p>
           </div>
         </div>
+        
+        {dataQuality && dataQuality.percentValid < 50 && dataQuality.percentValid > 0 && (
+          <Alert variant="default" className="mt-4 bg-blue-50 border-blue-200">
+            <Info className="h-4 w-4 text-blue-500" />
+            <AlertTitle className="text-blue-800">Calidad de datos limitada</AlertTitle>
+            <AlertDescription className="text-blue-700">
+              Solo el {dataQuality.percentValid}% de los registros tienen valores válidos para "cobro_cliente".
+              Las métricas mostradas se han calculado usando los datos disponibles.
+            </AlertDescription>
+          </Alert>
+        )}
       </CardContent>
     </Card>
   );

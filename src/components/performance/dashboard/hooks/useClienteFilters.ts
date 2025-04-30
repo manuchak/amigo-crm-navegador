@@ -1,7 +1,8 @@
 
 import { useMemo } from 'react';
 import { ClienteServicios } from '../../services/servicios';
-import { parseCurrencyValue } from '../../services/servicios/utils';
+import { parseCurrencyValue, directCurrencyConverter } from '../../services/servicios/utils';
+import { tryParseNumber } from '../../utils/dataValidator';
 
 export function useClienteFilters(
   serviciosPorCliente: any[] | undefined, 
@@ -24,6 +25,17 @@ export function useClienteFilters(
     samples.forEach((s, i) => {
       console.log(`Sample ${i+1}: cobro_cliente="${s.cobro_cliente}", type=${typeof s.cobro_cliente}`);
     });
+    
+    // Check for any valid cobro_cliente values
+    let validCurrencyValueCount = 0;
+    samples.forEach(s => {
+      const parsed = parseCurrencyValue(s.cobro_cliente);
+      if (parsed > 0) validCurrencyValueCount++;
+    });
+    
+    // Decide which parser to use based on the test
+    const useDirectParser = validCurrencyValueCount === 0;
+    console.log(`Using ${useDirectParser ? 'direct' : 'standard'} currency parser based on sample analysis`);
     
     // Only return clients that have services in the filtered set
     const activeClientes = serviciosPorCliente.filter(cliente => {
@@ -86,7 +98,22 @@ export function useClienteFilters(
         }
         
         // Parse the value (our enhanced parser handles various formats)
-        const amount = parseCurrencyValue(rawValue);
+        let amount;
+        
+        // Try multiple parsing methods to ensure we get a valid value
+        if (useDirectParser) {
+          // Use the direct converter for problematic data
+          amount = directCurrencyConverter(rawValue);
+        } else {
+          // Use the enhanced parser
+          amount = parseCurrencyValue(rawValue);
+        }
+        
+        // As a last resort, try the simple number parser
+        if (amount === 0) {
+          const parsed = tryParseNumber(rawValue);
+          if (parsed !== null) amount = parsed;
+        }
         
         if (amount > 0) {
           totalAmount += amount;
