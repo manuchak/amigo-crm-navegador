@@ -46,13 +46,24 @@ export function calculateAverage(values: number[]): number {
 
 /**
  * Parse a possibly formatted currency string to a number
- * Enhanced version with better handling of different formats
+ * Enhanced version with detailed debugging
  */
 export function parseCurrencyValue(value: any): number {
+  // First, log the original input for debugging
+  console.log(`parseCurrencyValue called with:`, { 
+    value, 
+    type: typeof value,
+    isNull: value === null,
+    isUndefined: value === undefined
+  });
+
   if (value === undefined || value === null) return 0;
   
   // If it's already a number, return it
-  if (typeof value === 'number') return value;
+  if (typeof value === 'number') {
+    console.log(`Value is already a number: ${value}`);
+    return value;
+  }
   
   // If it's a string, clean it up
   if (typeof value === 'string') {
@@ -63,17 +74,25 @@ export function parseCurrencyValue(value: any): number {
       .replace(/,/g, '.')   // Replace commas with periods for decimal (Mexican format)
       .trim();
     
+    console.log(`Cleaned string value "${value}" to: "${cleanVal}"`);
+    
     // Try parsing as a float first
     const num = parseFloat(cleanVal);
-    if (!isNaN(num)) return num;
+    if (!isNaN(num)) {
+      console.log(`Successfully parsed as number: ${num}`);
+      return num;
+    }
     
     // If that fails, try more aggressive cleaning for unusual formats
     const digitsOnly = cleanVal.replace(/[^0-9.]/g, '');
     if (digitsOnly) {
       const parsedAgain = parseFloat(digitsOnly);
-      return isNaN(parsedAgain) ? 0 : parsedAgain;
+      const result = isNaN(parsedAgain) ? 0 : parsedAgain;
+      console.log(`Aggressive parsing resulted in: ${result}`);
+      return result;
     }
   }
   
+  console.log(`Couldn't parse value, returning 0`);
   return 0;
 }

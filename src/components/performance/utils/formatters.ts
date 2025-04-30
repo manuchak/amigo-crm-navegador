@@ -1,4 +1,3 @@
-
 /**
  * Formatea un número con separadores de miles
  */
@@ -15,6 +14,9 @@ export function formatNumber(value: number | undefined | null): string {
 export function formatCurrency(value: number | undefined | null): string {
   if (value === undefined || value === null) return '$0';
   
+  // Log the value for debugging
+  console.log(`formatCurrency received: ${value}, type: ${typeof value}`);
+  
   // If value is 0, just return $0 without decimals
   if (value === 0) return '$0';
   
@@ -25,12 +27,20 @@ export function formatCurrency(value: number | undefined | null): string {
   }
   
   // For non-zero values, format with 1 decimal place as requested
-  return new Intl.NumberFormat('es-MX', {
-    style: 'currency',
-    currency: 'MXN',
-    minimumFractionDigits: 1,
-    maximumFractionDigits: 1
-  }).format(value);
+  try {
+    const formatted = new Intl.NumberFormat('es-MX', {
+      style: 'currency',
+      currency: 'MXN',
+      minimumFractionDigits: 1,
+      maximumFractionDigits: 1
+    }).format(value);
+    
+    console.log(`Formatted currency ${value} to: ${formatted}`);
+    return formatted;
+  } catch (error) {
+    console.error(`Error formatting currency value ${value}:`, error);
+    return `$${value.toFixed(1)}`;
+  }
 }
 
 /**

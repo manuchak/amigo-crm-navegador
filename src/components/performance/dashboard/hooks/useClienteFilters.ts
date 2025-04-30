@@ -50,13 +50,27 @@ export function useClienteFilters(
       const avgKm = filteredClientServices.length > 0 ? 
         Number((totalKm / filteredClientServices.length).toFixed(2)) : 0;
 
-      // ========== IMPROVED AOV CALCULATION ==========
+      // ========== ENHANCED DEBUGGING FOR AOV CALCULATION ==========
       // 1. Track unique services and total charges
       let totalCobroCliente = 0;
       const processedServiceIds = new Set();
       let validCobroCount = 0;
       
-      console.log(`Processing AOV for client: ${cliente.nombre_cliente} with ${filteredClientServices.length} services`);
+      console.log(`\n====== DETAILED AOV DEBUG for ${cliente.nombre_cliente} ======`);
+      console.log(`Total filtered services: ${filteredClientServices.length}`);
+      
+      // Sample some services to see what data we're working with
+      console.log("Sampling up to 3 services for inspection:");
+      const sampleServices = filteredClientServices.slice(0, 3);
+      sampleServices.forEach((servicio: any, idx: number) => {
+        console.log(`Service ${idx+1} Sample:`, {
+          id: servicio.id,
+          id_servicio: servicio.id_servicio,
+          estado: servicio.estado,
+          cobro_cliente: servicio.cobro_cliente,
+          cobro_cliente_type: typeof servicio.cobro_cliente
+        });
+      });
       
       filteredClientServices.forEach((servicio: any) => {
         // Skip duplicates if we have service IDs
@@ -74,11 +88,13 @@ export function useClienteFilters(
           // Use our enhanced parsing function
           const cobroValue = parseCurrencyValue(servicio.cobro_cliente);
           
-          // Debug logging
+          // Debug logging for raw values
           if (typeof servicio.cobro_cliente === 'string') {
-            console.log(`Parsed string value "${servicio.cobro_cliente}" to: ${cobroValue}`);
+            console.log(`Service ID ${servicio.id}: Parsed string value "${servicio.cobro_cliente}" to: ${cobroValue}`);
+          } else if (typeof servicio.cobro_cliente === 'number') {
+            console.log(`Service ID ${servicio.id}: Using numeric value directly: ${cobroValue}`);
           } else {
-            console.log(`Parsed value type ${typeof servicio.cobro_cliente} to: ${cobroValue}`);
+            console.log(`Service ID ${servicio.id}: Parsed value type ${typeof servicio.cobro_cliente} to: ${cobroValue}`);
           }
           
           // Only count if we got a valid value
@@ -87,6 +103,8 @@ export function useClienteFilters(
             validCobroCount++;
             console.log(`Added ${cobroValue} to total, now: ${totalCobroCliente}`);
           }
+        } else {
+          console.log(`Service ID ${servicio.id}: cobro_cliente is null or undefined`);
         }
       });
       
@@ -106,8 +124,14 @@ export function useClienteFilters(
         console.log(`Calculated AOV using ${filteredCount} total services: ${avgCobro}`);
       }
       
-      // Debug final calculation - this is important
-      console.log(`Final AOV for ${cliente.nombre_cliente}: ${avgCobro} (${totalCobroCliente} / divisor)`);
+      // Debug final calculation
+      console.log(`Final AOV Summary for ${cliente.nombre_cliente}:`);
+      console.log(`- Total cobro_cliente sum: ${totalCobroCliente}`);
+      console.log(`- Valid cobro values count: ${validCobroCount}`);
+      console.log(`- Unique service IDs: ${processedServiceIds.size}`);
+      console.log(`- Total filtered services: ${filteredCount}`);
+      console.log(`- Final AOV: ${avgCobro}`);
+      console.log(`======================================================\n`);
       
       // Add trend info based on client metrics
       const serviciosTrend = filteredCount > 50 ? 'up' : (filteredCount > 20 ? 'neutral' : 'down');
