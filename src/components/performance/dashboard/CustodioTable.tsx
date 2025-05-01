@@ -79,6 +79,14 @@ export function CustodioTable({ data, isLoading }: CustodioTableProps) {
       default: return status;
     }
   };
+  
+  // Get rating color based on score
+  const getRatingColor = (rating: number) => {
+    if (rating >= 4.5) return 'text-emerald-500';
+    if (rating >= 3.5) return 'text-green-500';
+    if (rating >= 2.5) return 'text-amber-500';
+    return 'text-red-500';
+  };
 
   return (
     <Card className="border-0 shadow-md">
@@ -135,8 +143,10 @@ export function CustodioTable({ data, isLoading }: CustodioTableProps) {
                     <TableCell className="text-right">{custodio.completedJobs}</TableCell>
                     <TableCell className="text-center hidden md:table-cell">
                       <div className="flex items-center justify-center">
-                        <Star className="h-4 w-4 text-amber-500 mr-1" />
-                        <span>{formatRating(custodio.averageRating)}</span>
+                        <Star className={`h-4 w-4 mr-1 ${getRatingColor(custodio.averageRating)}`} />
+                        <span className={getRatingColor(custodio.averageRating)}>
+                          {formatRating(custodio.averageRating)}
+                        </span>
                       </div>
                     </TableCell>
                     <TableCell className="text-right hidden lg:table-cell">{formatCurrency(custodio.earnings)}</TableCell>
