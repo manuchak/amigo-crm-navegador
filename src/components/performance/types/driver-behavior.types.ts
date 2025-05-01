@@ -22,6 +22,8 @@ export interface DriverScore {
 export interface DriverPerformance {
   topDrivers: DriverScore[];
   bottomDrivers: DriverScore[];
+  needsImprovement: DriverScore[];
+  ecoDrivers: DriverScore[];
   averageScore: number;
   totalDrivers: number;
 }
@@ -32,17 +34,42 @@ export interface RiskAssessment {
   lowRiskCount: number;
   totalDrivers: number;
   riskLevel: 'low' | 'medium' | 'high' | 'critical';
+  level: 'low' | 'moderate' | 'high' | 'critical';
+  score: number;
+  description: string;
+  recommendations: string[];
 }
 
 export interface DriverBehaviorData {
+  metrics: {
+    label: string;
+    value: number;
+  }[];
   driverScores: DriverScore[];
   driverPerformance: DriverPerformance;
   riskAssessment: RiskAssessment;
-  metrics: {
-    avgScore: string;
-    totalPenaltyPoints: number;
-    totalTrips: number;
-    criticalDriversCount: number;
+  scoreDistribution: {
+    excellent: number;
+    good: number;
+    fair: number;
+    poor: number;
+    critical: number;
+  };
+  averageScore: number;
+  totalPenaltyPoints: number;
+  totalTrips: number;
+  totalDrivingTime: number;
+  totalDistance: number;
+  co2Emissions: {
+    totalEmissions: number;
+    emissionsByClient: Array<{
+      client: string;
+      emissions: number;
+    }>;
+    emissionsTrend: Array<{
+      date: string;
+      emissions: number;
+    }>;
   };
 }
 
@@ -63,4 +90,51 @@ export interface ProductivityMetrics {
   totalDistanceCovered: number;
   totalFuelCost: number;
   totalTimeSpent: string;
+}
+
+export interface ScoreCalculationResult {
+  score: number;
+  penaltyPoints: number;
+  scoreCategory: 'excellent' | 'good' | 'fair' | 'poor' | 'critical';
+  colorClass: string;
+}
+
+// Driver Group Types
+export interface DriverGroupDetails {
+  id: number | string;
+  name: string;
+  description?: string;
+  client: string;
+  driver_ids?: string[];
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface DriverForGroup {
+  id: string;
+  name: string;
+  client: string;
+  isSelected?: boolean;
+}
+
+// Productivity Parameter Types
+export interface ProductivityParameter {
+  id: number;
+  client: string;
+  driver_group: string | null;
+  expected_daily_distance: number;
+  expected_daily_time_minutes: number;
+  fuel_cost_per_liter: number;
+  expected_fuel_efficiency: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface NewProductivityParameter {
+  client: string;
+  driver_group?: string | null;
+  expected_daily_distance: number;
+  expected_daily_time_minutes: number;
+  fuel_cost_per_liter: number;
+  expected_fuel_efficiency: number;
 }

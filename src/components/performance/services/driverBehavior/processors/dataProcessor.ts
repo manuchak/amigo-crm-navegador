@@ -27,6 +27,11 @@ export const createEmptyDriverBehaviorData = (): DriverBehaviorData => ({
     emissionsTrend: []
   },
   riskAssessment: {
+    highRiskCount: 0,
+    mediumRiskCount: 0,
+    lowRiskCount: 0,
+    totalDrivers: 0,
+    riskLevel: 'low',
     level: 'low',
     score: 0,
     description: "No hay datos suficientes para evaluar el riesgo",
@@ -34,6 +39,7 @@ export const createEmptyDriverBehaviorData = (): DriverBehaviorData => ({
   },
   driverPerformance: {
     topDrivers: [],
+    bottomDrivers: [],
     needsImprovement: [],
     ecoDrivers: []
   }
@@ -158,13 +164,6 @@ export const processDriverBehaviorData = (driverScores: any[]): DriverBehaviorDa
       }
     }
     
-    // Build metrics array with real data
-    const metrics = [
-      { label: "Total Conductores", value: driverScores.length },
-      { label: "Conductores Activos", value: driverScores.filter(d => Number(d.trips_count || 0) > 0).length },
-      { label: "Alertas de Seguridad", value: totalPenaltyPoints }
-    ];
-    
     // Log the processed data summary
     console.log("Processed driver data summary:", {
       totalDrivers: driverScores.length,
@@ -175,7 +174,11 @@ export const processDriverBehaviorData = (driverScores: any[]): DriverBehaviorDa
     });
     
     return {
-      metrics,
+      metrics: [
+        { label: "Total Conductores", value: driverScores.length },
+        { label: "Conductores Activos", value: driverScores.filter(d => Number(d.trips_count || 0) > 0).length },
+        { label: "Alertas de Seguridad", value: totalPenaltyPoints }
+      ],
       driverScores,
       scoreDistribution: { excellent, good, fair, poor, critical },
       averageScore,
@@ -189,13 +192,19 @@ export const processDriverBehaviorData = (driverScores: any[]): DriverBehaviorDa
         emissionsTrend
       },
       riskAssessment: {
+        highRiskCount: driverScores.filter(d => Number(d.score || 0) < 40).length,
+        mediumRiskCount: driverScores.filter(d => Number(d.score || 0) >= 40 && Number(d.score || 0) < 70).length,
+        lowRiskCount: driverScores.filter(d => Number(d.score || 0) >= 70).length,
+        totalDrivers: driverScores.length,
         level: riskLevel,
+        riskLevel: riskLevel,
         score: Math.round(riskScore),
         description: riskDescription,
         recommendations
       },
       driverPerformance: {
         topDrivers,
+        bottomDrivers: sortedByScore.slice(Math.max(0, sortedByScore.length - 3)).reverse(),
         needsImprovement,
         ecoDrivers
       }

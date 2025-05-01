@@ -1,6 +1,11 @@
 import { DateRange } from "react-day-picker";
 import { supabase } from "@/integrations/supabase/client";
-import { DriverBehaviorFilters } from "../../types/driver-behavior.types";
+import { 
+  DriverBehaviorFilters, 
+  ProductivityParameter, 
+  NewProductivityParameter 
+} from "../../types/driver-behavior.types";
+import { toast } from "sonner";
 
 // Fetch productivity analysis data
 export const fetchProductivityAnalysis = async (dateRange: DateRange, filters?: DriverBehaviorFilters) => {
