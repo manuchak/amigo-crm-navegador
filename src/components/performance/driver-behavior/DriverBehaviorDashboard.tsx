@@ -144,11 +144,11 @@ export function DriverBehaviorDashboard({ dateRange, comparisonRange }: DriverBe
         <TabsContent value="riesgo" className="mt-0 animate-fade-in duration-300">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
             <DriverRiskAssessment 
-              riskData={driverData?.riskData} 
+              riskData={driverData?.riskAssessment} 
               isLoading={isLoadingData} 
             />
             <TopDriversPanel 
-              data={driverData?.driverScores} 
+              data={driverData?.driverPerformance} 
               isLoading={isLoadingData} 
             />
           </div>
