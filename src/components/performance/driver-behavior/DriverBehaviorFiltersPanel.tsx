@@ -22,6 +22,7 @@ export function DriverBehaviorFiltersPanel({
 }: DriverBehaviorFiltersPanelProps) {
   const [selectedClient, setSelectedClient] = useState<string>(filters.selectedClient || 'all');
   const [selectedGroup, setSelectedGroup] = useState<string>(filters.selectedGroup || 'all');
+  const [selectedGroupObject, setSelectedGroupObject] = useState<any>(null);
   
   // Fetch available clients
   const { data: clients, isLoading: isLoadingClients } = useQuery({
@@ -54,17 +55,36 @@ export function DriverBehaviorFiltersPanel({
   useEffect(() => {
     if (selectedClient !== filters.selectedClient) {
       setSelectedGroup('all');
+      setSelectedGroupObject(null);
     }
   }, [selectedClient, filters.selectedClient]);
+  
+  // Find the selected group object when group changes
+  useEffect(() => {
+    if (selectedGroup !== 'all' && Array.isArray(driverGroups)) {
+      const groupObj = driverGroups.find(group => {
+        if (typeof group === 'string') return group === selectedGroup;
+        return group.name === selectedGroup;
+      });
+      
+      setSelectedGroupObject(groupObj || null);
+      console.log("Selected group object:", groupObj);
+    } else {
+      setSelectedGroupObject(null);
+    }
+  }, [selectedGroup, driverGroups]);
   
   // Apply filters when selections change
   useEffect(() => {
     onFilterChange({
       selectedClient,
-      selectedGroup
+      selectedGroup,
+      selectedGroupObject,
+      driverIds: selectedGroupObject && typeof selectedGroupObject === 'object' ? 
+        selectedGroupObject.driver_ids : undefined
     });
     
-  }, [selectedClient, selectedGroup, onFilterChange]);
+  }, [selectedClient, selectedGroup, selectedGroupObject, onFilterChange]);
   
   return (
     <div className="flex flex-col md:flex-row gap-4">

@@ -14,7 +14,7 @@ import {
 } from '@/components/ui/table';
 import { Skeleton } from '@/components/ui/skeleton';
 import { DriverBehaviorFilters } from '../../types/driver-behavior.types';
-import { Search, AlertCircle } from "lucide-react";
+import { Search, AlertCircle, Filter } from "lucide-react";
 import { Alert, AlertDescription } from '@/components/ui/alert';
 
 interface ProductivityAnalysisTableProps {
@@ -71,6 +71,9 @@ export function ProductivityAnalysisTable({ dateRange, filters }: ProductivityAn
   console.log("Analysis data records:", analysisData?.length || 0);
   console.log("Filtered data records:", filteredData?.length || 0);
   
+  // Check if we're filtering by group
+  const isGroupFiltered = filters?.selectedGroup && filters.selectedGroup !== 'all';
+  
   return (
     <div>
       <div className="mb-6">
@@ -90,6 +93,15 @@ export function ProductivityAnalysisTable({ dateRange, filters }: ProductivityAn
           <AlertCircle className="h-4 w-4" />
           <AlertDescription>
             Error al cargar los datos. Por favor intente nuevamente.
+          </AlertDescription>
+        </Alert>
+      )}
+      
+      {isGroupFiltered && filteredData.length === 0 && !isLoading && (
+        <Alert className="mb-4 bg-amber-50 text-amber-800 border-amber-200">
+          <Filter className="h-4 w-4" />
+          <AlertDescription>
+            No hay datos de productividad para el grupo seleccionado. Esto puede ocurrir si los conductores de este grupo no tienen análisis de productividad registrados.
           </AlertDescription>
         </Alert>
       )}
@@ -123,7 +135,10 @@ export function ProductivityAnalysisTable({ dateRange, filters }: ProductivityAn
               ) : filteredData.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={8} className="text-center py-12 text-gray-500">
-                    No hay datos disponibles para el período seleccionado
+                    {isGroupFiltered ? 
+                      `No hay datos de productividad disponibles para el grupo "${filters.selectedGroup}"` :
+                      "No hay datos disponibles para el período seleccionado"
+                    }
                   </TableCell>
                 </TableRow>
               ) : (
@@ -137,10 +152,10 @@ export function ProductivityAnalysisTable({ dateRange, filters }: ProductivityAn
                         {row.productivity_score ? row.productivity_score.toFixed(1) : 'N/A'}
                       </div>
                     </TableCell>
-                    <TableCell>{row.distance.toLocaleString()} km</TableCell>
+                    <TableCell>{row.distance?.toLocaleString() || 'N/A'} km</TableCell>
                     <TableCell>{formatInterval(row.duration_interval)}</TableCell>
                     <TableCell>${row.estimated_fuel_cost?.toFixed(2) || '0.00'}</TableCell>
-                    <TableCell>{row.days_count}</TableCell>
+                    <TableCell>{row.days_count || 'N/A'}</TableCell>
                   </TableRow>
                 ))
               )}

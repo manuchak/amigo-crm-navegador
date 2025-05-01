@@ -1,4 +1,3 @@
-
 import { DateRange } from "react-day-picker";
 import { DriverBehaviorData, DriverBehaviorFilters } from "../../types/driver-behavior.types";
 import { supabase } from "@/integrations/supabase/client";
@@ -35,15 +34,35 @@ export const fetchDriverBehaviorData = async (dateRange: DateRange, filters?: Dr
     );
     
     // Apply client filter if provided
-    if (filters?.selectedClient) {
+    if (filters?.selectedClient && filters.selectedClient !== 'all') {
       query = query.eq('client', filters.selectedClient);
-    } else if (filters?.selectedClients && filters.selectedClients.length > 0) {
-      query = query.in('client', filters.selectedClients);
+      console.log(`Filtering by client: ${filters.selectedClient}`);
     }
     
-    // Apply driver group filter if provided
-    if (filters?.selectedGroups && filters.selectedGroups.length > 0) {
-      query = query.in('driver_group', filters.selectedGroups);
+    // Apply driver group filter if driver IDs are available
+    if (filters?.selectedGroup !== 'all' && filters?.driverIds && Array.isArray(filters.driverIds) && filters.driverIds.length > 0) {
+      // Extract unique driver names from driver_ids array
+      // Format is typically: "drivername-device-client"
+      const driverNames = filters.driverIds.map(id => {
+        const parts = id.split('-');
+        if (parts.length >= 1) {
+          return parts[0];  // Extract the driver name part
+        }
+        return id;
+      });
+      
+      console.log(`Filtering by driver names from group "${filters.selectedGroup}"`, driverNames);
+      
+      // Apply filter to find records where the driver_name contains any of the driver names
+      // This is a basic approach - for more accuracy, the driver_name field structure should be standardized
+      query = query.or(
+        driverNames.map(name => `driver_name.ilike.%${name}%`).join(',')
+      );
+    } 
+    // If a group is selected but no driver IDs are available, filter by group name directly
+    else if (filters?.selectedGroup && filters.selectedGroup !== 'all') {
+      query = query.eq('driver_group', filters.selectedGroup);
+      console.log(`Filtering by driver_group: ${filters.selectedGroup}`);
     }
     
     // Execute the query

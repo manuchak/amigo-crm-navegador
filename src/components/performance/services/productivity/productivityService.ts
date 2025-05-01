@@ -1,9 +1,121 @@
-
-import { supabase } from "@/integrations/supabase/client";
-import { NewProductivityParameter, ProductivityParameter, ProductivityAnalysis } from "../../types/productivity.types";
-import { toast } from "sonner";
 import { DateRange } from "react-day-picker";
+import { supabase } from "@/integrations/supabase/client";
 import { DriverBehaviorFilters } from "../../types/driver-behavior.types";
+
+// Fetch productivity analysis data
+export const fetchProductivityAnalysis = async (dateRange: DateRange, filters?: DriverBehaviorFilters) => {
+  if (!dateRange.from || !dateRange.to) {
+    return [];
+  }
+  
+  console.log("Fetching productivity analysis with filters:", filters);
+  
+  try {
+    let query = supabase
+      .from('driver_productivity_analysis')
+      .select('*');
+      
+    // Apply date range filter
+    query = query.or(
+      `start_date.lte.${dateRange.to.toISOString()},end_date.gte.${dateRange.from.toISOString()}`
+    );
+    
+    // Apply client filter
+    if (filters?.selectedClient && filters.selectedClient !== 'all') {
+      query = query.eq('client', filters.selectedClient);
+    }
+    
+    // Apply driver group filter if driver IDs are available
+    if (filters?.selectedGroup !== 'all' && filters?.driverIds && Array.isArray(filters.driverIds) && filters.driverIds.length > 0) {
+      // Extract driver names from driver_ids array
+      const driverNames = filters.driverIds.map(id => {
+        const parts = id.split('-');
+        if (parts.length >= 1) {
+          return parts[0];  // Extract the driver name part
+        }
+        return id;
+      });
+      
+      console.log(`Filtering productivity by driver names from group "${filters.selectedGroup}"`, driverNames);
+      
+      // Apply filter for driver names
+      query = query.or(
+        driverNames.map(name => `driver_name.ilike.%${name}%`).join(',')
+      );
+    } 
+    // If a group is selected but no driver IDs are available, filter by group name directly
+    else if (filters?.selectedGroup && filters.selectedGroup !== 'all') {
+      query = query.eq('driver_group', filters.selectedGroup);
+    }
+    
+    const { data, error } = await query;
+    
+    if (error) {
+      console.error("Error fetching productivity analysis:", error);
+      return [];
+    }
+    
+    console.log(`Found ${data?.length || 0} productivity analysis records`);
+    return data || [];
+    
+  } catch (err) {
+    console.error("Exception when fetching productivity analysis:", err);
+    return [];
+  }
+};
+
+// Calculate a summary of productivity data
+export const calculateProductivitySummary = (analysisData) => {
+  if (!analysisData || analysisData.length === 0) {
+    return null;
+  }
+  
+  const totalDrivers = analysisData.length;
+  const totalDistanceCovered = analysisData.reduce((sum, item) => sum + (item.distance || 0), 0);
+  
+  // Calculate average productivity score
+  const scores = analysisData.map(item => item.productivity_score).filter(Boolean);
+  const averageProductivityScore = scores.length > 0 
+    ? scores.reduce((sum, score) => sum + score, 0) / scores.length 
+    : 0;
+  
+  // Count high and low performers
+  const highPerformers = analysisData.filter(item => (item.productivity_score || 0) >= 85).length;
+  const lowPerformers = analysisData.filter(item => (item.productivity_score || 0) < 70).length;
+  
+  // Calculate total fuel cost
+  const totalFuelCost = analysisData.reduce((sum, item) => sum + (item.estimated_fuel_cost || 0), 0);
+  
+  // Calculate total time spent
+  let totalHours = 0;
+  let totalMinutes = 0;
+  
+  analysisData.forEach(item => {
+    if (item.duration_interval) {
+      const matches = item.duration_interval.match(/(\d+):(\d+):(\d+)/);
+      if (matches) {
+        totalHours += parseInt(matches[1]);
+        totalMinutes += parseInt(matches[2]);
+      }
+    }
+  });
+  
+  // Convert excess minutes to hours
+  totalHours += Math.floor(totalMinutes / 60);
+  totalMinutes = totalMinutes % 60;
+  
+  const totalTimeSpent = `${totalHours}h ${totalMinutes}m`;
+  
+  return {
+    totalDrivers,
+    totalDistanceCovered,
+    averageProductivityScore,
+    highPerformers,
+    lowPerformers,
+    totalFuelCost,
+    totalTimeSpent
+  };
+};
 
 // Fetch productivity parameters with optional client filter
 export const fetchProductivityParameters = async (clientName?: string): Promise<ProductivityParameter[]> => {
@@ -178,205 +290,6 @@ export const fetchCurrentFuelPrices = async (): Promise<{ regular: number, premi
     console.error("Error fetching fuel prices:", error);
     throw error;
   }
-};
-
-// Fetch productivity analysis data
-export const fetchProductivityAnalysis = async (
-  dateRange: DateRange,
-  filters?: DriverBehaviorFilters
-): Promise<ProductivityAnalysis[]> => {
-  try {
-    console.log("Fetching productivity analysis with:", { dateRange, filters });
-    
-    if (!dateRange.from || !dateRange.to) {
-      return [];
-    }
-    
-    // Format dates for query
-    const startDate = dateRange.from.toISOString();
-    const endDate = dateRange.to.toISOString();
-    
-    // For development/testing - if no data in real table, use driver_behavior_scores
-    // and create mock productivity data based on that
-    let query = supabase
-      .from('driver_productivity_analysis')
-      .select('*')
-      .gte('start_date', startDate)
-      .lte('end_date', endDate);
-    
-    // Apply filters if provided
-    if (filters) {
-      if (filters.selectedClient && filters.selectedClient !== 'all') {
-        query = query.eq('client', filters.selectedClient);
-      }
-      
-      if (filters.selectedGroup && filters.selectedGroup !== 'all') {
-        query = query.eq('driver_group', filters.selectedGroup);
-      }
-    }
-    
-    let { data, error } = await query;
-    
-    if (error) {
-      console.error("Error fetching productivity analysis:", error);
-      toast.error("Error al cargar análisis de productividad", { 
-        description: error.message 
-      });
-      return [];
-    }
-
-    // If no data found, create mock data from driver_behavior_scores
-    if (!data || data.length === 0) {
-      console.log("No productivity data found, creating mock data from driver scores");
-      
-      // Fetch data from driver_behavior_scores instead
-      let scoreQuery = supabase
-        .from('driver_behavior_scores')
-        .select('*')
-        .gte('start_date', startDate)
-        .lte('end_date', endDate);
-      
-      // Apply same filters
-      if (filters) {
-        if (filters.selectedClient && filters.selectedClient !== 'all') {
-          scoreQuery = scoreQuery.eq('client', filters.selectedClient);
-        }
-        
-        if (filters.selectedGroup && filters.selectedGroup !== 'all') {
-          scoreQuery = scoreQuery.eq('driver_group', filters.selectedGroup);
-        }
-      }
-      
-      const { data: scoreData, error: scoreError } = await scoreQuery;
-      
-      if (scoreError) {
-        console.error("Error fetching driver scores for mock data:", scoreError);
-        return [];
-      }
-      
-      if (scoreData && scoreData.length > 0) {
-        // Convert driver behavior scores to productivity analysis format with mock data
-        data = scoreData.map(score => {
-          // Create realistic productivity parameters
-          const expectedDailyDistance = Math.floor(Math.random() * 200) + 100; // 100-300 km
-          const expectedDailyTimeMinutes = Math.floor(Math.random() * 240) + 240; // 4-8 hours in minutes
-          const fuelCostPerLiter = 24.99; // Fixed cost for now
-          const expectedFuelEfficiency = Math.floor(Math.random() * 5) + 8; // 8-13 km/L
-
-          // Calculate actual daily distance
-          const daysCount = Math.max(1, Math.round((new Date(score.end_date).getTime() - new Date(score.start_date).getTime()) / (1000 * 60 * 60 * 24)));
-          const actualDailyDistance = score.distance ? score.distance / daysCount : 0;
-          
-          // Calculate fuel usage
-          const estimatedFuelUsage = score.distance ? score.distance / expectedFuelEfficiency : 0;
-          const estimatedFuelCost = estimatedFuelUsage * fuelCostPerLiter;
-          
-          // Calculate productivity score (70-100 range, inverse of penalty points)
-          const baseScore = 100 - Math.min(30, score.penalty_points / 10);
-          
-          return {
-            id: score.id,
-            client: score.client,
-            driver_name: score.driver_name,
-            driver_group: score.driver_group,
-            start_date: score.start_date,
-            end_date: score.end_date,
-            distance: score.distance || 0,
-            duration_interval: score.duration_interval || null,
-            trips_count: score.trips_count || 0,
-            days_count: daysCount,
-            productivity_score: baseScore,
-            expected_daily_distance: expectedDailyDistance,
-            expected_daily_time_minutes: expectedDailyTimeMinutes,
-            actual_daily_distance: actualDailyDistance,
-            fuel_cost_per_liter: fuelCostPerLiter,
-            expected_fuel_efficiency: expectedFuelEfficiency,
-            estimated_fuel_usage_liters: estimatedFuelUsage,
-            estimated_fuel_cost: estimatedFuelCost
-          };
-        });
-        
-        console.log("Created mock productivity data from driver scores:", data.length, "records");
-      }
-    }
-    
-    console.log("Productivity analysis data fetched:", data?.length || 0, "records");
-    return data || [];
-    
-  } catch (error) {
-    console.error("Exception when fetching productivity analysis:", error);
-    toast.error("Error inesperado al cargar análisis");
-    return [];
-  }
-};
-
-// Calculate productivity summary metrics from analysis data
-export const calculateProductivitySummary = (
-  analysisData: ProductivityAnalysis[]
-) => {
-  if (!analysisData || analysisData.length === 0) {
-    return null;
-  }
-  
-  const totalDrivers = analysisData.length;
-  
-  // Calculate high and low performers based on productivity score
-  const highPerformers = analysisData.filter(driver => 
-    driver.productivity_score !== null && driver.productivity_score >= 90
-  ).length;
-  
-  const lowPerformers = analysisData.filter(driver => 
-    driver.productivity_score !== null && driver.productivity_score < 70
-  ).length;
-  
-  // Calculate average score
-  const validScores = analysisData
-    .filter(driver => driver.productivity_score !== null)
-    .map(driver => driver.productivity_score as number);
-  
-  const averageProductivityScore = validScores.length > 0 
-    ? validScores.reduce((sum, score) => sum + score, 0) / validScores.length
-    : 0;
-  
-  // Calculate total distance covered
-  const totalDistanceCovered = analysisData.reduce(
-    (sum, driver) => sum + (driver.distance || 0), 
-    0
-  );
-  
-  // Calculate total fuel cost
-  const totalFuelCost = analysisData.reduce(
-    (sum, driver) => sum + (driver.estimated_fuel_cost || 0), 
-    0
-  );
-  
-  // Format total time spent
-  const totalMinutes = analysisData.reduce((sum, driver) => {
-    if (!driver.duration_interval) return sum;
-    
-    // Extract hours and minutes from interval string like "02:30:00"
-    const matches = driver.duration_interval.match(/(\d+):(\d+):(\d+)/);
-    if (matches) {
-      const hours = parseInt(matches[1]);
-      const minutes = parseInt(matches[2]);
-      return sum + (hours * 60 + minutes);
-    }
-    return sum;
-  }, 0);
-  
-  const totalHours = Math.floor(totalMinutes / 60);
-  const remainingMinutes = totalMinutes % 60;
-  const totalTimeSpent = `${totalHours}h ${remainingMinutes}m`;
-  
-  return {
-    totalDrivers,
-    highPerformers,
-    lowPerformers,
-    averageProductivityScore,
-    totalDistanceCovered,
-    totalFuelCost,
-    totalTimeSpent
-  };
 };
 
 // Fetch list of clients for dropdowns
