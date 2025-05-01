@@ -34,7 +34,7 @@ export interface RiskAssessment {
   lowRiskCount: number;
   totalDrivers: number;
   riskLevel: 'low' | 'medium' | 'high' | 'critical';
-  level: 'low' | 'moderate' | 'high' | 'critical';
+  level: 'low' | 'medium' | 'high' | 'critical';
   score: number;
   description: string;
   recommendations: string[];
@@ -114,6 +114,7 @@ export interface DriverForGroup {
   id: string;
   name: string;
   client: string;
+  score?: number;
   isSelected?: boolean;
 }
 

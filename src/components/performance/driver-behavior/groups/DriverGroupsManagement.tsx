@@ -89,7 +89,12 @@ export function DriverGroupsManagement({
   // Handle confirming group deletion
   const handleConfirmDelete = async () => {
     if (groupToDelete) {
-      const success = await deleteDriverGroup(groupToDelete.id);
+      // Convert id to string if it's a number
+      const groupId = typeof groupToDelete.id === 'number' 
+        ? groupToDelete.id.toString() 
+        : groupToDelete.id;
+        
+      const success = await deleteDriverGroup(groupId);
       if (success) {
         queryClient.invalidateQueries({ queryKey: ['driver-groups'] });
       }

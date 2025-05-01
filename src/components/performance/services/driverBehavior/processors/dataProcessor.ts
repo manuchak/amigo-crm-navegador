@@ -1,5 +1,5 @@
 
-import { DriverBehaviorData, DriverScore } from '../../../types/driver-behavior.types';
+import { DriverBehaviorData, DriverScore, DriverPerformance, RiskAssessment } from '../../../types/driver-behavior.types';
 
 // Create an empty data structure
 export const createEmptyDriverBehaviorData = (): DriverBehaviorData => ({
@@ -41,7 +41,9 @@ export const createEmptyDriverBehaviorData = (): DriverBehaviorData => ({
     topDrivers: [],
     bottomDrivers: [],
     needsImprovement: [],
-    ecoDrivers: []
+    ecoDrivers: [],
+    averageScore: 0,
+    totalDrivers: 0
   }
 });
 
@@ -121,7 +123,7 @@ export const processDriverBehaviorData = (driverScores: any[]): DriverBehaviorDa
     const totalDrivingTime = totalTrips * 45; // in minutes
     
     // Assess fleet risk based on scores
-    let riskLevel: 'low' | 'moderate' | 'high' | 'critical' = 'low';
+    let riskLevel: 'low' | 'medium' | 'high' | 'critical' = 'low';
     let riskScore = 0;
     let riskDescription = '';
     const recommendations: string[] = [];
@@ -146,7 +148,7 @@ export const processDriverBehaviorData = (driverScores: any[]): DriverBehaviorDa
           'Establecer incentivos para conductores seguros'
         );
       } else if (riskScore >= 25) {
-        riskLevel = 'moderate';
+        riskLevel = 'medium'; // Changed from 'moderate' to 'medium' to match the type
         riskDescription = 'La flota presenta un riesgo moderado basado en el comportamiento de conducción';
         recommendations.push(
           'Implementar programas de capacitación en conducción defensiva',
@@ -206,7 +208,9 @@ export const processDriverBehaviorData = (driverScores: any[]): DriverBehaviorDa
         topDrivers,
         bottomDrivers: sortedByScore.slice(Math.max(0, sortedByScore.length - 3)).reverse(),
         needsImprovement,
-        ecoDrivers
+        ecoDrivers,
+        averageScore: averageScore,
+        totalDrivers: driverScores.length
       }
     };
   } catch (error) {
