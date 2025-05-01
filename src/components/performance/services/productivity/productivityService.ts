@@ -196,7 +196,8 @@ export const fetchProductivityAnalysis = async (
     const startDate = dateRange.from.toISOString();
     const endDate = dateRange.to.toISOString();
     
-    // Build query to get driver productivity data
+    // For development/testing - if no data in real table, use driver_behavior_scores
+    // and create mock productivity data based on that
     let query = supabase
       .from('driver_productivity_analysis')
       .select('*')
@@ -214,7 +215,7 @@ export const fetchProductivityAnalysis = async (
       }
     }
     
-    const { data, error } = await query;
+    let { data, error } = await query;
     
     if (error) {
       console.error("Error fetching productivity analysis:", error);
@@ -222,6 +223,81 @@ export const fetchProductivityAnalysis = async (
         description: error.message 
       });
       return [];
+    }
+
+    // If no data found, create mock data from driver_behavior_scores
+    if (!data || data.length === 0) {
+      console.log("No productivity data found, creating mock data from driver scores");
+      
+      // Fetch data from driver_behavior_scores instead
+      let scoreQuery = supabase
+        .from('driver_behavior_scores')
+        .select('*')
+        .gte('start_date', startDate)
+        .lte('end_date', endDate);
+      
+      // Apply same filters
+      if (filters) {
+        if (filters.selectedClient && filters.selectedClient !== 'all') {
+          scoreQuery = scoreQuery.eq('client', filters.selectedClient);
+        }
+        
+        if (filters.selectedGroup && filters.selectedGroup !== 'all') {
+          scoreQuery = scoreQuery.eq('driver_group', filters.selectedGroup);
+        }
+      }
+      
+      const { data: scoreData, error: scoreError } = await scoreQuery;
+      
+      if (scoreError) {
+        console.error("Error fetching driver scores for mock data:", scoreError);
+        return [];
+      }
+      
+      if (scoreData && scoreData.length > 0) {
+        // Convert driver behavior scores to productivity analysis format with mock data
+        data = scoreData.map(score => {
+          // Create realistic productivity parameters
+          const expectedDailyDistance = Math.floor(Math.random() * 200) + 100; // 100-300 km
+          const expectedDailyTimeMinutes = Math.floor(Math.random() * 240) + 240; // 4-8 hours in minutes
+          const fuelCostPerLiter = 24.99; // Fixed cost for now
+          const expectedFuelEfficiency = Math.floor(Math.random() * 5) + 8; // 8-13 km/L
+
+          // Calculate actual daily distance
+          const daysCount = Math.max(1, Math.round((new Date(score.end_date).getTime() - new Date(score.start_date).getTime()) / (1000 * 60 * 60 * 24)));
+          const actualDailyDistance = score.distance ? score.distance / daysCount : 0;
+          
+          // Calculate fuel usage
+          const estimatedFuelUsage = score.distance ? score.distance / expectedFuelEfficiency : 0;
+          const estimatedFuelCost = estimatedFuelUsage * fuelCostPerLiter;
+          
+          // Calculate productivity score (70-100 range, inverse of penalty points)
+          const baseScore = 100 - Math.min(30, score.penalty_points / 10);
+          
+          return {
+            id: score.id,
+            client: score.client,
+            driver_name: score.driver_name,
+            driver_group: score.driver_group,
+            start_date: score.start_date,
+            end_date: score.end_date,
+            distance: score.distance || 0,
+            duration_interval: score.duration_interval || null,
+            trips_count: score.trips_count || 0,
+            days_count: daysCount,
+            productivity_score: baseScore,
+            expected_daily_distance: expectedDailyDistance,
+            expected_daily_time_minutes: expectedDailyTimeMinutes,
+            actual_daily_distance: actualDailyDistance,
+            fuel_cost_per_liter: fuelCostPerLiter,
+            expected_fuel_efficiency: expectedFuelEfficiency,
+            estimated_fuel_usage_liters: estimatedFuelUsage,
+            estimated_fuel_cost: estimatedFuelCost
+          };
+        });
+        
+        console.log("Created mock productivity data from driver scores:", data.length, "records");
+      }
     }
     
     console.log("Productivity analysis data fetched:", data?.length || 0, "records");

@@ -14,7 +14,8 @@ import {
 } from '@/components/ui/table';
 import { Skeleton } from '@/components/ui/skeleton';
 import { DriverBehaviorFilters } from '../../types/driver-behavior.types';
-import { Search } from "lucide-react";
+import { Search, AlertCircle } from "lucide-react";
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 interface ProductivityAnalysisTableProps {
   dateRange: DateRange;
@@ -25,7 +26,7 @@ export function ProductivityAnalysisTable({ dateRange, filters }: ProductivityAn
   const [searchTerm, setSearchTerm] = useState('');
   
   // Fetch analysis data
-  const { data: analysisData, isLoading } = useQuery({
+  const { data: analysisData, isLoading, isError } = useQuery({
     queryKey: ['productivity-analysis', dateRange, filters],
     queryFn: () => fetchProductivityAnalysis(dateRange, filters),
     enabled: !!dateRange.from && !!dateRange.to,
@@ -66,6 +67,9 @@ export function ProductivityAnalysisTable({ dateRange, filters }: ProductivityAn
     if (score >= 70) return 'bg-amber-100 text-amber-800';
     return 'bg-red-100 text-red-800';
   };
+
+  console.log("Analysis data records:", analysisData?.length || 0);
+  console.log("Filtered data records:", filteredData?.length || 0);
   
   return (
     <div>
@@ -80,6 +84,16 @@ export function ProductivityAnalysisTable({ dateRange, filters }: ProductivityAn
           />
         </div>
       </div>
+
+      {isError && (
+        <Alert variant="destructive" className="mb-4">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>
+            Error al cargar los datos. Por favor intente nuevamente.
+          </AlertDescription>
+        </Alert>
+      )}
+      
       <div className="rounded-lg border border-gray-100 overflow-hidden">
         <div className="overflow-x-auto">
           <Table>

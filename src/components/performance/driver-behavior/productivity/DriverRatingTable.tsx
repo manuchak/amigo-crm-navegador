@@ -7,9 +7,10 @@ import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Star, Search } from 'lucide-react';
+import { Star, Search, AlertCircle } from 'lucide-react';
 import { DriverBehaviorFilters } from '../../types/driver-behavior.types';
 import { fetchProductivityAnalysis } from '../../services/productivity/productivityService';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 interface DriverRatingTableProps {
   dateRange: DateRange;
@@ -25,7 +26,7 @@ export function DriverRatingTable({ dateRange, filters }: DriverRatingTableProps
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
   const [groupFilter, setGroupFilter] = useState<string>('all');
   
-  const { data: analysisData, isLoading } = useQuery({
+  const { data: analysisData, isLoading, isError } = useQuery({
     queryKey: ['productivity-rating-analysis', dateRange, filters],
     queryFn: () => fetchProductivityAnalysis(dateRange, filters),
     enabled: !!dateRange.from && !!dateRange.to,
@@ -231,6 +232,15 @@ export function DriverRatingTable({ dateRange, filters }: DriverRatingTableProps
         </div>
       </CardHeader>
       <CardContent>
+        {isError && (
+          <Alert variant="destructive" className="mb-4">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>
+              Error al cargar los datos. Por favor intente nuevamente.
+            </AlertDescription>
+          </Alert>
+        )}
+        
         <div className="rounded-lg overflow-hidden border border-gray-100">
           <div className="overflow-x-auto">
             <Table>
