@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from '@/components/ui/label';
-import { ChevronUpDown } from "lucide-react";
+import { ChevronsUpDown } from "lucide-react";
 import { DriverBehaviorFilters } from '../types/driver-behavior.types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { fetchClientList } from '../services/productivity/productivityService';
@@ -117,7 +117,7 @@ export function DriverBehaviorFiltersPanel({
       {activeTab === 'productividad' && (
         <div className="flex items-end ml-auto">
           <div className="text-xs text-gray-500 flex items-center">
-            <ChevronUpDown className="h-4 w-4 mr-1" />
+            <ChevronsUpDown className="h-4 w-4 mr-1" />
             <span>Filtra para ver los análisis de productividad</span>
           </div>
         </div>
