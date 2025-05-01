@@ -14,12 +14,13 @@ const queryClient = new QueryClient();
 
 // Import pages that need direct imports to address dynamic import issues
 import Index from './pages/Index';
-import Dashboard from './pages/Dashboard'; // Import directly instead of lazy loading
+import Dashboard from './pages/Dashboard'; 
 import UserManagement from './pages/UserManagement';
 import InstalacionGPS from './pages/InstalacionGPS';
 import InstalacionesAgendadas from './pages/InstalacionesAgendadas';
 import InstalacionGPSInstallers from './pages/InstalacionGPSInstallers';
 import InstaladorRegistro from './pages/InstaladorRegistro';
+import Performance from './pages/Performance'; // Direct import instead of lazy loading
 
 // Lazy load other routes for better performance
 const Auth = React.lazy(() => import('./pages/Auth'));
@@ -30,7 +31,6 @@ const Validation = React.lazy(() => import('./pages/Validation'));
 const Support = React.lazy(() => import('./pages/Support'));
 const CallCenter = React.lazy(() => import('./pages/CallCenter'));
 const Settings = React.lazy(() => import('./pages/Settings'));
-const Performance = React.lazy(() => import('./pages/Performance'));
 const Requerimientos = React.lazy(() => import('./pages/Requerimientos'));
 const AdminConfig = React.lazy(() => import('./pages/AdminConfig'));
 
@@ -118,12 +118,13 @@ function App() {
                   </AuthGuard>
                 } />
                 
-                {/* Other routes */}
+                {/* Performance now using direct import instead of lazy loading */}
                 <Route path="/performance" element={
                   <AuthGuard>
                     <Performance />
                   </AuthGuard>
                 } />
+                
                 <Route path="/requerimientos" element={
                   <AuthGuard>
                     <Requerimientos />
