@@ -7,11 +7,15 @@ import { Settings } from "lucide-react";
 import { DriverBehaviorFilters } from '../../types/driver-behavior.types';
 import { fetchProductivityParameters, fetchDriverGroups, fetchClientList } from '../../services/productivity/productivityService';
 import { ProductivityMetricsCards } from './ProductivityMetricsCards';
+import { ProductivityEfficiencyCards } from './ProductivityEfficiencyCards';
+import { DriverRatingTable } from './DriverRatingTable';
+import { GroupProductivityCard } from './GroupProductivityCard';
 import { ProductivityAnalysisTable } from './ProductivityAnalysisTable';
 import { ProductivityParametersDialog } from './ProductivityParametersDialog';
 import { ProductivityParametersTable } from './ProductivityParametersTable';
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface ProductivityDashboardProps {
   dateRange: DateRange;
@@ -20,6 +24,7 @@ interface ProductivityDashboardProps {
 
 export function ProductivityDashboard({ dateRange, filters = {} }: ProductivityDashboardProps) {
   const [showParameters, setShowParameters] = React.useState(false);
+  const [activeTab, setActiveTab] = React.useState('overview');
   
   // Fetch parameters to pass to components
   const { data: parameters, isLoading: isLoadingParameters, refetch: refetchParameters } = useQuery({
@@ -83,52 +88,101 @@ export function ProductivityDashboard({ dateRange, filters = {} }: ProductivityD
           <span>Configurar Parámetros</span>
         </Button>
       </div>
-      
-      {/* Metrics Cards with animation */}
-      <motion.div 
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.4 }}
-      >
-        <ProductivityMetricsCards 
-          dateRange={dateRange}
-          filters={filters}
-        />
-      </motion.div>
-      
-      {/* Analysis Section with animation */}
-      <motion.div 
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.4, delay: 0.1 }}
-        className="bg-white rounded-xl shadow-sm border p-6"
-      >
-        <h3 className="text-lg font-medium mb-4">Análisis por Conductor</h3>
-        <ProductivityAnalysisTable 
-          dateRange={dateRange}
-          filters={filters}
-        />
-      </motion.div>
-      
-      {/* Parameters Section with animation */}
-      <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.4, delay: 0.2 }}
-        className="bg-white rounded-xl shadow-sm border p-6"
-      >
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-medium">Parámetros de Productividad</h3>
-        </div>
-        <ProductivityParametersTable 
-          parameters={parameters || []}
-          clients={clients}
-          driverGroups={groupNames}
-          isLoading={isLoadingParameters}
-          onRefresh={handleRefreshParameters}
-          selectedClient={filters?.selectedClient}
-        />
-      </motion.div>
+
+      {/* Tabs for different views */}
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+        <TabsList className="bg-white shadow-sm border rounded-lg">
+          <TabsTrigger value="overview">Resumen</TabsTrigger>
+          <TabsTrigger value="drivers">Conductores</TabsTrigger>
+          <TabsTrigger value="groups">Grupos</TabsTrigger>
+          <TabsTrigger value="parameters">Parámetros</TabsTrigger>
+        </TabsList>
+        
+        {/* Overview Tab */}
+        <TabsContent value="overview" className="space-y-8 animate-fade-in">
+          {/* Main Summary Metrics Cards */}
+          <motion.div 
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4 }}
+          >
+            <ProductivityMetricsCards 
+              dateRange={dateRange}
+              filters={filters}
+            />
+          </motion.div>
+
+          {/* Efficiency Cards */}
+          <motion.div 
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4, delay: 0.1 }}
+          >
+            <ProductivityEfficiencyCards 
+              dateRange={dateRange}
+              filters={filters}
+            />
+          </motion.div>
+          
+          {/* Analysis Section */}
+          <motion.div 
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4, delay: 0.2 }}
+          >
+            <ProductivityAnalysisTable 
+              dateRange={dateRange}
+              filters={filters}
+            />
+          </motion.div>
+        </TabsContent>
+        
+        {/* Drivers Tab */}
+        <TabsContent value="drivers" className="space-y-8 animate-fade-in">
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4 }}
+          >
+            <DriverRatingTable 
+              dateRange={dateRange}
+              filters={filters}
+            />
+          </motion.div>
+        </TabsContent>
+        
+        {/* Groups Tab */}
+        <TabsContent value="groups" className="space-y-8 animate-fade-in">
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4 }}
+          >
+            <GroupProductivityCard 
+              dateRange={dateRange}
+              filters={filters}
+            />
+          </motion.div>
+        </TabsContent>
+        
+        {/* Parameters Tab */}
+        <TabsContent value="parameters" className="space-y-8 animate-fade-in">
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4 }}
+          >
+            <ProductivityParametersTable 
+              parameters={parameters || []}
+              clients={clients}
+              driverGroups={groupNames}
+              isLoading={isLoadingParameters}
+              onRefresh={handleRefreshParameters}
+              selectedClient={filters?.selectedClient}
+            />
+          </motion.div>
+        </TabsContent>
+      </Tabs>
       
       {/* Parameters Dialog */}
       <ProductivityParametersDialog 

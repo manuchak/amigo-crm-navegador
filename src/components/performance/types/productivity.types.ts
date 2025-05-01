@@ -55,3 +55,40 @@ export interface ProductivitySummary {
   totalFuelCost: number;
   totalTimeSpent: string;
 }
+
+// Efficiency metrics
+export interface EfficiencyMetrics {
+  distanceEfficiency: number;
+  timeEfficiency: number;
+  fuelEfficiency: number;
+  overallRating: number;
+  starsRating: number;
+  totalDrivers: number;
+  driversWithFullData: number;
+}
+
+// Driver ratings
+export interface DriverRating {
+  id: number;
+  driverName: string;
+  driverGroup: string;
+  distanceEfficiency: number;
+  timeEfficiency: number;
+  fuelEfficiency: number;
+  rating: number;
+  starsRating: number;
+  distance: number;
+  duration: string;
+  daysActive: number;
+}
+
+// Group productivity data
+export interface GroupProductivity {
+  name: string;
+  driversCount: number;
+  distanceEfficiency: number;
+  timeEfficiency: number;
+  fuelEfficiency: number;
+  rating: number;
+  starsRating: number;
+}
