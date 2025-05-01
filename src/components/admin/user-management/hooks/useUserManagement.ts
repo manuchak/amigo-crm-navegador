@@ -1,5 +1,5 @@
 
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import { UserData, UserRole } from '@/types/auth';
 import { toast } from 'sonner';
 
@@ -14,39 +14,50 @@ const useUserManagement = ({ getAllUsers }: UseUserManagementProps) => {
   const [isEditDialogOpen, setIsEditDialogOpen] = useState<boolean>(false);
   const [isConfirmationOpen, setIsConfirmationOpen] = useState<boolean>(false);
   const [newRole, setNewRole] = useState<UserRole>('unverified');
+  const [error, setError] = useState<string | null>(null);
   
   // Control variables to prevent infinite loops and unnecessary fetches
   const isInitialFetchComplete = useRef<boolean>(false);
   const isProcessingFetch = useRef<boolean>(false);
   const fetchErrorCount = useRef<number>(0);
   const MAX_FETCH_ERRORS = 3;
+  const lastFetchedAt = useRef<Date | null>(null);
 
-  const fetchUsers = useCallback(async () => {
+  const fetchUsers = useCallback(async (forceRefresh = false) => {
     // Skip if already fetching
-    if (isProcessingFetch.current) {
+    if (isProcessingFetch.current && !forceRefresh) {
       console.log('Fetch already in progress, skipping');
       return;
     }
     
+    // Reset error state
+    setError(null);
     isProcessingFetch.current = true;
     setLoading(true);
     
     try {
       console.log('Fetching users from getAllUsers function...');
       const usersData = await getAllUsers();
-      console.log('Users fetched:', usersData?.length || 0);
+      console.log('Users fetched:', usersData?.length || 0, usersData);
       
       if (Array.isArray(usersData)) {
+        if (usersData.length === 0) {
+          console.warn('No users returned from getAllUsers function');
+        }
+        
         setUsers(usersData);
         // Reset error counter on success
         fetchErrorCount.current = 0;
         isInitialFetchComplete.current = true;
+        lastFetchedAt.current = new Date();
       } else {
         console.warn('getAllUsers returned invalid data format');
+        setError('La función de obtención de usuarios devolvió un formato inválido');
         setUsers([]);
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error fetching users:', error);
+      setError(`Error al cargar los usuarios: ${error?.message || 'Error desconocido'}`);
       
       // Increment error counter
       fetchErrorCount.current += 1;
@@ -63,6 +74,14 @@ const useUserManagement = ({ getAllUsers }: UseUserManagementProps) => {
       isProcessingFetch.current = false;
     }
   }, [getAllUsers]);
+
+  // Initial fetch of users
+  useEffect(() => {
+    if (!isInitialFetchComplete.current && !loading) {
+      console.log('Initial fetch of users in useUserManagement hook');
+      fetchUsers();
+    }
+  }, [fetchUsers, loading]);
 
   const handleEditClick = useCallback((user: UserData) => {
     setSelectedUser(user);
@@ -81,6 +100,7 @@ const useUserManagement = ({ getAllUsers }: UseUserManagementProps) => {
     isEditDialogOpen,
     isConfirmationOpen,
     newRole,
+    error,
     setUsers,
     setSelectedUser,
     setIsEditDialogOpen,
@@ -90,6 +110,7 @@ const useUserManagement = ({ getAllUsers }: UseUserManagementProps) => {
     handleRoleChange,
     handleEditClick,
     isInitialFetchComplete,
+    lastFetchedAt: lastFetchedAt.current,
   };
 };
 

@@ -17,10 +17,12 @@ import {
   Shield, 
   CheckCircle2, 
   XCircle,
-  User
+  User,
+  AlertCircle
 } from 'lucide-react';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { getRoleDisplayName } from '@/hooks/useRolePermissions';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 interface UserTableProps {
   users: UserData[];
@@ -28,6 +30,7 @@ interface UserTableProps {
   onVerifyUser: (user: UserData) => Promise<void>;
   canEditUser: (user: UserData) => boolean;
   formatDate: (date: Date | null | undefined) => string;
+  currentUser?: UserData | null;
 }
 
 const UserTable: React.FC<UserTableProps> = ({
@@ -35,12 +38,29 @@ const UserTable: React.FC<UserTableProps> = ({
   onEditClick,
   onVerifyUser,
   canEditUser,
-  formatDate
+  formatDate,
+  currentUser
 }) => {
   if (users.length === 0) {
     return (
       <div className="text-center py-8">
-        <p className="text-muted-foreground">No hay usuarios registrados</p>
+        <div className="flex flex-col items-center justify-center gap-2">
+          <AlertCircle className="h-10 w-10 text-amber-500" />
+          <h3 className="font-medium text-lg">No hay usuarios registrados</h3>
+          <p className="text-muted-foreground mb-4">
+            No se encontraron usuarios en el sistema o podría haber un problema con los permisos.
+          </p>
+          
+          {currentUser && (
+            <Alert className="max-w-md">
+              <AlertDescription>
+                <p>Estás conectado como: <strong>{currentUser.email}</strong></p>
+                <p>Rol: <strong>{getRoleDisplayName(currentUser.role)}</strong></p>
+                <p>Si no estás viendo los usuarios esperados, podrías no tener los permisos necesarios.</p>
+              </AlertDescription>
+            </Alert>
+          )}
+        </div>
       </div>
     );
   }
@@ -68,6 +88,17 @@ const UserTable: React.FC<UserTableProps> = ({
 
   return (
     <div className="overflow-x-auto">
+      {currentUser && currentUser.uid && users.every(user => user.uid !== currentUser.uid) && (
+        <Alert className="mb-4">
+          <AlertDescription>
+            <p className="text-sm">
+              <strong>Nota:</strong> Tu usuario actual <strong>({currentUser.email})</strong> no aparece en esta lista.
+              Esto podría deberse a un problema de permisos o configuración.
+            </p>
+          </AlertDescription>
+        </Alert>
+      )}
+      
       <Table>
         <TableHeader>
           <TableRow>
@@ -82,7 +113,7 @@ const UserTable: React.FC<UserTableProps> = ({
         </TableHeader>
         <TableBody>
           {users.map((user) => (
-            <TableRow key={user.uid} className="hover:bg-muted/50">
+            <TableRow key={user.uid} className={`hover:bg-muted/50 ${currentUser && user.uid === currentUser.uid ? 'bg-blue-50' : ''}`}>
               <TableCell className="font-medium">
                 <div className="flex items-center gap-2">
                   <Avatar className="h-8 w-8">
@@ -95,6 +126,9 @@ const UserTable: React.FC<UserTableProps> = ({
                     )}
                   </Avatar>
                   <span>{user.displayName}</span>
+                  {currentUser && user.uid === currentUser.uid && (
+                    <Badge variant="outline" className="ml-1">Tú</Badge>
+                  )}
                   {user.role === 'owner' && (
                     <Shield className="h-4 w-4 text-amber-500" aria-label="Propietario del sistema" />
                   )}
