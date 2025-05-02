@@ -1,21 +1,38 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { FunnelChart } from './dashboard/crm/FunnelChart';
-import { LeadsByDaySourceChart } from './dashboard/crm/LeadsByDaySourceChart';
-import { MetricsCards } from './dashboard/crm/MetricsCards';
-import { ProfilePieChart } from './dashboard/crm/ProfilePieChart';
-import { RecentLeadsList } from './dashboard/crm/RecentLeadsList';
-import { TotalLeadsCard } from './dashboard/crm/TotalLeadsCard';
+import FunnelChart from './dashboard/crm/FunnelChart';
+import LeadsByDaySourceChart from './dashboard/crm/LeadsByDaySourceChart';
+import MetricsCards from './dashboard/crm/MetricsCards';
+import ProfilePieChart from './dashboard/crm/ProfilePieChart';
+import RecentLeadsList from './dashboard/crm/RecentLeadsList';
+import TotalLeadsCard from './dashboard/crm/TotalLeadsCard';
 import { QualifiedLeadsCard } from './dashboard/index';
-import { ContactedLeadsCard } from './dashboard/crm/ContactedLeadsCard';
+import ContactedLeadsCard from './dashboard/crm/ContactedLeadsCard';
 import { MetricsForm } from './dashboard/crm/MetricsForm';
-import { StageTimeBarChart } from './dashboard/crm/StageTimeBarChart';
+import StageTimeBarChart from './dashboard/crm/StageTimeBarChart';
 import { BusinessKpis } from './dashboard/crm/BusinessKpis';
 import { TooltipProvider } from '@/components/ui/tooltip';
-import { AlertsPanel } from './dashboard/crm/AlertsPanel';
+import AlertsPanel from './dashboard/crm/AlertsPanel';
 
 const LeadsCrmDashboard: React.FC = () => {
+  const [isLoading, setIsLoading] = useState(false);
+
+  // Handler for saving metrics
+  const handleSaveMetrics = async (data: any) => {
+    setIsLoading(true);
+    try {
+      // Here you would typically save the metrics data
+      console.log("Saving metrics:", data);
+      // Simulate API call delay
+      await new Promise(resolve => setTimeout(resolve, 800));
+    } catch (error) {
+      console.error("Error saving metrics:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return (
     <TooltipProvider>
       <div className="space-y-6">
@@ -65,7 +82,10 @@ const LeadsCrmDashboard: React.FC = () => {
           </TabsList>
           <TabsContent value="metrics" className="space-y-4">
             <MetricsCards />
-            <MetricsForm />
+            <MetricsForm 
+              onSave={handleSaveMetrics} 
+              isLoading={isLoading} 
+            />
           </TabsContent>
           <TabsContent value="alerts">
             <AlertsPanel />
