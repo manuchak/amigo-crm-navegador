@@ -133,17 +133,29 @@ async function enrichProspectsWithEndedReason(prospects: Prospect[]): Promise<Pr
   
   for (let i = 0; i < prospects.length; i += batchSize) {
     const batch = prospects.slice(i, i + batchSize);
+    // Get all phone numbers from the batch, handling both lead_phone and phone_number_intl
+    // Also filter out null values and ensure they're properly formatted
     const phoneNumbers = batch
-      .map(p => p.lead_phone || p.phone_number_intl)
-      .filter(Boolean);
+      .map(p => {
+        const phones: string[] = [];
+        if (p.lead_phone) phones.push(p.lead_phone);
+        if (p.phone_number_intl && p.phone_number_intl !== p.lead_phone) phones.push(p.phone_number_intl);
+        return phones;
+      })
+      .flat()
+      .filter(phone => !!phone && phone.trim() !== '');
     
     if (phoneNumbers.length === 0) {
+      // No phone numbers to query, add batch as-is
+      console.log(`Batch ${i/batchSize + 1}: No valid phone numbers found, skipping call log lookup`);
       enrichedProspects.push(...batch);
       continue;
     }
     
     try {
-      // Get all the last call logs for each phone number in this batch
+      console.log(`Batch ${i/batchSize + 1}: Querying call logs for ${phoneNumbers.length} phone numbers`);
+      
+      // Get all the call logs for each phone number in this batch, ordered by most recent
       const { data: callLogs, error } = await supabase
         .from('vapi_call_logs')
         .select('customer_number, ended_reason, start_time')
@@ -156,20 +168,86 @@ async function enrichProspectsWithEndedReason(prospects: Prospect[]): Promise<Pr
         continue;
       }
       
+      if (!callLogs || callLogs.length === 0) {
+        console.log(`No call logs found for current batch of phone numbers. Trying alternative phone fields...`);
+        
+        // Try with caller_phone_number as a fallback
+        const { data: altCallLogs, error: altError } = await supabase
+          .from('vapi_call_logs')
+          .select('caller_phone_number, ended_reason, start_time')
+          .in('caller_phone_number', phoneNumbers)
+          .order('start_time', { ascending: false });
+        
+        if (altError || !altCallLogs || altCallLogs.length === 0) {
+          console.log("No alternative call logs found either. Setting ended_reason to null.");
+          enrichedProspects.push(...batch);
+          continue;
+        }
+        
+        // Create a map of phone numbers to their latest ended_reason using alternative field
+        const phoneToEndedReason: Record<string, string> = {};
+        
+        altCallLogs.forEach(log => {
+          if (log.caller_phone_number && !phoneToEndedReason[log.caller_phone_number]) {
+            phoneToEndedReason[log.caller_phone_number] = log.ended_reason || null;
+            console.log(`Found ended_reason "${log.ended_reason}" for phone ${log.caller_phone_number}`);
+          }
+        });
+        
+        // Enrich each prospect with its ended_reason
+        batch.forEach(prospect => {
+          const phones = [];
+          if (prospect.lead_phone) phones.push(prospect.lead_phone);
+          if (prospect.phone_number_intl) phones.push(prospect.phone_number_intl);
+          
+          // Check all phone numbers for this prospect
+          for (const phone of phones) {
+            if (phone && phoneToEndedReason[phone]) {
+              prospect.ended_reason = phoneToEndedReason[phone];
+              console.log(`Assigned ended_reason "${prospect.ended_reason}" to prospect ${prospect.lead_id} using phone ${phone}`);
+              break;
+            }
+          }
+        });
+        
+        enrichedProspects.push(...batch);
+        continue;
+      }
+      
       // Create a map of phone numbers to their latest ended_reason
       const phoneToEndedReason: Record<string, string> = {};
       
-      callLogs?.forEach(log => {
+      callLogs.forEach(log => {
         if (log.customer_number && !phoneToEndedReason[log.customer_number]) {
           phoneToEndedReason[log.customer_number] = log.ended_reason || null;
+          console.log(`Found ended_reason "${log.ended_reason}" for phone ${log.customer_number}`);
         }
       });
       
       // Enrich each prospect with its ended_reason
       batch.forEach(prospect => {
-        const phone = prospect.lead_phone || prospect.phone_number_intl;
-        if (phone && phoneToEndedReason[phone]) {
-          prospect.ended_reason = phoneToEndedReason[phone];
+        const phones = [];
+        if (prospect.lead_phone) phones.push(prospect.lead_phone);
+        if (prospect.phone_number_intl) phones.push(prospect.phone_number_intl);
+        
+        // Log the values for debugging
+        if (prospect.call_count > 0) {
+          console.log(`Prospect ${prospect.lead_id} (${prospect.lead_name}) has call_count ${prospect.call_count} but ended_reason: ${prospect.ended_reason || 'null'}`);
+        }
+        
+        // Check all phone numbers for this prospect
+        for (const phone of phones) {
+          if (phone && phoneToEndedReason[phone]) {
+            prospect.ended_reason = phoneToEndedReason[phone];
+            console.log(`Assigned ended_reason "${prospect.ended_reason}" to prospect ${prospect.lead_id} using phone ${phone}`);
+            break;
+          }
+        }
+        
+        // If no ended_reason found but call_count > 0, set a default value
+        if (!prospect.ended_reason && prospect.call_count > 0) {
+          prospect.ended_reason = "Unknown";
+          console.log(`Set default "Unknown" ended_reason for prospect ${prospect.lead_id} with call count ${prospect.call_count}`);
         }
       });
       
@@ -180,6 +258,6 @@ async function enrichProspectsWithEndedReason(prospects: Prospect[]): Promise<Pr
     }
   }
   
-  console.log(`Completed enriching prospects with ended_reason data`);
+  console.log(`Completed enriching prospects with ended_reason data. ${enrichedProspects.filter(p => p.ended_reason).length} prospects have an ended_reason.`);
   return enrichedProspects;
 }

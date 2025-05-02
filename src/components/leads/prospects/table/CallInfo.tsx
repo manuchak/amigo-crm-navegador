@@ -48,6 +48,9 @@ const CallInfo: React.FC<CallInfoProps> = ({
     else if (reasonLower.includes('failed') || reasonLower.includes('fallido') || reasonLower.includes('error')) {
       return "bg-red-100 text-red-800 border-red-200";
     }
+    else if (reasonLower === 'unknown') {
+      return "bg-purple-100 text-purple-800 border-purple-200";
+    }
     
     return "bg-gray-200 text-gray-700";
   };
@@ -88,7 +91,7 @@ const CallInfo: React.FC<CallInfoProps> = ({
         </div>
       )}
       
-      {endedReason && (
+      {endedReason ? (
         <div className="mt-1">
           <Badge 
             variant="outline" 
@@ -97,7 +100,16 @@ const CallInfo: React.FC<CallInfoProps> = ({
             {endedReason}
           </Badge>
         </div>
-      )}
+      ) : callCount > 0 ? (
+        <div className="mt-1">
+          <Badge 
+            variant="outline" 
+            className="text-xs font-medium px-2 py-0.5 w-full flex justify-center truncate bg-purple-100 text-purple-800 border-purple-200"
+          >
+            Estado desconocido
+          </Badge>
+        </div>
+      ) : null}
     </div>
   );
 };
