@@ -1,80 +1,80 @@
 
 import React from 'react';
-import { Badge } from '@/components/ui/badge';
-import { Check, PhoneOff, Phone, Clock } from 'lucide-react';
+import { 
+  CheckCircle2, 
+  PhoneOff, 
+  PhoneX, 
+  AlertCircle, 
+  PhoneCall 
+} from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface CallStatusBadgeProps {
-  status: string | null;
+  status: string;
   className?: string;
 }
 
 export const CallStatusBadge: React.FC<CallStatusBadgeProps> = ({ 
   status, 
-  className 
+  className = '' 
 }) => {
-  if (!status) return null;
-  
-  const getStatusConfig = (status: string) => {
-    const lowStatus = status.toLowerCase();
-    
-    switch (lowStatus) {
-      case 'completed':
-        return {
-          label: 'Completada',
-          variant: 'success',
-          icon: Check,
-          className: 'bg-green-500'
-        };
-      case 'failed':
-        return {
-          label: 'Fallida',
-          variant: 'destructive',
-          icon: PhoneOff,
-          className: 'bg-red-500'
-        };
-      case 'ongoing':
-        return {
-          label: 'En curso',
-          variant: 'default',
-          icon: Phone,
-          className: 'bg-blue-500'
-        };
-      case 'no-answer':
-      case 'unknown':
-        return {
-          label: 'Sin respuesta',
-          variant: 'outline',
-          icon: Clock,
-          className: 'border-amber-500 text-amber-700'
-        };
-      case 'busy':
-        return {
-          label: 'Ocupado',
-          variant: 'outline',
-          icon: Phone,
-          className: 'border-yellow-500 text-yellow-700'
-        };
-      default:
-        return {
-          label: status,
-          variant: 'secondary',
-          icon: Phone,
-          className: ''
-        };
+  // Normalize the status to handle various formats
+  const normalizedStatus = status.toLowerCase();
+
+  // Define badge configurations based on status
+  const getBadgeConfig = () => {
+    if (normalizedStatus.includes('complete')) {
+      return {
+        icon: <CheckCircle2 className="h-3 w-3 mr-1" />,
+        text: 'Completada',
+        classes: 'bg-green-50 text-green-700 border-green-200'
+      };
     }
+    
+    if (normalizedStatus.includes('no-answer') || normalizedStatus.includes('no answer')) {
+      return {
+        icon: <PhoneOff className="h-3 w-3 mr-1" />,
+        text: 'Sin respuesta',
+        classes: 'bg-orange-50 text-orange-700 border-orange-200'
+      };
+    }
+    
+    if (normalizedStatus.includes('busy') || normalizedStatus.includes('ocupado')) {
+      return {
+        icon: <PhoneX className="h-3 w-3 mr-1" />,
+        text: 'Ocupado',
+        classes: 'bg-yellow-50 text-yellow-700 border-yellow-200'
+      };
+    }
+    
+    if (normalizedStatus.includes('fail')) {
+      return {
+        icon: <AlertCircle className="h-3 w-3 mr-1" />,
+        text: 'Fallida',
+        classes: 'bg-red-50 text-red-700 border-red-200'
+      };
+    }
+    
+    // Default case
+    return {
+      icon: <PhoneCall className="h-3 w-3 mr-1" />,
+      text: status,
+      classes: 'bg-slate-50 text-slate-700 border-slate-200'
+    };
   };
   
-  const config = getStatusConfig(status);
-  const Icon = config.icon;
+  const badgeConfig = getBadgeConfig();
   
   return (
-    <Badge 
-      variant={config.variant as any}
-      className={cn(config.className, className)}
+    <span 
+      className={cn(
+        "inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-medium border",
+        badgeConfig.classes,
+        className
+      )}
     >
-      <Icon className="w-3 h-3 mr-1" />
-      {config.label}
-    </Badge>
+      {badgeConfig.icon}
+      {badgeConfig.text}
+    </span>
   );
 };
