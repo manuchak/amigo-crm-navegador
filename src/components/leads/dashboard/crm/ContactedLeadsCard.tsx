@@ -15,20 +15,22 @@ const ContactedLeadsCard = () => {
       setLoading(true);
       try {
         // Query for leads with the specific ended_reason
-        // Using select('customer_number', { head: true, count: 'exact' }) 
-        // and adding distinct in the query chain instead of as an option
-        const { count, error } = await supabase
+        // Using a different approach to get distinct customer numbers
+        const { data, error } = await supabase
           .from('vapi_call_logs')
-          .select('customer_number', { count: 'exact', head: true })
-          .eq('ended_reason', 'assistant-ended-call-with-hangup-task')
-          .distinctOn(['customer_number']);
+          .select('customer_number')
+          .eq('ended_reason', 'assistant-ended-call-with-hangup-task');
           
         if (error) {
           console.error('Error fetching contacted leads:', error);
           return;
         }
         
-        setContactedCount(count || 0);
+        // Get unique customer numbers
+        const uniqueNumbers = new Set(data.map(log => log.customer_number));
+        const distinctCount = uniqueNumbers.size;
+        
+        setContactedCount(distinctCount || 0);
         
         // Get total count for percentage calculation
         const { count: totalCount, error: totalError } = await supabase
@@ -41,7 +43,7 @@ const ContactedLeadsCard = () => {
         }
         
         // Calculate percentage
-        const calculatedPercentage = totalCount ? ((count || 0) / totalCount) * 100 : 0;
+        const calculatedPercentage = totalCount ? ((distinctCount || 0) / totalCount) * 100 : 0;
         setPercentage(Math.round(calculatedPercentage * 10) / 10); // Round to 1 decimal place
         
       } catch (error) {
@@ -55,8 +57,8 @@ const ContactedLeadsCard = () => {
   }, []);
 
   return (
-    <Card className="shadow-sm">
-      <CardContent className="p-4">
+    <Card className="shadow-sm h-full">
+      <CardContent className="p-4 flex flex-col justify-between h-full">
         <div className="flex justify-between items-start">
           <div className="mb-2 font-semibold text-amber-600">Contactados</div>
           <TooltipProvider>
@@ -72,17 +74,19 @@ const ContactedLeadsCard = () => {
             </Tooltip>
           </TooltipProvider>
         </div>
-        <div className="text-2xl font-bold mb-1">
-          {loading ? (
-            <span className="animate-pulse">...</span>
-          ) : (
-            contactedCount
-          )}
-        </div>
-        <div className="flex items-center gap-1 text-xs">
-          <span className={percentage > 0 ? "text-green-500" : "text-red-500"}>
-            {percentage}% avance
-          </span>
+        <div>
+          <div className="text-4xl font-bold mb-1">
+            {loading ? (
+              <span className="animate-pulse">...</span>
+            ) : (
+              contactedCount
+            )}
+          </div>
+          <div className="flex items-center gap-1 text-xs">
+            <span className={percentage > 0 ? "text-green-500" : "text-red-500"}>
+              {percentage}% avance
+            </span>
+          </div>
         </div>
       </CardContent>
     </Card>

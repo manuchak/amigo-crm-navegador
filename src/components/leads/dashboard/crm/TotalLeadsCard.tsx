@@ -35,8 +35,8 @@ const TotalLeadsCard = () => {
   }, []);
 
   return (
-    <Card className="shadow-sm">
-      <CardContent className="p-4">
+    <Card className="shadow-sm h-full">
+      <CardContent className="p-4 flex flex-col justify-between h-full">
         <div className="flex justify-between items-start">
           <div className="mb-2 font-semibold text-blue-600">Total de Leads</div>
           <TooltipProvider>
@@ -52,15 +52,17 @@ const TotalLeadsCard = () => {
             </Tooltip>
           </TooltipProvider>
         </div>
-        <div className="text-2xl font-bold mb-1">
-          {loading ? (
-            <span className="animate-pulse">...</span>
-          ) : (
-            totalCount
-          )}
-        </div>
-        <div className="text-xs text-muted-foreground">
-          Base de datos completa
+        <div>
+          <div className="text-4xl font-bold mb-1">
+            {loading ? (
+              <span className="animate-pulse">...</span>
+            ) : (
+              totalCount
+            )}
+          </div>
+          <div className="text-xs text-muted-foreground">
+            Base de datos completa
+          </div>
         </div>
       </CardContent>
     </Card>
