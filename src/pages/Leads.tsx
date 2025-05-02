@@ -6,11 +6,12 @@ import LeadsDashboard from '@/components/leads/LeadsDashboard';
 import CallCenterTabs from '@/components/call-center/CallCenterTabs';
 import { SupplyTeamDashboard } from '@/components/supply-team';
 import { useLeads } from '@/context/LeadsContext';
-import { UserCheck, Package, Loader2, LayoutDashboard, Users } from 'lucide-react';
+import { UserCheck, Package, Loader2, LayoutDashboard, Users, CheckCheck } from 'lucide-react';
 import QualifiedLeadsApproval from '@/components/leads/QualifiedLeadsApproval';
 import LeadsIntro from '@/components/leads/LeadsIntro';
 import LeadsCrmDashboard from '@/components/leads/LeadsCrmDashboard';
 import ProspectsPage from '@/components/leads/ProspectsPage';
+import ValidatedProspectsPage from '@/components/leads/ValidatedProspectsPage';
 import { TooltipProvider } from '@/components/ui/tooltip';
 
 const Leads = () => {
@@ -84,6 +85,10 @@ const Leads = () => {
               <Users className="h-4 w-4 mr-1" />
               Prospectos
             </TabsTrigger>
+            <TabsTrigger value="validados" className="rounded-md">
+              <CheckCheck className="h-4 w-4 mr-1" />
+              Validados
+            </TabsTrigger>
             <TabsTrigger value="aprobacion" className="rounded-md">
               <UserCheck className="mr-1 h-4 w-4" />
               Aprobación
@@ -101,6 +106,10 @@ const Leads = () => {
           
           <TabsContent value="prospectos" className="mt-4">
             <ProspectsPage />
+          </TabsContent>
+          
+          <TabsContent value="validados" className="mt-4">
+            <ValidatedProspectsPage />
           </TabsContent>
 
           <TabsContent value="aprobacion" className="mt-4">

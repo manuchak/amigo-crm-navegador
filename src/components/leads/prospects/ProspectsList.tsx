@@ -17,13 +17,15 @@ interface ProspectsListProps {
   onCall?: (prospect: Prospect) => void;
   onViewCalls?: (prospect: Prospect) => void;
   onValidate?: (prospect: Prospect) => void;
+  showValidated?: boolean;
 }
 
 const ProspectsList: React.FC<ProspectsListProps> = ({ 
   onViewDetails, 
   onCall,
   onViewCalls,
-  onValidate 
+  onValidate,
+  showValidated = false
 }) => {
   const { prospects, loading, refetch } = useProspects();
   const [viewMode, setViewMode] = useState<'grid' | 'table'>('table');
@@ -33,16 +35,20 @@ const ProspectsList: React.FC<ProspectsListProps> = ({
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [refreshing, setRefreshing] = useState<boolean>(false);
   
-  // First, remove validated prospects from the list
-  const validProspects = React.useMemo(() => {
-    return prospects.filter(prospect => prospect.lead_status !== 'Validado');
-  }, [prospects]);
+  // Filter prospects based on whether we want to show validated ones or not
+  const filteredByValidation = React.useMemo(() => {
+    if (showValidated) {
+      return prospects.filter(prospect => prospect.lead_status === 'Validado');
+    } else {
+      return prospects.filter(prospect => prospect.lead_status !== 'Validado');
+    }
+  }, [prospects, showValidated]);
   
   // Then, remove duplicates from the filtered prospects array using a Map
   const uniqueProspects = React.useMemo(() => {
     const uniqueMap = new Map();
     
-    validProspects.forEach(prospect => {
+    filteredByValidation.forEach(prospect => {
       const key = prospect.lead_id || 
                  (prospect.lead_phone?.replace(/\D/g, '') || 
                  prospect.phone_number_intl?.replace(/\D/g, '') || '');
@@ -57,7 +63,7 @@ const ProspectsList: React.FC<ProspectsListProps> = ({
     });
     
     return Array.from(uniqueMap.values());
-  }, [validProspects]);
+  }, [filteredByValidation]);
   
   // Then filter prospects by call status first (our primary filter now)
   const filteredProspects = uniqueProspects
