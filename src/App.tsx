@@ -3,7 +3,7 @@ import React, { Suspense } from 'react';
 import { BrowserRouter as Router, Route, Routes, Navigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Toaster } from 'sonner';
-import { AuthProvider } from '@/context'; // Import from the updated location
+import { AuthProvider } from '@/context'; 
 import { LeadsProvider } from '@/context/LeadsContext';
 import AuthGuard from '@/components/auth/AuthGuard';
 import Navbar from '@/components/Navbar';
@@ -46,11 +46,11 @@ function App() {
                 <Route path="/auth" element={<Auth />} />
                 <Route path="/login" element={<Login />} />
                 
-                {/* Add the route for the Index/Inicio page - Use directly imported component */}
+                {/* Add the route for the Index/Inicio page */}
                 <Route path="/inicio" element={<Index />} />
                 <Route path="/" element={<Index />} />
                 
-                {/* UserManagement - now directly imported */}
+                {/* UserManagement - directly imported */}
                 <Route path="/user-management" element={
                   <AuthGuard>
                     <UserManagement />
@@ -94,7 +94,7 @@ function App() {
                   </AuthGuard>
                 } />
                 
-                {/* GPS Installation routes - Now using direct imports rather than lazy loading */}
+                {/* GPS Installation routes - Now using direct imports */}
                 <Route path="/instalacion-gps" element={
                   <AuthGuard>
                     <InstalacionGPS />
@@ -116,7 +116,7 @@ function App() {
                   </AuthGuard>
                 } />
                 
-                {/* Performance now using direct import instead of lazy loading */}
+                {/* Performance route */}
                 <Route path="/performance" element={
                   <AuthGuard>
                     <Performance />
@@ -134,7 +134,7 @@ function App() {
                   </AuthGuard>
                 } />
                 
-                {/* Update default redirect to use the Index page instead of dashboard */}
+                {/* Default redirect */}
                 <Route path="*" element={<Navigate to="/" replace />} />
               </Routes>
             </Suspense>
