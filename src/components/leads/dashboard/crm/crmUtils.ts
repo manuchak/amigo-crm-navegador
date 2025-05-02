@@ -177,12 +177,21 @@ export function useFunnelStats(leads: any[]) {
     hired: leads.filter(lead => lead.estado === 'Contratado').length,
   };
 
-  const byStage = STAGES.map(stage => ({
-    key: stage.key,
-    label: stage.label,
-    value: statuses[stage.key as keyof typeof statuses],
-    color: getColorForStage(stage.key),
-  }));
+  // Calculate total leads for percentage
+  const totalLeads = Object.values(statuses).reduce((sum, count) => sum + count, 0);
+
+  const byStage = STAGES.map(stage => {
+    const stageValue = statuses[stage.key as keyof typeof statuses];
+    const percentageOfTotal = totalLeads > 0 ? (stageValue / totalLeads) * 100 : 0;
+    
+    return {
+      key: stage.key,
+      label: stage.label,
+      value: stageValue,
+      color: getColorForStage(stage.key),
+      percentage: stage.key === 'new' ? percentageOfTotal : undefined,
+    };
+  });
 
   const conversions = [
     statuses.new > 0 ? (statuses.contacted / statuses.new) * 100 : null,
