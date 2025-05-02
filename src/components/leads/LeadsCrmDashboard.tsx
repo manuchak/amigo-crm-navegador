@@ -1,3 +1,4 @@
+
 import React, { useMemo } from "react";
 import { useLeads } from "@/context/LeadsContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -18,10 +19,12 @@ import { BusinessKpis } from "./dashboard/crm/BusinessKpis";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import ContactedLeadsCard from "./dashboard/crm/ContactedLeadsCard";
 import TotalLeadsCard from "./dashboard/crm/TotalLeadsCard";
+import { ContactedLeadsProvider, useContactedLeads } from "./dashboard/crm/ContactedLeadsContext";
 
-const LeadsCrmDashboard: React.FC = () => {
+const CrmDashboardContent: React.FC = () => {
   const { leads } = useLeads();
-  const funnel = useFunnelStats(leads);
+  const { contactedCount } = useContactedLeads();
+  const funnel = useFunnelStats(leads, contactedCount);
   const monthlyTrend = useMemo(() => getMonthlyTrend(leads), [leads]);
   const carTypes = [
     { name: "Con Vehículo", val: leads.filter(l => l.tieneVehiculo === "SI").length },
@@ -182,6 +185,14 @@ const LeadsCrmDashboard: React.FC = () => {
         </TabsContent>
       </Tabs>
     </div>
+  );
+};
+
+const LeadsCrmDashboard: React.FC = () => {
+  return (
+    <ContactedLeadsProvider>
+      <CrmDashboardContent />
+    </ContactedLeadsProvider>
   );
 };
 

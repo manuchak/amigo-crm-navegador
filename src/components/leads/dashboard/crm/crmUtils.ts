@@ -1,3 +1,4 @@
+
 import { Lead } from "@/context/LeadsContext";
 
 export const STAGES = [
@@ -168,10 +169,11 @@ function getColorForStage(stageKey: string): string {
 }
 
 // Updated utility function to map lead data to funnel stages with improved calculations
-export function useFunnelStats(leads: any[]) {
+export function useFunnelStats(leads: any[], contactedCount?: number) {
   const statuses = {
     new: leads.filter(lead => lead.estado === 'Nuevo').length,
-    contacted: leads.filter(lead => lead.estado === 'Contactado').length,
+    // Use the contactedCount from the context if provided, otherwise fallback to filtering leads
+    contacted: contactedCount !== undefined ? contactedCount : leads.filter(lead => lead.estado === 'Contactado').length,
     qualified: leads.filter(lead => lead.estado === 'Calificado').length,
     hired: leads.filter(lead => lead.estado === 'Contratados').length,
   };
