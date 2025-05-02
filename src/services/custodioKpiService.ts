@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { format, subMonths } from 'date-fns';
 
@@ -73,7 +72,7 @@ export async function getCustodioKpiData(months: number = 12): Promise<CustodioK
   // Consultamos los servicios en el rango de fechas
   const { data: serviciosData, error: serviciosError } = await supabase
     .from('servicios_custodia')
-    .select('nombre_custodio, fecha_hora_cita, cobro_cliente')
+    .select('nombre_custodio, fecha_hora_cita, cobro_cliente, estado')
     .gte('fecha_hora_cita', startDate)
     .is('nombre_custodio', 'not.null')
     .order('fecha_hora_cita', { ascending: true });
@@ -93,10 +92,32 @@ export async function getCustodioKpiData(months: number = 12): Promise<CustodioK
   serviciosData.forEach(servicio => {
     if (!servicio.fecha_hora_cita) return;
     
-    // Formateamos la fecha al primer día del mes para agrupar
+    // Skip cancelled services for counting revenue
+    if (servicio.estado === 'Cancelado') {
+      // Only count the service in total_servicios, but not for revenue
+      const monthYear = format(new Date(servicio.fecha_hora_cita), 'yyyy-MM-01');
+      
+      // Initialize month if it doesn't exist
+      if (!monthlyData[monthYear]) {
+        monthlyData[monthYear] = {
+          total_custodios: new Set(),
+          total_servicios: 0,
+          total_revenue: 0
+        };
+      }
+      
+      // Only count custodian and service, but not revenue
+      if (servicio.nombre_custodio) {
+        monthlyData[monthYear].total_custodios.add(servicio.nombre_custodio);
+      }
+      monthlyData[monthYear].total_servicios += 1;
+      return;
+    }
+    
+    // Format date to first day of month for grouping
     const monthYear = format(new Date(servicio.fecha_hora_cita), 'yyyy-MM-01');
     
-    // Inicializamos el mes si no existe
+    // Initialize month if it doesn't exist
     if (!monthlyData[monthYear]) {
       monthlyData[monthYear] = {
         total_custodios: new Set(),
@@ -105,7 +126,7 @@ export async function getCustodioKpiData(months: number = 12): Promise<CustodioK
       };
     }
     
-    // Incrementamos las métricas
+    // Increment metrics
     if (servicio.nombre_custodio) {
       monthlyData[monthYear].total_custodios.add(servicio.nombre_custodio);
     }
@@ -159,11 +180,12 @@ export async function getNewCustodiosByMonth(months: number = 12): Promise<NewCu
   return data || [];
 }
 
+// Fix the retention calculation function
 export async function getCustodioRetention(months: number = 12): Promise<CustodioRetention[]> {
   const endDate = new Date();
   const startDate = subMonths(endDate, months);
   
-  // Usamos la función calculate_custodio_retention en la base de datos
+  // Use the function calculate_custodio_retention in the database
   const { data, error } = await supabase
     .rpc('calculate_custodio_retention', { 
       start_date: format(startDate, 'yyyy-MM-dd'),
@@ -172,7 +194,85 @@ export async function getCustodioRetention(months: number = 12): Promise<Custodi
     
   if (error) {
     console.error('Error fetching custodio retention:', error);
-    return [];
+    
+    // If there's an error, let's try a manual calculation as fallback
+    try {
+      const retentionData: CustodioRetention[] = [];
+      
+      // Iterate through each month in the range
+      let currentMonth = new Date(startDate);
+      
+      while (currentMonth <= endDate) {
+        const currentMonthStr = format(currentMonth, 'yyyy-MM-01');
+        const nextMonth = new Date(currentMonth);
+        nextMonth.setMonth(nextMonth.getMonth() + 1);
+        
+        // Get custodians active this month
+        const { data: currentMonthCustodians } = await supabase
+          .from('servicios_custodia')
+          .select('nombre_custodio')
+          .gte('fecha_hora_cita', currentMonthStr)
+          .lt('fecha_hora_cita', format(nextMonth, 'yyyy-MM-01'))
+          .neq('estado', 'Cancelado')
+          .is('nombre_custodio', 'not.null');
+        
+        // Get custodians active last month
+        const previousMonth = new Date(currentMonth);
+        previousMonth.setMonth(previousMonth.getMonth() - 1);
+        
+        const { data: previousMonthCustodians } = await supabase
+          .from('servicios_custodia')
+          .select('nombre_custodio')
+          .gte('fecha_hora_cita', format(previousMonth, 'yyyy-MM-01'))
+          .lt('fecha_hora_cita', currentMonthStr)
+          .neq('estado', 'Cancelado')
+          .is('nombre_custodio', 'not.null');
+          
+        // Get unique custodian names from each month
+        const currentCustodians = [...new Set(currentMonthCustodians?.map(c => c.nombre_custodio) || [])];
+        const previousCustodians = [...new Set(previousMonthCustodians?.map(c => c.nombre_custodio) || [])];
+          
+        // Count how many from previous month are still active
+        const retainedCount = previousCustodians.filter(pc => 
+          currentCustodians.includes(pc)).length;
+          
+        // Calculate retention rate
+        const retentionRate = previousCustodians.length > 0 
+          ? (retainedCount / previousCustodians.length) * 100 
+          : 0;
+        
+        // Calculate new and lost custodians
+        const newCustodios = currentCustodians.filter(cc => 
+          !previousCustodians.includes(cc)).length;
+          
+        const lostCustodios = previousCustodians.filter(pc => 
+          !currentCustodians.includes(pc)).length;
+          
+        // Calculate growth rate
+        const growthRate = previousCustodians.length > 0
+          ? ((newCustodios - lostCustodios) / previousCustodians.length) * 100
+          : 0;
+        
+        // Add to result array
+        retentionData.push({
+          month_year: new Date(currentMonthStr),
+          active_start: previousCustodians.length,
+          active_end: currentCustodians.length,
+          retention_rate: retentionRate,
+          new_custodios: newCustodios,
+          lost_custodios: lostCustodios,
+          growth_rate: growthRate
+        });
+        
+        // Move to next month
+        currentMonth.setMonth(currentMonth.getMonth() + 1);
+      }
+      
+      return retentionData;
+    } catch (fallbackError) {
+      console.error('Error in fallback retention calculation:', fallbackError);
+      return [];
+    }
   }
   
   return data || [];
@@ -193,7 +293,7 @@ export async function getCustodioLtv(months: number = 12): Promise<CustodioLtv[]
 
 // Función para actualizar métricas manuales
 export async function updateCustodioMetrics(metrics: Partial<CustodioMetrics>): Promise<boolean> {
-  // Si no existe la métrica para ese mes, crearla
+  // If no exists the metric for that month, create it
   if (!metrics.id) {
     const { error } = await supabase
       .from('custodio_metrics')
@@ -202,7 +302,7 @@ export async function updateCustodioMetrics(metrics: Partial<CustodioMetrics>): 
     return !error;
   }
   
-  // Si ya existe, actualizar
+  // If already exists, update
   const { error } = await supabase
     .from('custodio_metrics')
     .update(metrics)

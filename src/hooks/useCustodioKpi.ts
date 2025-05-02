@@ -38,20 +38,20 @@ export function useCustodioKpi(months: number = 12) {
     queryFn: () => getCustodioLtv(months),
   });
   
-  // Mutación para actualizar métricas manuales
+  // Mutation for updating manual metrics
   const updateMetricsMutation = useMutation({
     mutationFn: (metrics: Partial<CustodioMetrics>) => updateCustodioMetrics(metrics),
     onSuccess: () => {
-      // Invalidar queries relacionadas para que se actualicen
+      // Invalidate related queries to update them
       queryClient.invalidateQueries({ queryKey: ['custodioMetrics'] });
     },
   });
   
-  // Calcular el NPS basado en los datos
+  // Calculate NPS based on data
   const calculateNps = () => {
     if (!metricsQuery.data || metricsQuery.data.length === 0) return 0;
     
-    // Tomar el mes más reciente
+    // Take the most recent month
     const latestMetric = metricsQuery.data.slice(-1)[0];
     const promoters = latestMetric.nps_promoters || 0;
     const detractors = latestMetric.nps_detractors || 0;
@@ -61,39 +61,39 @@ export function useCustodioKpi(months: number = 12) {
     return Math.round(((promoters - detractors) / total) * 100);
   };
   
-  // Calcular CAC (Customer Acquisition Cost)
+  // Calculate CAC (Customer Acquisition Cost)
   const calculateCac = () => {
     if (!metricsQuery.data || metricsQuery.data.length === 0 || !newCustodiosQuery.data) return 0;
     
-    // Sumar todos los costos del último mes disponible
+    // Sum all costs from the latest available month
     const latestMetric = metricsQuery.data.slice(-1)[0];
     const totalCost = (latestMetric.staff_cost || 0) + 
                      (latestMetric.asset_cost || 0) + 
                      (latestMetric.marketing_cost || 0) +
                      (latestMetric.acquisition_cost_manual || 0);
     
-    // Encontrar el número de nuevos custodios para ese mes
+    // Find the number of new custodios for that month
     const monthData = newCustodiosQuery.data.find(
       item => item.month_year === latestMetric.month_year
     );
     
-    const newCustodios = monthData?.new_custodios || 1; // Evitar división por cero
+    const newCustodios = monthData?.new_custodios || 1; // Avoid division by zero
     
     return totalCost / newCustodios;
   };
   
-  // Calcular el ROI de las campañas de marketing
+  // Calculate ROI of marketing campaigns
   const calculateMarketingRoi = () => {
     if (!metricsQuery.data || metricsQuery.data.length === 0) return 0;
     
-    // Filtrar solo las entradas que tengan datos de campaña
+    // Filter only entries with campaign data
     const campaignMetrics = metricsQuery.data.filter(
       metric => metric.campaign_name && metric.campaign_cost > 0
     );
     
     if (campaignMetrics.length === 0) return 0;
     
-    // Calcular ROI para cada campaña y luego promediar
+    // Calculate ROI for each campaign and then average
     const totalRoi = campaignMetrics.reduce((sum, metric) => {
       const cost = metric.campaign_cost || 0;
       const revenue = metric.campaign_revenue || 0;
@@ -103,27 +103,34 @@ export function useCustodioKpi(months: number = 12) {
       return sum + ((revenue - cost) / cost);
     }, 0);
     
-    return (totalRoi / campaignMetrics.length) * 100; // Porcentaje
+    return (totalRoi / campaignMetrics.length) * 100; // As percentage
   };
   
-  // Cálculo del promedio de retención
+  // Calculate average retention rate
   const calculateAvgRetention = () => {
     if (!retentionQuery.data || retentionQuery.data.length === 0) return 0;
     
-    const totalRetention = retentionQuery.data.reduce(
+    // Filter out zero rates that might skew the average
+    const validRetentionData = retentionQuery.data.filter(item => 
+      item.retention_rate !== null && item.retention_rate > 0
+    );
+    
+    if (validRetentionData.length === 0) return 0;
+    
+    const totalRetention = validRetentionData.reduce(
       (sum, item) => sum + (item.retention_rate || 0), 0
     );
     
-    return totalRetention / retentionQuery.data.length;
+    return totalRetention / validRetentionData.length;
   };
   
-  // Calcular LTV promedio
+  // Calculate average LTV
   const calculateAvgLtv = () => {
     if (!ltvQuery.data || ltvQuery.data.length === 0) return 0;
     
-    // Solo considerar custodios activos - que tienen registros en el período seleccionado
+    // Only consider active custodios - those with records in the selected period
     const activeCustodios = ltvQuery.data.filter(item => {
-      // Verificar si la fecha del último servicio está dentro del período
+      // Check if the last service date is within the period
       const lastServiceDate = new Date(item.last_service_date);
       const cutoffDate = new Date();
       cutoffDate.setMonth(cutoffDate.getMonth() - months);
@@ -132,7 +139,7 @@ export function useCustodioKpi(months: number = 12) {
     
     if (activeCustodios.length === 0) return 0;
     
-    // Calcular LTV solo para custodios activos
+    // Calculate LTV only for active custodios
     const totalLtv = activeCustodios.reduce(
       (sum, item) => sum + (item.estimated_ltv || 0), 0
     );
@@ -140,7 +147,7 @@ export function useCustodioKpi(months: number = 12) {
     return totalLtv / activeCustodios.length;
   };
   
-  // Calcular relación LTV:CAC
+  // Calculate LTV:CAC ratio
   const calculateLtvCacRatio = () => {
     const avgLtv = calculateAvgLtv();
     const cac = calculateCac();
@@ -167,7 +174,7 @@ export function useCustodioKpi(months: number = 12) {
              ltvQuery.isError,
     updateMetrics: updateMetricsMutation.mutate,
     isUpdating: updateMetricsMutation.isPending,
-    // Cálculos derivados
+    // Derived calculations
     nps: calculateNps(),
     cac: calculateCac(),
     marketingRoi: calculateMarketingRoi(),

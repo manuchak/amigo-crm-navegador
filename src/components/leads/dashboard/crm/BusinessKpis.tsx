@@ -120,6 +120,11 @@ export const BusinessKpis = () => {
     'LTV': item.estimated_ltv,
     'Total Revenue': item.total_revenue,
   })).slice(0, 10) || [];
+  
+  // Get latest retention rate value
+  const currentRetentionRate = filteredRetention && filteredRetention.length > 0 
+    ? filteredRetention[filteredRetention.length - 1]?.retention_rate 
+    : 0;
 
   return (
     <div className="space-y-6">
@@ -135,7 +140,7 @@ export const BusinessKpis = () => {
             <CardTitle className="text-sm text-muted-foreground">Ingresos Totales</CardTitle>
           </CardHeader>
           <CardContent>
-            <MetricTooltip explanation="Suma de todos los ingresos generados por servicios de custodios en el período seleccionado. Calculado como la suma del campo 'cobro_cliente' de la tabla de servicios.">
+            <MetricTooltip explanation="Suma de todos los ingresos generados por servicios de custodios en el período seleccionado, excluyendo servicios cancelados. Calculado como la suma del campo 'cobro_cliente' de la tabla de servicios.">
               <div className="flex items-center space-x-2">
                 <TrendingUp className="h-5 w-5 text-emerald-500" />
                 <span className="text-2xl font-bold">
@@ -151,7 +156,7 @@ export const BusinessKpis = () => {
             <CardTitle className="text-sm text-muted-foreground">Custodios Activos</CardTitle>
           </CardHeader>
           <CardContent>
-            <MetricTooltip explanation="Número de custodios únicos que han realizado al menos un servicio en el período seleccionado. Calculado como el conteo distintivo de 'nombre_custodio' en la tabla de servicios.">
+            <MetricTooltip explanation="Número de custodios únicos que han realizado al menos un servicio en el período seleccionado, excluyendo servicios cancelados. Calculado como el conteo distintivo de 'nombre_custodio' en la tabla de servicios.">
               <div className="flex items-center space-x-2">
                 <Users className="h-5 w-5 text-blue-500" />
                 <span className="text-2xl font-bold">
@@ -203,7 +208,7 @@ export const BusinessKpis = () => {
               <div className="flex items-center space-x-2">
                 <LineChart className="h-5 w-5 text-cyan-500" />
                 <span className="text-2xl font-bold">
-                  {formatPercent(avgRetention)}
+                  {formatPercent(currentRetentionRate || avgRetention)}
                 </span>
               </div>
             </MetricTooltip>
