@@ -1,20 +1,12 @@
-import React, { useState } from 'react';
-import { Button } from '@/components/ui/button';
-import { Eye, PhoneCall, History, Check } from 'lucide-react';
+
+import React from 'react';
 import { Prospect } from '@/services/prospectService';
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import { toast } from 'sonner';
-import { useLeads } from '@/context/LeadsContext';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog"
+import { 
+  ViewDetailsButton, 
+  CallButton, 
+  CallHistoryButton,
+  ValidateButton 
+} from './buttons';
 
 interface ActionButtonsProps {
   prospect: Prospect;
@@ -35,193 +27,36 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({
   hasCallHistory,
   hasInterviewData
 }) => {
-  const { updateLeadStatus } = useLeads();
-  const [validateDialogOpen, setValidateDialogOpen] = useState(false);
-
-  const handleCallClick = async (prospect: Prospect) => {
-    // Get the phone number
-    const phoneNumber = prospect.lead_phone || prospect.phone_number_intl;
-    
-    if (!phoneNumber) {
-      toast.error("No se encontró un número telefónico para este custodio");
-      return;
-    }
-
-    try {
-      // Format phone number to ensure it's valid (remove spaces, add country code if needed)
-      let formattedPhone = phoneNumber.trim();
-      if (!formattedPhone.startsWith('+')) {
-        formattedPhone = '+52' + formattedPhone.replace(/^0+/, '');
-      }
-      formattedPhone = formattedPhone.replace(/\s+/g, '');
-      
-      // Send webhook directly to Make.com
-      const webhookUrl = "https://hook.us2.make.com/nlckmsej5cwmfe93gv4g6xvmavhilujl";
-      
-      console.log(`Sending webhook to Make.com for phone ${formattedPhone}`);
-      
-      const makeResponse = await fetch(webhookUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          phone_number: formattedPhone,
-          lead_name: prospect.lead_name || prospect.custodio_name || 'Prospecto', 
-          lead_id: prospect.lead_id || 0,
-          prospect_data: prospect,
-          timestamp: new Date().toISOString(),
-          action: "initiate_prospect_call"
-        })
-      });
-      
-      if (!makeResponse.ok) {
-        const errorText = await makeResponse.text();
-        throw new Error(`Make.com webhook error: ${makeResponse.status} - ${errorText}`);
-      }
-      
-      console.log("Make.com webhook called successfully");
-      toast.success(`Llamada iniciada para ${prospect.lead_name || prospect.custodio_name || 'el prospecto'}`);
-      
-      // Also call the original onCall handler if provided
-      if (onCall) {
-        onCall(prospect);
-      }
-    } catch (error) {
-      console.error("Error al iniciar llamada:", error);
-      toast.error("Error al iniciar la llamada");
-      
-      // Still call the original onCall handler in case there's fallback logic
-      if (onCall) {
-        onCall(prospect);
-      }
-    }
-  };
-
-  const openValidateDialog = () => {
-    setValidateDialogOpen(true);
-  };
-
-  const handleValidateClick = async (prospect: Prospect) => {
-    try {
-      // Update lead status to "Validado" when validate button is clicked
-      if (prospect.lead_id) {
-        await updateLeadStatus(prospect.lead_id, "Validado");
-        toast.success(`Custodio ${prospect.lead_name || prospect.custodio_name || 'Prospecto'} ha sido validado`);
-      } else {
-        toast.error("No se encontró ID del custodio");
-      }
-      
-      // Call the parent's onValidate handler if provided
-      if (onValidate) {
-        onValidate(prospect);
-      }
-    } catch (error) {
-      console.error("Error al validar custodio:", error);
-      toast.error("Error al validar el custodio");
-      
-      // Still call the original onValidate handler in case there's fallback logic
-      if (onValidate) {
-        onValidate(prospect);
-      }
-    }
-  };
-
   return (
     <div className="flex items-center justify-end gap-2">
       {onViewDetails && (
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button 
-              variant="ghost" 
-              size="icon"
-              className="h-8 w-8 rounded-full bg-slate-100 text-slate-700 hover:bg-slate-200 hover:text-slate-900"
-              onClick={() => onViewDetails(prospect)}
-            >
-              <Eye className="h-4 w-4" />
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent side="bottom">
-            <p className="text-xs">Ver detalles</p>
-          </TooltipContent>
-        </Tooltip>
+        <ViewDetailsButton 
+          prospect={prospect} 
+          onViewDetails={onViewDetails} 
+        />
       )}
       
       {onCall && (
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button 
-              variant="ghost" 
-              size="icon"
-              className="h-8 w-8 rounded-full bg-slate-100 text-slate-700 hover:bg-slate-200 hover:text-slate-900"
-              onClick={() => handleCallClick(prospect)}
-            >
-              <PhoneCall className="h-4 w-4" />
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent side="bottom">
-            <p className="text-xs">Llamar</p>
-          </TooltipContent>
-        </Tooltip>
+        <CallButton 
+          prospect={prospect} 
+          onCall={onCall} 
+        />
       )}
       
       {onViewCalls && hasCallHistory && (
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button 
-              variant="ghost" 
-              size="icon"
-              className="h-8 w-8 rounded-full bg-slate-100 text-slate-700 hover:bg-slate-200 hover:text-slate-900"
-              onClick={() => onViewCalls(prospect)}
-            >
-              <History className="h-4 w-4" />
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent side="bottom">
-            <p className="text-xs">Historial</p>
-          </TooltipContent>
-        </Tooltip>
+        <CallHistoryButton 
+          prospect={prospect} 
+          onViewCalls={onViewCalls} 
+          hasCallHistory={hasCallHistory} 
+        />
       )}
       
       {onValidate && (
-        <>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button 
-                variant={hasInterviewData ? "ghost" : "outline"}
-                size="icon"
-                className={`h-8 w-8 rounded-full ${hasInterviewData ? 'bg-green-100 text-green-600 hover:bg-green-200' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'}`}
-                onClick={openValidateDialog}
-              >
-                <Check className="h-4 w-4" />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent side="bottom">
-              <p className="text-xs">Validar</p>
-            </TooltipContent>
-          </Tooltip>
-          
-          <AlertDialog open={validateDialogOpen} onOpenChange={setValidateDialogOpen}>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>Confirmar validación</AlertDialogTitle>
-                <AlertDialogDescription>
-                  ¿Está seguro que desea validar a <span className="font-medium">{prospect.lead_name || prospect.custodio_name || 'este prospecto'}</span>? 
-                  Esta acción cambiará el estado del prospecto a "Validado" y no podrá ser visualizado en la lista de prospectos.
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                <AlertDialogAction 
-                  onClick={() => handleValidateClick(prospect)}
-                  className="bg-green-600 hover:bg-green-700"
-                >
-                  Confirmar validación
-                </AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
-        </>
+        <ValidateButton 
+          prospect={prospect} 
+          onValidate={onValidate} 
+          hasInterviewData={hasInterviewData} 
+        />
       )}
     </div>
   );
