@@ -33,15 +33,13 @@ import Requerimientos from './pages/Requerimientos';
 import AdminConfig from './pages/AdminConfig';
 
 function App() {
-  console.log("App rendering");
-  
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
         <LeadsProvider>
           <Router>
             <Navbar />
-            <Suspense fallback={<div className="loading">Cargando...</div>}>
+            <div className="app-container">
               <Routes>
                 <Route path="/auth" element={<Auth />} />
                 <Route path="/login" element={<Login />} />
@@ -137,9 +135,9 @@ function App() {
                 {/* Default redirect */}
                 <Route path="*" element={<Navigate to="/" replace />} />
               </Routes>
-            </Suspense>
+            </div>
+            <Toaster position="top-right" richColors closeButton />
           </Router>
-          <Toaster position="top-right" richColors closeButton />
         </LeadsProvider>
       </AuthProvider>
     </QueryClientProvider>
