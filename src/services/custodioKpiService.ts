@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { format, subMonths } from 'date-fns';
 
@@ -181,7 +180,7 @@ export async function getNewCustodiosByMonth(months: number = 12): Promise<NewCu
   return data || [];
 }
 
-// Fix the retention calculation function
+// Improved retention calculation function
 export async function getCustodioRetention(months: number = 12): Promise<CustodioRetention[]> {
   const endDate = new Date();
   const startDate = subMonths(endDate, months);
@@ -196,80 +195,10 @@ export async function getCustodioRetention(months: number = 12): Promise<Custodi
   if (error) {
     console.error('Error fetching custodio retention:', error);
     
-    // If there's an error, let's try a manual calculation as fallback
+    // If there's an error, let's implement our own calculation as fallback
     try {
-      const retentionData: CustodioRetention[] = [];
-      
-      // Iterate through each month in the range
-      let currentMonth = new Date(startDate);
-      
-      while (currentMonth <= endDate) {
-        const currentMonthStr = format(currentMonth, 'yyyy-MM-01');
-        const nextMonth = new Date(currentMonth);
-        nextMonth.setMonth(nextMonth.getMonth() + 1);
-        
-        // Get custodians active this month
-        const { data: currentMonthCustodians } = await supabase
-          .from('servicios_custodia')
-          .select('nombre_custodio')
-          .gte('fecha_hora_cita', currentMonthStr)
-          .lt('fecha_hora_cita', format(nextMonth, 'yyyy-MM-01'))
-          .neq('estado', 'Cancelado')
-          .is('nombre_custodio', 'not.null');
-        
-        // Get custodians active last month
-        const previousMonth = new Date(currentMonth);
-        previousMonth.setMonth(previousMonth.getMonth() - 1);
-        
-        const { data: previousMonthCustodians } = await supabase
-          .from('servicios_custodia')
-          .select('nombre_custodio')
-          .gte('fecha_hora_cita', format(previousMonth, 'yyyy-MM-01'))
-          .lt('fecha_hora_cita', currentMonthStr)
-          .neq('estado', 'Cancelado')
-          .is('nombre_custodio', 'not.null');
-          
-        // Get unique custodian names from each month
-        const currentCustodians = [...new Set(currentMonthCustodians?.map(c => c.nombre_custodio) || [])];
-        const previousCustodians = [...new Set(previousMonthCustodians?.map(c => c.nombre_custodio) || [])];
-          
-        // Count how many from previous month are still active
-        const retainedCount = previousCustodians.filter(pc => 
-          currentCustodians.includes(pc)).length;
-          
-        // Calculate retention rate
-        const retentionRate = previousCustodians.length > 0 
-          ? (retainedCount / previousCustodians.length) * 100 
-          : 0;
-        
-        // Calculate new and lost custodians
-        const newCustodios = currentCustodians.filter(cc => 
-          !previousCustodians.includes(cc)).length;
-          
-        const lostCustodios = previousCustodians.filter(pc => 
-          !currentCustodians.includes(pc)).length;
-          
-        // Calculate growth rate
-        const growthRate = previousCustodians.length > 0
-          ? ((newCustodios - lostCustodios) / previousCustodians.length) * 100
-          : 0;
-        
-        // Add to result array - fix here: convert Date to string using format()
-        retentionData.push({
-          month_year: currentMonthStr, // Fixed: Converted Date to string using format()
-          active_start: previousCustodians.length,
-          active_end: currentCustodians.length,
-          retention_rate: retentionRate,
-          new_custodios: newCustodios,
-          lost_custodios: lostCustodios,
-          growth_rate: growthRate
-        });
-        
-        // Move to next month
-        currentMonth.setMonth(currentMonth.getMonth() + 1);
-      }
-      
-      return retentionData;
+      console.log('Using manual retention calculation fallback');
+      return await calculateRetentionManually(startDate, endDate);
     } catch (fallbackError) {
       console.error('Error in fallback retention calculation:', fallbackError);
       return [];
@@ -277,6 +206,99 @@ export async function getCustodioRetention(months: number = 12): Promise<Custodi
   }
   
   return data || [];
+}
+
+// New function to calculate retention manually if the RPC call fails
+async function calculateRetentionManually(startDate: Date, endDate: Date): Promise<CustodioRetention[]> {
+  const retentionData: CustodioRetention[] = [];
+  
+  // Get all servicios data for the period to avoid multiple DB calls
+  const { data: allServiciosData, error: allServiciosError } = await supabase
+    .from('servicios_custodia')
+    .select('nombre_custodio, fecha_hora_cita, estado')
+    .gte('fecha_hora_cita', format(startDate, 'yyyy-MM-dd'))
+    .lte('fecha_hora_cita', format(endDate, 'yyyy-MM-dd'))
+    .neq('estado', 'Cancelado')
+    .is('nombre_custodio', 'not.null')
+    .order('fecha_hora_cita', { ascending: true });
+    
+  if (allServiciosError || !allServiciosData || allServiciosData.length === 0) {
+    console.error('Error fetching all servicios data:', allServiciosError);
+    return [];
+  }
+  
+  // Group servicios by month with custodio names
+  const custodiosByMonth: Record<string, Set<string>> = {};
+  allServiciosData.forEach(servicio => {
+    if (!servicio.fecha_hora_cita || !servicio.nombre_custodio) return;
+    
+    const monthKey = format(new Date(servicio.fecha_hora_cita), 'yyyy-MM-01');
+    
+    if (!custodiosByMonth[monthKey]) {
+      custodiosByMonth[monthKey] = new Set<string>();
+    }
+    
+    custodiosByMonth[monthKey].add(servicio.nombre_custodio);
+  });
+  
+  // Sort months chronologically
+  const sortedMonths = Object.keys(custodiosByMonth).sort();
+  
+  // We need at least 2 months to calculate retention
+  if (sortedMonths.length < 2) {
+    return [];
+  }
+  
+  // Calculate retention for each month starting from the second month
+  for (let i = 1; i < sortedMonths.length; i++) {
+    const currentMonth = sortedMonths[i];
+    const previousMonth = sortedMonths[i-1];
+    
+    // Get sets of custodios for both months
+    const currentCustodios = custodiosByMonth[currentMonth];
+    const previousCustodios = custodiosByMonth[previousMonth];
+    
+    // Count custodios that appear in both months (retained)
+    let retainedCount = 0;
+    previousCustodios.forEach(custodio => {
+      if (currentCustodios.has(custodio)) {
+        retainedCount++;
+      }
+    });
+    
+    // Calculate retention rate
+    const retentionRate = previousCustodios.size > 0 
+      ? (retainedCount / previousCustodios.size) * 100 
+      : 0;
+      
+    // Calculate new custodios (in current month but not in previous)
+    let newCustodiosCount = 0;
+    currentCustodios.forEach(custodio => {
+      if (!previousCustodios.has(custodio)) {
+        newCustodiosCount++;
+      }
+    });
+    
+    // Calculate lost custodios (in previous month but not in current)
+    const lostCustodiosCount = previousCustodios.size - retainedCount;
+    
+    // Calculate growth rate
+    const growthRate = previousCustodios.size > 0
+      ? ((newCustodiosCount - lostCustodiosCount) / previousCustodios.size) * 100
+      : 0;
+    
+    retentionData.push({
+      month_year: currentMonth,
+      active_start: previousCustodios.size,
+      active_end: currentCustodios.size,
+      retention_rate: retentionRate,
+      new_custodios: newCustodiosCount,
+      lost_custodios: lostCustodiosCount,
+      growth_rate: growthRate
+    });
+  }
+  
+  return retentionData;
 }
 
 export async function getCustodioLtv(months: number = 12): Promise<CustodioLtv[]> {

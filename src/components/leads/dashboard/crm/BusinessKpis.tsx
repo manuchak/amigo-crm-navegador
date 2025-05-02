@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useCustodioKpi } from "@/hooks/useCustodioKpi";
@@ -121,10 +120,15 @@ export const BusinessKpis = () => {
     'Total Revenue': item.total_revenue,
   })).slice(0, 10) || [];
   
-  // Get latest retention rate value
+  // Get latest retention rate value - updated to be more defensive
   const currentRetentionRate = filteredRetention && filteredRetention.length > 0 
     ? filteredRetention[filteredRetention.length - 1]?.retention_rate 
-    : 0;
+    : null;
+    
+  // Make sure we have a valid retention rate
+  const displayRetentionRate = currentRetentionRate !== null && !isNaN(currentRetentionRate) 
+    ? currentRetentionRate 
+    : avgRetention;
 
   return (
     <div className="space-y-6">
@@ -204,11 +208,11 @@ export const BusinessKpis = () => {
             <CardTitle className="text-sm text-muted-foreground">Tasa de Retención</CardTitle>
           </CardHeader>
           <CardContent>
-            <MetricTooltip explanation="Porcentaje de custodios que continúan trabajando con la empresa de un período a otro. Calculado comparando custodios activos al inicio y al final del período seleccionado.">
+            <MetricTooltip explanation="Porcentaje de custodios que continúan trabajando con la empresa de un mes al siguiente. Calculado como el número de custodios activos presentes tanto en el mes actual como en el mes anterior, dividido por el número total de custodios activos en el mes anterior.">
               <div className="flex items-center space-x-2">
                 <LineChart className="h-5 w-5 text-cyan-500" />
                 <span className="text-2xl font-bold">
-                  {formatPercent(currentRetentionRate || avgRetention)}
+                  {formatPercent(displayRetentionRate)}
                 </span>
               </div>
             </MetricTooltip>

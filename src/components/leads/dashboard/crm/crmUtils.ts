@@ -1,4 +1,3 @@
-
 import { Lead } from "@/context/LeadsContext";
 
 export const STAGES = [
@@ -138,12 +137,14 @@ export function useFunnelStats(leads: any[]) {
 
 // Calculate retention rate between two periods
 export function calculateRetentionRate(previousPeriodCustodians: string[], currentPeriodCustodians: string[]): number {
-  if (previousPeriodCustodians.length === 0) return 0;
+  if (!previousPeriodCustodians || previousPeriodCustodians.length === 0) return 0;
   
+  // Count custodians that appear in both arrays (retained)
   const retained = previousPeriodCustodians.filter(custodian => 
     currentPeriodCustodians.includes(custodian)
   );
   
+  // Calculate retention rate as percentage
   return (retained.length / previousPeriodCustodians.length) * 100;
 }
 

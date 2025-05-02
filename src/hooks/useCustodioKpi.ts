@@ -1,4 +1,3 @@
-
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { 
   getCustodioKpiData, 
@@ -106,17 +105,20 @@ export function useCustodioKpi(months: number = 12) {
     return (totalRoi / campaignMetrics.length) * 100; // As percentage
   };
   
-  // Calculate average retention rate
+  // Calculate average retention rate - improved to handle edge cases
   const calculateAvgRetention = () => {
     if (!retentionQuery.data || retentionQuery.data.length === 0) return 0;
     
-    // Filter out zero rates that might skew the average
+    // Filter out zero or null rates that might skew the average
     const validRetentionData = retentionQuery.data.filter(item => 
-      item.retention_rate !== null && item.retention_rate > 0
+      item.retention_rate !== null && 
+      !isNaN(item.retention_rate) && 
+      item.retention_rate > 0
     );
     
     if (validRetentionData.length === 0) return 0;
     
+    // Calculate the average retention rate
     const totalRetention = validRetentionData.reduce(
       (sum, item) => sum + (item.retention_rate || 0), 0
     );
