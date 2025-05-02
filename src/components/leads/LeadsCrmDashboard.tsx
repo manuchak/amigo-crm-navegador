@@ -1,3 +1,4 @@
+
 import React, { useMemo } from "react";
 import { useLeads } from "@/context/LeadsContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -47,15 +48,24 @@ const LeadsCrmDashboard: React.FC = () => {
         <TabsContent value="leads">
           {/* Contenido original del dashboard */}
           <div className="space-y-6">
-            {/* Top metrics row - Insert our new card */}
+            {/* Top metrics row - Modified to replace the second card with ContactedLeadsCard */}
             <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
-              {/* First the original 4 metric cards */}
-              <div className="lg:col-span-4 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
-                <MetricsCards byStage={funnel.byStage} conversions={funnel.conversions} />
+              {/* First card - Nuevos */}
+              <div className="lg:col-span-1">
+                <MetricsCards byStage={[funnel.byStage[0]]} conversions={[]} />
               </div>
-              {/* Add the contacted leads card */}
+              
+              {/* Second card - Contactados from ContactedLeadsCard */}
               <div className="lg:col-span-1">
                 <ContactedLeadsCard />
+              </div>
+              
+              {/* Remaining three original cards */}
+              <div className="lg:col-span-3 grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <MetricsCards 
+                  byStage={funnel.byStage.slice(2)}
+                  conversions={funnel.conversions.slice(1)}
+                />
               </div>
             </div>
             

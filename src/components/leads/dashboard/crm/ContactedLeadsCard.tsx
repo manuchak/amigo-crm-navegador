@@ -17,7 +17,7 @@ const ContactedLeadsCard = () => {
         // Query for leads with the specific ended_reason
         const { count, error } = await supabase
           .from('vapi_call_logs')
-          .select('customer_number', { count: 'exact', head: true })
+          .select('customer_number', { count: 'exact', head: true, distinct: true })
           .eq('ended_reason', 'assistant-ended-call-with-hangup-task');
           
         if (error) {
@@ -29,8 +29,8 @@ const ContactedLeadsCard = () => {
         
         // Get total count for percentage calculation
         const { count: totalCount, error: totalError } = await supabase
-          .from('vapi_call_logs')
-          .select('customer_number', { count: 'exact', head: true });
+          .from('leads')
+          .select('id', { count: 'exact', head: true });
           
         if (totalError) {
           console.error('Error fetching total leads:', totalError);
@@ -64,7 +64,7 @@ const ContactedLeadsCard = () => {
                 </div>
               </TooltipTrigger>
               <TooltipContent className="max-w-xs bg-white p-3 text-sm shadow-lg rounded-lg border">
-                <p>Leads que han sido contactados por el asistente de llamadas automático.</p>
+                <p>Leads que han sido contactados exitosamente por el asistente de llamadas automático.</p>
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>
