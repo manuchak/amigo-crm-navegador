@@ -34,14 +34,14 @@ const ProspectRow: React.FC<ProspectRowProps> = ({
     switch (normalizedStatus) {
       case 'completed':
         return "border-l-4 border-l-green-400";
-      case 'no-answer':
+      case 'customer-did-not-answer':
         return "border-l-4 border-l-amber-400";
+      case 'queued':
+        return "border-l-4 border-l-blue-400";
       case 'busy':
         return "border-l-4 border-l-yellow-400";
       case 'failed':
         return "border-l-4 border-l-red-400";
-      case 'contacted':
-        return "border-l-4 border-l-blue-400";
       default:
         return "";
     }
