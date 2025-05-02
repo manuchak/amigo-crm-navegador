@@ -18,6 +18,7 @@ import LeadsByDaySourceChart from "./dashboard/crm/LeadsByDaySourceChart";
 import { BusinessKpis } from "./dashboard/crm/BusinessKpis";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import ContactedLeadsCard from "./dashboard/crm/ContactedLeadsCard";
+import TotalLeadsCard from "./dashboard/crm/TotalLeadsCard";
 
 const LeadsCrmDashboard: React.FC = () => {
   const { leads } = useLeads();
@@ -48,20 +49,25 @@ const LeadsCrmDashboard: React.FC = () => {
         <TabsContent value="leads">
           {/* Contenido original del dashboard */}
           <div className="space-y-6">
-            {/* Top metrics row - Modified to replace the second card with ContactedLeadsCard */}
+            {/* Top metrics row - Modified to include Total Leads card */}
             <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
+              {/* Total Leads card */}
+              <div className="lg:col-span-1">
+                <TotalLeadsCard />
+              </div>
+              
               {/* First card - Nuevos */}
               <div className="lg:col-span-1">
                 <MetricsCards byStage={[funnel.byStage[0]]} conversions={[]} />
               </div>
               
-              {/* Second card - Contactados from ContactedLeadsCard */}
+              {/* Contactados from ContactedLeadsCard */}
               <div className="lg:col-span-1">
                 <ContactedLeadsCard />
               </div>
               
-              {/* Remaining three original cards */}
-              <div className="lg:col-span-3 grid grid-cols-1 sm:grid-cols-3 gap-4">
+              {/* Remaining cards */}
+              <div className="lg:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <MetricsCards 
                   byStage={funnel.byStage.slice(2)}
                   conversions={funnel.conversions.slice(1)}
