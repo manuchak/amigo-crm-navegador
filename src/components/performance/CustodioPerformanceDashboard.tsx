@@ -16,7 +16,7 @@ import { useCustodioPerformanceData } from "@/components/performance/hooks/useCu
 import { motion } from "framer-motion";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { CardHeader, CardTitle, Card, CardContent } from "@/components/ui/card";
-import { refreshMoreIcon } from "lucide-react";
+import { RefreshCwIcon } from "lucide-react";
 
 interface CustodioPerformanceDashboardProps {
   dateRange: DateRange;
@@ -148,10 +148,10 @@ export function CustodioPerformanceDashboard({ dateRange, comparisonRange }: Cus
 function calculateRatingDistribution(custodios: any[] = []) {
   // Define rating ranges
   const ranges = [
-    { label: '1.0-2.4', min: 1.0, max: 2.4, count: 0 },
-    { label: '2.5-3.4', min: 2.5, max: 3.4, count: 0 },
-    { label: '3.5-4.4', min: 3.5, max: 4.4, count: 0 },
-    { label: '4.5-5.0', min: 4.5, max: 5.0, count: 0 },
+    { label: '1.0-2.4', min: 1.0, max: 2.4, count: 0, percentage: 0 },
+    { label: '2.5-3.4', min: 2.5, max: 3.4, count: 0, percentage: 0 },
+    { label: '3.5-4.4', min: 3.5, max: 4.4, count: 0, percentage: 0 },
+    { label: '4.5-5.0', min: 4.5, max: 5.0, count: 0, percentage: 0 },
   ];
   
   custodios.forEach(custodio => {
