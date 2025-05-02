@@ -3,12 +3,12 @@ import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useCustodioKpi } from '@/hooks/useCustodioKpi';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { InfoCircledIcon } from '@radix-ui/react-icons';
+import { Info } from 'lucide-react';
 import { RevenueAnalytics } from '@/components/performance/dashboard/RevenueAnalytics';
 import { RetentionMetrics } from '@/components/performance/dashboard/RetentionMetrics';
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { format, subMonths } from "date-fns";
+import { format, subMonths, subYears, startOfYear } from "date-fns";
 import { DateRange } from "react-day-picker";
 import { RetentionChart } from './charts/RetentionChart';
 import { RevenueVsCacChart } from './charts/RevenueVsCacChart';
@@ -176,7 +176,7 @@ export const BusinessKpis = () => {
           
           <DateRangePicker 
             value={dateRange}
-            onChange={setDateRange}
+            onChange={setDateRange as (value: DateRange) => void}
           />
         </div>
       </div>
@@ -188,7 +188,7 @@ export const BusinessKpis = () => {
             <div className="flex justify-between items-start">
               <MetricTooltip explanation="Ingresos totales generados por los servicios de custodia dentro del periodo seleccionado.">
                 <p className="text-sm text-muted-foreground flex items-center">
-                  Ingresos Totales <InfoCircledIcon className="h-3.5 w-3.5 ml-1" />
+                  Ingresos Totales <Info className="h-3.5 w-3.5 ml-1" />
                 </p>
               </MetricTooltip>
             </div>
@@ -209,7 +209,7 @@ export const BusinessKpis = () => {
             <div className="flex justify-between items-start">
               <MetricTooltip explanation="Promedio de costo para adquirir un nuevo custodio, incluyendo marketing, personal y recursos.">
                 <p className="text-sm text-muted-foreground flex items-center">
-                  Costo de Adquisición <InfoCircledIcon className="h-3.5 w-3.5 ml-1" />
+                  Costo de Adquisición <Info className="h-3.5 w-3.5 ml-1" />
                 </p>
               </MetricTooltip>
             </div>
@@ -230,7 +230,7 @@ export const BusinessKpis = () => {
             <div className="flex justify-between items-start">
               <MetricTooltip explanation="El valor estimado a largo plazo de un custodio basado en sus ingresos proyectados.">
                 <p className="text-sm text-muted-foreground flex items-center">
-                  LTV Promedio <InfoCircledIcon className="h-3.5 w-3.5 ml-1" />
+                  LTV Promedio <Info className="h-3.5 w-3.5 ml-1" />
                 </p>
               </MetricTooltip>
             </div>
@@ -251,7 +251,7 @@ export const BusinessKpis = () => {
             <div className="flex justify-between items-start">
               <MetricTooltip explanation="Relación entre el Valor de Vida del Cliente y el Costo de Adquisición. Un valor mayor a 3 es considerado saludable.">
                 <p className="text-sm text-muted-foreground flex items-center">
-                  Ratio LTV:CAC <InfoCircledIcon className="h-3.5 w-3.5 ml-1" />
+                  Ratio LTV:CAC <Info className="h-3.5 w-3.5 ml-1" />
                 </p>
               </MetricTooltip>
             </div>
