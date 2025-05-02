@@ -61,10 +61,6 @@ const MetricsCards: React.FC<MetricsCardsProps> = ({ byStage, conversions }) => 
               <div className="text-4xl font-bold mb-1">{stage.value}</div>
               {stage.percentage !== undefined && (
                 <div className="flex items-center gap-1 text-xs">
-                  {stage.percentage >= 0 ? 
-                    <CircleArrowUp className="w-3 h-3 text-green-500" /> : 
-                    <CircleArrowDown className="w-3 h-3 text-red-500" />
-                  }
                   <span>
                     {formatPercent(stage.percentage)} del total
                   </span>

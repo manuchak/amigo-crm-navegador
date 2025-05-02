@@ -1,4 +1,3 @@
-
 import { Lead } from "@/context/LeadsContext";
 
 export const STAGES = [
@@ -174,7 +173,7 @@ export function useFunnelStats(leads: any[]) {
     new: leads.filter(lead => lead.estado === 'Nuevo').length,
     contacted: leads.filter(lead => lead.estado === 'Contactado').length,
     qualified: leads.filter(lead => lead.estado === 'Calificado').length,
-    hired: leads.filter(lead => lead.estado === 'Contratado').length,
+    hired: leads.filter(lead => lead.estado === 'Contratados').length,
   };
 
   // Calculate total leads for percentage
