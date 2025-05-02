@@ -62,12 +62,12 @@ const ProspectFilters: React.FC<ProspectFiltersProps> = ({
 
         {!hideFilters && (
           <div className="flex flex-col md:flex-row gap-2 items-start md:items-center w-full md:w-auto">
-            <Select value={filter || ''} onValueChange={(value) => onFilterChange(value === '' ? undefined : value)}>
+            <Select value={filter || 'all'} onValueChange={(value) => onFilterChange(value === 'all' ? undefined : value)}>
               <SelectTrigger className="w-full md:w-[180px]">
                 <SelectValue placeholder="Todos los estados" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Todos</SelectItem>
+                <SelectItem value="all">Todos</SelectItem>
                 <SelectItem value="Nuevo">Nuevo</SelectItem>
                 <SelectItem value="Contactado">Contactado</SelectItem>
                 <SelectItem value="1er Contacto">1er Contacto</SelectItem>
