@@ -4,7 +4,7 @@ import { ResponsiveContainer, LineChart, XAxis, YAxis, Tooltip, Legend, Line } f
 import { ChartContainer } from "@/components/ui/chart";
 
 interface MonthlyLineChartProps {
-  data: { name: string; Nuevos: number; Calificados: number }[];
+  data: { name: string; Nuevos: number; Calificados: number; date?: Date }[];
 }
 
 const MonthlyLineChart: React.FC<MonthlyLineChartProps> = ({ data }) => {

@@ -1,4 +1,3 @@
-
 import { Lead } from "@/context/LeadsContext";
 
 export const STAGES = [
@@ -27,15 +26,24 @@ interface MonthlyData {
   name: string;
   Nuevos: number;
   Calificados: number;
+  date: Date;
 }
 
 export const getMonthlyTrend = (leads: Lead[]): MonthlyData[] => {
   const monthlyData: { [key: string]: MonthlyData } = {};
 
   leads.forEach(lead => {
-    const monthYear = new Date(lead.fechaCreacion).toLocaleDateString('es-ES', { month: 'short', year: 'numeric' });
+    const date = new Date(lead.fechaCreacion);
+    // Format for display but keep the full date object for sorting
+    const monthYear = date.toLocaleDateString('es-ES', { month: 'short', year: 'numeric' });
+    
     if (!monthlyData[monthYear]) {
-      monthlyData[monthYear] = { name: monthYear, Nuevos: 0, Calificados: 0 };
+      monthlyData[monthYear] = { 
+        name: monthYear, 
+        Nuevos: 0, 
+        Calificados: 0,
+        date: date 
+      };
     }
 
     if (lead.estado === 'Nuevo') {
@@ -45,12 +53,9 @@ export const getMonthlyTrend = (leads: Lead[]): MonthlyData[] => {
     }
   });
 
+  // Sort by date in ascending order
   return Object.values(monthlyData).sort((a, b) => {
-    const [monthA, yearA] = a.name.split(' ');
-    const [monthB, yearB] = b.name.split(' ');
-    const dateA = new Date(`${monthA} 1, ${yearA}`);
-    const dateB = new Date(`${monthB} 1, ${yearB}`);
-    return dateA.getTime() - dateB.getTime();
+    return a.date.getTime() - b.date.getTime();
   });
 };
 
