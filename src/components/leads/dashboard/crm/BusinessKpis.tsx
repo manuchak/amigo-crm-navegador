@@ -1,761 +1,319 @@
-import React from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { useCustodioKpi } from '@/hooks/useCustodioKpi';
-import { CircleDollarSign, Users, Scale, TrendingUp, BarChart, LineChart } from 'lucide-react';
-import { 
-  ResponsiveContainer,
-  AreaChart, 
-  Area, 
-  LineChart as RechartLineChart,
-  Line,
-  XAxis,
-  YAxis,
-  Tooltip,
-  CartesianGrid,
-  BarChart as RechartBarChart,
-  Bar,
-  Legend
-} from 'recharts';
-import { ChartTooltipContent } from '@/components/ui/chart';
-import { format, parseISO } from 'date-fns';
-import { es } from 'date-fns/locale';
-import { Button } from '@/components/ui/button';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { useState } from 'react';
-import { Badge } from '@/components/ui/badge';
-import { toast } from 'sonner';
 
-export function BusinessKpis() {
-  const [months, setMonths] = useState(12);
+import React from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useCustodioKpi } from "@/hooks/useCustodioKpi";
+import { Loader2, TrendingUp, Users, Wallet, BarChart3, LineChart, Activity, Star } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ResponsiveContainer, LineChart as RechartLineChart, XAxis, YAxis, CartesianGrid, Tooltip, Legend, Line, BarChart, Bar } from "recharts";
+import { formatCurrency, formatPercent } from "./crmUtils";
+import { MetricsForm } from "./MetricsForm";
+import { Tooltip as TooltipUI, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+
+// Helper to create tooltips for metrics
+const MetricTooltip = ({ children, explanation }: { children: React.ReactNode, explanation: string }) => (
+  <TooltipProvider>
+    <TooltipUI>
+      <TooltipTrigger asChild>
+        <div className="cursor-help">{children}</div>
+      </TooltipTrigger>
+      <TooltipContent className="max-w-xs bg-white p-3 text-sm shadow-lg rounded-lg border">
+        <p>{explanation}</p>
+      </TooltipContent>
+    </TooltipUI>
+  </TooltipProvider>
+);
+
+export const BusinessKpis = () => {
   const { 
-    kpiData, 
-    metrics, 
-    newCustodios, 
-    retention, 
-    ltv,
-    isLoading, 
-    isError,
-    updateMetrics, 
-    nps,
-    cac,
-    marketingRoi,
-    avgRetention,
-    avgLtv,
-    ltvCacRatio
-  } = useCustodioKpi(months);
+    kpiData, metrics, newCustodios, retention, ltv, 
+    isLoading, isError, updateMetrics, isUpdating,
+    nps, cac, marketingRoi, avgRetention, avgLtv, ltvCacRatio 
+  } = useCustodioKpi(24); // Get 2 years of data
   
-  const [isMetricsDialogOpen, setIsMetricsDialogOpen] = useState(false);
-  const [currentMetric, setCurrentMetric] = useState<any>({
-    month_year: format(new Date(), 'yyyy-MM-01'),
-    staff_cost: 0,
-    asset_cost: 0,
-    marketing_cost: 0,
-    nps_promoters: 0,
-    nps_neutral: 0,
-    nps_detractors: 0,
-    acquisition_cost_manual: 0,
-    avg_onboarding_days: 0,
-    campaign_name: '',
-    campaign_cost: 0,
-    campaign_revenue: 0
-  });
-  
-  // Manejar el envío del formulario de métricas
-  const handleMetricsSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    updateMetrics(currentMetric);
-    setIsMetricsDialogOpen(false);
-    toast.success('Métricas actualizadas correctamente');
-  };
-  
-  // Manejar cambios en los campos del formulario
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setCurrentMetric(prev => ({
-      ...prev,
-      [name]: name.includes('cost') || name.includes('revenue') || name.includes('days') ? 
-        parseFloat(value) : value
-    }));
-  };
-  
-  // Función para formatear valores monetarios
-  const formatCurrency = (value?: number) => {
-    if (value === undefined) return '$0';
-    return new Intl.NumberFormat('es-MX', {
-      style: 'currency',
-      currency: 'MXN'
-    }).format(value);
-  };
-  
-  // Función para formatear porcentajes
-  const formatPercent = (value?: number) => {
-    if (value === undefined) return '0%';
-    return `${value.toFixed(1)}%`;
-  };
-
-  // Custom tooltip components that don't use useChart directly
-  const RevenueChartTooltip = ({ active, payload, label }: any) => {
+  // Custom tooltip for the charts
+  const CustomTooltip = ({ active, payload, label }: any) => {
     if (!active || !payload || !payload.length) return null;
+    
     return (
-      <div className="bg-background/95 p-2 border rounded-md shadow-md text-sm">
+      <div className="bg-white p-2 border rounded-md shadow-md text-sm">
         <p className="font-medium">{label}</p>
         {payload.map((entry: any, index: number) => (
           <p key={index} style={{ color: entry.color }}>
-            {entry.name === "revenue" ? "Ingresos Totales" : "Promedio por Servicio"}: 
-            {formatCurrency(entry.value)}
-          </p>
-        ))}
-      </div>
-    );
-  };
-  
-  const RetentionChartTooltip = ({ active, payload, label }: any) => {
-    if (!active || !payload || !payload.length) return null;
-    return (
-      <div className="bg-background/95 p-2 border rounded-md shadow-md text-sm">
-        <p className="font-medium">{label}</p>
-        {payload.map((entry: any, index: number) => (
-          <p key={index} style={{ color: entry.color }}>
-            {entry.name === "activos" ? "Custodios Activos" : 
-             entry.name === "nuevos" ? "Nuevos Custodios" :
-             entry.name === "perdidos" ? "Custodios Perdidos" :
-             "Tasa de Retención"}: 
-            {entry.name === "retention" ? `${entry.value.toFixed(1)}%` : entry.value}
-          </p>
-        ))}
-      </div>
-    );
-  };
-  
-  const EfficiencyChartTooltip = ({ active, payload, label }: any) => {
-    if (!active || !payload || !payload.length) return null;
-    return (
-      <div className="bg-background/95 p-2 border rounded-md shadow-md text-sm">
-        <p className="font-medium">{label}</p>
-        {payload.map((entry: any, index: number) => (
-          <p key={index} style={{ color: entry.color }}>
-            Servicios por Custodio: {entry.value.toFixed(1)}
+            {entry.name}: {
+              entry.name.includes('Revenue') || entry.name.includes('LTV') || entry.name === 'CAC' 
+                ? formatCurrency(entry.value) 
+                : entry.name.includes('Rate') || entry.name === 'Marketing ROI' 
+                  ? formatPercent(entry.value) 
+                  : entry.value
+            }
           </p>
         ))}
       </div>
     );
   };
 
-  // Datos para gráficos
-  const revenueData = kpiData?.map(month => ({
-    name: format(parseISO(month.month_year), 'MMM yy', { locale: es }),
-    revenue: month.total_revenue || 0,
-    avg: month.avg_revenue_per_service || 0
-  }));
-  
-  const custodioGrowthData = retention?.map(month => ({
-    name: format(parseISO(month.month_year), 'MMM yy', { locale: es }),
-    activos: month.active_end,
-    nuevos: month.new_custodios,
-    perdidos: month.lost_custodios,
-    retention: month.retention_rate
-  }));
-  
-  const averagesData = kpiData?.map(month => ({
-    name: format(parseISO(month.month_year), 'MMM yy', { locale: es }),
-    serviciosPorCustodio: month.avg_services_per_custodio || 0
-  }));
-  
-  // Calcular cambio porcentual para los KPIs principales
-  const calculateChange = (data?: any[], key?: string) => {
-    if (!data || data.length < 2 || !key) return 0;
-    
-    const current = data[data.length - 1][key] || 0;
-    const previous = data[data.length - 2][key] || 0;
-    
-    if (previous === 0) return 100; // Si el valor anterior era 0, el cambio es del 100%
-    return ((current - previous) / previous) * 100;
-  };
-  
-  const revenueChange = calculateChange(kpiData, 'total_revenue');
-  const custodiosChange = calculateChange(retention, 'active_end');
-  const ltvChange = ltv && ltv.length > 0 ? 
-    ((ltv.reduce((sum, c) => sum + c.estimated_ltv, 0) / ltv.length) - avgLtv) / avgLtv * 100 : 0;
-  
   if (isLoading) {
     return (
-      <Card>
-        <CardHeader>
-          <CardTitle>KPIs de Negocio</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex items-center justify-center h-40">
-            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
-          </div>
-        </CardContent>
-      </Card>
+      <div className="flex items-center justify-center h-60">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <span className="ml-2 text-lg">Cargando métricas del negocio...</span>
+      </div>
     );
   }
   
   if (isError) {
     return (
-      <Card>
-        <CardHeader>
-          <CardTitle>KPIs de Negocio</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="bg-red-50 p-4 rounded-md text-red-600">
-            Error al cargar los KPIs. Por favor, intente nuevamente más tarde.
-          </div>
-        </CardContent>
-      </Card>
+      <div className="text-center py-8">
+        <p className="text-red-500">Error al cargar los datos. Intente nuevamente más tarde.</p>
+      </div>
     );
   }
+
+  // Format data for the Revenue vs CAC chart
+  const revenueVsCacData = kpiData?.map(item => ({
+    month: new Date(item.month_year).toLocaleDateString('es-MX', { month: 'short', year: 'numeric' }),
+    'Revenue': item.total_revenue,
+    'CAC': metrics?.find(m => m.month_year === item.month_year)?.acquisition_cost_manual || 0
+  })) || [];
   
+  // Format data for the retention chart
+  const retentionData = retention?.map(item => ({
+    month: new Date(item.month_year).toLocaleDateString('es-MX', { month: 'short', year: 'numeric' }),
+    'Retention Rate': item.retention_rate,
+    'Growth Rate': item.growth_rate
+  })) || [];
+  
+  // Format data for the LTV chart
+  const ltvData = ltv?.map(item => ({
+    name: item.nombre_custodio.length > 15 
+      ? `${item.nombre_custodio.substring(0, 15)}...` 
+      : item.nombre_custodio,
+    'LTV': item.estimated_ltv,
+    'Total Revenue': item.total_revenue,
+  })).slice(0, 10) || [];
+
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
-        <h3 className="text-lg font-medium">KPIs de Negocio</h3>
-        <div className="flex gap-2">
-          <Button 
-            variant="outline" 
-            size="sm"
-            onClick={() => setIsMetricsDialogOpen(true)}
-          >
-            Ingresar Métricas
-          </Button>
-          <select 
-            className="border rounded-md px-3 py-2 text-sm"
-            value={months}
-            onChange={(e) => setMonths(parseInt(e.target.value))}
-          >
-            <option value={3}>3 meses</option>
-            <option value={6}>6 meses</option>
-            <option value={12}>12 meses</option>
-            <option value={24}>24 meses</option>
-          </select>
-        </div>
-      </div>
-      
-      {/* Tarjetas de KPIs principales */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex justify-between items-start">
-              <div className="space-y-1">
-                <p className="text-sm text-muted-foreground">Ingresos</p>
-                <p className="text-2xl font-bold">
-                  {formatCurrency(kpiData?.slice(-1)[0]?.total_revenue)}
-                </p>
-                <div className={`text-xs ${revenueChange >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                  {revenueChange >= 0 ? '↑' : '↓'} {Math.abs(revenueChange).toFixed(1)}%
-                </div>
+      {/* Top KPI cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <Card className="shadow-sm">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm text-muted-foreground">Ingresos Totales</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <MetricTooltip explanation="Suma de todos los ingresos generados por servicios de custodios en el período seleccionado. Calculado como la suma del campo 'cobro_cliente' de la tabla de servicios.">
+              <div className="flex items-center space-x-2">
+                <TrendingUp className="h-5 w-5 text-emerald-500" />
+                <span className="text-2xl font-bold">
+                  {formatCurrency(kpiData?.reduce((sum, item) => sum + item.total_revenue, 0) || 0)}
+                </span>
               </div>
-              <div className="p-2 bg-primary/10 rounded-full">
-                <CircleDollarSign className="h-5 w-5 text-primary" />
-              </div>
-            </div>
+            </MetricTooltip>
           </CardContent>
         </Card>
         
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex justify-between items-start">
-              <div className="space-y-1">
-                <p className="text-sm text-muted-foreground">Custodios Activos</p>
-                <p className="text-2xl font-bold">
-                  {retention?.slice(-1)[0]?.active_end || 0}
-                </p>
-                <div className={`text-xs ${custodiosChange >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                  {custodiosChange >= 0 ? '↑' : '↓'} {Math.abs(custodiosChange).toFixed(1)}%
-                </div>
+        <Card className="shadow-sm">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm text-muted-foreground">Custodios Activos</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <MetricTooltip explanation="Número de custodios únicos que han realizado al menos un servicio en el período seleccionado. Calculado como el conteo distintivo de 'nombre_custodio' en la tabla de servicios.">
+              <div className="flex items-center space-x-2">
+                <Users className="h-5 w-5 text-blue-500" />
+                <span className="text-2xl font-bold">
+                  {kpiData?.slice(-1)[0]?.total_custodios || 0}
+                </span>
               </div>
-              <div className="p-2 bg-blue-500/10 rounded-full">
-                <Users className="h-5 w-5 text-blue-600" />
-              </div>
-            </div>
+            </MetricTooltip>
           </CardContent>
         </Card>
         
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex justify-between items-start">
-              <div className="space-y-1">
-                <p className="text-sm text-muted-foreground">CAC</p>
-                <p className="text-2xl font-bold">
+        <Card className="shadow-sm">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm text-muted-foreground">Costo de Adquisición (CAC)</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <MetricTooltip explanation="Costo promedio para adquirir un nuevo custodio. Calculado como la suma de costos de marketing, personal y otros activos, dividido por el número de nuevos custodios en el período.">
+              <div className="flex items-center space-x-2">
+                <Wallet className="h-5 w-5 text-purple-500" />
+                <span className="text-2xl font-bold">
                   {formatCurrency(cac)}
-                </p>
-                <div className="text-xs text-muted-foreground">
-                  Costo de adquisición
-                </div>
+                </span>
               </div>
-              <div className="p-2 bg-orange-500/10 rounded-full">
-                <Scale className="h-5 w-5 text-orange-600" />
-              </div>
-            </div>
+            </MetricTooltip>
           </CardContent>
         </Card>
         
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex justify-between items-start">
-              <div className="space-y-1">
-                <p className="text-sm text-muted-foreground">LTV</p>
-                <p className="text-2xl font-bold">
+        <Card className="shadow-sm">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm text-muted-foreground">Valor de Vida del Cliente (LTV)</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <MetricTooltip explanation="Valor total estimado que un custodio genera durante toda su relación con la empresa. Calculado como el promedio de ingresos generados por un custodio, desde su primer servicio hasta su último servicio registrado.">
+              <div className="flex items-center space-x-2">
+                <BarChart3 className="h-5 w-5 text-amber-500" />
+                <span className="text-2xl font-bold">
                   {formatCurrency(avgLtv)}
-                </p>
-                <div className={`text-xs ${ltvChange >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                  {ltvChange >= 0 ? '↑' : '↓'} {Math.abs(ltvChange).toFixed(1)}%
-                </div>
+                </span>
               </div>
-              <div className="p-2 bg-emerald-500/10 rounded-full">
-                <TrendingUp className="h-5 w-5 text-emerald-600" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-      
-      {/* Segunda fila de métricas */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex justify-between items-start">
-              <div className="space-y-1">
-                <p className="text-sm text-muted-foreground">LTV:CAC</p>
-                <p className="text-2xl font-bold">
-                  {ltvCacRatio.toFixed(1)}
-                </p>
-                <div className={`text-xs ${ltvCacRatio >= 3 ? 'text-green-600' : ltvCacRatio >= 1 ? 'text-amber-600' : 'text-red-600'}`}>
-                  {ltvCacRatio >= 3 ? 'Excelente' : ltvCacRatio >= 1 ? 'Aceptable' : 'Bajo'}
-                </div>
-              </div>
-              <div className="p-2 bg-violet-500/10 rounded-full">
-                <Scale className="h-5 w-5 text-violet-600" />
-              </div>
-            </div>
+            </MetricTooltip>
           </CardContent>
         </Card>
         
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex justify-between items-start">
-              <div className="space-y-1">
-                <p className="text-sm text-muted-foreground">Retención</p>
-                <p className="text-2xl font-bold">
+        <Card className="shadow-sm">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm text-muted-foreground">Tasa de Retención</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <MetricTooltip explanation="Porcentaje de custodios que continúan trabajando con la empresa de un período a otro. Calculado comparando custodios activos al inicio y al final del período.">
+              <div className="flex items-center space-x-2">
+                <LineChart className="h-5 w-5 text-cyan-500" />
+                <span className="text-2xl font-bold">
                   {formatPercent(avgRetention)}
-                </p>
-                <div className="text-xs text-muted-foreground">
-                  Tasa de retención promedio
-                </div>
+                </span>
               </div>
-              <div className="p-2 bg-cyan-500/10 rounded-full">
-                <Users className="h-5 w-5 text-cyan-600" />
-              </div>
-            </div>
+            </MetricTooltip>
           </CardContent>
         </Card>
         
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex justify-between items-start">
-              <div className="space-y-1">
-                <p className="text-sm text-muted-foreground">NPS</p>
-                <p className="text-2xl font-bold">
+        <Card className="shadow-sm">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm text-muted-foreground">NPS</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <MetricTooltip explanation="Net Promoter Score - Métrica que mide la lealtad y satisfacción de los custodios. Calculado como % Promotores - % Detractores.">
+              <div className="flex items-center space-x-2">
+                <Star className="h-5 w-5 text-yellow-500" />
+                <span className="text-2xl font-bold">
                   {nps}
-                </p>
-                <div className={`text-xs ${nps >= 50 ? 'text-green-600' : nps >= 0 ? 'text-amber-600' : 'text-red-600'}`}>
-                  {nps >= 50 ? 'Excelente' : nps >= 0 ? 'Aceptable' : 'Crítico'}
-                </div>
+                </span>
               </div>
-              <div className="p-2 bg-rose-500/10 rounded-full">
-                <BarChart className="h-5 w-5 text-rose-600" />
-              </div>
-            </div>
+            </MetricTooltip>
           </CardContent>
         </Card>
         
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex justify-between items-start">
-              <div className="space-y-1">
-                <p className="text-sm text-muted-foreground">ROI Marketing</p>
-                <p className="text-2xl font-bold">
+        <Card className="shadow-sm">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm text-muted-foreground">ROI de Marketing</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <MetricTooltip explanation="Retorno de inversión en campañas de marketing. Calculado como (Ingresos - Costos) / Costos, expresado en porcentaje.">
+              <div className="flex items-center space-x-2">
+                <Activity className="h-5 w-5 text-rose-500" />
+                <span className="text-2xl font-bold">
                   {formatPercent(marketingRoi)}
-                </p>
-                <div className={`text-xs ${marketingRoi >= 100 ? 'text-green-600' : marketingRoi >= 0 ? 'text-amber-600' : 'text-red-600'}`}>
-                  {marketingRoi >= 100 ? 'Excelente' : marketingRoi >= 0 ? 'Positivo' : 'Negativo'}
-                </div>
+                </span>
               </div>
-              <div className="p-2 bg-yellow-500/10 rounded-full">
-                <LineChart className="h-5 w-5 text-yellow-600" />
+            </MetricTooltip>
+          </CardContent>
+        </Card>
+        
+        <Card className="shadow-sm">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm text-muted-foreground">Ratio LTV:CAC</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <MetricTooltip explanation="Relación entre el Valor de Vida del Cliente y el Costo de Adquisición. Un buen ratio debe ser 3:1 o superior, indicando una buena rentabilidad en la adquisición de custodios.">
+              <div className="flex items-center space-x-2">
+                <BarChart3 className="h-5 w-5 text-indigo-500" />
+                <span className="text-2xl font-bold">
+                  {ltvCacRatio.toFixed(1)}:1
+                </span>
               </div>
-            </div>
+            </MetricTooltip>
           </CardContent>
         </Card>
       </div>
       
-      {/* Gráficos */}
-      <Tabs defaultValue="revenue" className="w-full">
+      {/* Charts and data entry tabs */}
+      <Tabs defaultValue="charts">
         <TabsList>
-          <TabsTrigger value="revenue">Ingresos</TabsTrigger>
-          <TabsTrigger value="retention">Retención</TabsTrigger>
-          <TabsTrigger value="efficiency">Eficiencia</TabsTrigger>
+          <TabsTrigger value="charts">Gráficas</TabsTrigger>
+          <TabsTrigger value="data">Ingresar Datos</TabsTrigger>
         </TabsList>
         
-        <TabsContent value="revenue" className="pt-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Tendencia de Ingresos</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="h-[300px]">
-                <ResponsiveContainer width="100%" height="100%">
-                  <AreaChart data={revenueData}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="name" />
-                    <YAxis />
-                    <Tooltip content={<RevenueChartTooltip />} />
-                    <Legend />
-                    <Area
-                      type="monotone"
-                      dataKey="revenue"
-                      name="Ingresos Totales"
-                      stroke="#8884d8"
-                      fill="#8884d8"
-                      fillOpacity={0.3}
-                    />
-                    <Area
-                      type="monotone"
-                      dataKey="avg"
-                      name="Promedio por Servicio"
-                      stroke="#82ca9d"
-                      fill="#82ca9d"
-                      fillOpacity={0.3}
-                    />
-                  </AreaChart>
-                </ResponsiveContainer>
-              </div>
-            </CardContent>
-          </Card>
+        <TabsContent value="charts">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-base">Ingresos vs CAC</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="h-[350px]">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <RechartLineChart data={revenueVsCacData} margin={{ top: 20, right: 30, left: 20, bottom: 30 }}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="month" angle={-45} textAnchor="end" height={60} />
+                      <YAxis />
+                      <Tooltip content={<CustomTooltip />} />
+                      <Legend />
+                      <Line type="monotone" dataKey="Revenue" stroke="#10B981" strokeWidth={2} dot={{ r: 4 }} />
+                      <Line type="monotone" dataKey="CAC" stroke="#8B5CF6" strokeWidth={2} dot={{ r: 4 }} />
+                    </RechartLineChart>
+                  </ResponsiveContainer>
+                </div>
+              </CardContent>
+            </Card>
+            
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-base">Retención de Custodios</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="h-[350px]">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <RechartLineChart data={retentionData} margin={{ top: 20, right: 30, left: 20, bottom: 30 }}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="month" angle={-45} textAnchor="end" height={60} />
+                      <YAxis />
+                      <Tooltip content={<CustomTooltip />} />
+                      <Legend />
+                      <Line type="monotone" dataKey="Retention Rate" stroke="#0EA5E9" strokeWidth={2} dot={{ r: 4 }} />
+                      <Line type="monotone" dataKey="Growth Rate" stroke="#F43F5E" strokeWidth={2} dot={{ r: 4 }} />
+                    </RechartLineChart>
+                  </ResponsiveContainer>
+                </div>
+              </CardContent>
+            </Card>
+            
+            <Card className="lg:col-span-2">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-base">Top 10 Custodios por LTV</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="h-[350px]">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={ltvData} margin={{ top: 20, right: 30, left: 20, bottom: 60 }}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="name" angle={-45} textAnchor="end" height={80} />
+                      <YAxis />
+                      <Tooltip content={<CustomTooltip />} />
+                      <Legend />
+                      <Bar dataKey="LTV" fill="#F59E0B" />
+                      <Bar dataKey="Total Revenue" fill="#3B82F6" />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
         </TabsContent>
         
-        <TabsContent value="retention" className="pt-4">
+        <TabsContent value="data">
           <Card>
             <CardHeader>
-              <CardTitle>Crecimiento y Retención</CardTitle>
+              <CardTitle>Métricas Manuales</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="h-[300px]">
-                <ResponsiveContainer width="100%" height="100%">
-                  <RechartBarChart data={custodioGrowthData}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="name" />
-                    <YAxis yAxisId="left" />
-                    <YAxis yAxisId="right" orientation="right" />
-                    <Tooltip content={<RetentionChartTooltip />} />
-                    <Legend />
-                    <Bar
-                      yAxisId="left"
-                      dataKey="activos"
-                      name="Custodios Activos"
-                      fill="#8884d8"
-                    />
-                    <Bar
-                      yAxisId="left"
-                      dataKey="nuevos"
-                      name="Nuevos Custodios"
-                      fill="#82ca9d"
-                    />
-                    <Bar
-                      yAxisId="left"
-                      dataKey="perdidos"
-                      name="Custodios Perdidos"
-                      fill="#ff8042"
-                    />
-                    <Line
-                      yAxisId="right"
-                      type="monotone"
-                      dataKey="retention"
-                      name="Tasa de Retención"
-                      stroke="#ff7300"
-                    />
-                  </RechartBarChart>
-                </ResponsiveContainer>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-        
-        <TabsContent value="efficiency" className="pt-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Eficiencia Operativa</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="h-[300px]">
-                <ResponsiveContainer width="100%" height="100%">
-                  <RechartLineChart data={averagesData}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="name" />
-                    <YAxis />
-                    <Tooltip content={<EfficiencyChartTooltip />} />
-                    <Legend />
-                    <Line
-                      type="monotone"
-                      dataKey="serviciosPorCustodio"
-                      name="Servicios por Custodio"
-                      stroke="#8884d8"
-                      activeDot={{ r: 8 }}
-                    />
-                  </RechartLineChart>
-                </ResponsiveContainer>
-              </div>
+              <MetricsForm 
+                metrics={metrics?.slice(-1)[0]} 
+                onSave={updateMetrics} 
+                isLoading={isUpdating} 
+              />
             </CardContent>
           </Card>
         </TabsContent>
       </Tabs>
-      
-      {/* Diálogo para ingresar métricas manualmente */}
-      <Dialog open={isMetricsDialogOpen} onOpenChange={setIsMetricsDialogOpen}>
-        <DialogContent className="sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Ingresar Métricas Manuales</DialogTitle>
-          </DialogHeader>
-          <form onSubmit={(e) => {
-            e.preventDefault();
-            updateMetrics(currentMetric);
-            setIsMetricsDialogOpen(false);
-            toast.success('Métricas actualizadas correctamente');
-          }} className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label htmlFor="month_year">Mes</Label>
-              <Input
-                id="month_year"
-                name="month_year"
-                type="date"
-                value={currentMetric.month_year}
-                onChange={(e) => {
-                  const { name, value } = e.target;
-                  setCurrentMetric(prev => ({
-                    ...prev,
-                    [name]: value
-                  }));
-                }}
-              />
-              <p className="text-sm text-muted-foreground">Seleccione el primer día del mes</p>
-            </div>
-            
-            <h4 className="font-medium text-sm pt-2 border-t">Costos de Adquisición</h4>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="staff_cost">Costo de Personal</Label>
-                <Input
-                  id="staff_cost"
-                  name="staff_cost"
-                  type="number"
-                  value={currentMetric.staff_cost}
-                  onChange={(e) => {
-                    const { name, value } = e.target;
-                    setCurrentMetric(prev => ({
-                      ...prev,
-                      [name]: parseFloat(value)
-                    }));
-                  }}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="asset_cost">Costo de Activos</Label>
-                <Input
-                  id="asset_cost"
-                  name="asset_cost"
-                  type="number"
-                  value={currentMetric.asset_cost}
-                  onChange={(e) => {
-                    const { name, value } = e.target;
-                    setCurrentMetric(prev => ({
-                      ...prev,
-                      [name]: parseFloat(value)
-                    }));
-                  }}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="marketing_cost">Costo de Marketing</Label>
-                <Input
-                  id="marketing_cost"
-                  name="marketing_cost"
-                  type="number"
-                  value={currentMetric.marketing_cost}
-                  onChange={(e) => {
-                    const { name, value } = e.target;
-                    setCurrentMetric(prev => ({
-                      ...prev,
-                      [name]: parseFloat(value)
-                    }));
-                  }}
-                />
-              </div>
-            </div>
-            
-            <h4 className="font-medium text-sm pt-2 border-t">Datos NPS</h4>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="nps_promoters">Promotores (9-10)</Label>
-                <Input
-                  id="nps_promoters"
-                  name="nps_promoters"
-                  type="number"
-                  value={currentMetric.nps_promoters}
-                  onChange={(e) => {
-                    const { name, value } = e.target;
-                    setCurrentMetric(prev => ({
-                      ...prev,
-                      [name]: parseInt(value)
-                    }));
-                  }}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="nps_neutral">Neutros (7-8)</Label>
-                <Input
-                  id="nps_neutral"
-                  name="nps_neutral"
-                  type="number"
-                  value={currentMetric.nps_neutral}
-                  onChange={(e) => {
-                    const { name, value } = e.target;
-                    setCurrentMetric(prev => ({
-                      ...prev,
-                      [name]: parseInt(value)
-                    }));
-                  }}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="nps_detractors">Detractores (0-6)</Label>
-                <Input
-                  id="nps_detractors"
-                  name="nps_detractors"
-                  type="number"
-                  value={currentMetric.nps_detractors}
-                  onChange={(e) => {
-                    const { name, value } = e.target;
-                    setCurrentMetric(prev => ({
-                      ...prev,
-                      [name]: parseInt(value)
-                    }));
-                  }}
-                />
-              </div>
-            </div>
-            
-            <h4 className="font-medium text-sm pt-2 border-t">Datos de Campaña</h4>
-            <div className="grid grid-cols-1 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="campaign_name">Nombre de Campaña</Label>
-                <Input
-                  id="campaign_name"
-                  name="campaign_name"
-                  type="text"
-                  value={currentMetric.campaign_name || ''}
-                  onChange={(e) => {
-                    const { name, value } = e.target;
-                    setCurrentMetric(prev => ({
-                      ...prev,
-                      [name]: value
-                    }));
-                  }}
-                />
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="campaign_cost">Costo de Campaña</Label>
-                  <Input
-                    id="campaign_cost"
-                    name="campaign_cost"
-                    type="number"
-                    value={currentMetric.campaign_cost}
-                    onChange={(e) => {
-                      const { name, value } = e.target;
-                      setCurrentMetric(prev => ({
-                        ...prev,
-                        [name]: parseFloat(value)
-                      }));
-                    }}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="campaign_revenue">Ingreso de Campaña</Label>
-                  <Input
-                    id="campaign_revenue"
-                    name="campaign_revenue"
-                    type="number"
-                    value={currentMetric.campaign_revenue}
-                    onChange={(e) => {
-                      const { name, value } = e.target;
-                      setCurrentMetric(prev => ({
-                        ...prev,
-                        [name]: parseFloat(value)
-                      }));
-                    }}
-                  />
-                </div>
-              </div>
-            </div>
-            
-            <h4 className="font-medium text-sm pt-2 border-t">Otros Datos</h4>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="acquisition_cost_manual">Costos de Adquisición Adicionales</Label>
-                <Input
-                  id="acquisition_cost_manual"
-                  name="acquisition_cost_manual"
-                  type="number"
-                  value={currentMetric.acquisition_cost_manual}
-                  onChange={(e) => {
-                    const { name, value } = e.target;
-                    setCurrentMetric(prev => ({
-                      ...prev,
-                      [name]: parseFloat(value)
-                    }));
-                  }}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="avg_onboarding_days">Días Promedio de Onboarding</Label>
-                <Input
-                  id="avg_onboarding_days"
-                  name="avg_onboarding_days"
-                  type="number"
-                  value={currentMetric.avg_onboarding_days}
-                  onChange={(e) => {
-                    const { name, value } = e.target;
-                    setCurrentMetric(prev => ({
-                      ...prev,
-                      [name]: parseFloat(value)
-                    }));
-                  }}
-                />
-              </div>
-            </div>
-            
-            <div className="flex justify-end gap-2 pt-4">
-              <Button variant="outline" type="button" onClick={() => setIsMetricsDialogOpen(false)}>
-                Cancelar
-              </Button>
-              <Button type="submit">
-                Guardar Métricas
-              </Button>
-            </div>
-          </form>
-        </DialogContent>
-      </Dialog>
-      
-      {/* Badge de datos que requieren atención manual */}
-      <div className="flex justify-end">
-        <Badge variant="outline" className="text-xs font-normal">
-          Algunos KPIs requieren datos manuales en "Ingresar Métricas"
-        </Badge>
-      </div>
     </div>
   );
-}
+};

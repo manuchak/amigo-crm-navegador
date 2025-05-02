@@ -77,9 +77,8 @@ export function useCustodioKpi(months: number = 12) {
       item => item.month_year === latestMetric.month_year
     );
     
-    const newCustodios = monthData?.new_custodios || 0;
+    const newCustodios = monthData?.new_custodios || 1; // Evitar división por cero
     
-    if (newCustodios === 0) return totalCost; // Evitar división por cero
     return totalCost / newCustodios;
   };
   
@@ -122,11 +121,23 @@ export function useCustodioKpi(months: number = 12) {
   const calculateAvgLtv = () => {
     if (!ltvQuery.data || ltvQuery.data.length === 0) return 0;
     
-    const totalLtv = ltvQuery.data.reduce(
+    // Solo considerar custodios activos - que tienen registros en el período seleccionado
+    const activeCustodios = ltvQuery.data.filter(item => {
+      // Verificar si la fecha del último servicio está dentro del período
+      const lastServiceDate = new Date(item.last_service_date);
+      const cutoffDate = new Date();
+      cutoffDate.setMonth(cutoffDate.getMonth() - months);
+      return lastServiceDate >= cutoffDate;
+    });
+    
+    if (activeCustodios.length === 0) return 0;
+    
+    // Calcular LTV solo para custodios activos
+    const totalLtv = activeCustodios.reduce(
       (sum, item) => sum + (item.estimated_ltv || 0), 0
     );
     
-    return totalLtv / ltvQuery.data.length;
+    return totalLtv / activeCustodios.length;
   };
   
   // Calcular relación LTV:CAC
