@@ -26,11 +26,27 @@ const StageTimeBarChart: React.FC<StageTimeBarChartProps> = ({ leads }) => {
       </div>
     );
   };
+
+  // Transform status names for display
+  const transformedData = data.map(item => {
+    // Map the internal status keys to display names
+    const displayNames: { [key: string]: string } = {
+      'nuevo': 'Nuevo',
+      'contactado': 'Contactado',
+      'calificado': 'Calificado',
+      'contratado': 'Contratado'
+    };
+    
+    return {
+      ...item,
+      name: displayNames[item.name] || item.name
+    };
+  });
   
   return (
     <ChartContainer config={chartConfig} className="w-full h-full">
       <ResponsiveContainer width="100%" height="100%">
-        <BarChart data={data} margin={{ top: 10, right: 10, left: 10, bottom: 10 }}>
+        <BarChart data={transformedData} margin={{ top: 20, right: 20, left: 20, bottom: 60 }}>
           <XAxis 
             dataKey="name" 
             angle={-45}
@@ -38,14 +54,21 @@ const StageTimeBarChart: React.FC<StageTimeBarChartProps> = ({ leads }) => {
             height={60}
             fontSize={12}
           />
-          <YAxis />
+          <YAxis 
+            label={{ value: 'Días promedio', angle: -90, position: 'insideLeft', style: { textAnchor: 'middle' } }} 
+          />
           <Tooltip content={<CustomTooltip />} />
           <Bar
             dataKey="avgDays"
             fill="#F59E42"
             radius={[4, 4, 0, 0]}
           >
-            <LabelList dataKey="avgDays" position="top" formatter={(value: number) => value.toFixed(1)} />
+            <LabelList 
+              dataKey="avgDays" 
+              position="top" 
+              formatter={(value: number) => value.toFixed(1)} 
+              style={{ fontWeight: 'bold' }}
+            />
           </Bar>
         </BarChart>
       </ResponsiveContainer>

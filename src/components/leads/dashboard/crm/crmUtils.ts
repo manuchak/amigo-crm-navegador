@@ -1,4 +1,3 @@
-
 import { Lead } from "@/context/LeadsContext";
 
 export const STAGES = [
@@ -65,26 +64,40 @@ interface TimeMetric {
   avgDays: number;
 }
 
+// Updated time metrics calculation that shows the average time a lead spends in each status
 export const useTimeMetrics = (leads: Lead[]): TimeMetric[] => {
-  const stageTimes: { [key: string]: { total: number; count: number } } = {};
-
+  // Define status mapping for Spanish status names
+  const statusMapping: { [key: string]: string } = {
+    'Nuevo': 'nuevo',
+    'Contactado': 'contactado',
+    'Calificado': 'calificado',
+    'Contratados': 'contratado'
+  };
+  
+  // Track the time for each status
+  const statusTimes: { [key: string]: { total: number; count: number } } = {};
+  
   leads.forEach(lead => {
     const creationDate = new Date(lead.fechaCreacion);
+    const now = new Date();
     
-    // Calcular la diferencia en días desde la creación hasta ahora
-    const diffInDays = (new Date().getTime() - creationDate.getTime()) / (1000 * 3600 * 24);
+    // Calculate days since creation
+    const daysSinceCreation = (now.getTime() - creationDate.getTime()) / (1000 * 3600 * 24);
     
-    const stage = lead.estado.toLowerCase();
-    if (!stageTimes[stage]) {
-      stageTimes[stage] = { total: 0, count: 0 };
+    // Map the Spanish status name to the standardized key
+    const statusKey = statusMapping[lead.estado] || lead.estado.toLowerCase();
+    
+    if (!statusTimes[statusKey]) {
+      statusTimes[statusKey] = { total: 0, count: 0 };
     }
-    stageTimes[stage].total += diffInDays;
-    stageTimes[stage].count++;
+    
+    statusTimes[statusKey].total += daysSinceCreation;
+    statusTimes[statusKey].count += 1;
   });
-
-  return Object.entries(stageTimes).map(([stage, data]) => ({
-    name: stage,
-    avgDays: data.count > 0 ? data.total / data.count : 0,
+  
+  return Object.entries(statusTimes).map(([status, data]) => ({
+    name: status,
+    avgDays: data.count > 0 ? Math.round((data.total / data.count) * 10) / 10 : 0,
   }));
 };
 
