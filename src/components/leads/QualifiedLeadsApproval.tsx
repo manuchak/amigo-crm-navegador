@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useLeads } from '@/context/LeadsContext';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -11,6 +12,8 @@ import { ValidationDialog } from './validation/ValidationDialog';
 import { ValidationStatsCards } from './validation/ValidationStatsCards';
 import { useValidation } from './validation/useValidation';
 import { VapiInterviewFilter } from './filters/VapiInterviewFilter';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import LeadStatusBadge from './dashboard/LeadStatusBadge';
 
 const QualifiedLeadsApproval = () => {
   const { leads, updateLeadStatus, refetchLeads } = useLeads();
@@ -19,13 +22,17 @@ const QualifiedLeadsApproval = () => {
   const [isValidationOpen, setIsValidationOpen] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [vapiFilter, setVapiFilter] = useState("todos");
+  const [statusFilter, setStatusFilter] = useState<string>("todos");
   const { stats, statsLoading } = useValidation();
   
-  // Filter only qualified leads
-  const qualifiedLeads = leads.filter(lead => lead.estado === 'Calificado');
+  // Filter leads based on status (Qualified or Validated)
+  const filteredByStatus = leads.filter(lead => {
+    if (statusFilter === "todos") return lead.estado === 'Calificado' || lead.estado === 'Validado';
+    return lead.estado === statusFilter;
+  });
   
   // Apply VAPI interview filter
-  const filteredByVapi = qualifiedLeads.filter(lead => {
+  const filteredByVapi = filteredByStatus.filter(lead => {
     if (vapiFilter === "todos") return true;
     if (vapiFilter === "con_vapi") return (lead.callCount ?? 0) > 0;
     if (vapiFilter === "sin_vapi") return !lead.callCount || lead.callCount === 0;
@@ -99,16 +106,32 @@ const QualifiedLeadsApproval = () => {
             <div>
               <CardTitle className="flex items-center">
                 <Shield className="mr-2 h-5 w-5 text-blue-600" />
-                Validación de Custodios Calificados
+                Validación de Custodios
               </CardTitle>
               <CardDescription>
-                Revisa y valida a los custodios que han sido calificados previamente
+                Revisa y valida a los custodios que han sido calificados o validados previamente
               </CardDescription>
             </div>
             
-            <div className="flex mt-4 md:mt-0 w-full md:w-auto space-x-2">
-              {/* Selector modularizado */}
+            <div className="flex flex-wrap mt-4 md:mt-0 w-full md:w-auto gap-2">
+              {/* Status filter */}
+              <Select 
+                value={statusFilter} 
+                onValueChange={setStatusFilter}
+              >
+                <SelectTrigger className="w-[180px]">
+                  <SelectValue placeholder="Filtrar por estado" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="todos">Todos</SelectItem>
+                  <SelectItem value="Calificado">Calificados</SelectItem>
+                  <SelectItem value="Validado">Validados</SelectItem>
+                </SelectContent>
+              </Select>
+              
+              {/* VAPI Interview filter */}
               <VapiInterviewFilter value={vapiFilter} onChange={setVapiFilter} />
+              
               {/* Search box */}
               <div className="relative w-full md:w-64">
                 <Search className="absolute left-2 top-3 h-4 w-4 text-muted-foreground" />
@@ -134,9 +157,9 @@ const QualifiedLeadsApproval = () => {
           {filteredLeads.length === 0 ? (
             <div className="text-center py-10 text-gray-500">
               <UserCheck className="mx-auto h-12 w-12 text-gray-300" />
-              <p className="mt-4 text-lg">No hay custodios calificados pendientes de validación</p>
+              <p className="mt-4 text-lg">No hay custodios pendientes de aprobación</p>
               <p className="text-sm text-muted-foreground">
-                Los custodios calificados aparecerán aquí para su revisión final
+                Los custodios calificados o validados aparecerán aquí para su revisión final
               </p>
             </div>
           ) : (
@@ -146,7 +169,8 @@ const QualifiedLeadsApproval = () => {
                   <TableHead>Nombre</TableHead>
                   <TableHead>Empresa</TableHead>
                   <TableHead>Contacto</TableHead>
-                  <TableHead>Fecha Calificación</TableHead>
+                  <TableHead>Estado</TableHead>
+                  <TableHead>Fecha</TableHead>
                   <TableHead>Llamadas</TableHead>
                   <TableHead className="text-right">Acciones</TableHead>
                 </TableRow>
@@ -165,6 +189,9 @@ const QualifiedLeadsApproval = () => {
                       )}
                     </TableCell>
                     <TableCell>{lead.contacto}</TableCell>
+                    <TableCell>
+                      <LeadStatusBadge status={lead.estado} />
+                    </TableCell>
                     <TableCell>{lead.fechaCreacion}</TableCell>
                     <TableCell>
                       <Badge variant="outline" className="bg-blue-50">

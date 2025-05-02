@@ -17,15 +17,13 @@ interface ProspectsListProps {
   onCall?: (prospect: Prospect) => void;
   onViewCalls?: (prospect: Prospect) => void;
   onValidate?: (prospect: Prospect) => void;
-  showValidated?: boolean;
 }
 
 const ProspectsList: React.FC<ProspectsListProps> = ({ 
   onViewDetails, 
   onCall,
   onViewCalls,
-  onValidate,
-  showValidated = false
+  onValidate
 }) => {
   const { prospects, loading, refetch } = useProspects();
   const [viewMode, setViewMode] = useState<'grid' | 'table'>('table');
@@ -35,14 +33,10 @@ const ProspectsList: React.FC<ProspectsListProps> = ({
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [refreshing, setRefreshing] = useState<boolean>(false);
   
-  // Filter prospects based on whether we want to show validated ones or not
+  // Filter out validated prospects - we don't want to see them in the prospects list
   const filteredByValidation = React.useMemo(() => {
-    if (showValidated) {
-      return prospects.filter(prospect => prospect.lead_status === 'Validado');
-    } else {
-      return prospects.filter(prospect => prospect.lead_status !== 'Validado');
-    }
-  }, [prospects, showValidated]);
+    return prospects.filter(prospect => prospect.lead_status !== 'Validado');
+  }, [prospects]);
   
   // Then, remove duplicates from the filtered prospects array using a Map
   const uniqueProspects = React.useMemo(() => {
