@@ -15,6 +15,7 @@ const StatusBadge: React.FC<StatusBadgeProps> = ({ status }) => {
       case 'contactado': return 'bg-amber-50 text-amber-600';
       case 'contacto llamado': return 'bg-amber-50 text-amber-600';
       case 'calificado': return 'bg-green-50 text-green-600';
+      case 'validado': return 'bg-indigo-50 text-indigo-600'; // Added specific style for Validado status
       case 'rechazado': return 'bg-red-50 text-red-600';
       default: return 'bg-slate-100 text-slate-600';
     }

@@ -1,13 +1,15 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import ProspectsList from './prospects/ProspectsList';
 import { Prospect } from '@/services/prospectService';
 import { useToast } from '@/hooks/use-toast';
 import CallLogDialog from './CallLogDialog';
 import ProspectDetailSheet from './prospects/ProspectDetailSheet';
+import { useLeads } from '@/context/LeadsContext';
 
 const ProspectsPage: React.FC = () => {
   const { toast } = useToast();
+  const { refetchLeads } = useLeads();
   const [callLogDialogOpen, setCallLogDialogOpen] = useState(false);
   const [selectedProspect, setSelectedProspect] = useState<Prospect | null>(null);
   const [detailSheetOpen, setDetailSheetOpen] = useState(false);
@@ -31,12 +33,14 @@ const ProspectsPage: React.FC = () => {
     setCallLogDialogOpen(true);
   };
 
-  const handleValidate = (prospect: Prospect) => {
+  const handleValidate = async (prospect: Prospect) => {
     toast({
       title: "Validar prospecto",
       description: `Validando prospecto ${prospect.lead_name || prospect.custodio_name || 'Prospecto ' + prospect.lead_id}`,
     });
-    // Add actual implementation for validation
+    
+    // Refresh leads data after validation
+    await refetchLeads();
   };
 
   // Helper function for phone formatting

@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Prospect } from '@/services/prospectService';
 import { useProspects } from '@/hooks/useProspects';
 import { Card } from '@/components/ui/card';
@@ -33,12 +33,16 @@ const ProspectsList: React.FC<ProspectsListProps> = ({
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [refreshing, setRefreshing] = useState<boolean>(false);
   
-  // First, remove duplicates from the prospects array using a Map
-  // We'll use lead_id and phone number as unique identifiers
+  // First, remove validated prospects from the list
+  const validProspects = React.useMemo(() => {
+    return prospects.filter(prospect => prospect.lead_status !== 'Validado');
+  }, [prospects]);
+  
+  // Then, remove duplicates from the filtered prospects array using a Map
   const uniqueProspects = React.useMemo(() => {
     const uniqueMap = new Map();
     
-    prospects.forEach(prospect => {
+    validProspects.forEach(prospect => {
       const key = prospect.lead_id || 
                  (prospect.lead_phone?.replace(/\D/g, '') || 
                  prospect.phone_number_intl?.replace(/\D/g, '') || '');
@@ -53,7 +57,7 @@ const ProspectsList: React.FC<ProspectsListProps> = ({
     });
     
     return Array.from(uniqueMap.values());
-  }, [prospects]);
+  }, [validProspects]);
   
   // Then filter prospects by call status first (our primary filter now)
   const filteredProspects = uniqueProspects
@@ -82,6 +86,17 @@ const ProspectsList: React.FC<ProspectsListProps> = ({
     setRefreshing(true);
     await refetch();
     setRefreshing(false);
+  };
+
+  // Refresh the prospect list when a prospect is validated
+  const handleValidate = async (prospect: Prospect) => {
+    if (onValidate) {
+      onValidate(prospect);
+    }
+    // After a short delay, refresh the list to remove the validated prospect
+    setTimeout(() => {
+      handleRefresh();
+    }, 1000);
   };
 
   const handleViewModeChange = (mode: 'grid' | 'table') => {
@@ -125,7 +140,7 @@ const ProspectsList: React.FC<ProspectsListProps> = ({
         onViewDetails={(prospect) => onViewDetails && onViewDetails(prospect)}
         onCall={(prospect) => onCall && onCall(prospect)}
         onViewCalls={(prospect) => onViewCalls && onViewCalls(prospect)}
-        onValidate={(prospect) => onValidate && onValidate(prospect)}
+        onValidate={handleValidate}
       />
     </div>
   );

@@ -1,10 +1,10 @@
-
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Eye, PhoneCall, History, Check } from 'lucide-react';
 import { Prospect } from '@/services/prospectService';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { toast } from 'sonner';
+import { useLeads } from '@/context/LeadsContext';
 
 interface ActionButtonsProps {
   prospect: Prospect;
@@ -25,6 +25,8 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({
   hasCallHistory,
   hasInterviewData
 }) => {
+  const { updateLeadStatus } = useLeads();
+
   const handleCallClick = async (prospect: Prospect) => {
     // Get the phone number
     const phoneNumber = prospect.lead_phone || prospect.phone_number_intl;
@@ -81,6 +83,31 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({
       // Still call the original onCall handler in case there's fallback logic
       if (onCall) {
         onCall(prospect);
+      }
+    }
+  };
+
+  const handleValidateClick = async (prospect: Prospect) => {
+    try {
+      // Update lead status to "Validado" when validate button is clicked
+      if (prospect.lead_id) {
+        await updateLeadStatus(prospect.lead_id, "Validado");
+        toast.success(`Custodio ${prospect.lead_name || prospect.custodio_name || 'Prospecto'} ha sido validado`);
+      } else {
+        toast.error("No se encontró ID del custodio");
+      }
+      
+      // Call the parent's onValidate handler if provided
+      if (onValidate) {
+        onValidate(prospect);
+      }
+    } catch (error) {
+      console.error("Error al validar custodio:", error);
+      toast.error("Error al validar el custodio");
+      
+      // Still call the original onValidate handler in case there's fallback logic
+      if (onValidate) {
+        onValidate(prospect);
       }
     }
   };
@@ -148,7 +175,7 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({
               variant={hasInterviewData ? "ghost" : "outline"}
               size="icon"
               className={`h-8 w-8 rounded-full ${hasInterviewData ? 'bg-green-100 text-green-600 hover:bg-green-200' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'}`}
-              onClick={() => onValidate(prospect)}
+              onClick={() => handleValidateClick(prospect)}
             >
               <Check className="h-4 w-4" />
             </Button>
