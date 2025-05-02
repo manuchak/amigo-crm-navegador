@@ -1,10 +1,20 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Eye, PhoneCall, History, Check } from 'lucide-react';
 import { Prospect } from '@/services/prospectService';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { toast } from 'sonner';
 import { useLeads } from '@/context/LeadsContext';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 
 interface ActionButtonsProps {
   prospect: Prospect;
@@ -26,6 +36,7 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({
   hasInterviewData
 }) => {
   const { updateLeadStatus } = useLeads();
+  const [validateDialogOpen, setValidateDialogOpen] = useState(false);
 
   const handleCallClick = async (prospect: Prospect) => {
     // Get the phone number
@@ -85,6 +96,10 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({
         onCall(prospect);
       }
     }
+  };
+
+  const openValidateDialog = () => {
+    setValidateDialogOpen(true);
   };
 
   const handleValidateClick = async (prospect: Prospect) => {
@@ -169,21 +184,44 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({
       )}
       
       {onValidate && (
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button 
-              variant={hasInterviewData ? "ghost" : "outline"}
-              size="icon"
-              className={`h-8 w-8 rounded-full ${hasInterviewData ? 'bg-green-100 text-green-600 hover:bg-green-200' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'}`}
-              onClick={() => handleValidateClick(prospect)}
-            >
-              <Check className="h-4 w-4" />
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent side="bottom">
-            <p className="text-xs">Validar</p>
-          </TooltipContent>
-        </Tooltip>
+        <>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button 
+                variant={hasInterviewData ? "ghost" : "outline"}
+                size="icon"
+                className={`h-8 w-8 rounded-full ${hasInterviewData ? 'bg-green-100 text-green-600 hover:bg-green-200' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'}`}
+                onClick={openValidateDialog}
+              >
+                <Check className="h-4 w-4" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="bottom">
+              <p className="text-xs">Validar</p>
+            </TooltipContent>
+          </Tooltip>
+          
+          <AlertDialog open={validateDialogOpen} onOpenChange={setValidateDialogOpen}>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Confirmar validación</AlertDialogTitle>
+                <AlertDialogDescription>
+                  ¿Está seguro que desea validar a <span className="font-medium">{prospect.lead_name || prospect.custodio_name || 'este prospecto'}</span>? 
+                  Esta acción cambiará el estado del prospecto a "Validado" y no podrá ser visualizado en la lista de prospectos.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                <AlertDialogAction 
+                  onClick={() => handleValidateClick(prospect)}
+                  className="bg-green-600 hover:bg-green-700"
+                >
+                  Confirmar validación
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        </>
       )}
     </div>
   );
