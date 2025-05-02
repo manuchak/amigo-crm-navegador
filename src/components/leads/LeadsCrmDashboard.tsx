@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import FunnelChart from './dashboard/crm/FunnelChart';
@@ -16,36 +16,94 @@ import { BusinessKpis } from './dashboard/crm/BusinessKpis';
 import AlertsPanel from './dashboard/crm/AlertsPanel';
 import { useLeads } from '@/context/LeadsContext';
 import { ContactedLeadsProvider } from './dashboard/crm/ContactedLeadsContext';
+import { statusColors } from './dashboard/crm/crmUtils';
 
 const LeadsCrmDashboard: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const { leads } = useLeads();
   
-  // Mock data for funnel chart
-  const funnelData = [
-    { key: 'nuevo', label: 'Nuevos', value: 150, color: '#2563eb' },
-    { key: 'contactado', label: 'Contactados', value: 85, color: '#f59e42' },
-    { key: 'calificado', label: 'Calificados', value: 42, color: '#16a34a' },
-    { key: 'contratado', label: 'Contratados', value: 15, color: '#8957e5' }
-  ];
+  // Generate data for funnel chart from leads
+  const funnelData = useMemo(() => {
+    const statusCounts = {
+      nuevo: { key: 'nuevo', label: 'Nuevos', value: 0, color: statusColors[0] },
+      contactado: { key: 'contactado', label: 'Contactados', value: 0, color: statusColors[1] },
+      calificado: { key: 'calificado', label: 'Calificados', value: 0, color: statusColors[2] },
+      contratado: { key: 'contratado', label: 'Contratados', value: 0, color: statusColors[3] }
+    };
+    
+    leads.forEach(lead => {
+      const status = lead.estado.toLowerCase();
+      if (status in statusCounts) {
+        statusCounts[status as keyof typeof statusCounts].value += 1;
+      }
+    });
+    
+    return Object.values(statusCounts);
+  }, [leads]);
   
-  // Mock data for profile pie chart
-  const profileData = [
-    { name: 'Con Vehículo', val: 45 },
-    { name: 'Sin Vehículo', val: 35 },
-    { name: 'Armados', val: 20 }
-  ];
+  // Generate data for profile pie chart
+  const profileData = useMemo(() => {
+    const vehicleCount = leads.filter(lead => lead.tieneVehiculo === 'SI').length;
+    const armedCount = leads.filter(lead => (lead as any).esarmado === 'SI').length;
+    const bothCount = leads.filter(
+      lead => lead.tieneVehiculo === 'SI' && (lead as any).esarmado === 'SI'
+    ).length;
+    
+    return [
+      { name: 'Con Vehículo', val: vehicleCount - bothCount },
+      { name: 'Sin Vehículo', val: leads.length - vehicleCount - armedCount + bothCount },
+      { name: 'Armados', val: armedCount - bothCount },
+      { name: 'Con Vehículo y Armados', val: bothCount }
+    ];
+  }, [leads]);
   
-  // Mock data for metrics cards
-  const byStage = [
-    { key: 'nuevo', label: 'Nuevos', value: 150, percentage: 60 },
-    { key: 'contactado', label: 'Contactados', value: 85, percentage: 35 },
-    { key: 'calificado', label: 'Calificados', value: 42, percentage: 17 },
-    { key: 'contratado', label: 'Contratados', value: 15, percentage: 6 }
-  ];
+  // Generate metrics data
+  const byStage = useMemo(() => {
+    const statusCounts = {
+      nuevo: 0,
+      contactado: 0,
+      calificado: 0,
+      contratado: 0
+    };
+    
+    leads.forEach(lead => {
+      const status = lead.estado.toLowerCase();
+      if (status in statusCounts) {
+        statusCounts[status as keyof typeof statusCounts] += 1;
+      }
+    });
+    
+    return [
+      { key: 'nuevo', label: 'Nuevos', value: statusCounts.nuevo, percentage: (statusCounts.nuevo / leads.length) * 100 || 0 },
+      { key: 'contactado', label: 'Contactados', value: statusCounts.contactado, percentage: (statusCounts.contactado / leads.length) * 100 || 0 },
+      { key: 'calificado', label: 'Calificados', value: statusCounts.calificado, percentage: (statusCounts.calificado / leads.length) * 100 || 0 },
+      { key: 'contratado', label: 'Contratados', value: statusCounts.contratado, percentage: (statusCounts.contratado / leads.length) * 100 || 0 }
+    ];
+  }, [leads]);
   
-  // Mock conversion rates
-  const conversions = [null, 56.7, 49.4, 35.7];
+  // Calculate conversion rates
+  const conversions = useMemo(() => {
+    const rates = [null];
+    if (byStage[0].value > 0) {
+      rates.push((byStage[1].value / byStage[0].value) * 100);
+    } else {
+      rates.push(0);
+    }
+    
+    if (byStage[1].value > 0) {
+      rates.push((byStage[2].value / byStage[1].value) * 100);
+    } else {
+      rates.push(0);
+    }
+    
+    if (byStage[2].value > 0) {
+      rates.push((byStage[3].value / byStage[2].value) * 100);
+    } else {
+      rates.push(0);
+    }
+    
+    return rates;
+  }, [byStage]);
 
   // Handler for saving metrics
   const handleSaveMetrics = async (data: any) => {
