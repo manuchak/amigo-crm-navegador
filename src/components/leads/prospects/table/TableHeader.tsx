@@ -17,3 +17,6 @@ export const ProspectsTableHeader: React.FC = () => {
     </TableHeader>
   );
 };
+
+// Add default export for the component
+export default ProspectsTableHeader;

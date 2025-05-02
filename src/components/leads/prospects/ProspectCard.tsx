@@ -6,6 +6,7 @@ import { formatPhoneNumber } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import { Phone, Car, Shield, ClipboardCheck, Eye, PhoneCall, History } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 
 interface ProspectCardProps {
   prospect: Prospect;
@@ -140,7 +141,16 @@ const ProspectCard: React.FC<ProspectCardProps> = ({
                 <span>Llamadas</span>
                 
                 {hasInterviewData && (
-                  <ClipboardCheck className="h-3.5 w-3.5 ml-1 text-green-500" title="Entrevista completada" />
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <div className="ml-1">
+                        <ClipboardCheck className="h-3.5 w-3.5 text-green-500" />
+                      </div>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p className="text-xs">Entrevista completada</p>
+                    </TooltipContent>
+                  </Tooltip>
                 )}
               </div>
               
