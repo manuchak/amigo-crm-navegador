@@ -1,33 +1,17 @@
 
-import React, { useState } from 'react';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter,
-} from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { ScrollArea } from '@/components/ui/scroll-area';
+import React, { useState, useEffect } from 'react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { useLeadCallLogs } from '@/hooks/useLeadCallLogs';
+import { CallLogsLoadingState, CallLogEmptyState, CallStatsCards, CallLogsTable, TranscriptViewer } from './call-logs/components';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { VapiCallLog } from './types';
-import { 
-  CallLogHeader, 
-  CallLogsTable, 
-  CallStatsCards, 
-  CallLogEmptyState, 
-  CallLogsLoadingState,
-  TranscriptViewer
-} from './call-logs/components';
-import { useLeadCallLogs } from '@/hooks/lead-call-logs';
 
-interface CallLogDialogProps {
+export interface CallLogDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   leadName: string;
-  leadPhone: string | null;
-  leadId: number | null;
+  leadPhone?: string;
+  leadId: number;
 }
 
 const CallLogDialog: React.FC<CallLogDialogProps> = ({
@@ -37,61 +21,79 @@ const CallLogDialog: React.FC<CallLogDialogProps> = ({
   leadPhone,
   leadId
 }) => {
-  const { callLogs, loading } = useLeadCallLogs(leadId, leadPhone);
-  const [selectedLog, setSelectedLog] = useState<VapiCallLog | null>(null);
-  const [transcriptOpen, setTranscriptOpen] = useState(false);
-
-  const handleViewTranscript = (log: VapiCallLog) => {
-    setSelectedLog(log);
-    setTranscriptOpen(true);
+  const [activeTab, setActiveTab] = useState<string>('calls');
+  const [selectedCallId, setSelectedCallId] = useState<string | null>(null);
+  const { callLogs, isLoading, error } = useLeadCallLogs(leadId);
+  
+  const handleViewTranscript = (callId: string) => {
+    setSelectedCallId(callId);
+    setActiveTab('transcript');
   };
 
+  const currentCall = selectedCallId 
+    ? callLogs.find(log => log.log_id === selectedCallId) 
+    : null;
+
   return (
-    <>
-      <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="sm:max-w-[800px] p-0 overflow-hidden border-0 shadow-lg rounded-xl">
-          <CallLogHeader leadName={leadName} leadPhone={leadPhone} />
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-4xl">
+        <DialogHeader>
+          <DialogTitle className="text-xl font-semibold">
+            Historial de llamadas: {leadName}
+          </DialogTitle>
+          {leadPhone && <p className="text-sm text-muted-foreground">Teléfono: {leadPhone}</p>}
+        </DialogHeader>
+
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="mt-2">
+          <TabsList className="bg-slate-100 mb-4">
+            <TabsTrigger value="calls" className="text-sm">Registro de llamadas</TabsTrigger>
+            <TabsTrigger value="stats" className="text-sm">Estadísticas</TabsTrigger>
+            <TabsTrigger value="transcript" className="text-sm" disabled={!selectedCallId}>Transcripción</TabsTrigger>
+          </TabsList>
           
-          <Tabs defaultValue="calls" className="px-6">
-            <TabsList className="mb-4">
-              <TabsTrigger value="calls">Llamadas</TabsTrigger>
-              <TabsTrigger value="stats">Estadísticas</TabsTrigger>
-            </TabsList>
-            
-            <TabsContent value="calls">
-              <ScrollArea className="h-[400px]">
-                {loading ? (
-                  <CallLogsLoadingState />
-                ) : callLogs.length === 0 ? (
-                  <CallLogEmptyState />
-                ) : (
-                  <CallLogsTable 
-                    callLogs={callLogs} 
-                    onViewTranscript={handleViewTranscript} 
-                  />
-                )}
-              </ScrollArea>
-            </TabsContent>
-            
-            <TabsContent value="stats">
-              <CallStatsCards callLogs={callLogs} />
-            </TabsContent>
-          </Tabs>
+          <TabsContent value="calls">
+            {isLoading ? (
+              <CallLogsLoadingState />
+            ) : callLogs.length === 0 ? (
+              <CallLogEmptyState />
+            ) : (
+              <CallLogsTable 
+                callLogs={callLogs} 
+                onViewTranscript={handleViewTranscript} 
+              />
+            )}
+          </TabsContent>
           
-          <DialogFooter className="p-4 bg-slate-50 border-t">
-            <Button variant="outline" onClick={() => onOpenChange(false)} className="rounded-full px-4 py-1 h-8 text-sm">
-              Cerrar
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-      
-      <TranscriptViewer 
-        open={transcriptOpen} 
-        onOpenChange={setTranscriptOpen} 
-        log={selectedLog} 
-      />
-    </>
+          <TabsContent value="stats">
+            <CallStatsCards callLogs={callLogs} />
+          </TabsContent>
+          
+          <TabsContent value="transcript">
+            {currentCall?.transcript ? (
+              <div className="space-y-4">
+                <div className="bg-slate-50 rounded-md p-3 mb-4">
+                  {currentCall.recording_url && (
+                    <div className="mb-4">
+                      <p className="text-sm font-medium text-slate-500 mb-1">Grabación de llamada:</p>
+                      <audio 
+                        src={currentCall.recording_url} 
+                        controls 
+                        className="w-full"
+                      />
+                    </div>
+                  )}
+                </div>
+                <TranscriptViewer transcript={currentCall.transcript} />
+              </div>
+            ) : (
+              <div className="text-center py-12 text-slate-500">
+                <p>No hay transcripción disponible para esta llamada</p>
+              </div>
+            )}
+          </TabsContent>
+        </Tabs>
+      </DialogContent>
+    </Dialog>
   );
 };
 
