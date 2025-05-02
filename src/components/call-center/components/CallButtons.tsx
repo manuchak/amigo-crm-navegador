@@ -56,46 +56,46 @@ const CallButtons: React.FC<CallButtonsProps> = ({
       // Update lead status to "Contacto Llamado"
       await updateLeadStatus(selectedLead, "Contacto Llamado");
       
-      // Initiate VAPI call using the webhook utility
-      const callResult = await vapiWebhookUtils.initiateVapiCall(
-        phoneNumber,
-        lead.nombre || 'Cliente', 
-        lead.id
-      );
-
-      if (!callResult.success) {
-        throw new Error(callResult.error || callResult.message || "Error al iniciar llamada VAPI");
+      // Send webhook directly to Make.com with all relevant data
+      const webhookUrl = "https://hook.us2.make.com/nlckmsej5cwmfe93gv4g6xvmavhilujl";
+      
+      // Format phone number to ensure it's valid (remove spaces, add country code if needed)
+      let formattedPhone = phoneNumber.trim();
+      if (!formattedPhone.startsWith('+')) {
+        formattedPhone = '+52' + formattedPhone.replace(/^0+/, '');
       }
-
-      // Also send all lead data to the webhook for tracking
-      await executeWebhook({
-        telefono: phoneNumber,
-        id: lead.id,
-        nombre: lead.nombre,
-        empresa: lead.empresa,
-        contacto: lead.contacto,
-        estado: "Contacto Llamado", // Update to new status
-        fechaCreacion: lead.fechaCreacion,
-        email: lead.email,
-        tieneVehiculo: lead.tieneVehiculo,
-        experienciaSeguridad: lead.experienciaSeguridad,
-        esMilitar: lead.esMilitar,
-        callCount: lead.callCount || 0,
-        lastCallDate: lead.lastCallDate,
-        valor: lead.valor,
-        timestamp: new Date().toISOString(),
-        action: "outbound_call_requested",
-        vapiCallId: callResult.callId
+      formattedPhone = formattedPhone.replace(/\s+/g, '');
+      
+      console.log(`Sending direct webhook to Make.com for phone ${formattedPhone}`);
+      
+      const makeResponse = await fetch(webhookUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          phone_number: formattedPhone,
+          lead_name: lead.nombre || 'Cliente', 
+          lead_id: lead.id,
+          lead_data: lead,
+          timestamp: new Date().toISOString(),
+          action: "initiate_outbound_call"
+        })
       });
       
-      console.log("Webhook ejecutado para llamada saliente con teléfono:", phoneNumber);
-      toast.success(`Llamada VAPI iniciada para ${lead.nombre}`);
+      if (!makeResponse.ok) {
+        const errorText = await makeResponse.text();
+        throw new Error(`Make.com webhook error: ${makeResponse.status} - ${errorText}`);
+      }
+      
+      console.log("Make.com webhook called successfully");
+      toast.success(`Llamada iniciada para ${lead.nombre}`);
       
       // Continue with the call process
       await handleStartCall();
       
     } catch (error) {
-      console.error("Error al iniciar llamada VAPI:", error);
+      console.error("Error al iniciar llamada:", error);
       toast.error("Error al iniciar la llamada saliente");
     }
   };

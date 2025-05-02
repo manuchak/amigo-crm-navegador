@@ -52,9 +52,7 @@ export const fetchLeadsFromExternalDatabase = async (): Promise<any> => {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${LEADS_WEBHOOK_API_KEY}`
       },
-      mode: 'no-cors', // Adding this to handle CORS issues
       body: JSON.stringify({ 
         action: "get_leads", 
         timestamp: new Date().toISOString(),

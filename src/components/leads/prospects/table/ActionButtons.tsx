@@ -4,7 +4,6 @@ import { Button } from '@/components/ui/button';
 import { Eye, PhoneCall, History, Check } from 'lucide-react';
 import { Prospect } from '@/services/prospectService';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import { vapiWebhookUtils } from '@/hooks/lead-call-logs/webhook';
 import { toast } from 'sonner';
 
 interface ActionButtonsProps {
@@ -36,26 +35,48 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({
     }
 
     try {
-      // Initiate VAPI call
-      const callResult = await vapiWebhookUtils.initiateVapiCall(
-        phoneNumber,
-        prospect.lead_name || prospect.custodio_name || 'Prospecto', 
-        prospect.lead_id || 0
-      );
-
-      if (!callResult.success) {
-        throw new Error(callResult.error || callResult.message || "Error al iniciar llamada VAPI");
+      // Format phone number to ensure it's valid (remove spaces, add country code if needed)
+      let formattedPhone = phoneNumber.trim();
+      if (!formattedPhone.startsWith('+')) {
+        formattedPhone = '+52' + formattedPhone.replace(/^0+/, '');
       }
-
-      toast.success(`Llamada VAPI iniciada para ${prospect.lead_name || prospect.custodio_name || 'el prospecto'}`);
+      formattedPhone = formattedPhone.replace(/\s+/g, '');
+      
+      // Send webhook directly to Make.com
+      const webhookUrl = "https://hook.us2.make.com/nlckmsej5cwmfe93gv4g6xvmavhilujl";
+      
+      console.log(`Sending webhook to Make.com for phone ${formattedPhone}`);
+      
+      const makeResponse = await fetch(webhookUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          phone_number: formattedPhone,
+          lead_name: prospect.lead_name || prospect.custodio_name || 'Prospecto', 
+          lead_id: prospect.lead_id || 0,
+          prospect_data: prospect,
+          timestamp: new Date().toISOString(),
+          action: "initiate_prospect_call"
+        })
+      });
+      
+      if (!makeResponse.ok) {
+        const errorText = await makeResponse.text();
+        throw new Error(`Make.com webhook error: ${makeResponse.status} - ${errorText}`);
+      }
+      
+      console.log("Make.com webhook called successfully");
+      toast.success(`Llamada iniciada para ${prospect.lead_name || prospect.custodio_name || 'el prospecto'}`);
       
       // Also call the original onCall handler if provided
       if (onCall) {
         onCall(prospect);
       }
     } catch (error) {
-      console.error("Error al iniciar llamada VAPI:", error);
-      toast.error("Error al iniciar la llamada VAPI");
+      console.error("Error al iniciar llamada:", error);
+      toast.error("Error al iniciar la llamada");
       
       // Still call the original onCall handler in case there's fallback logic
       if (onCall) {

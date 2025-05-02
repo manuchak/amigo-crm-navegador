@@ -18,25 +18,6 @@ Deno.serve(async (req) => {
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') as string
     const supabase = createClient(supabaseUrl, supabaseKey)
     
-    // Get the VAPI API key from the database
-    console.log('Fetching VAPI API key from database')
-    const { data: secretData, error: secretError } = await supabase
-      .from('secrets')
-      .select('value')
-      .eq('name', 'VAPI_API_KEY')
-      .maybeSingle()
-    
-    if (secretError) {
-      console.error('Error fetching VAPI API key from database:', secretError)
-      throw new Error('Failed to fetch API key from database')
-    }
-    
-    const VAPI_API_KEY = secretData?.value
-    
-    if (!VAPI_API_KEY) {
-      throw new Error('VAPI API key not found in database. Please configure it first.')
-    }
-
     // Parse request body
     const { phoneNumber, leadName, leadId } = await req.json()
     
@@ -44,31 +25,26 @@ Deno.serve(async (req) => {
       throw new Error('Phone number is required')
     }
     
-    // VAPI API settings - using environment variables and constants
-    const VAPI_API_URL = 'https://api.vapi.ai/call'
-    const VAPI_ASSISTANT_ID = '0b7c2a96-0360-4fef-9956-e847fd696ea2' // Your VAPI assistant ID
-
-    // Prepare VAPI call payload - FIX: Format according to VAPI API requirements
-    // Removing the assistant_id from the root level and using correct property names
+    console.log(`Sending webhook request to Make.com for phone number ${phoneNumber}`)
+    
+    // Instead of calling VAPI directly, we'll send a webhook to Make.com
+    const webhookUrl = "https://hook.us2.make.com/nlckmsej5cwmfe93gv4g6xvmavhilujl"
+    
+    // Prepare the payload for Make.com
     const payload = {
-      recipient: {
-        phone_number: phoneNumber
-      },
-      assistant: VAPI_ASSISTANT_ID, // Changed from assistant_id to assistant
-      metadata: {
-        lead_id: leadId,
-        lead_name: leadName
-      }
+      phone_number: phoneNumber,
+      lead_name: leadName || 'Cliente',
+      lead_id: leadId || 0,
+      timestamp: new Date().toISOString(),
+      action: "initiate_vapi_call"
     }
+    
+    console.log('Make.com webhook payload:', JSON.stringify(payload))
 
-    console.log(`Initiating VAPI call to ${phoneNumber} for lead ${leadName}`)
-    console.log('Request payload:', JSON.stringify(payload))
-
-    // Make request to VAPI API
-    const response = await fetch(VAPI_API_URL, {
+    // Make request to Make.com webhook
+    const response = await fetch(webhookUrl, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${VAPI_API_KEY}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify(payload)
@@ -76,19 +52,19 @@ Deno.serve(async (req) => {
 
     if (!response.ok) {
       const errorText = await response.text()
-      console.error(`VAPI API error (${response.status}): ${errorText}`)
-      throw new Error(`VAPI API returned ${response.status}: ${errorText}`)
+      console.error(`Make.com webhook error (${response.status}): ${errorText}`)
+      throw new Error(`Make.com webhook returned ${response.status}: ${errorText}`)
     }
 
-    const data = await response.json()
-    console.log(`VAPI call initiated successfully: ${JSON.stringify(data)}`)
+    const data = await response.text()
+    console.log(`Make.com webhook called successfully: ${data}`)
 
-    // Return success response with call ID
+    // Return success response
     return new Response(
       JSON.stringify({
         success: true,
-        message: 'VAPI call initiated successfully',
-        callId: data.id || null,
+        message: 'Llamada solicitada exitosamente a través de Make.com',
+        callId: `make-${Date.now()}`, // Generate a placeholder ID
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
