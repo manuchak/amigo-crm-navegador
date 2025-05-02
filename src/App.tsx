@@ -20,12 +20,12 @@ import InstalacionGPS from './pages/InstalacionGPS';
 import InstalacionesAgendadas from './pages/InstalacionesAgendadas';
 import InstalacionGPSInstallers from './pages/InstalacionGPSInstallers';
 import InstaladorRegistro from './pages/InstaladorRegistro';
-import Performance from './pages/Performance'; // Direct import instead of lazy loading
+import Performance from './pages/Performance';
+import Leads from './pages/Leads'; // Directly import Leads instead of lazy loading it
 
 // Lazy load other routes for better performance
 const Auth = React.lazy(() => import('./pages/Auth'));
 const Login = React.lazy(() => import('./pages/Login')); 
-const Leads = React.lazy(() => import('./pages/Leads'));
 const Prospects = React.lazy(() => import('./pages/Prospects'));
 const Validation = React.lazy(() => import('./pages/Validation'));
 const Support = React.lazy(() => import('./pages/Support'));
