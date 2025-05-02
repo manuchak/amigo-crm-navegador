@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useCustodioKpi } from "@/hooks/useCustodioKpi";
@@ -45,10 +46,24 @@ export const BusinessKpis = () => {
     nps, cac, marketingRoi, avgRetention, avgLtv, ltvCacRatio 
   } = useCustodioKpi(calculateMonths()); // Get data based on selected date range
   
-  // State for retention chart data - moved up to keep consistent hook order
+  // State for retention chart data
   const [retentionData, setRetentionData] = useState<any[]>([]);
   
-  // Log detailed debug info when retention data changes - moved here for consistent hook ordering
+  // Filter data based on selected date range
+  const filterDataByDateRange = (data: any[]) => {
+    if (!dateRange.from || !dateRange.to || !data) return data;
+    
+    return data.filter(item => {
+      const itemDate = new Date(item.month_year);
+      return itemDate >= dateRange.from! && itemDate <= dateRange.to!;
+    });
+  };
+  
+  const filteredKpiData = filterDataByDateRange(kpiData || []);
+  const filteredRetention = filterDataByDateRange(retention || [])
+    .filter(item => item?.retention_rate !== null && !isNaN(item?.retention_rate));
+  
+  // Log detailed debug info when retention data changes
   useEffect(() => {
     console.log('DEBUG BusinessKpis: Retention data received:', retention);
     console.log('DEBUG BusinessKpis: Average retention from hook:', avgRetention);
@@ -90,20 +105,6 @@ export const BusinessKpis = () => {
       console.log('DEBUG BusinessKpis: No data available for retention chart');
     }
   }, [retention, filteredRetention, avgRetention]);
-  
-  // Filter data based on selected date range
-  const filterDataByDateRange = (data: any[]) => {
-    if (!dateRange.from || !dateRange.to || !data) return data;
-    
-    return data.filter(item => {
-      const itemDate = new Date(item.month_year);
-      return itemDate >= dateRange.from! && itemDate <= dateRange.to!;
-    });
-  };
-  
-  const filteredKpiData = filterDataByDateRange(kpiData || []);
-  const filteredRetention = filterDataByDateRange(retention || [])
-    .filter(item => item?.retention_rate !== null && !isNaN(item?.retention_rate));
   
   // Custom tooltip for the charts
   const CustomTooltip = ({ active, payload, label }: any) => {
