@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { ProspectsList } from './prospects/ProspectsList';
+import ProspectsList from './prospects/ProspectsList';
 
 const ProspectsPage: React.FC = () => {
   return (
