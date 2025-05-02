@@ -27,7 +27,7 @@ const ProspectsList: React.FC<ProspectsListProps> = ({
   onValidate 
 }) => {
   const { prospects, loading, refetch } = useProspects();
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const [viewMode, setViewMode] = useState<'grid' | 'table'>('grid');
   const [filterStatus, setFilterStatus] = useState<string | null>(null);
   const [showOnlyInterviewed, setShowOnlyInterviewed] = useState<boolean>(false);
   
@@ -37,6 +37,10 @@ const ProspectsList: React.FC<ProspectsListProps> = ({
 
   const handleRefresh = () => {
     refetch();
+  };
+
+  const handleViewModeChange = (mode: 'grid' | 'table') => {
+    setViewMode(mode);
   };
 
   return (
@@ -50,7 +54,7 @@ const ProspectsList: React.FC<ProspectsListProps> = ({
           showOnlyInterviewed={showOnlyInterviewed}
           onToggleInterviewed={() => setShowOnlyInterviewed(!showOnlyInterviewed)}
           viewMode={viewMode}
-          onViewModeChange={setViewMode}
+          onViewModeChange={handleViewModeChange}
           onRefresh={handleRefresh}
           refreshing={loading}
         />
@@ -58,7 +62,7 @@ const ProspectsList: React.FC<ProspectsListProps> = ({
           <Button
             variant="outline"
             size="sm"
-            onClick={() => setViewMode('grid')}
+            onClick={() => handleViewModeChange('grid')}
             className={viewMode === 'grid' ? 'bg-slate-100' : ''}
           >
             <LayoutGrid className="h-4 w-4" />
@@ -66,8 +70,8 @@ const ProspectsList: React.FC<ProspectsListProps> = ({
           <Button
             variant="outline"
             size="sm"
-            onClick={() => setViewMode('list')}
-            className={viewMode === 'list' ? 'bg-slate-100' : ''}
+            onClick={() => handleViewModeChange('table')}
+            className={viewMode === 'table' ? 'bg-slate-100' : ''}
           >
             <List className="h-4 w-4" />
           </Button>
