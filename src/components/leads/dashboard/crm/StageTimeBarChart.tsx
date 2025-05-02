@@ -22,7 +22,7 @@ const StageTimeBarChart: React.FC<StageTimeBarChartProps> = ({ leads }) => {
     
     return (
       <div className="bg-background/95 p-2 border rounded-md shadow-md text-sm">
-        <p>{`${payload[0].payload.name}: ${payload[0].value.toFixed(1)} días`}</p>
+        <p>{`${payload[0].payload.displayName}: ${payload[0].value.toFixed(1)} días`}</p>
       </div>
     );
   };
@@ -39,7 +39,7 @@ const StageTimeBarChart: React.FC<StageTimeBarChartProps> = ({ leads }) => {
     
     return {
       ...item,
-      name: displayNames[item.name] || item.name
+      displayName: displayNames[item.name] || item.name
     };
   });
   
@@ -48,14 +48,16 @@ const StageTimeBarChart: React.FC<StageTimeBarChartProps> = ({ leads }) => {
       <ResponsiveContainer width="100%" height="100%">
         <BarChart data={transformedData} margin={{ top: 20, right: 20, left: 20, bottom: 60 }}>
           <XAxis 
-            dataKey="name" 
+            dataKey="displayName" 
             angle={-45}
             textAnchor="end"
             height={60}
             fontSize={12}
           />
           <YAxis 
-            label={{ value: 'Días promedio', angle: -90, position: 'insideLeft', style: { textAnchor: 'middle' } }} 
+            label={{ value: 'Días promedio', angle: -90, position: 'insideLeft', style: { textAnchor: 'middle' } }}
+            allowDecimals={false}
+            domain={[0, 'auto']} 
           />
           <Tooltip content={<CustomTooltip />} />
           <Bar

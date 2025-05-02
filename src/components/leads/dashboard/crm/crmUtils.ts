@@ -64,41 +64,59 @@ interface TimeMetric {
   avgDays: number;
 }
 
-// Updated time metrics calculation that shows the average time a lead spends in each status
+// Completely revised time metrics calculation to ensure proper status display and no negative values
 export const useTimeMetrics = (leads: Lead[]): TimeMetric[] => {
-  // Define status mapping for Spanish status names
-  const statusMapping: { [key: string]: string } = {
-    'Nuevo': 'nuevo',
-    'Contactado': 'contactado',
-    'Calificado': 'calificado',
-    'Contratados': 'contratado'
+  // Define our expected statuses with their display names
+  const expectedStatuses = {
+    'nuevo': 'Nuevo',
+    'contactado': 'Contactado', 
+    'calificado': 'Calificado',
+    'contratado': 'Contratado'
   };
   
-  // Track the time for each status
-  const statusTimes: { [key: string]: { total: number; count: number } } = {};
+  // Initialize tracking for each status with zero values
+  const statusTimes: { [key: string]: { total: number; count: number } } = {
+    'nuevo': { total: 0, count: 0 },
+    'contactado': { total: 0, count: 0 },
+    'calificado': { total: 0, count: 0 },
+    'contratado': { total: 0, count: 0 }
+  };
   
+  // Process each lead
   leads.forEach(lead => {
+    if (!lead.fechaCreacion) return; // Skip leads without creation date
+    
     const creationDate = new Date(lead.fechaCreacion);
     const now = new Date();
     
-    // Calculate days since creation
-    const daysSinceCreation = (now.getTime() - creationDate.getTime()) / (1000 * 3600 * 24);
+    // Calculate positive days since creation
+    const daysSinceCreation = Math.max(0, (now.getTime() - creationDate.getTime()) / (1000 * 3600 * 24));
     
-    // Map the Spanish status name to the standardized key
-    const statusKey = statusMapping[lead.estado] || lead.estado.toLowerCase();
+    // Map the Spanish status name to our standardized key
+    const statusKey = lead.estado === 'Nuevo' ? 'nuevo' : 
+                     lead.estado === 'Contactado' ? 'contactado' :
+                     lead.estado === 'Calificado' ? 'calificado' :
+                     lead.estado === 'Contratados' ? 'contratado' : 
+                     lead.estado.toLowerCase();
     
-    if (!statusTimes[statusKey]) {
-      statusTimes[statusKey] = { total: 0, count: 0 };
+    // Only process if it's one of our expected statuses
+    if (statusTimes[statusKey]) {
+      statusTimes[statusKey].total += daysSinceCreation;
+      statusTimes[statusKey].count += 1;
     }
-    
-    statusTimes[statusKey].total += daysSinceCreation;
-    statusTimes[statusKey].count += 1;
   });
   
-  return Object.entries(statusTimes).map(([status, data]) => ({
-    name: status,
-    avgDays: data.count > 0 ? Math.round((data.total / data.count) * 10) / 10 : 0,
-  }));
+  // Create the final array with proper display names and rounded average values
+  return Object.entries(statusTimes)
+    .filter(([_, data]) => data.count > 0) // Only include statuses that have at least one lead
+    .map(([status, data]) => ({
+      name: status,
+      avgDays: data.count > 0 ? Math.max(0, Math.round((data.total / data.count) * 10) / 10) : 0
+    }))
+    .sort((a, b) => { // Sort by status in a logical flow order
+      const order = ['nuevo', 'contactado', 'calificado', 'contratado'];
+      return order.indexOf(a.name) - order.indexOf(b.name);
+    });
 };
 
 // Format currency for display with enhanced formatting
