@@ -35,11 +35,13 @@ const ProspectRow: React.FC<ProspectRowProps> = ({
       case 'completed':
         return "border-l-4 border-l-green-400";
       case 'no-answer':
-        return "border-l-4 border-l-orange-400";
+        return "border-l-4 border-l-amber-400";
       case 'busy':
         return "border-l-4 border-l-yellow-400";
       case 'failed':
         return "border-l-4 border-l-red-400";
+      case 'contacted':
+        return "border-l-4 border-l-blue-400";
       default:
         return "";
     }

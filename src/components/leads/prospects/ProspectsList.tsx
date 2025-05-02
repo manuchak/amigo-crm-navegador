@@ -3,8 +3,6 @@ import React, { useState } from 'react';
 import { Prospect } from '@/services/prospectService';
 import { useProspects } from '@/hooks/useProspects';
 import { Card } from '@/components/ui/card';
-import ProspectCard from './ProspectCard';
-import ProspectsTable from './ProspectsTable';
 import { 
   ProspectFilters, 
   LoadingState, 
@@ -36,15 +34,15 @@ const ProspectsList: React.FC<ProspectsListProps> = ({
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [refreshing, setRefreshing] = useState<boolean>(false);
   
-  // Filter by status, interviews and call status
+  // Filter prospects by call status first (our primary filter now)
   const filteredProspects = prospects
-    .filter(prospect => !filterStatus || prospect.lead_status === filterStatus)
-    .filter(prospect => !showOnlyInterviewed || prospect.transcript !== null)
     .filter(prospect => {
       if (!callStatusFilter) return true;
       const normalizedEndedReason = normalizeCallStatus(prospect.ended_reason);
       return normalizedEndedReason === callStatusFilter;
     })
+    .filter(prospect => !filterStatus || prospect.lead_status === filterStatus)
+    .filter(prospect => !showOnlyInterviewed || prospect.transcript !== null)
     .filter(prospect => {
       if (!searchQuery) return true;
       const query = searchQuery.toLowerCase();
@@ -69,7 +67,7 @@ const ProspectsList: React.FC<ProspectsListProps> = ({
     setViewMode(mode);
   };
 
-  // Simplified call status filter handler
+  // Handle call status filter changes
   const handleCallStatusFilterChange = (status: string | null) => {
     setCallStatusFilter(status);
   };
@@ -90,11 +88,14 @@ const ProspectsList: React.FC<ProspectsListProps> = ({
           refreshing={refreshing}
         />
         
-        {/* Simplified Call Status Filter */}
-        <CallStatusFilter
-          selectedStatus={callStatusFilter}
-          onStatusChange={handleCallStatusFilterChange}
-        />
+        {/* Call status filter now prominently displayed */}
+        <Card className="p-3 border shadow-sm">
+          <div className="font-medium text-sm mb-2 text-slate-600">Filtrar por resultado de llamada:</div>
+          <CallStatusFilter
+            selectedStatus={callStatusFilter}
+            onStatusChange={handleCallStatusFilterChange}
+          />
+        </Card>
         
         <ProspectsContent
           loading={loading}

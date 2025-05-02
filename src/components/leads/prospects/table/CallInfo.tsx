@@ -1,55 +1,80 @@
 
 import React from 'react';
-import { format, isValid } from 'date-fns';
-import { es } from 'date-fns/locale';
-import { CallStatusBadge } from '@/components/shared/call-logs/CallStatusBadge';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { Phone, CheckCircle } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { normalizeCallStatus, getCallStatusColor, getCallStatusLabel } from '@/lib/utils';
 
 interface CallInfoProps {
   callCount: number | null;
   lastCallDate: string | null;
-  hasInterviewData?: boolean;
-  endedReason?: string | null;
+  hasInterviewData: boolean;
+  endedReason: string | null;
 }
 
-const CallInfo: React.FC<CallInfoProps> = ({ 
+const CallInfo: React.FC<CallInfoProps> = ({
   callCount,
   lastCallDate,
-  hasInterviewData = false,
+  hasInterviewData,
   endedReason
 }) => {
-  // Format the date if it's valid
-  const formattedDate = lastCallDate && isValid(new Date(lastCallDate))
-    ? format(new Date(lastCallDate), "dd/MM/yyyy, HH:mm", { locale: es })
-    : null;
-  
-  // Si no hay llamadas, mostrar "Sin llamadas"
-  if (!callCount || callCount <= 0) {
-    return <div className="text-sm text-slate-500">Sin llamadas</div>;
-  }
+  const normalizedStatus = normalizeCallStatus(endedReason);
+  const colorClass = getCallStatusColor(endedReason);
+  const statusLabel = getCallStatusLabel(endedReason);
   
   return (
-    <div className="flex flex-col">
+    <div className="flex flex-col space-y-1.5">
       <div className="flex items-center">
-        <span className="font-medium text-sm">{callCount} {callCount === 1 ? 'llamada' : 'llamadas'}</span>
-        {endedReason && (
-          <span className="ml-2">
-            <CallStatusBadge status={endedReason} />
-          </span>
+        {callCount ? (
+          <div className="flex items-center text-sm">
+            <Phone className="h-3.5 w-3.5 mr-1.5 text-slate-500" />
+            <span className="font-medium">{callCount}</span>
+            <span className="text-slate-500 ml-1">llamada{callCount !== 1 ? 's' : ''}</span>
+          </div>
+        ) : (
+          <span className="text-slate-400 text-sm">Sin llamadas</span>
         )}
       </div>
       
-      {formattedDate && (
-        <div className="flex flex-col">
-          <span className="text-xs text-slate-500">
-            Última: {formattedDate}
-          </span>
-        </div>
+      {endedReason && (
+        <Badge variant="outline" className={`text-xs py-0.5 border ${colorClass}`}>
+          {statusLabel}
+        </Badge>
+      )}
+      
+      {lastCallDate && (
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <div className="text-xs text-slate-500 hover:text-slate-700 cursor-help">
+              Última: {new Date(lastCallDate).toLocaleDateString('es-MX')}
+            </div>
+          </TooltipTrigger>
+          <TooltipContent>
+            <p>
+              {new Date(lastCallDate).toLocaleDateString('es-MX', {
+                day: 'numeric',
+                month: 'short',
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+              })}
+            </p>
+          </TooltipContent>
+        </Tooltip>
       )}
       
       {hasInterviewData && (
-        <span className="inline-flex items-center px-1.5 py-0.5 mt-1 rounded-full text-xs font-medium bg-indigo-50 text-indigo-700 border border-indigo-200">
-          Entrevista
-        </span>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <div className="flex items-center text-xs text-emerald-600">
+              <CheckCircle className="h-3 w-3 mr-1" />
+              Entrevistado
+            </div>
+          </TooltipTrigger>
+          <TooltipContent>
+            <p>Este prospecto tiene una transcripción de entrevista</p>
+          </TooltipContent>
+        </Tooltip>
       )}
     </div>
   );

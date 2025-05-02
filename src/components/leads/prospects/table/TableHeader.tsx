@@ -5,15 +5,15 @@ import { TableHeader, TableRow, TableHead } from '@/components/ui/table';
 const ProspectsTableHeader: React.FC = () => {
   return (
     <TableHeader>
-      <TableRow className="bg-slate-50 hover:bg-slate-50">
-        <TableHead className="font-semibold text-xs text-slate-600 w-52">Nombre</TableHead>
-        <TableHead className="font-semibold text-xs text-slate-600 w-32">Estado</TableHead>
-        <TableHead className="font-semibold text-xs text-slate-600 w-40">Teléfono</TableHead>
-        <TableHead className="font-semibold text-xs text-slate-600 w-48">Llamadas</TableHead>
-        <TableHead className="font-semibold text-xs text-slate-600 w-40">Vehículo</TableHead>
-        <TableHead className="font-semibold text-xs text-slate-600 w-24">SEDENA</TableHead>
-        <TableHead className="font-semibold text-xs text-slate-600 w-32">Fecha Creación</TableHead>
-        <TableHead className="font-semibold text-xs text-slate-600 text-right">Acciones</TableHead>
+      <TableRow>
+        <TableHead className="font-medium">Nombre</TableHead>
+        <TableHead className="font-medium">Estado</TableHead>
+        <TableHead className="font-medium">Teléfono</TableHead>
+        <TableHead className="font-medium">Resultado Llamada</TableHead>
+        <TableHead className="font-medium">Vehículo</TableHead>
+        <TableHead className="font-medium">SEDENA</TableHead>
+        <TableHead className="font-medium">Fecha Creación</TableHead>
+        <TableHead className="text-right font-medium">Acciones</TableHead>
       </TableRow>
     </TableHeader>
   );
