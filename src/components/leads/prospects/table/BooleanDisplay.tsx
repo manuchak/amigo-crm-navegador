@@ -8,16 +8,16 @@ interface BooleanDisplayProps {
 
 const BooleanDisplay: React.FC<BooleanDisplayProps> = ({ value }) => {
   if (value === true) return (
-    <span className="flex items-center text-green-600">
-      <Check className="h-3.5 w-3.5 mr-1" /> Sí
+    <span className="flex items-center text-green-600 font-medium">
+      <Check className="h-3.5 w-3.5 mr-1" /> SÍ
     </span>
   );
   if (value === false) return (
-    <span className="flex items-center text-red-600">
-      <X className="h-3.5 w-3.5 mr-1" /> No
+    <span className="flex items-center text-red-600 font-medium">
+      <X className="h-3.5 w-3.5 mr-1" /> NO
     </span>
   );
-  return "No especificado";
+  return <span className="text-slate-400">No especificado</span>;
 };
 
 export default BooleanDisplay;

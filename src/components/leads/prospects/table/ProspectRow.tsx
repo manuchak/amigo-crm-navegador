@@ -3,10 +3,8 @@ import React from 'react';
 import { TableRow, TableCell } from '@/components/ui/table';
 import { Prospect } from '@/services/prospectService';
 import { formatPhoneNumber } from '@/lib/utils';
-import { Eye, PhoneCall, History, Check } from 'lucide-react';
-import { Button } from '@/components/ui/button';
 import { TooltipProvider } from '@/components/ui/tooltip';
-import { StatusBadge, CallInfo, VehicleInfo, SedenaInfo, DateFormatter, BooleanDisplay } from '.';
+import { StatusBadge, CallInfo, VehicleInfo, SedenaInfo, DateFormatter, BooleanDisplay, ActionButtons } from '.';
 
 interface ProspectRowProps {
   prospect: Prospect;
@@ -39,22 +37,29 @@ const ProspectRow: React.FC<ProspectRowProps> = ({
     return "";
   };
 
+  const getBorderClass = () => {
+    if (!prospect.ended_reason) {
+      return prospect.lead_status === "Calificado" ? 'border-l-4 border-l-purple-400' : '';
+    }
+    
+    const status = prospect.ended_reason.toLowerCase();
+    if (status.includes('completed')) return "border-l-4 border-l-green-400";
+    if (status.includes('no-answer')) return "border-l-4 border-l-orange-400";
+    if (status.includes('busy')) return "border-l-4 border-l-yellow-400";
+    if (status.includes('failed')) return "border-l-4 border-l-red-400";
+    
+    return "";
+  };
+
   return (
     <TooltipProvider>
       <TableRow 
-        className={`hover:bg-slate-50 transition-colors ${getRowHighlightClass()}`}
-        style={{
-          borderLeft: prospect.ended_reason?.toLowerCase().includes('completed') ? '4px solid #10b981' : 
-                     prospect.ended_reason?.toLowerCase().includes('no-answer') ? '4px solid #f97316' :
-                     prospect.ended_reason?.toLowerCase().includes('busy') ? '4px solid #eab308' :
-                     prospect.ended_reason?.toLowerCase().includes('failed') ? '4px solid #ef4444' :
-                     prospect.lead_status === "Calificado" ? '4px solid #9b87f5' : '4px solid transparent'
-        }}
+        className={`hover:bg-slate-50/80 transition-colors ${getRowHighlightClass()} ${getBorderClass()}`}
       >
         {/* Nombre */}
-        <TableCell>
+        <TableCell className="font-medium">
           <div className="flex flex-col">
-            <span className="font-medium">
+            <span className="text-sm">
               {prospect.lead_name || prospect.custodio_name || "Sin nombre"}
             </span>
             <span className="text-xs text-slate-500">
@@ -106,55 +111,15 @@ const ProspectRow: React.FC<ProspectRowProps> = ({
 
         {/* Acciones */}
         <TableCell className="text-right">
-          <div className="flex justify-end space-x-1">
-            {onViewDetails && (
-              <Button 
-                variant="ghost" 
-                size="sm"
-                className="h-7 text-xs"
-                onClick={() => onViewDetails(prospect)}
-              >
-                <Eye className="h-3.5 w-3.5 mr-1" />
-                Detalles
-              </Button>
-            )}
-            
-            {onCall && (
-              <Button 
-                variant="ghost" 
-                size="sm"
-                className="h-7 text-xs"
-                onClick={() => onCall(prospect)}
-              >
-                <PhoneCall className="h-3.5 w-3.5 mr-1" />
-                Llamar
-              </Button>
-            )}
-            
-            {onViewCalls && hasCallHistory && (
-              <Button 
-                variant="ghost" 
-                size="sm"
-                className="h-7 text-xs"
-                onClick={() => onViewCalls(prospect)}
-              >
-                <History className="h-3.5 w-3.5 mr-1" />
-                Historial
-              </Button>
-            )}
-            
-            {onValidate && (
-              <Button 
-                variant="ghost" 
-                size="sm"
-                className="h-7 text-xs"
-                onClick={() => onValidate(prospect)}
-              >
-                <Check className="h-3.5 w-3.5 mr-1" />
-                Validar
-              </Button>
-            )}
-          </div>
+          <ActionButtons 
+            prospect={prospect}
+            onViewDetails={onViewDetails}
+            onCall={onCall}
+            onViewCalls={onViewCalls}
+            onValidate={onValidate}
+            hasCallHistory={hasCallHistory}
+            hasInterviewData={hasInterviewData}
+          />
         </TableCell>
       </TableRow>
     </TooltipProvider>

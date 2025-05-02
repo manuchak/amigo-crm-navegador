@@ -1,65 +1,101 @@
 
 import React from 'react';
 import { Button } from '@/components/ui/button';
-import { PhoneCall, CheckSquare, Clock } from 'lucide-react';
+import { Eye, PhoneCall, History, Check } from 'lucide-react';
 import { Prospect } from '@/services/prospectService';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 
 interface ActionButtonsProps {
   prospect: Prospect;
-  onCall?: (prospect: Prospect) => void;
   onViewDetails?: (prospect: Prospect) => void;
+  onCall?: (prospect: Prospect) => void;
   onViewCalls?: (prospect: Prospect) => void;
   onValidate?: (prospect: Prospect) => void;
   hasCallHistory: boolean;
+  hasInterviewData: boolean;
 }
 
 const ActionButtons: React.FC<ActionButtonsProps> = ({
   prospect,
-  onCall,
   onViewDetails,
+  onCall,
   onViewCalls,
   onValidate,
-  hasCallHistory
+  hasCallHistory,
+  hasInterviewData
 }) => {
   return (
-    <div className="flex flex-col sm:flex-row gap-2">
-      {onCall && (
-        <Button variant="outline" size="sm" className="whitespace-nowrap" onClick={() => onCall(prospect)}>
-          <PhoneCall className="h-4 w-4 mr-1" /> Llamar
-        </Button>
+    <div className="flex justify-end space-x-1">
+      {onViewDetails && (
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button 
+              variant="ghost" 
+              size="icon"
+              className="h-8 w-8 rounded-full"
+              onClick={() => onViewDetails(prospect)}
+            >
+              <Eye className="h-3.5 w-3.5" />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent side="bottom">
+            <p className="text-xs">Ver detalles</p>
+          </TooltipContent>
+        </Tooltip>
       )}
       
-      {onViewDetails && (
-        <Button 
-          variant="ghost" 
-          size="sm"
-          className="whitespace-nowrap" 
-          onClick={() => onViewDetails(prospect)}
-        >
-          Ver detalles
-        </Button>
+      {onCall && (
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button 
+              variant="ghost" 
+              size="icon"
+              className="h-8 w-8 rounded-full"
+              onClick={() => onCall(prospect)}
+            >
+              <PhoneCall className="h-3.5 w-3.5" />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent side="bottom">
+            <p className="text-xs">Llamar</p>
+          </TooltipContent>
+        </Tooltip>
       )}
       
       {onViewCalls && hasCallHistory && (
-        <Button 
-          variant="outline" 
-          size="sm" 
-          onClick={() => onViewCalls(prospect)}
-          className="whitespace-nowrap bg-blue-50 text-blue-600 hover:bg-blue-100 border-blue-200"
-        >
-          <Clock className="h-4 w-4 mr-1" /> Historial
-        </Button>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button 
+              variant="ghost" 
+              size="icon"
+              className="h-8 w-8 rounded-full"
+              onClick={() => onViewCalls(prospect)}
+            >
+              <History className="h-3.5 w-3.5" />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent side="bottom">
+            <p className="text-xs">Historial</p>
+          </TooltipContent>
+        </Tooltip>
       )}
       
       {onValidate && (
-        <Button 
-          variant="outline" 
-          size="sm" 
-          onClick={() => onValidate(prospect)}
-          className="whitespace-nowrap bg-green-50 text-green-600 hover:bg-green-100 border-green-200"
-        >
-          <CheckSquare className="h-4 w-4 mr-1" /> Validar
-        </Button>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button 
+              variant={hasInterviewData ? "ghost" : "outline"}
+              size="icon"
+              className={`h-8 w-8 rounded-full ${hasInterviewData ? 'bg-green-50 text-green-600 hover:bg-green-100' : ''}`}
+              onClick={() => onValidate(prospect)}
+            >
+              <Check className="h-3.5 w-3.5" />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent side="bottom">
+            <p className="text-xs">Validar</p>
+          </TooltipContent>
+        </Tooltip>
       )}
     </div>
   );
