@@ -59,29 +59,40 @@ export function RetentionChart({ data = [], isLoading, title = "Tendencia de Ret
     
     // First filter out any invalid data points (null, undefined, NaN)
     const validData = data.filter(item => 
+      item &&
       item.rate !== null && 
       item.rate !== undefined && 
       !isNaN(item.rate)
     );
     
+    console.log(`RetentionChart: Found ${validData.length} valid data points out of ${data.length}`);
+    
+    if (validData.length > 0) {
+      console.log('RetentionChart: Sample valid data:', validData[0]);
+    }
+    
     // Then filter based on date range
     const dateFiltered = validData.filter(item => {
       try {
+        if (!item.month) return false;
+        
         const [year, month] = item.month.split('-').map(Number);
         const itemDate = new Date(year, month - 1); // month is 0-indexed in JS Date
         return itemDate >= startDate;
       } catch (e) {
-        console.error("Error parsing date:", item.month);
+        console.error("Error parsing date:", item.month, e);
         return false;
       }
     });
+    
+    console.log(`RetentionChart: After date filtering, ${dateFiltered.length} points remain`);
     
     setFilteredData(dateFiltered);
   }, [data, period]);
 
   // Check if we have valid data after filtering
   const hasValidData = useMemo(() => 
-    filteredData.length > 0
+    filteredData && filteredData.length > 0
   , [filteredData]);
 
   return (

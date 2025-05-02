@@ -168,17 +168,45 @@ export async function getCustodioMetrics(months: number = 12): Promise<CustodioM
 }
 
 export async function getNewCustodiosByMonth(months: number = 12): Promise<NewCustodiosByMonth[]> {
-  // Usamos la función get_new_custodios_by_month en la base de datos
+  const startDate = format(subMonths(new Date(), months), 'yyyy-MM-dd');
+  
+  console.log('Getting new custodios based on fecha_primer_servicio from', startDate);
+  
+  // Obtener custodios nuevos basados en fecha_primer_servicio
   const { data, error } = await supabase
-    .rpc('get_new_custodios_by_month')
-    .limit(months);
+    .from('servicios_custodia')
+    .select('nombre_custodio, fecha_primer_servicio')
+    .is('nombre_custodio', 'not.null')
+    .not('fecha_primer_servicio', 'is', null)
+    .gte('fecha_primer_servicio', startDate)
+    .order('fecha_primer_servicio', { ascending: true });
     
   if (error) {
-    console.error('Error fetching new custodios by month:', error);
+    console.error('Error fetching new custodios by fecha_primer_servicio:', error);
     return [];
   }
   
-  return data || [];
+  // Agrupar por mes y contar custodios únicos
+  const monthlyData: Record<string, Set<string>> = {};
+  
+  data?.forEach(item => {
+    if (!item.fecha_primer_servicio || !item.nombre_custodio) return;
+    
+    // Format to yyyy-MM-01 for month grouping
+    const monthYear = format(new Date(item.fecha_primer_servicio), 'yyyy-MM-01');
+    
+    if (!monthlyData[monthYear]) {
+      monthlyData[monthYear] = new Set<string>();
+    }
+    
+    monthlyData[monthYear].add(item.nombre_custodio);
+  });
+  
+  // Convert to desired format
+  return Object.entries(monthlyData).map(([month_year, custodiosSet]) => ({
+    month_year,
+    new_custodios: custodiosSet.size
+  })).sort((a, b) => a.month_year.localeCompare(b.month_year));
 }
 
 // Improved retention calculation function
@@ -246,10 +274,10 @@ async function calculateRetentionManually(startDate: Date, endDate: Date): Promi
     return [];
   }
   
-  console.log(`DEBUG: Retrieved ${allServiciosData.length} servicios for retention calculation`);
+  console.log(`DEBUG: Retrieved ${allServiciosData?.length || 0} servicios for retention calculation`);
   
   // DEBUG: Show some sample data to verify data quality
-  if (allServiciosData.length > 0) {
+  if (allServiciosData && allServiciosData.length > 0) {
     console.log('DEBUG: Sample servicios data:', allServiciosData.slice(0, 3));
   }
   

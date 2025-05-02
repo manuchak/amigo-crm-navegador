@@ -1,16 +1,16 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+
+import React, { useState, useMemo, useCallback } from 'react';
 import { useCustodioKpi } from '@/hooks/useCustodioKpi';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Info } from 'lucide-react';
 import { RevenueAnalytics } from '@/components/performance/dashboard/RevenueAnalytics';
-import { RetentionMetrics } from '@/components/performance/dashboard/RetentionMetrics';
+import { RetentionChart } from './charts/RetentionChart';
+import { RevenueVsCacChart } from './charts/RevenueVsCacChart';
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { format, subMonths, subYears, startOfYear } from "date-fns";
 import { DateRange } from "react-day-picker";
-import { RetentionChart } from './charts/RetentionChart';
-import { RevenueVsCacChart } from './charts/RevenueVsCacChart';
 import DateRangePicker from './DateRangePicker';
 
 // Helper to create tooltips for metrics
@@ -63,6 +63,8 @@ export const BusinessKpis = () => {
   const mapRetentionData = useCallback((retentionData?: any[]) => {
     if (!retentionData) return [];
     
+    console.log(`BusinessKpis: Mapping retention data for chart, received ${retentionData.length} records`);
+    
     // Filter out invalid data points before mapping
     const validData = retentionData.filter(item => 
       item && 
@@ -70,6 +72,12 @@ export const BusinessKpis = () => {
       item.retention_rate !== undefined && 
       !isNaN(item.retention_rate)
     );
+    
+    console.log(`BusinessKpis: Found ${validData.length} valid retention records after filtering`);
+    
+    if (validData.length > 0) {
+      console.log('BusinessKpis: Sample valid retention data:', validData[0]);
+    }
     
     return validData.map(item => ({
       month: item.month_year,
@@ -127,7 +135,7 @@ export const BusinessKpis = () => {
   } = useCustodioKpi(calculateMonths(), comparisonType); // Get data based on selected date range
   
   // Filter data based on selected date range
-  const filterDataByDateRange = useCallback((data: any[]) => {
+  const filterDataByDateRange = useCallback((data?: any[]) => {
     if (!dateRange.from || !dateRange.to || !data) return data;
     
     return data.filter(item => {
@@ -142,10 +150,14 @@ export const BusinessKpis = () => {
     filterDataByDateRange(retention || [])
   , [retention, filterDataByDateRange]);
   
+  console.log(`BusinessKpis: Working with ${filteredRetention?.length || 0} retention records after date filtering`);
+  
   // Prepare chart data 
   const retentionChartData = useMemo(() => 
     mapRetentionData(filteredRetention)
   , [filteredRetention, mapRetentionData]);
+  
+  console.log(`BusinessKpis: Generated ${retentionChartData?.length || 0} data points for retention chart`);
   
   const revenueVsCacData = useMemo(() => 
     mapRevenueVsCacData(filteredKpiData, metrics, newCustodios)
