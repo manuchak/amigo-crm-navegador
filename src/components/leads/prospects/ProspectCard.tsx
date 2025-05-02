@@ -52,7 +52,7 @@ const ProspectCard: React.FC<ProspectCardProps> = ({
   };
 
   return (
-    <Card className="overflow-hidden">
+    <Card className="h-full">
       <CardContent className="p-4">
         <div className="flex flex-col space-y-4">
           <div>
@@ -179,7 +179,7 @@ const ProspectCard: React.FC<ProspectCardProps> = ({
             )}
           </div>
           
-          <div className="flex space-x-2 pt-2">
+          <div className="flex space-x-2 pt-2 mt-auto">
             {onViewDetails && (
               <Button 
                 variant="outline" 
