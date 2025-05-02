@@ -104,8 +104,8 @@ const ProspectRow: React.FC<ProspectRowProps> = ({
         <DateFormatter dateString={prospect.lead_created_at} />
       </TableCell>
 
-      {/* Acciones - Updated to ensure visibility */}
-      <TableCell>
+      {/* Acciones - Enhanced to ensure visibility */}
+      <TableCell className="p-2 text-right">
         <TooltipProvider>
           <ActionButtons 
             prospect={prospect}

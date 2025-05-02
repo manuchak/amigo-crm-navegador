@@ -122,10 +122,10 @@ const ProspectsList: React.FC<ProspectsListProps> = ({
         prospects={filteredProspects}
         showOnlyInterviewed={showOnlyInterviewed}
         viewMode={viewMode}
-        onViewDetails={onViewDetails}
-        onCall={onCall}
-        onViewCalls={onViewCalls}
-        onValidate={onValidate}
+        onViewDetails={(prospect) => onViewDetails && onViewDetails(prospect)}
+        onCall={(prospect) => onCall && onCall(prospect)}
+        onViewCalls={(prospect) => onViewCalls && onViewCalls(prospect)}
+        onValidate={(prospect) => onValidate && onValidate(prospect)}
       />
     </div>
   );
