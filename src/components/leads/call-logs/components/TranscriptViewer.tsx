@@ -11,7 +11,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 
-interface TranscriptViewerProps {
+export interface TranscriptViewerProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   log: VapiCallLog | null;
@@ -173,6 +173,11 @@ export const TranscriptViewer: React.FC<TranscriptViewerProps> = ({
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Cerrar
           </Button>
+          {log.recording_url && (
+            <div className="mr-auto">
+              <audio src={log.recording_url} controls className="w-64" />
+            </div>
+          )}
         </DialogFooter>
       </DialogContent>
     </Dialog>

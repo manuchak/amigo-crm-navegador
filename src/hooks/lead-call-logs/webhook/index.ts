@@ -1,17 +1,13 @@
 
-import { webhookUrls } from './webhookUrls';
-import { webhookRegistration } from './webhookRegistration';
-import { webhookTesting } from './webhookTesting';
-import { webhookProcessing } from './webhookProcessing';
-import { webhookTestData } from './webhookTestData';
+import { parseWebhookData } from './webhookProcessing';
+import { getVapiWebhookUrl, testWebhookConnection } from './webhookTesting';
+import { triggerManualWebhookProcessing } from './webhookProcessing';
+import { sendTestLeadData } from './webhookTestData';
 
-/**
- * Export the webhook utilities for use in components
- */
 export const vapiWebhookUtils = {
-  ...webhookUrls,
-  ...webhookRegistration,
-  ...webhookTesting,
-  ...webhookProcessing,
-  ...webhookTestData
+  parseWebhookData,
+  getVapiWebhookUrl,
+  testWebhookConnection,
+  triggerManualWebhookProcessing,
+  sendTestLeadData
 };
