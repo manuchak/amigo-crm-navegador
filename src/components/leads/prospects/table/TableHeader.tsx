@@ -1,22 +1,22 @@
 
 import React from 'react';
-import { TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { TableHeader, TableRow, TableHead } from '@/components/ui/table';
 
-export const ProspectsTableHeader: React.FC = () => {
+const ProspectsTableHeader: React.FC = () => {
   return (
     <TableHeader>
-      <TableRow>
-        <TableHead className="w-[220px]">Nombre</TableHead>
-        <TableHead className="w-[160px]">Contacto</TableHead>
-        <TableHead className="w-[120px]">Estado</TableHead>
-        <TableHead className="w-[160px]">Vehículo</TableHead>
-        <TableHead className="w-[140px]">SEDENA</TableHead>
-        <TableHead className="w-[180px]">Llamadas</TableHead>
-        <TableHead className="w-[140px] text-right">Acciones</TableHead>
+      <TableRow className="bg-slate-50 hover:bg-slate-50">
+        <TableHead className="font-semibold text-xs text-slate-600 w-52">Nombre</TableHead>
+        <TableHead className="font-semibold text-xs text-slate-600 w-32">Estado</TableHead>
+        <TableHead className="font-semibold text-xs text-slate-600 w-40">Teléfono</TableHead>
+        <TableHead className="font-semibold text-xs text-slate-600 w-48">Llamadas</TableHead>
+        <TableHead className="font-semibold text-xs text-slate-600 w-40">Vehículo</TableHead>
+        <TableHead className="font-semibold text-xs text-slate-600 w-24">SEDENA</TableHead>
+        <TableHead className="font-semibold text-xs text-slate-600 w-32">Fecha Creación</TableHead>
+        <TableHead className="font-semibold text-xs text-slate-600 text-right">Acciones</TableHead>
       </TableRow>
     </TableHeader>
   );
 };
 
-// Add default export for the component
 export default ProspectsTableHeader;
