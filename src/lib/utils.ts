@@ -1,4 +1,3 @@
-
 import { type ClassValue, clsx } from "clsx";
 import { twMerge } from "tailwind-merge";
 
@@ -34,4 +33,20 @@ export function formatPhoneNumber(phone: string | null): string {
 export function truncateText(text: string, maxLength: number): string {
   if (!text || text.length <= maxLength) return text;
   return `${text.slice(0, maxLength)}...`;
+}
+
+/**
+ * Normaliza diferentes formatos de ended_reason a un formato estándar
+ */
+export function normalizeCallStatus(reason: string | null): string | null {
+  if (!reason) return null;
+  
+  const lowerReason = reason.toLowerCase();
+  
+  if (lowerReason.includes('complete')) return 'completed';
+  if (lowerReason.includes('no-answer') || lowerReason.includes('no answer')) return 'no-answer';
+  if (lowerReason.includes('busy') || lowerReason.includes('ocupado')) return 'busy';
+  if (lowerReason.includes('fail')) return 'failed';
+  
+  return reason;
 }

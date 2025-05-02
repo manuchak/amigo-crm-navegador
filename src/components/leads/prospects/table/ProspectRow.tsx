@@ -2,7 +2,7 @@
 import React from 'react';
 import { TableRow, TableCell } from '@/components/ui/table';
 import { Prospect } from '@/services/prospectService';
-import { formatPhoneNumber } from '@/lib/utils';
+import { formatPhoneNumber, normalizeCallStatus } from '@/lib/utils';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { StatusBadge, CallInfo, VehicleInfo, SedenaInfo, DateFormatter, BooleanDisplay, ActionButtons } from '.';
 
@@ -23,38 +23,32 @@ const ProspectRow: React.FC<ProspectRowProps> = ({
 }) => {
   const hasCallHistory = prospect.call_count !== null && prospect.call_count > 0;
   const hasInterviewData = prospect.transcript !== null;
+  const normalizedStatus = normalizeCallStatus(prospect.ended_reason);
 
   // Determine row highlight based on call status
-  const getRowHighlightClass = () => {
-    if (!prospect.ended_reason) return "";
-    
-    const status = prospect.ended_reason.toLowerCase();
-    if (status.includes('complete')) return "bg-green-50/30";
-    if (status.includes('no-answer') || status.includes('no answer')) return "bg-orange-50/30";
-    if (status.includes('busy') || status.includes('ocupado')) return "bg-yellow-50/30";
-    if (status.includes('fail')) return "bg-red-50/30";
-    
-    return "";
-  };
-
   const getBorderClass = () => {
-    if (!prospect.ended_reason) {
+    if (!normalizedStatus) {
       return prospect.lead_status === "Calificado" ? 'border-l-4 border-l-purple-400' : '';
     }
     
-    const status = prospect.ended_reason.toLowerCase();
-    if (status.includes('complete')) return "border-l-4 border-l-green-400";
-    if (status.includes('no-answer') || status.includes('no answer')) return "border-l-4 border-l-orange-400";
-    if (status.includes('busy') || status.includes('ocupado')) return "border-l-4 border-l-yellow-400";
-    if (status.includes('fail')) return "border-l-4 border-l-red-400";
-    
-    return "";
+    switch (normalizedStatus) {
+      case 'completed':
+        return "border-l-4 border-l-green-400";
+      case 'no-answer':
+        return "border-l-4 border-l-orange-400";
+      case 'busy':
+        return "border-l-4 border-l-yellow-400";
+      case 'failed':
+        return "border-l-4 border-l-red-400";
+      default:
+        return "";
+    }
   };
 
   return (
     <TooltipProvider>
       <TableRow 
-        className={`hover:bg-slate-50/80 transition-colors ${getRowHighlightClass()} ${getBorderClass()}`}
+        className={`hover:bg-slate-50/80 transition-colors ${getBorderClass()}`}
       >
         {/* Nombre */}
         <TableCell className="font-medium">

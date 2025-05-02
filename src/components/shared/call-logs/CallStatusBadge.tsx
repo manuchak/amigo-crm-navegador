@@ -12,20 +12,24 @@ import { cn } from '@/lib/utils';
 interface CallStatusBadgeProps {
   status: string;
   className?: string;
+  showIcon?: boolean;
+  size?: 'sm' | 'md';
 }
 
 export const CallStatusBadge: React.FC<CallStatusBadgeProps> = ({ 
   status, 
-  className = '' 
+  className = '',
+  showIcon = true,
+  size = 'md'
 }) => {
   // Normalize the status to handle various formats
-  const normalizedStatus = status.toLowerCase();
+  const normalizedStatus = status?.toLowerCase() || '';
 
   // Define badge configurations based on status
   const getBadgeConfig = () => {
     if (normalizedStatus.includes('complete')) {
       return {
-        icon: <CheckCircle2 className="h-3 w-3 mr-1" />,
+        icon: <CheckCircle2 className={size === 'sm' ? "h-3 w-3 mr-0.5" : "h-3 w-3 mr-1"} />,
         text: 'Completada',
         classes: 'bg-green-50 text-green-700 border-green-200'
       };
@@ -33,7 +37,7 @@ export const CallStatusBadge: React.FC<CallStatusBadgeProps> = ({
     
     if (normalizedStatus.includes('no-answer') || normalizedStatus.includes('no answer')) {
       return {
-        icon: <PhoneOff className="h-3 w-3 mr-1" />,
+        icon: <PhoneOff className={size === 'sm' ? "h-3 w-3 mr-0.5" : "h-3 w-3 mr-1"} />,
         text: 'Sin respuesta',
         classes: 'bg-orange-50 text-orange-700 border-orange-200'
       };
@@ -41,7 +45,7 @@ export const CallStatusBadge: React.FC<CallStatusBadgeProps> = ({
     
     if (normalizedStatus.includes('busy') || normalizedStatus.includes('ocupado')) {
       return {
-        icon: <PhoneMissed className="h-3 w-3 mr-1" />,
+        icon: <PhoneMissed className={size === 'sm' ? "h-3 w-3 mr-0.5" : "h-3 w-3 mr-1"} />,
         text: 'Ocupado',
         classes: 'bg-yellow-50 text-yellow-700 border-yellow-200'
       };
@@ -49,7 +53,7 @@ export const CallStatusBadge: React.FC<CallStatusBadgeProps> = ({
     
     if (normalizedStatus.includes('fail')) {
       return {
-        icon: <AlertCircle className="h-3 w-3 mr-1" />,
+        icon: <AlertCircle className={size === 'sm' ? "h-3 w-3 mr-0.5" : "h-3 w-3 mr-1"} />,
         text: 'Fallida',
         classes: 'bg-red-50 text-red-700 border-red-200'
       };
@@ -57,23 +61,28 @@ export const CallStatusBadge: React.FC<CallStatusBadgeProps> = ({
     
     // Default case
     return {
-      icon: <PhoneCall className="h-3 w-3 mr-1" />,
-      text: status,
+      icon: <PhoneCall className={size === 'sm' ? "h-3 w-3 mr-0.5" : "h-3 w-3 mr-1"} />,
+      text: status || 'Desconocido',
       classes: 'bg-slate-50 text-slate-700 border-slate-200'
     };
   };
   
   const badgeConfig = getBadgeConfig();
   
+  const sizeClasses = size === 'sm' 
+    ? "px-1 py-0.5 text-xs" 
+    : "px-1.5 py-0.5 text-xs";
+  
   return (
     <span 
       className={cn(
-        "inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-medium border",
+        "inline-flex items-center rounded-full font-medium border",
         badgeConfig.classes,
+        sizeClasses,
         className
       )}
     >
-      {badgeConfig.icon}
+      {showIcon && badgeConfig.icon}
       {badgeConfig.text}
     </span>
   );
