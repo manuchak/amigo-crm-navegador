@@ -12,6 +12,7 @@ import { format } from "date-fns";
 
 // Define form schema for validation
 const formSchema = z.object({
+  id: z.number().optional(),
   month_year: z.string().optional(),
   staff_cost: z.coerce.number().min(0, "El costo no puede ser negativo"),
   asset_cost: z.coerce.number().min(0, "El costo no puede ser negativo"),
@@ -44,6 +45,7 @@ export const MetricsForm: React.FC<MetricsFormProps> = ({
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
+      id: metrics?.id,
       month_year: metrics?.month_year || defaultMonthYear,
       staff_cost: metrics?.staff_cost || 0,
       asset_cost: metrics?.asset_cost || 0,
@@ -60,11 +62,7 @@ export const MetricsForm: React.FC<MetricsFormProps> = ({
   });
 
   function onSubmit(values: z.infer<typeof formSchema>) {
-    const formData = { ...values };
-    if (metrics?.id) {
-      formData.id = metrics.id;
-    }
-    onSave(formData);
+    onSave(values);
   }
 
   return (
