@@ -1,3 +1,4 @@
+
 import { supabase } from '@/integrations/supabase/client';
 import { format, subMonths } from 'date-fns';
 
@@ -33,7 +34,7 @@ export interface NewCustodiosByMonth {
 }
 
 export interface CustodioRetention {
-  month_year: string; // Changed from Date to string to match the interface
+  month_year: string;
   active_start: number;
   active_end: number;
   retention_rate: number;
@@ -205,10 +206,18 @@ export async function getCustodioRetention(months: number = 12): Promise<Custodi
     }
   }
   
-  return data || [];
+  // Filter out any invalid data (NULL, N/A, undefined) from the database response
+  const filteredData = data?.filter(item => 
+    item.retention_rate !== null && 
+    !isNaN(item.retention_rate)
+  ) || [];
+  
+  console.log(`Received ${data?.length || 0} retention records, ${filteredData.length} valid after filtering`);
+  
+  return filteredData;
 }
 
-// New function to calculate retention manually if the RPC call fails
+// Enhanced manual retention calculation function with improved null handling
 async function calculateRetentionManually(startDate: Date, endDate: Date): Promise<CustodioRetention[]> {
   console.log('Calculating retention manually from:', format(startDate, 'yyyy-MM-dd'), 'to:', format(endDate, 'yyyy-MM-dd'));
   const retentionData: CustodioRetention[] = [];
@@ -235,6 +244,7 @@ async function calculateRetentionManually(startDate: Date, endDate: Date): Promi
   allServiciosData.forEach(servicio => {
     if (!servicio.fecha_hora_cita || !servicio.nombre_custodio) return;
     
+    // Format the date to first day of month for grouping
     const monthKey = format(new Date(servicio.fecha_hora_cita), 'yyyy-MM-01');
     
     if (!custodiosByMonth[monthKey]) {
@@ -299,7 +309,7 @@ async function calculateRetentionManually(startDate: Date, endDate: Date): Promi
       : 0;
     
     retentionData.push({
-      month_year: currentMonth, // This is already a string formatted as 'yyyy-MM-01'
+      month_year: currentMonth, 
       active_start: previousCustodios.size,
       active_end: currentCustodios.size,
       retention_rate: retentionRate,

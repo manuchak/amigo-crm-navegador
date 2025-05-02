@@ -1,3 +1,4 @@
+
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { 
   getCustodioKpiData, 
@@ -105,14 +106,14 @@ export function useCustodioKpi(months: number = 12) {
     return (totalRoi / campaignMetrics.length) * 100; // As percentage
   };
   
-  // Calculate average retention rate - improved to handle edge cases
+  // Calculate average retention rate - improved to handle edge cases and ignore NULL/N/A values
   const calculateAvgRetention = () => {
     if (!retentionQuery.data || retentionQuery.data.length === 0) {
       console.log('No retention data available');
       return 0;
     }
     
-    // Filter out zero or null rates that might skew the average
+    // Filter out NULL, N/A, zero, or undefined retention rates that might skew the average
     const validRetentionData = retentionQuery.data.filter(item => 
       item.retention_rate !== null && 
       !isNaN(item.retention_rate) && 
@@ -120,17 +121,17 @@ export function useCustodioKpi(months: number = 12) {
     );
     
     if (validRetentionData.length === 0) {
-      console.log('No valid retention rates found');
+      console.log('No valid retention rates found after filtering NULL/N/A values');
       return 0;
     }
     
-    // Calculate the average retention rate
+    // Calculate the average retention rate from valid data points
     const totalRetention = validRetentionData.reduce(
       (sum, item) => sum + item.retention_rate, 0
     );
     
     const avgRetention = totalRetention / validRetentionData.length;
-    console.log(`Calculating avg retention from ${validRetentionData.length} months:`, 
+    console.log(`Calculating avg retention from ${validRetentionData.length} valid months:`, 
       validRetentionData.map(d => d.retention_rate.toFixed(1)),
       `Avg: ${avgRetention.toFixed(2)}%`);
     

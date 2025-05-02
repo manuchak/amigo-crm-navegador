@@ -56,7 +56,8 @@ export const BusinessKpis = () => {
   };
   
   const filteredKpiData = filterDataByDateRange(kpiData || []);
-  const filteredRetention = filterDataByDateRange(retention || []);
+  const filteredRetention = filterDataByDateRange(retention || [])
+    .filter(item => item.retention_rate !== null && !isNaN(item.retention_rate));
   
   // Custom tooltip for the charts
   const CustomTooltip = ({ active, payload, label }: any) => {
@@ -104,12 +105,14 @@ export const BusinessKpis = () => {
     'CAC': metrics?.find(m => m.month_year === item.month_year)?.acquisition_cost_manual || 0
   })) || [];
   
-  // Format data for the retention chart
-  const retentionData = filteredRetention.map(item => ({
-    month: new Date(item.month_year).toLocaleDateString('es-MX', { month: 'short', year: 'numeric' }),
-    'Retention Rate': item.retention_rate,
-    'Growth Rate': item.growth_rate
-  })) || [];
+  // Format data for the retention chart - filter out null/N/A values
+  const retentionData = filteredRetention
+    .filter(item => item.retention_rate !== null && !isNaN(item.retention_rate))
+    .map(item => ({
+      month: new Date(item.month_year).toLocaleDateString('es-MX', { month: 'short', year: 'numeric' }),
+      'Retention Rate': item.retention_rate,
+      'Growth Rate': item.growth_rate
+    })) || [];
   
   // Format data for the LTV chart
   const ltvData = ltv?.map(item => ({
@@ -120,17 +123,24 @@ export const BusinessKpis = () => {
     'Total Revenue': item.total_revenue,
   })).slice(0, 10) || [];
   
-  // Get latest retention rate value - updated with detailed logging
+  // Get latest retention rate value - updated to handle null/N/A values
   const currentRetentionRate = (() => {
     if (filteredRetention && filteredRetention.length > 0) {
-      const latestRate = filteredRetention[filteredRetention.length - 1]?.retention_rate;
-      console.log('Latest retention rate:', latestRate);
-      return latestRate !== null && !isNaN(latestRate) ? latestRate : null;
+      // Find the last valid retention rate (not null, not NaN)
+      for (let i = filteredRetention.length - 1; i >= 0; i--) {
+        const rate = filteredRetention[i]?.retention_rate;
+        if (rate !== null && !isNaN(rate)) {
+          console.log('Found latest valid retention rate:', rate);
+          return rate;
+        }
+      }
+      return null;
     }
     return null;
   })();
     
   // Make sure we have a valid retention rate - preferring current rate over average
+  // Fall back to avgRetention if currentRetentionRate is null
   const displayRetentionRate = (() => {
     if (currentRetentionRate !== null && !isNaN(currentRetentionRate)) {
       return currentRetentionRate;
@@ -141,6 +151,7 @@ export const BusinessKpis = () => {
   
   // Log retention data to help debugging
   console.log('Retention data:', filteredRetention);
+  console.log('Valid retention data count:', filteredRetention.filter(i => i.retention_rate !== null && !isNaN(i.retention_rate)).length);
   console.log('Display retention rate:', displayRetentionRate);
   console.log('Avg retention rate:', avgRetention);
 
@@ -226,7 +237,7 @@ export const BusinessKpis = () => {
               <div className="flex items-center space-x-2">
                 <LineChart className="h-5 w-5 text-cyan-500" />
                 <span className="text-2xl font-bold">
-                  {displayRetentionRate > 0 
+                  {(displayRetentionRate !== null && !isNaN(displayRetentionRate) && displayRetentionRate > 0) 
                     ? formatPercent(displayRetentionRate) 
                     : 'N/A'}
                 </span>

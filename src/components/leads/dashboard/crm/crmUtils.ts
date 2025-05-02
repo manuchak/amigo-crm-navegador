@@ -91,8 +91,8 @@ export const formatCurrency = (value: number): string => {
   }).format(value);
 };
 
-// Format percentage for display - updated to handle edge cases
-export const formatPercent = (value: number): string => {
+// Format percentage for display - updated to handle null, undefined, and NaN values
+export const formatPercent = (value: number | null | undefined): string => {
   if (value === null || value === undefined || isNaN(value)) {
     return 'N/A';
   }
@@ -139,13 +139,13 @@ export function useFunnelStats(leads: any[]) {
   return { byStage, conversions };
 }
 
-// Calculate retention rate between two periods
+// Calculate retention rate between two periods - enhanced to handle null values
 export function calculateRetentionRate(previousPeriodCustodians: string[], currentPeriodCustodians: string[]): number {
   if (!previousPeriodCustodians || previousPeriodCustodians.length === 0) return 0;
   
   // Count custodians that appear in both arrays (retained)
   const retained = previousPeriodCustodians.filter(custodian => 
-    currentPeriodCustodians.includes(custodian)
+    custodian && currentPeriodCustodians.includes(custodian)
   );
   
   // Calculate retention rate as percentage
