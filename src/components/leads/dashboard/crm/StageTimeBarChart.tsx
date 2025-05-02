@@ -3,7 +3,7 @@ import React from "react";
 import { ResponsiveContainer, BarChart, XAxis, YAxis, Tooltip, Bar, LabelList } from "recharts";
 import { useTimeMetrics } from "./crmUtils";
 import { Lead } from "@/context/LeadsContext";
-import { ChartContainer, ChartTooltipContent } from "@/components/ui/chart";
+import { ChartContainer } from "@/components/ui/chart";
 
 interface StageTimeBarChartProps {
   leads: Lead[];
@@ -14,6 +14,17 @@ const StageTimeBarChart: React.FC<StageTimeBarChartProps> = ({ leads }) => {
   
   const chartConfig = {
     avgDays: { color: "#F59E42" }
+  };
+  
+  // Custom tooltip that doesn't use useChart directly
+  const CustomTooltip = ({ active, payload }: any) => {
+    if (!active || !payload || !payload.length) return null;
+    
+    return (
+      <div className="bg-background/95 p-2 border rounded-md shadow-md text-sm">
+        <p>{`${payload[0].payload.name}: ${payload[0].value.toFixed(1)} días`}</p>
+      </div>
+    );
   };
   
   return (
@@ -28,7 +39,7 @@ const StageTimeBarChart: React.FC<StageTimeBarChartProps> = ({ leads }) => {
             fontSize={12}
           />
           <YAxis />
-          <Tooltip content={<ChartTooltipContent />} />
+          <Tooltip content={<CustomTooltip />} />
           <Bar
             dataKey="avgDays"
             fill="#F59E42"

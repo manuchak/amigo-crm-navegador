@@ -1,6 +1,7 @@
+
 import React, { useMemo, useState } from "react";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend, LabelList } from "recharts";
-import { ChartContainer, ChartTooltipContent } from "@/components/ui/chart";
+import { ChartContainer } from "@/components/ui/chart";
 import { Lead } from "@/context/LeadsContext";
 import DateRangePicker from "./DateRangePicker";
 import { isValid, parseISO } from "date-fns";
@@ -98,6 +99,22 @@ const LeadsByDaySourceChart: React.FC<LeadsByDaySourceChartProps> = ({ leads }) 
     return conf;
   }, [sources]);
 
+  // Custom tooltip that doesn't use useChart directly
+  const CustomTooltip = ({ active, payload, label }: any) => {
+    if (!active || !payload || !payload.length) return null;
+    
+    return (
+      <div className="bg-background/95 p-2 border rounded-md shadow-md text-sm">
+        <p className="font-medium">{label}</p>
+        {payload.map((entry: any, index: number) => (
+          <p key={index}>
+            {sourceLabels[entry.name] || entry.name}: {entry.value}
+          </p>
+        ))}
+      </div>
+    );
+  };
+
   return (
     <div className="w-full h-full">
       <div className="flex justify-end mb-4">
@@ -121,7 +138,7 @@ const LeadsByDaySourceChart: React.FC<LeadsByDaySourceChartProps> = ({ leads }) 
               fontSize={12}
             />
             <YAxis allowDecimals={false} />
-            <Tooltip content={<ChartTooltipContent />} />
+            <Tooltip content={<CustomTooltip />} />
             <Legend />
             {sources.map((src) => (
               <Bar

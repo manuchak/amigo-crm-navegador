@@ -2,7 +2,7 @@
 import React from "react";
 import { ResponsiveContainer, PieChart, Pie, Cell, Legend, Tooltip } from "recharts";
 import { pieColors } from "./crmUtils";
-import { ChartContainer, ChartTooltipContent } from "@/components/ui/chart";
+import { ChartContainer } from "@/components/ui/chart";
 
 interface ProfilePieChartProps {
   carTypes: { name: string; val: number }[];
@@ -33,6 +33,17 @@ const ProfilePieChart: React.FC<ProfilePieChartProps> = ({ carTypes }) => {
     carTypes.map((entry, idx) => [entry.name, { color: pieColors[idx % pieColors.length] }])
   );
 
+  // Custom tooltip that doesn't use useChart directly
+  const CustomTooltip = ({ active, payload }: any) => {
+    if (!active || !payload || !payload.length) return null;
+    
+    return (
+      <div className="bg-background/95 p-2 border rounded-md shadow-md text-sm">
+        <p>{`${payload[0].name}: ${payload[0].value}`}</p>
+      </div>
+    );
+  };
+
   return (
     <ChartContainer config={chartConfig} className="w-full h-full">
       <ResponsiveContainer width="100%" height="100%">
@@ -53,7 +64,7 @@ const ProfilePieChart: React.FC<ProfilePieChartProps> = ({ carTypes }) => {
               <Cell key={entry.name} fill={pieColors[idx % pieColors.length]} />
             ))}
           </Pie>
-          <Tooltip content={<ChartTooltipContent />} />
+          <Tooltip content={<CustomTooltip />} />
           <Legend layout="horizontal" verticalAlign="bottom" align="center" />
         </PieChart>
       </ResponsiveContainer>

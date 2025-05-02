@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -95,6 +94,54 @@ export function BusinessKpis() {
   const formatPercent = (value?: number) => {
     if (value === undefined) return '0%';
     return `${value.toFixed(1)}%`;
+  };
+
+  // Custom tooltip components that don't use useChart directly
+  const RevenueChartTooltip = ({ active, payload, label }: any) => {
+    if (!active || !payload || !payload.length) return null;
+    return (
+      <div className="bg-background/95 p-2 border rounded-md shadow-md text-sm">
+        <p className="font-medium">{label}</p>
+        {payload.map((entry: any, index: number) => (
+          <p key={index} style={{ color: entry.color }}>
+            {entry.name === "revenue" ? "Ingresos Totales" : "Promedio por Servicio"}: 
+            {formatCurrency(entry.value)}
+          </p>
+        ))}
+      </div>
+    );
+  };
+  
+  const RetentionChartTooltip = ({ active, payload, label }: any) => {
+    if (!active || !payload || !payload.length) return null;
+    return (
+      <div className="bg-background/95 p-2 border rounded-md shadow-md text-sm">
+        <p className="font-medium">{label}</p>
+        {payload.map((entry: any, index: number) => (
+          <p key={index} style={{ color: entry.color }}>
+            {entry.name === "activos" ? "Custodios Activos" : 
+             entry.name === "nuevos" ? "Nuevos Custodios" :
+             entry.name === "perdidos" ? "Custodios Perdidos" :
+             "Tasa de Retención"}: 
+            {entry.name === "retention" ? `${entry.value.toFixed(1)}%` : entry.value}
+          </p>
+        ))}
+      </div>
+    );
+  };
+  
+  const EfficiencyChartTooltip = ({ active, payload, label }: any) => {
+    if (!active || !payload || !payload.length) return null;
+    return (
+      <div className="bg-background/95 p-2 border rounded-md shadow-md text-sm">
+        <p className="font-medium">{label}</p>
+        {payload.map((entry: any, index: number) => (
+          <p key={index} style={{ color: entry.color }}>
+            Servicios por Custodio: {entry.value.toFixed(1)}
+          </p>
+        ))}
+      </div>
+    );
   };
 
   // Datos para gráficos
@@ -366,7 +413,7 @@ export function BusinessKpis() {
                     <CartesianGrid strokeDasharray="3 3" />
                     <XAxis dataKey="name" />
                     <YAxis />
-                    <Tooltip content={<ChartTooltipContent />} />
+                    <Tooltip content={<RevenueChartTooltip />} />
                     <Legend />
                     <Area
                       type="monotone"
@@ -404,7 +451,7 @@ export function BusinessKpis() {
                     <XAxis dataKey="name" />
                     <YAxis yAxisId="left" />
                     <YAxis yAxisId="right" orientation="right" />
-                    <Tooltip content={<ChartTooltipContent />} />
+                    <Tooltip content={<RetentionChartTooltip />} />
                     <Legend />
                     <Bar
                       yAxisId="left"
@@ -450,7 +497,7 @@ export function BusinessKpis() {
                     <CartesianGrid strokeDasharray="3 3" />
                     <XAxis dataKey="name" />
                     <YAxis />
-                    <Tooltip content={<ChartTooltipContent />} />
+                    <Tooltip content={<EfficiencyChartTooltip />} />
                     <Legend />
                     <Line
                       type="monotone"
@@ -473,7 +520,12 @@ export function BusinessKpis() {
           <DialogHeader>
             <DialogTitle>Ingresar Métricas Manuales</DialogTitle>
           </DialogHeader>
-          <form onSubmit={handleMetricsSubmit} className="space-y-4 py-4">
+          <form onSubmit={(e) => {
+            e.preventDefault();
+            updateMetrics(currentMetric);
+            setIsMetricsDialogOpen(false);
+            toast.success('Métricas actualizadas correctamente');
+          }} className="space-y-4 py-4">
             <div className="space-y-2">
               <Label htmlFor="month_year">Mes</Label>
               <Input
@@ -481,7 +533,13 @@ export function BusinessKpis() {
                 name="month_year"
                 type="date"
                 value={currentMetric.month_year}
-                onChange={handleInputChange}
+                onChange={(e) => {
+                  const { name, value } = e.target;
+                  setCurrentMetric(prev => ({
+                    ...prev,
+                    [name]: value
+                  }));
+                }}
               />
               <p className="text-sm text-muted-foreground">Seleccione el primer día del mes</p>
             </div>
@@ -495,7 +553,13 @@ export function BusinessKpis() {
                   name="staff_cost"
                   type="number"
                   value={currentMetric.staff_cost}
-                  onChange={handleInputChange}
+                  onChange={(e) => {
+                    const { name, value } = e.target;
+                    setCurrentMetric(prev => ({
+                      ...prev,
+                      [name]: parseFloat(value)
+                    }));
+                  }}
                 />
               </div>
               <div className="space-y-2">
@@ -505,7 +569,13 @@ export function BusinessKpis() {
                   name="asset_cost"
                   type="number"
                   value={currentMetric.asset_cost}
-                  onChange={handleInputChange}
+                  onChange={(e) => {
+                    const { name, value } = e.target;
+                    setCurrentMetric(prev => ({
+                      ...prev,
+                      [name]: parseFloat(value)
+                    }));
+                  }}
                 />
               </div>
               <div className="space-y-2">
@@ -515,7 +585,13 @@ export function BusinessKpis() {
                   name="marketing_cost"
                   type="number"
                   value={currentMetric.marketing_cost}
-                  onChange={handleInputChange}
+                  onChange={(e) => {
+                    const { name, value } = e.target;
+                    setCurrentMetric(prev => ({
+                      ...prev,
+                      [name]: parseFloat(value)
+                    }));
+                  }}
                 />
               </div>
             </div>
@@ -529,7 +605,13 @@ export function BusinessKpis() {
                   name="nps_promoters"
                   type="number"
                   value={currentMetric.nps_promoters}
-                  onChange={handleInputChange}
+                  onChange={(e) => {
+                    const { name, value } = e.target;
+                    setCurrentMetric(prev => ({
+                      ...prev,
+                      [name]: parseInt(value)
+                    }));
+                  }}
                 />
               </div>
               <div className="space-y-2">
@@ -539,7 +621,13 @@ export function BusinessKpis() {
                   name="nps_neutral"
                   type="number"
                   value={currentMetric.nps_neutral}
-                  onChange={handleInputChange}
+                  onChange={(e) => {
+                    const { name, value } = e.target;
+                    setCurrentMetric(prev => ({
+                      ...prev,
+                      [name]: parseInt(value)
+                    }));
+                  }}
                 />
               </div>
               <div className="space-y-2">
@@ -549,7 +637,13 @@ export function BusinessKpis() {
                   name="nps_detractors"
                   type="number"
                   value={currentMetric.nps_detractors}
-                  onChange={handleInputChange}
+                  onChange={(e) => {
+                    const { name, value } = e.target;
+                    setCurrentMetric(prev => ({
+                      ...prev,
+                      [name]: parseInt(value)
+                    }));
+                  }}
                 />
               </div>
             </div>
@@ -563,7 +657,13 @@ export function BusinessKpis() {
                   name="campaign_name"
                   type="text"
                   value={currentMetric.campaign_name || ''}
-                  onChange={handleInputChange}
+                  onChange={(e) => {
+                    const { name, value } = e.target;
+                    setCurrentMetric(prev => ({
+                      ...prev,
+                      [name]: value
+                    }));
+                  }}
                 />
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -574,7 +674,13 @@ export function BusinessKpis() {
                     name="campaign_cost"
                     type="number"
                     value={currentMetric.campaign_cost}
-                    onChange={handleInputChange}
+                    onChange={(e) => {
+                      const { name, value } = e.target;
+                      setCurrentMetric(prev => ({
+                        ...prev,
+                        [name]: parseFloat(value)
+                      }));
+                    }}
                   />
                 </div>
                 <div className="space-y-2">
@@ -584,7 +690,13 @@ export function BusinessKpis() {
                     name="campaign_revenue"
                     type="number"
                     value={currentMetric.campaign_revenue}
-                    onChange={handleInputChange}
+                    onChange={(e) => {
+                      const { name, value } = e.target;
+                      setCurrentMetric(prev => ({
+                        ...prev,
+                        [name]: parseFloat(value)
+                      }));
+                    }}
                   />
                 </div>
               </div>
@@ -599,7 +711,13 @@ export function BusinessKpis() {
                   name="acquisition_cost_manual"
                   type="number"
                   value={currentMetric.acquisition_cost_manual}
-                  onChange={handleInputChange}
+                  onChange={(e) => {
+                    const { name, value } = e.target;
+                    setCurrentMetric(prev => ({
+                      ...prev,
+                      [name]: parseFloat(value)
+                    }));
+                  }}
                 />
               </div>
               <div className="space-y-2">
@@ -609,7 +727,13 @@ export function BusinessKpis() {
                   name="avg_onboarding_days"
                   type="number"
                   value={currentMetric.avg_onboarding_days}
-                  onChange={handleInputChange}
+                  onChange={(e) => {
+                    const { name, value } = e.target;
+                    setCurrentMetric(prev => ({
+                      ...prev,
+                      [name]: parseFloat(value)
+                    }));
+                  }}
                 />
               </div>
             </div>

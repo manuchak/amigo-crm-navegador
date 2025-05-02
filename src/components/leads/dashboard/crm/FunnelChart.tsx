@@ -1,7 +1,7 @@
 
 import React from "react";
 import { ResponsiveContainer, BarChart, CartesianGrid, XAxis, YAxis, Tooltip, Bar, Cell } from "recharts";
-import { ChartContainer, ChartTooltipContent } from "@/components/ui/chart";
+import { ChartContainer } from "@/components/ui/chart";
 
 interface FunnelChartProps {
   byStage: { key: string; label: string; value: number; color: string }[];
@@ -11,6 +11,17 @@ const FunnelChart: React.FC<FunnelChartProps> = ({ byStage }) => {
   const chartConfig = Object.fromEntries(
     byStage.map((entry) => [entry.key, { color: entry.color }])
   );
+
+  // Custom tooltip that doesn't use useChart directly
+  const CustomTooltip = ({ active, payload }: any) => {
+    if (!active || !payload || !payload.length) return null;
+    
+    return (
+      <div className="bg-background/95 p-2 border rounded-md shadow-md text-sm">
+        <p>{`${payload[0].payload.label}: ${payload[0].value}`}</p>
+      </div>
+    );
+  };
 
   return (
     <ChartContainer config={chartConfig} className="w-full h-full">
@@ -23,7 +34,7 @@ const FunnelChart: React.FC<FunnelChartProps> = ({ byStage }) => {
             height={22}
           />
           <YAxis allowDecimals={false} />
-          <Tooltip content={<ChartTooltipContent />} />
+          <Tooltip content={<CustomTooltip />} />
           <Bar dataKey="value" radius={[4, 4, 0, 0]}>
             {byStage.map((entry) => (
               <Cell key={entry.key} fill={entry.color} />
