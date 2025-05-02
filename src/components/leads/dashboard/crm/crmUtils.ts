@@ -1,3 +1,4 @@
+
 import { Lead } from "@/context/LeadsContext";
 
 export const STAGES = [
@@ -81,8 +82,29 @@ export const useTimeMetrics = (leads: Lead[]): TimeMetric[] => {
   }));
 };
 
-// Format currency for display
+// Format currency for display with enhanced formatting
 export const formatCurrency = (value: number): string => {
+  if (value === null || value === undefined || isNaN(value)) {
+    return 'N/A';
+  }
+  
+  // Add abbreviations for large numbers
+  if (value >= 1000000) {
+    return new Intl.NumberFormat('es-MX', {
+      style: 'currency',
+      currency: 'MXN',
+      maximumFractionDigits: 1,
+      minimumFractionDigits: 1
+    }).format(value / 1000000) + 'M';
+  } 
+  else if (value >= 1000) {
+    return new Intl.NumberFormat('es-MX', {
+      style: 'currency',
+      currency: 'MXN',
+      maximumFractionDigits: 0
+    }).format(value / 1000) + 'K';
+  }
+  
   return new Intl.NumberFormat('es-MX', {
     style: 'currency',
     currency: 'MXN',
@@ -102,6 +124,38 @@ export const formatPercent = (value: number | null | undefined): string => {
     minimumFractionDigits: 1,
     maximumFractionDigits: 1
   }).format(value / 100);
+};
+
+// Format number with thousands separator
+export const formatNumber = (value: number | null | undefined): string => {
+  if (value === null || value === undefined || isNaN(value)) {
+    return 'N/A';
+  }
+  
+  // Add abbreviations for large numbers
+  if (value >= 1000000) {
+    return new Intl.NumberFormat('es-MX', {
+      maximumFractionDigits: 1,
+      minimumFractionDigits: 1
+    }).format(value / 1000000) + 'M';
+  } 
+  else if (value >= 1000) {
+    return new Intl.NumberFormat('es-MX', {
+      maximumFractionDigits: 1
+    }).format(value / 1000) + 'K';
+  }
+  
+  return new Intl.NumberFormat('es-MX').format(value);
+};
+
+// Get color based on trend direction and strength
+export const getTrendColor = (value: number): string => {
+  if (isNaN(value) || value === 0) return 'text-gray-500';
+  
+  if (value > 15) return 'text-emerald-600';
+  if (value > 0) return 'text-green-500';
+  if (value > -15) return 'text-amber-500';
+  return 'text-red-500';
 };
 
 function getColorForStage(stageKey: string): string {
@@ -164,4 +218,11 @@ export const formatDate = (date: Date): string => {
 // Get month name from date
 export const getMonthName = (date: Date): string => {
   return date.toLocaleDateString('es-MX', { month: 'long' });
+};
+
+// Get short date range string
+export const getShortDateRangeString = (from: Date, to: Date): string => {
+  const fromStr = from.toLocaleDateString('es-MX', {day: 'numeric', month: 'short'});
+  const toStr = to.toLocaleDateString('es-MX', {day: 'numeric', month: 'short', year: 'numeric'});
+  return `${fromStr} - ${toStr}`;
 };

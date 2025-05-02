@@ -1,3 +1,4 @@
+
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { 
   getCustodioKpiData, 
@@ -8,10 +9,36 @@ import {
   updateCustodioMetrics,
   CustodioMetrics
 } from '@/services/custodioKpiService';
+import { subMonths, subYears, format } from 'date-fns';
 
-export function useCustodioKpi(months: number = 12) {
+// Interface for comparison data
+interface ComparisonData {
+  totalRevenue: number;
+  totalCustodios: number;
+  cac: number;
+  avgLtv: number;
+  avgRetention: number | null;
+  nps: number;
+  marketingRoi: number;
+  ltvCacRatio: number;
+}
+
+export function useCustodioKpi(months: number = 12, comparisonType: 'month' | 'year' = 'month') {
   const queryClient = useQueryClient();
   
+  // Get current date
+  const currentDate = new Date();
+  
+  // Calculate comparison date range based on comparison type
+  const comparisonStartDate = comparisonType === 'month' 
+    ? subMonths(currentDate, 1) 
+    : subYears(currentDate, 1);
+    
+  const comparisonMonths = comparisonType === 'month'
+    ? months
+    : 12;  // For year comparison, we use the same length (12 months)
+  
+  // Current period queries
   const kpiDataQuery = useQuery({
     queryKey: ['custodioKpiData', months],
     queryFn: () => getCustodioKpiData(months),
@@ -37,6 +64,31 @@ export function useCustodioKpi(months: number = 12) {
     queryFn: () => getCustodioLtv(months),
   });
   
+  // Comparison period queries - only fetch if we need them
+  const comparisonKpiDataQuery = useQuery({
+    queryKey: ['custodioKpiData', 'comparison', comparisonType, comparisonMonths],
+    queryFn: () => getCustodioKpiData(comparisonMonths),
+    enabled: true, // We'll always fetch comparison data
+  });
+  
+  const comparisonMetricsQuery = useQuery({
+    queryKey: ['custodioMetrics', 'comparison', comparisonType, comparisonMonths],
+    queryFn: () => getCustodioMetrics(comparisonMonths),
+    enabled: true,
+  });
+  
+  const comparisonLtvQuery = useQuery({
+    queryKey: ['custodioLtv', 'comparison', comparisonType, comparisonMonths],
+    queryFn: () => getCustodioLtv(comparisonMonths),
+    enabled: true,
+  });
+  
+  const comparisonRetentionQuery = useQuery({
+    queryKey: ['custodioRetention', 'comparison', comparisonType, comparisonMonths],
+    queryFn: () => getCustodioRetention(comparisonMonths),
+    enabled: true,
+  });
+  
   // Mutation for updating manual metrics
   const updateMetricsMutation = useMutation({
     mutationFn: (metrics: Partial<CustodioMetrics>) => updateCustodioMetrics(metrics),
@@ -47,11 +99,11 @@ export function useCustodioKpi(months: number = 12) {
   });
   
   // Calculate NPS based on data
-  const calculateNps = () => {
-    if (!metricsQuery.data || metricsQuery.data.length === 0) return 0;
+  const calculateNps = (metricsData?: CustodioMetrics[]) => {
+    if (!metricsData || metricsData.length === 0) return 0;
     
     // Take the most recent month
-    const latestMetric = metricsQuery.data.slice(-1)[0];
+    const latestMetric = metricsData.slice(-1)[0];
     const promoters = latestMetric.nps_promoters || 0;
     const detractors = latestMetric.nps_detractors || 0;
     const total = promoters + detractors + (latestMetric.nps_neutral || 0);
@@ -61,18 +113,18 @@ export function useCustodioKpi(months: number = 12) {
   };
   
   // Calculate CAC (Customer Acquisition Cost)
-  const calculateCac = () => {
-    if (!metricsQuery.data || metricsQuery.data.length === 0 || !newCustodiosQuery.data) return 0;
+  const calculateCac = (metricsData?: CustodioMetrics[], newCustodiosData?: any[]) => {
+    if (!metricsData || metricsData.length === 0 || !newCustodiosData) return 0;
     
     // Sum all costs from the latest available month
-    const latestMetric = metricsQuery.data.slice(-1)[0];
+    const latestMetric = metricsData.slice(-1)[0];
     const totalCost = (latestMetric.staff_cost || 0) + 
                      (latestMetric.asset_cost || 0) + 
                      (latestMetric.marketing_cost || 0) +
                      (latestMetric.acquisition_cost_manual || 0);
     
     // Find the number of new custodios for that month
-    const monthData = newCustodiosQuery.data.find(
+    const monthData = newCustodiosData.find(
       item => item.month_year === latestMetric.month_year
     );
     
@@ -82,11 +134,11 @@ export function useCustodioKpi(months: number = 12) {
   };
   
   // Calculate ROI of marketing campaigns
-  const calculateMarketingRoi = () => {
-    if (!metricsQuery.data || metricsQuery.data.length === 0) return 0;
+  const calculateMarketingRoi = (metricsData?: CustodioMetrics[]) => {
+    if (!metricsData || metricsData.length === 0) return 0;
     
     // Filter only entries with campaign data
-    const campaignMetrics = metricsQuery.data.filter(
+    const campaignMetrics = metricsData.filter(
       metric => metric.campaign_name && metric.campaign_cost > 0
     );
     
@@ -106,16 +158,16 @@ export function useCustodioKpi(months: number = 12) {
   };
   
   // Calculate average retention rate - improved to handle edge cases and ignore NULL/N/A values
-  const calculateAvgRetention = () => {
-    if (!retentionQuery.data) {
+  const calculateAvgRetention = (retentionData?: any[]) => {
+    if (!retentionData) {
       console.log('DEBUG: No retention data available');
       return null;
     }
     
-    console.log(`DEBUG: Raw retention data has ${retentionQuery.data.length} entries`);
+    console.log(`DEBUG: Raw retention data has ${retentionData.length} entries`);
     
     // Filter out NULL, N/A, zero, or undefined retention rates that might skew the average
-    const validRetentionData = retentionQuery.data.filter(item => 
+    const validRetentionData = retentionData.filter(item => 
       item && 
       item.retention_rate !== null && 
       !isNaN(item.retention_rate) && 
@@ -143,11 +195,11 @@ export function useCustodioKpi(months: number = 12) {
   };
   
   // Calculate average LTV
-  const calculateAvgLtv = () => {
-    if (!ltvQuery.data || ltvQuery.data.length === 0) return 0;
+  const calculateAvgLtv = (ltvData?: any[], months: number = 12) => {
+    if (!ltvData || ltvData.length === 0) return 0;
     
     // Only consider active custodios - those with records in the selected period
-    const activeCustodios = ltvQuery.data.filter(item => {
+    const activeCustodios = ltvData.filter(item => {
       // Check if the last service date is within the period
       const lastServiceDate = new Date(item.last_service_date);
       const cutoffDate = new Date();
@@ -166,12 +218,47 @@ export function useCustodioKpi(months: number = 12) {
   };
   
   // Calculate LTV:CAC ratio
-  const calculateLtvCacRatio = () => {
-    const avgLtv = calculateAvgLtv();
-    const cac = calculateCac();
-    
+  const calculateLtvCacRatio = (avgLtv: number, cac: number) => {
     if (cac === 0) return 0;
     return avgLtv / cac;
+  };
+
+  // Calculate current period metrics
+  const nps = calculateNps(metricsQuery.data);
+  const cac = calculateCac(metricsQuery.data, newCustodiosQuery.data);
+  const marketingRoi = calculateMarketingRoi(metricsQuery.data);
+  const avgRetention = calculateAvgRetention(retentionQuery.data);
+  const avgLtv = calculateAvgLtv(ltvQuery.data, months);
+  const ltvCacRatio = calculateLtvCacRatio(avgLtv, cac);
+  
+  // Calculate comparison period metrics
+  const comparisonNps = calculateNps(comparisonMetricsQuery.data);
+  const comparisonCac = calculateCac(comparisonMetricsQuery.data, newCustodiosQuery.data);
+  const comparisonMarketingRoi = calculateMarketingRoi(comparisonMetricsQuery.data);
+  const comparisonAvgRetention = calculateAvgRetention(comparisonRetentionQuery.data);
+  const comparisonAvgLtv = calculateAvgLtv(comparisonLtvQuery.data, comparisonMonths);
+  const comparisonLtvCacRatio = calculateLtvCacRatio(comparisonAvgLtv, comparisonCac);
+  
+  // Calculate total revenue for comparison period
+  const comparisonTotalRevenue = comparisonKpiDataQuery.data
+    ? comparisonKpiDataQuery.data.reduce((sum, item) => sum + item.total_revenue, 0)
+    : 0;
+    
+  // Get total custodios for comparison period
+  const comparisonTotalCustodios = comparisonKpiDataQuery.data && comparisonKpiDataQuery.data.length > 0
+    ? comparisonKpiDataQuery.data[comparisonKpiDataQuery.data.length - 1]?.total_custodios || 0
+    : 0;
+  
+  // Create comparison data object
+  const previousPeriodData: ComparisonData = {
+    totalRevenue: comparisonTotalRevenue,
+    totalCustodios: comparisonTotalCustodios,
+    cac: comparisonCac,
+    avgLtv: comparisonAvgLtv,
+    avgRetention: comparisonAvgRetention,
+    nps: comparisonNps,
+    marketingRoi: comparisonMarketingRoi,
+    ltvCacRatio: comparisonLtvCacRatio
   };
   
   return {
@@ -184,20 +271,31 @@ export function useCustodioKpi(months: number = 12) {
                metricsQuery.isLoading || 
                newCustodiosQuery.isLoading || 
                retentionQuery.isLoading || 
-               ltvQuery.isLoading,
+               ltvQuery.isLoading ||
+               comparisonKpiDataQuery.isLoading ||
+               comparisonMetricsQuery.isLoading ||
+               comparisonLtvQuery.isLoading ||
+               comparisonRetentionQuery.isLoading,
     isError: kpiDataQuery.isError || 
              metricsQuery.isError || 
              newCustodiosQuery.isError || 
              retentionQuery.isError || 
-             ltvQuery.isError,
+             ltvQuery.isError ||
+             comparisonKpiDataQuery.isError ||
+             comparisonMetricsQuery.isError ||
+             comparisonLtvQuery.isError ||
+             comparisonRetentionQuery.isError,
     updateMetrics: updateMetricsMutation.mutate,
     isUpdating: updateMetricsMutation.isPending,
-    // Derived calculations
-    nps: calculateNps(),
-    cac: calculateCac(),
-    marketingRoi: calculateMarketingRoi(),
-    avgRetention: calculateAvgRetention(),
-    avgLtv: calculateAvgLtv(),
-    ltvCacRatio: calculateLtvCacRatio()
+    // Derived calculations for current period
+    nps,
+    cac,
+    marketingRoi,
+    avgRetention,
+    avgLtv,
+    ltvCacRatio,
+    // Comparison data
+    previousPeriodData,
+    comparisonType
   };
 }
