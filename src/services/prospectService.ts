@@ -228,9 +228,16 @@ async function enrichProspectsWithEndedReason(prospects: Prospect[]): Promise<Pr
       const phoneToEndedReason: Record<string, { reason: string, timestamp: string }> = {};
       
       allCallLogs.forEach(log => {
-        const phoneField = log.customer_number || 
-                          log.caller_phone_number || 
-                          log.phone_number;
+        // Safely access properties using optional chaining or type checking
+        const phoneFields = [
+          log.customer_number, 
+          // Handle the TypeScript error by checking if properties exist
+          'caller_phone_number' in log ? log.caller_phone_number : null,
+          'phone_number' in log ? log.phone_number : null
+        ];
+        
+        // Find the first non-null phone field
+        const phoneField = phoneFields.find(field => field !== null && field !== undefined);
         
         if (!phoneField || !log.ended_reason) return;
         
