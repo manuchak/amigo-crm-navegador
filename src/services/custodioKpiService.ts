@@ -1,3 +1,4 @@
+
 import { supabase } from '@/integrations/supabase/client';
 import { format, subMonths } from 'date-fns';
 
@@ -33,7 +34,7 @@ export interface NewCustodiosByMonth {
 }
 
 export interface CustodioRetention {
-  month_year: string;
+  month_year: string; // Changed from Date to string to match the interface
   active_start: number;
   active_end: number;
   retention_rate: number;
@@ -253,9 +254,9 @@ export async function getCustodioRetention(months: number = 12): Promise<Custodi
           ? ((newCustodios - lostCustodios) / previousCustodians.length) * 100
           : 0;
         
-        // Add to result array
+        // Add to result array - fix here: convert Date to string using format()
         retentionData.push({
-          month_year: new Date(currentMonthStr),
+          month_year: currentMonthStr, // Fixed: Converted Date to string using format()
           active_start: previousCustodians.length,
           active_end: currentCustodians.length,
           retention_rate: retentionRate,
