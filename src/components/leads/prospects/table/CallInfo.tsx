@@ -53,11 +53,12 @@ const CallInfo: React.FC<CallInfoProps> = ({
     return "bg-gray-200 text-gray-700";
   };
   
+  // Más prominente y claro ahora
   const endedReasonDisplay = endedReason ? (
     <div className="mt-1">
       <Badge 
         variant="outline" 
-        className={`text-xs font-normal px-2 py-0.5 ${getEndedReasonColor(endedReason)}`}
+        className={`text-xs font-medium px-2 py-1 w-full text-center ${getEndedReasonColor(endedReason)}`}
       >
         {endedReason}
       </Badge>

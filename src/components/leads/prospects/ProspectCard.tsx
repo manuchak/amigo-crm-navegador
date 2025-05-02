@@ -187,6 +187,33 @@ const ProspectCard: React.FC<ProspectCardProps> = ({
               </div>
             )}
             
+            {/* Last call section - mostrar siempre la última llamada si existe */}
+            {hasCallHistory && prospect.last_call_date && (
+              <div className="bg-slate-50 p-2 rounded-md">
+                <div className="flex justify-between items-center">
+                  <span className="text-xs font-medium">Última llamada:</span>
+                  <span className="text-xs">
+                    {new Date(prospect.last_call_date).toLocaleDateString('es-MX', {
+                      year: 'numeric',
+                      month: '2-digit',
+                      day: '2-digit',
+                      hour: '2-digit',
+                      minute: '2-digit'
+                    })}
+                  </span>
+                </div>
+                {prospect.ended_reason && (
+                  <div className="mt-1 flex justify-center">
+                    <Badge 
+                      className={`w-full text-center text-xs ${getEndedReasonColor(prospect.ended_reason)}`}
+                    >
+                      {prospect.ended_reason}
+                    </Badge>
+                  </div>
+                )}
+              </div>
+            )}
+            
             <div className="flex space-x-2 pt-2 mt-auto">
               {onViewDetails && (
                 <Button 
