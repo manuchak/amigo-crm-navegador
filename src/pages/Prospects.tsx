@@ -1,18 +1,12 @@
 
 import React from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import ProspectsList from '../components/leads/prospects/ProspectsList';
 
 const Prospects = () => {
   return (
-    <div className="container mx-auto p-4 py-20">
-      <Card>
-        <CardHeader>
-          <CardTitle>Prospectos</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p>Página de prospectos en construcción.</p>
-        </CardContent>
-      </Card>
+    <div className="container mx-auto p-4 py-6">
+      <h2 className="text-2xl font-semibold mb-6">Prospectos de Custodios</h2>
+      <ProspectsList />
     </div>
   );
 };

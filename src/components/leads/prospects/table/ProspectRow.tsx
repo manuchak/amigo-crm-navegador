@@ -73,9 +73,9 @@ const ProspectRow: React.FC<ProspectRowProps> = ({
           <StatusBadge status={prospect.lead_status} />
         </TableCell>
 
-        {/* Teléfono - Updated for single-line display with consistent styling */}
+        {/* Teléfono - Single-line display with consistent styling */}
         <TableCell>
-          <div className="text-sm text-slate-700 whitespace-nowrap">
+          <div className="text-sm font-medium text-slate-700 whitespace-nowrap">
             {formatPhoneNumber(prospect.lead_phone || prospect.phone_number_intl || "No disponible")}
           </div>
         </TableCell>

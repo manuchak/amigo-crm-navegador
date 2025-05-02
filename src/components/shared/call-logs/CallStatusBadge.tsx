@@ -41,12 +41,19 @@ export const CallStatusBadge: React.FC<CallStatusBadgeProps> = ({
           className: 'bg-blue-500'
         };
       case 'no-answer':
-      case 'no contestó':
+      case 'unknown':
         return {
           label: 'Sin respuesta',
           variant: 'outline',
           icon: Clock,
           className: 'border-amber-500 text-amber-700'
+        };
+      case 'busy':
+        return {
+          label: 'Ocupado',
+          variant: 'outline',
+          icon: Phone,
+          className: 'border-yellow-500 text-yellow-700'
         };
       default:
         return {

@@ -32,7 +32,7 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({
             <Button 
               variant="ghost" 
               size="icon"
-              className="h-8 w-8 rounded-full bg-slate-50 text-slate-700 hover:bg-slate-100 hover:text-slate-900"
+              className="h-8 w-8 rounded-full bg-slate-100 text-slate-700 hover:bg-slate-200 hover:text-slate-900"
               onClick={() => onViewDetails(prospect)}
             >
               <Eye className="h-4 w-4" />
@@ -50,7 +50,7 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({
             <Button 
               variant="ghost" 
               size="icon"
-              className="h-8 w-8 rounded-full bg-slate-50 text-slate-700 hover:bg-slate-100 hover:text-slate-900"
+              className="h-8 w-8 rounded-full bg-slate-100 text-slate-700 hover:bg-slate-200 hover:text-slate-900"
               onClick={() => onCall(prospect)}
             >
               <PhoneCall className="h-4 w-4" />
@@ -68,7 +68,7 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({
             <Button 
               variant="ghost" 
               size="icon"
-              className="h-8 w-8 rounded-full bg-slate-50 text-slate-700 hover:bg-slate-100 hover:text-slate-900"
+              className="h-8 w-8 rounded-full bg-slate-100 text-slate-700 hover:bg-slate-200 hover:text-slate-900"
               onClick={() => onViewCalls(prospect)}
             >
               <History className="h-4 w-4" />
@@ -86,7 +86,7 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({
             <Button 
               variant={hasInterviewData ? "ghost" : "outline"}
               size="icon"
-              className={`h-8 w-8 rounded-full ${hasInterviewData ? 'bg-green-50 text-green-600 hover:bg-green-100' : 'bg-slate-50 text-slate-700 hover:bg-slate-100'}`}
+              className={`h-8 w-8 rounded-full ${hasInterviewData ? 'bg-green-100 text-green-600 hover:bg-green-200' : 'bg-slate-100 text-slate-700 hover:bg-slate-200'}`}
               onClick={() => onValidate(prospect)}
             >
               <Check className="h-4 w-4" />

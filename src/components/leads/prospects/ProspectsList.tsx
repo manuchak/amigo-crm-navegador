@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Prospect } from '@/services/prospectService';
 import { useProspects } from '@/hooks/useProspects';
@@ -33,7 +32,9 @@ const ProspectsList: React.FC<ProspectsListProps> = ({
   const [showByCallStatus, setShowByCallStatus] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState<string>('');
   
-  // Filtrar por estado, entrevistas y estado de llamada
+  // Filter by status, interviews and call status
+  // Use a unique identifier for each prospect to avoid duplicates
+  const uniqueProspectIds = new Set<string>();
   const filteredProspects = prospects
     .filter(prospect => !filterStatus || prospect.lead_status === filterStatus)
     .filter(prospect => !showOnlyInterviewed || prospect.transcript !== null)
@@ -50,6 +51,25 @@ const ProspectsList: React.FC<ProspectsListProps> = ({
         prospect.lead_id?.toString().includes(query) ||
         prospect.ended_reason?.toLowerCase().includes(query)
       );
+    })
+    // Remove duplicates based on phone number
+    .filter(prospect => {
+      // Create a unique key based on phone number
+      const phoneKey = (prospect.lead_phone || prospect.phone_number_intl || '').replace(/\D/g, '');
+      
+      // If no phone number, use lead_id as key
+      const uniqueKey = phoneKey || `id-${prospect.lead_id}`;
+      
+      // If we've seen this key before, skip this prospect
+      if (uniqueKey && uniqueKey.length > 0 && uniqueProspectIds.has(uniqueKey)) {
+        return false;
+      }
+      
+      // Otherwise, add this key and keep the prospect
+      if (uniqueKey && uniqueKey.length > 0) {
+        uniqueProspectIds.add(uniqueKey);
+      }
+      return true;
     });
 
   const handleRefresh = () => {
@@ -80,7 +100,7 @@ const ProspectsList: React.FC<ProspectsListProps> = ({
           refreshing={loading}
         />
         
-        {/* Filtros por estado de llamada */}
+        {/* Call status filter buttons in Spanish */}
         <div className="flex flex-wrap gap-2 overflow-x-auto pb-2">
           <Card className="border p-1 shadow-sm flex flex-wrap gap-2">
             <button
