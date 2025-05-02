@@ -120,15 +120,29 @@ export const BusinessKpis = () => {
     'Total Revenue': item.total_revenue,
   })).slice(0, 10) || [];
   
-  // Get latest retention rate value - updated to be more defensive
-  const currentRetentionRate = filteredRetention && filteredRetention.length > 0 
-    ? filteredRetention[filteredRetention.length - 1]?.retention_rate 
-    : null;
+  // Get latest retention rate value - updated with detailed logging
+  const currentRetentionRate = (() => {
+    if (filteredRetention && filteredRetention.length > 0) {
+      const latestRate = filteredRetention[filteredRetention.length - 1]?.retention_rate;
+      console.log('Latest retention rate:', latestRate);
+      return latestRate !== null && !isNaN(latestRate) ? latestRate : null;
+    }
+    return null;
+  })();
     
-  // Make sure we have a valid retention rate
-  const displayRetentionRate = currentRetentionRate !== null && !isNaN(currentRetentionRate) 
-    ? currentRetentionRate 
-    : avgRetention;
+  // Make sure we have a valid retention rate - preferring current rate over average
+  const displayRetentionRate = (() => {
+    if (currentRetentionRate !== null && !isNaN(currentRetentionRate)) {
+      return currentRetentionRate;
+    }
+    console.log('Using average retention rate instead:', avgRetention);
+    return avgRetention;
+  })();
+  
+  // Log retention data to help debugging
+  console.log('Retention data:', filteredRetention);
+  console.log('Display retention rate:', displayRetentionRate);
+  console.log('Avg retention rate:', avgRetention);
 
   return (
     <div className="space-y-6">
@@ -212,7 +226,9 @@ export const BusinessKpis = () => {
               <div className="flex items-center space-x-2">
                 <LineChart className="h-5 w-5 text-cyan-500" />
                 <span className="text-2xl font-bold">
-                  {formatPercent(displayRetentionRate)}
+                  {displayRetentionRate > 0 
+                    ? formatPercent(displayRetentionRate) 
+                    : 'N/A'}
                 </span>
               </div>
             </MetricTooltip>

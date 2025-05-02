@@ -91,8 +91,12 @@ export const formatCurrency = (value: number): string => {
   }).format(value);
 };
 
-// Format percentage for display
+// Format percentage for display - updated to handle edge cases
 export const formatPercent = (value: number): string => {
+  if (value === null || value === undefined || isNaN(value)) {
+    return 'N/A';
+  }
+  
   return new Intl.NumberFormat('es-MX', {
     style: 'percent',
     minimumFractionDigits: 1,

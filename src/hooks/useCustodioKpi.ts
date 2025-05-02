@@ -107,7 +107,10 @@ export function useCustodioKpi(months: number = 12) {
   
   // Calculate average retention rate - improved to handle edge cases
   const calculateAvgRetention = () => {
-    if (!retentionQuery.data || retentionQuery.data.length === 0) return 0;
+    if (!retentionQuery.data || retentionQuery.data.length === 0) {
+      console.log('No retention data available');
+      return 0;
+    }
     
     // Filter out zero or null rates that might skew the average
     const validRetentionData = retentionQuery.data.filter(item => 
@@ -116,14 +119,22 @@ export function useCustodioKpi(months: number = 12) {
       item.retention_rate > 0
     );
     
-    if (validRetentionData.length === 0) return 0;
+    if (validRetentionData.length === 0) {
+      console.log('No valid retention rates found');
+      return 0;
+    }
     
     // Calculate the average retention rate
     const totalRetention = validRetentionData.reduce(
-      (sum, item) => sum + (item.retention_rate || 0), 0
+      (sum, item) => sum + item.retention_rate, 0
     );
     
-    return totalRetention / validRetentionData.length;
+    const avgRetention = totalRetention / validRetentionData.length;
+    console.log(`Calculating avg retention from ${validRetentionData.length} months:`, 
+      validRetentionData.map(d => d.retention_rate.toFixed(1)),
+      `Avg: ${avgRetention.toFixed(2)}%`);
+    
+    return avgRetention;
   };
   
   // Calculate average LTV
