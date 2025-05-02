@@ -15,10 +15,13 @@ const ContactedLeadsCard = () => {
       setLoading(true);
       try {
         // Query for leads with the specific ended_reason
+        // Using select('customer_number', { head: true, count: 'exact' }) 
+        // and adding distinct in the query chain instead of as an option
         const { count, error } = await supabase
           .from('vapi_call_logs')
-          .select('customer_number', { count: 'exact', head: true, distinct: true })
-          .eq('ended_reason', 'assistant-ended-call-with-hangup-task');
+          .select('customer_number', { count: 'exact', head: true })
+          .eq('ended_reason', 'assistant-ended-call-with-hangup-task')
+          .distinctOn(['customer_number']);
           
         if (error) {
           console.error('Error fetching contacted leads:', error);
