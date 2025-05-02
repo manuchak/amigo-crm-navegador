@@ -28,16 +28,21 @@ const ProspectsTable: React.FC<ProspectsTableProps> = ({
           <Table>
             <ProspectsTableHeader />
             <TableBody>
-              {prospects.map((prospect) => (
-                <ProspectRow
-                  key={`prospect-${prospect.lead_id}-${prospect.validated_lead_id}`}
-                  prospect={prospect}
-                  onViewDetails={onViewDetails}
-                  onCall={onCall}
-                  onViewCalls={onViewCalls}
-                  onValidate={onValidate}
-                />
-              ))}
+              {prospects.map((prospect, index) => {
+                // Create a truly unique key for each row by combining multiple factors
+                const uniqueKey = `prospect-${prospect.lead_id}-${prospect.validated_lead_id}-${index}`;
+                
+                return (
+                  <ProspectRow
+                    key={uniqueKey}
+                    prospect={prospect}
+                    onViewDetails={onViewDetails}
+                    onCall={onCall}
+                    onViewCalls={onViewCalls}
+                    onValidate={onValidate}
+                  />
+                );
+              })}
             </TableBody>
           </Table>
         </div>

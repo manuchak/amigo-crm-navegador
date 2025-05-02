@@ -2,7 +2,6 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Check, Phone, XCircle, AlertCircle, Clock } from 'lucide-react';
-import { Badge } from '@/components/ui/badge';
 
 interface CallStatusFilterProps {
   selectedStatus: string | null;
@@ -13,7 +12,7 @@ const CallStatusFilter: React.FC<CallStatusFilterProps> = ({
   selectedStatus,
   onStatusChange,
 }) => {
-  // Updated call statuses based on VAPI ended_reason values from the screenshot
+  // Updated call statuses to match VAPI's ended_reason values
   const callStatuses = [
     { id: 'completed', label: 'Completada', color: 'bg-green-100 border-green-400 text-green-700', icon: <Check className="h-3.5 w-3.5 text-green-500" /> },
     { id: 'customer-did-not-answer', label: 'No contestó', color: 'bg-amber-100 border-amber-400 text-amber-700', icon: <Phone className="h-3.5 w-3.5 text-amber-500" /> },

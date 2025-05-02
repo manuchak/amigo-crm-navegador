@@ -34,8 +34,30 @@ const ProspectsList: React.FC<ProspectsListProps> = ({
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [refreshing, setRefreshing] = useState<boolean>(false);
   
-  // Filter prospects by call status first (our primary filter now)
-  const filteredProspects = prospects
+  // First, remove duplicates from the prospects array using a Map
+  // We'll use lead_id and phone number as unique identifiers
+  const uniqueProspects = React.useMemo(() => {
+    const uniqueMap = new Map();
+    
+    prospects.forEach(prospect => {
+      const key = prospect.lead_id || 
+                 (prospect.lead_phone?.replace(/\D/g, '') || 
+                 prospect.phone_number_intl?.replace(/\D/g, '') || '');
+      
+      // Only add to map if it doesn't exist or if this one has a transcript and the existing one doesn't
+      if (!key) return; // Skip if no unique identifier
+      
+      if (!uniqueMap.has(key) || 
+          (prospect.transcript && !uniqueMap.get(key).transcript)) {
+        uniqueMap.set(key, prospect);
+      }
+    });
+    
+    return Array.from(uniqueMap.values());
+  }, [prospects]);
+  
+  // Then filter prospects by call status first (our primary filter now)
+  const filteredProspects = uniqueProspects
     .filter(prospect => {
       if (!callStatusFilter) return true;
       const normalizedEndedReason = normalizeCallStatus(prospect.ended_reason);

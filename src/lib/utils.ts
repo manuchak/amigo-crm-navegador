@@ -1,3 +1,4 @@
+
 import { type ClassValue, clsx } from "clsx"
 import { twMerge } from "tailwind-merge"
 
@@ -26,13 +27,16 @@ export function normalizeCallStatus(endedReason: string | null): string | null {
   
   const lowerReason = endedReason.toLowerCase();
   
-  if (lowerReason.includes('complete')) return 'completed';
-  if (lowerReason.includes('customer-did-not-answer') || lowerReason.includes('did-not-answer') || lowerReason.includes('no answer')) return 'customer-did-not-answer';
+  // Match exactly the VAPI ended_reason values
+  if (lowerReason.includes('completed') || lowerReason === 'complete') return 'completed';
+  if (lowerReason.includes('customer-did-not-answer') || lowerReason.includes('no answer') || lowerReason.includes('no-answer')) return 'customer-did-not-answer';
   if (lowerReason.includes('busy') || lowerReason.includes('ocupado')) return 'busy';
-  if (lowerReason.includes('fail')) return 'failed';
-  if (lowerReason.includes('queue')) return 'queued';
+  if (lowerReason.includes('failed') || lowerReason.includes('fail')) return 'failed';
+  if (lowerReason.includes('queued') || lowerReason.includes('queue')) return 'queued';
+  if (lowerReason.includes('assistant-ended-call-with-hangup-task')) return 'completed';
   
-  return 'queued'; // Default value if none of the above match
+  // Default fallback
+  return 'queued';
 }
 
 /**
