@@ -14,6 +14,14 @@ export const statusTextColor = [
   'text-indigo-600',
 ];
 
+// Add the missing pieColors array for the ProfilePieChart
+export const pieColors = [
+  '#3b82f6', // blue-500
+  '#f59e0b', // amber-500
+  '#10b981', // emerald-500
+  '#6366f1', // indigo-500
+];
+
 interface MonthlyData {
   name: string;
   Nuevos: number;
