@@ -29,7 +29,8 @@ const ProspectsList: React.FC<ProspectsListProps> = ({
   const { prospects, loading, refetch } = useProspects();
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [filterStatus, setFilterStatus] = useState<string | null>(null);
-
+  const [showOnlyInterviewed, setShowOnlyInterviewed] = useState<boolean>(false);
+  
   const filteredProspects = filterStatus 
     ? prospects.filter(prospect => prospect.lead_status === filterStatus)
     : prospects;
@@ -42,8 +43,16 @@ const ProspectsList: React.FC<ProspectsListProps> = ({
     <div className="space-y-4">
       <div className="flex justify-between items-center">
         <ProspectFilters 
-          onFilterChange={status => setFilterStatus(status)} 
-          activeFilter={filterStatus}
+          searchQuery=""
+          onSearchChange={() => {}}
+          filter={filterStatus || undefined}
+          onFilterChange={setFilterStatus} 
+          showOnlyInterviewed={showOnlyInterviewed}
+          onToggleInterviewed={() => setShowOnlyInterviewed(!showOnlyInterviewed)}
+          viewMode={viewMode}
+          onViewModeChange={setViewMode}
+          onRefresh={handleRefresh}
+          refreshing={loading}
         />
         <div className="flex space-x-2">
           <Button
@@ -76,7 +85,7 @@ const ProspectsList: React.FC<ProspectsListProps> = ({
       {loading ? (
         <LoadingState />
       ) : filteredProspects.length === 0 ? (
-        <EmptyState />
+        <EmptyState showOnlyInterviewed={showOnlyInterviewed} />
       ) : viewMode === 'grid' ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {filteredProspects.map((prospect) => (
