@@ -7,7 +7,8 @@ import {
   ProspectFilters, 
   LoadingState, 
   EmptyState,
-  ProspectsContent
+  ProspectsContent,
+  CallStatusFilter
 } from './components';
 import { normalizeCallStatus } from '@/lib/utils';
 
@@ -106,6 +107,15 @@ const ProspectsList: React.FC<ProspectsListProps> = ({
         onRefresh={handleRefresh}
         refreshing={refreshing}
       />
+      
+      {/* Call status filter now prominently displayed */}
+      <Card className="p-3 border shadow-sm">
+        <div className="font-medium text-sm mb-2 text-slate-600">Filtrar por resultado de llamada:</div>
+        <CallStatusFilter
+          selectedStatus={callStatusFilter}
+          onStatusChange={handleCallStatusFilterChange}
+        />
+      </Card>
       
       <ProspectsContent
         loading={loading}
