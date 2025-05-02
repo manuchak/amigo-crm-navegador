@@ -57,8 +57,15 @@ export function RetentionChart({ data = [], isLoading, title = "Tendencia de Ret
         break;
     }
     
-    // Filter data based on month being after start date
-    const filtered = data.filter(item => {
+    // First filter out any invalid data points (null, undefined, NaN)
+    const validData = data.filter(item => 
+      item.rate !== null && 
+      item.rate !== undefined && 
+      !isNaN(item.rate)
+    );
+    
+    // Then filter based on date range
+    const dateFiltered = validData.filter(item => {
       try {
         const [year, month] = item.month.split('-').map(Number);
         const itemDate = new Date(year, month - 1); // month is 0-indexed in JS Date
@@ -69,17 +76,13 @@ export function RetentionChart({ data = [], isLoading, title = "Tendencia de Ret
       }
     });
     
-    setFilteredData(filtered);
+    setFilteredData(dateFiltered);
   }, [data, period]);
 
-  // Filter out invalid retention data points for the chart
-  const validRetentionData = useMemo(() => 
-    filteredData.filter(point => 
-      point.rate !== null && 
-      point.rate !== undefined && 
-      !isNaN(point.rate)
-    ),
-  [filteredData]);
+  // Check if we have valid data after filtering
+  const hasValidData = useMemo(() => 
+    filteredData.length > 0
+  , [filteredData]);
 
   return (
     <Card className="border-0 shadow-md">
@@ -92,11 +95,11 @@ export function RetentionChart({ data = [], isLoading, title = "Tendencia de Ret
       <CardContent className="pt-0">
         {isLoading ? (
           <Skeleton className="h-[400px] w-full" />
-        ) : validRetentionData.length > 0 ? (
+        ) : hasValidData ? (
           <div className="h-[400px] w-full">
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart
-                data={validRetentionData}
+                data={filteredData}
                 margin={{ top: 20, right: 20, left: 20, bottom: 60 }}
               >
                 <defs>
@@ -134,7 +137,7 @@ export function RetentionChart({ data = [], isLoading, title = "Tendencia de Ret
           </div>
         ) : (
           <div className="h-[400px] w-full flex items-center justify-center">
-            <p className="text-muted-foreground">No hay datos de retención disponibles o los datos contienen valores inválidos (NULL/N/A)</p>
+            <p className="text-muted-foreground">No hay datos de retención disponibles</p>
           </div>
         )}
       </CardContent>

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useCustodioKpi } from '@/hooks/useCustodioKpi';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -63,7 +62,16 @@ export const BusinessKpis = () => {
   // Function to map retention and ltv data for our charts
   const mapRetentionData = useCallback((retentionData?: any[]) => {
     if (!retentionData) return [];
-    return retentionData.map(item => ({
+    
+    // Filter out invalid data points before mapping
+    const validData = retentionData.filter(item => 
+      item && 
+      item.retention_rate !== null && 
+      item.retention_rate !== undefined && 
+      !isNaN(item.retention_rate)
+    );
+    
+    return validData.map(item => ({
       month: item.month_year,
       rate: item.retention_rate
     }));
