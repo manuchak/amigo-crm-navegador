@@ -54,7 +54,7 @@ export async function getProspects(): Promise<Prospect[]> {
     
     console.log(`Retrieved ${data?.length || 0} prospects`);
     
-    // After getting prospects, fetch the latest ended_reason for each one
+    // After getting prospects, fetch the latest ended_reason for each one using phone number as link
     const enrichedProspects = await enrichProspectsWithEndedReason(data as Prospect[]);
     
     return enrichedProspects || [];
@@ -79,7 +79,7 @@ export async function getProspectById(leadId: number): Promise<Prospect | null> 
     }
     
     if (data) {
-      // Enrich the prospect with ended_reason
+      // Enrich the prospect with ended_reason using phone number as the key
       const enrichedProspects = await enrichProspectsWithEndedReason([data as Prospect]);
       return enrichedProspects[0];
     }
@@ -119,6 +119,7 @@ export async function getProspectsByStatus(status: string): Promise<Prospect[]> 
 
 /**
  * Enriches prospect data with the latest ended_reason from vapi_call_logs
+ * ALWAYS using phone number as the primary linking field between tables
  */
 async function enrichProspectsWithEndedReason(prospects: Prospect[]): Promise<Prospect[]> {
   if (!prospects || prospects.length === 0) {
@@ -133,119 +134,148 @@ async function enrichProspectsWithEndedReason(prospects: Prospect[]): Promise<Pr
   
   for (let i = 0; i < prospects.length; i += batchSize) {
     const batch = prospects.slice(i, i + batchSize);
-    // Get all phone numbers from the batch, handling both lead_phone and phone_number_intl
-    // Also filter out null values and ensure they're properly formatted
-    const phoneNumbers = batch
-      .map(p => {
-        const phones: string[] = [];
-        if (p.lead_phone) phones.push(p.lead_phone);
-        if (p.phone_number_intl && p.phone_number_intl !== p.lead_phone) phones.push(p.phone_number_intl);
-        return phones;
-      })
-      .flat()
-      .filter(phone => !!phone && phone.trim() !== '');
     
-    if (phoneNumbers.length === 0) {
-      // No phone numbers to query, add batch as-is
+    // Extract all phone numbers from the prospects in this batch
+    // We'll query for ALL phone fields available to ensure maximum linkage
+    const phoneNumbers: string[] = [];
+    
+    batch.forEach(p => {
+      // Collect ALL phone fields from each prospect
+      if (p.lead_phone && p.lead_phone.trim() !== '') phoneNumbers.push(p.lead_phone.trim());
+      if (p.phone_number_intl && p.phone_number_intl.trim() !== '' && 
+          p.phone_number_intl !== p.lead_phone) {
+        phoneNumbers.push(p.phone_number_intl.trim());
+      }
+    });
+    
+    // Filter out any empty or duplicate phone numbers
+    const uniquePhoneNumbers = [...new Set(phoneNumbers.filter(phone => !!phone))];
+    
+    if (uniquePhoneNumbers.length === 0) {
+      // No valid phone numbers to query, add batch as-is
       console.log(`Batch ${i/batchSize + 1}: No valid phone numbers found, skipping call log lookup`);
       enrichedProspects.push(...batch);
       continue;
     }
     
     try {
-      console.log(`Batch ${i/batchSize + 1}: Querying call logs for ${phoneNumbers.length} phone numbers`);
+      console.log(`Batch ${i/batchSize + 1}: Querying call logs for ${uniquePhoneNumbers.length} unique phone numbers`);
       
-      // Get all the call logs for each phone number in this batch, ordered by most recent
-      const { data: callLogs, error } = await supabase
+      // First prioritized search: customer_number exact match
+      const { data: exactMatches, error: exactError } = await supabase
         .from('vapi_call_logs')
         .select('customer_number, ended_reason, start_time')
-        .in('customer_number', phoneNumbers)
+        .in('customer_number', uniquePhoneNumbers)
         .order('start_time', { ascending: false });
       
-      if (error) {
-        console.error("Error fetching call logs for ended_reason:", error);
-        enrichedProspects.push(...batch);
-        continue;
+      if (exactError) {
+        console.error("Error fetching exact matches for call logs:", exactError);
       }
       
-      if (!callLogs || callLogs.length === 0) {
-        console.log(`No call logs found for current batch of phone numbers. Trying alternative phone fields...`);
+      // Second search: check for partial matches in all phone fields
+      const partialSearchPromises = uniquePhoneNumbers.map(async (phone) => {
+        // Extract the last 10 digits for more flexible matching
+        const lastTenDigits = phone.replace(/\D/g, '').slice(-10);
+        if (lastTenDigits.length < 7) return [];
         
-        // Try with caller_phone_number as a fallback
-        const { data: altCallLogs, error: altError } = await supabase
+        const { data, error } = await supabase
           .from('vapi_call_logs')
-          .select('caller_phone_number, ended_reason, start_time')
-          .in('caller_phone_number', phoneNumbers)
+          .select('customer_number, caller_phone_number, phone_number, ended_reason, start_time')
+          .or(`customer_number.ilike.%${lastTenDigits}%,caller_phone_number.ilike.%${lastTenDigits}%,phone_number.ilike.%${lastTenDigits}%`)
           .order('start_time', { ascending: false });
-        
-        if (altError || !altCallLogs || altCallLogs.length === 0) {
-          console.log("No alternative call logs found either. Setting ended_reason to null.");
-          enrichedProspects.push(...batch);
-          continue;
+          
+        if (error) {
+          console.error(`Error searching for phone ${phone}:`, error);
+          return [];
         }
         
-        // Create a map of phone numbers to their latest ended_reason using alternative field
-        const phoneToEndedReason: Record<string, string> = {};
+        return data || [];
+      });
+      
+      const partialResults = await Promise.all(partialSearchPromises);
+      const partialMatches = partialResults.flat();
+      
+      // Third search: check metadata fields
+      const metadataSearchPromises = uniquePhoneNumbers.map(async (phone) => {
+        const lastTenDigits = phone.replace(/\D/g, '').slice(-10);
+        if (lastTenDigits.length < 7) return [];
         
-        altCallLogs.forEach(log => {
-          if (log.caller_phone_number && !phoneToEndedReason[log.caller_phone_number]) {
-            phoneToEndedReason[log.caller_phone_number] = log.ended_reason || null;
-            console.log(`Found ended_reason "${log.ended_reason}" for phone ${log.caller_phone_number}`);
-          }
-        });
-        
-        // Enrich each prospect with its ended_reason
-        batch.forEach(prospect => {
-          const phones = [];
-          if (prospect.lead_phone) phones.push(prospect.lead_phone);
-          if (prospect.phone_number_intl) phones.push(prospect.phone_number_intl);
+        const { data, error } = await supabase
+          .from('vapi_call_logs')
+          .select('customer_number, ended_reason, start_time')
+          .or(`metadata->>'vapi_customer_number'.ilike.%${lastTenDigits}%,metadata->>'number'.ilike.%${lastTenDigits}%,metadata->>'phoneNumber'.ilike.%${lastTenDigits}%,metadata->>'customerNumber'.ilike.%${lastTenDigits}%`)
+          .order('start_time', { ascending: false });
           
-          // Check all phone numbers for this prospect
-          for (const phone of phones) {
-            if (phone && phoneToEndedReason[phone]) {
-              prospect.ended_reason = phoneToEndedReason[phone];
-              console.log(`Assigned ended_reason "${prospect.ended_reason}" to prospect ${prospect.lead_id} using phone ${phone}`);
-              break;
+        if (error) {
+          console.error(`Error searching metadata for phone ${phone}:`, error);
+          return [];
+        }
+        
+        return data || [];
+      });
+      
+      const metadataResults = await Promise.all(metadataSearchPromises);
+      const metadataMatches = metadataResults.flat();
+      
+      // Combine all results, prioritizing exact matches
+      const allCallLogs = [
+        ...(exactMatches || []),
+        ...partialMatches,
+        ...metadataMatches
+      ];
+      
+      // Create a phone-to-ended_reason mapping using the latest call for each phone
+      const phoneToEndedReason: Record<string, { reason: string, timestamp: string }> = {};
+      
+      allCallLogs.forEach(log => {
+        const phoneField = log.customer_number || 
+                          log.caller_phone_number || 
+                          log.phone_number;
+        
+        if (!phoneField || !log.ended_reason) return;
+        
+        // Multiple phones might match, so we need to find the specific one
+        uniquePhoneNumbers.forEach(phone => {
+          const formattedPhone = phone.replace(/\D/g, '');
+          const lastDigits = formattedPhone.slice(-10);
+          
+          // Check if this log is for this phone number
+          if (phoneField.includes(formattedPhone) || phoneField.includes(lastDigits)) {
+            // Only update if this call is newer than any existing one for this phone
+            const existing = phoneToEndedReason[phone];
+            if (!existing || (log.start_time && (!existing.timestamp || log.start_time > existing.timestamp))) {
+              phoneToEndedReason[phone] = {
+                reason: log.ended_reason,
+                timestamp: log.start_time
+              };
+              console.log(`Found newer ended_reason "${log.ended_reason}" for phone ${phone} at ${log.start_time}`);
             }
           }
         });
-        
-        enrichedProspects.push(...batch);
-        continue;
-      }
-      
-      // Create a map of phone numbers to their latest ended_reason
-      const phoneToEndedReason: Record<string, string> = {};
-      
-      callLogs.forEach(log => {
-        if (log.customer_number && !phoneToEndedReason[log.customer_number]) {
-          phoneToEndedReason[log.customer_number] = log.ended_reason || null;
-          console.log(`Found ended_reason "${log.ended_reason}" for phone ${log.customer_number}`);
-        }
       });
       
-      // Enrich each prospect with its ended_reason
+      // Enrich each prospect with its ended_reason based on phone number
       batch.forEach(prospect => {
-        const phones = [];
-        if (prospect.lead_phone) phones.push(prospect.lead_phone);
-        if (prospect.phone_number_intl) phones.push(prospect.phone_number_intl);
+        // Check all possible phone fields for this prospect
+        const phonesToCheck = [
+          prospect.lead_phone,
+          prospect.phone_number_intl
+        ].filter(Boolean) as string[];
         
-        // Log the values for debugging
-        if (prospect.call_count > 0) {
-          console.log(`Prospect ${prospect.lead_id} (${prospect.lead_name}) has call_count ${prospect.call_count} but ended_reason: ${prospect.ended_reason || 'null'}`);
-        }
+        let foundEndedReason = false;
         
-        // Check all phone numbers for this prospect
-        for (const phone of phones) {
+        // Check each phone against our mapping
+        for (const phone of phonesToCheck) {
           if (phone && phoneToEndedReason[phone]) {
-            prospect.ended_reason = phoneToEndedReason[phone];
+            prospect.ended_reason = phoneToEndedReason[phone].reason;
             console.log(`Assigned ended_reason "${prospect.ended_reason}" to prospect ${prospect.lead_id} using phone ${phone}`);
+            foundEndedReason = true;
             break;
           }
         }
         
         // If no ended_reason found but call_count > 0, set a default value
-        if (!prospect.ended_reason && prospect.call_count > 0) {
+        if (!foundEndedReason && prospect.call_count && prospect.call_count > 0) {
           prospect.ended_reason = "Unknown";
           console.log(`Set default "Unknown" ended_reason for prospect ${prospect.lead_id} with call count ${prospect.call_count}`);
         }
