@@ -12,7 +12,7 @@ import './App.css';
 // Create a React Query client
 const queryClient = new QueryClient();
 
-// Import pages that need direct imports to address dynamic import issues
+// Import all pages directly to avoid dynamic import issues
 import Index from './pages/Index';
 import Dashboard from './pages/Dashboard'; 
 import UserManagement from './pages/UserManagement';
@@ -21,18 +21,16 @@ import InstalacionesAgendadas from './pages/InstalacionesAgendadas';
 import InstalacionGPSInstallers from './pages/InstalacionGPSInstallers';
 import InstaladorRegistro from './pages/InstaladorRegistro';
 import Performance from './pages/Performance';
-import Leads from './pages/Leads'; // Directly import Leads instead of lazy loading it
-
-// Lazy load other routes for better performance
-const Auth = React.lazy(() => import('./pages/Auth'));
-const Login = React.lazy(() => import('./pages/Login')); 
-const Prospects = React.lazy(() => import('./pages/Prospects'));
-const Validation = React.lazy(() => import('./pages/Validation'));
-const Support = React.lazy(() => import('./pages/Support'));
-const CallCenter = React.lazy(() => import('./pages/CallCenter'));
-const Settings = React.lazy(() => import('./pages/Settings'));
-const Requerimientos = React.lazy(() => import('./pages/Requerimientos'));
-const AdminConfig = React.lazy(() => import('./pages/AdminConfig'));
+import Leads from './pages/Leads';
+import Auth from './pages/Auth';
+import Login from './pages/Login';
+import Prospects from './pages/Prospects';
+import Validation from './pages/Validation';
+import Support from './pages/Support';
+import CallCenter from './pages/CallCenter';
+import Settings from './pages/Settings';
+import Requerimientos from './pages/Requerimientos';
+import AdminConfig from './pages/AdminConfig';
 
 function App() {
   console.log("App rendering");
