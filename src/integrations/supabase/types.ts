@@ -101,6 +101,60 @@ export type Database = {
         }
         Relationships: []
       }
+      custodio_metrics: {
+        Row: {
+          acquisition_cost_manual: number | null
+          asset_cost: number | null
+          avg_onboarding_days: number | null
+          campaign_cost: number | null
+          campaign_name: string | null
+          campaign_revenue: number | null
+          created_at: string | null
+          id: number
+          marketing_cost: number | null
+          month_year: string
+          nps_detractors: number | null
+          nps_neutral: number | null
+          nps_promoters: number | null
+          staff_cost: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          acquisition_cost_manual?: number | null
+          asset_cost?: number | null
+          avg_onboarding_days?: number | null
+          campaign_cost?: number | null
+          campaign_name?: string | null
+          campaign_revenue?: number | null
+          created_at?: string | null
+          id?: number
+          marketing_cost?: number | null
+          month_year: string
+          nps_detractors?: number | null
+          nps_neutral?: number | null
+          nps_promoters?: number | null
+          staff_cost?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          acquisition_cost_manual?: number | null
+          asset_cost?: number | null
+          avg_onboarding_days?: number | null
+          campaign_cost?: number | null
+          campaign_name?: string | null
+          campaign_revenue?: number | null
+          created_at?: string | null
+          id?: number
+          marketing_cost?: number | null
+          month_year?: string
+          nps_detractors?: number | null
+          nps_neutral?: number | null
+          nps_promoters?: number | null
+          staff_cost?: number | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       custodio_validations: {
         Row: {
           additional_notes: string | null
@@ -1280,6 +1334,17 @@ export type Database = {
       }
     }
     Views: {
+      custodio_kpi_data: {
+        Row: {
+          avg_revenue_per_service: number | null
+          avg_services_per_custodio: number | null
+          month_year: string | null
+          total_custodios: number | null
+          total_revenue: number | null
+          total_servicios: number | null
+        }
+        Relationships: []
+      }
       custodio_validation_stats: {
         Row: {
           avg_call_quality: number | null
@@ -1335,6 +1400,29 @@ export type Database = {
           servicios_por_dia: number
         }[]
       }
+      calculate_custodio_ltv: {
+        Args: { months_lookback?: number }
+        Returns: {
+          nombre_custodio: string
+          months_active: number
+          total_revenue: number
+          avg_monthly_revenue: number
+          estimated_ltv: number
+          last_service_date: string
+        }[]
+      }
+      calculate_custodio_retention: {
+        Args: { start_date: string; end_date: string }
+        Returns: {
+          month_year: string
+          active_start: number
+          active_end: number
+          retention_rate: number
+          new_custodios: number
+          lost_custodios: number
+          growth_rate: number
+        }[]
+      }
       clean_cobro_cliente_values: {
         Args: Record<PropertyKey, never>
         Returns: string
@@ -1379,6 +1467,13 @@ export type Database = {
           call_start_time: string
           recording_url: string
           transcript: Json
+        }[]
+      }
+      get_new_custodios_by_month: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          month_year: string
+          new_custodios: number
         }[]
       }
       get_prospect_by_id: {

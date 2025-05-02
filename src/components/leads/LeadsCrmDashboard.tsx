@@ -15,6 +15,8 @@ import StageTimeBarChart from "./dashboard/crm/StageTimeBarChart";
 import AlertsPanel from "./dashboard/crm/AlertsPanel";
 import RecentLeadsList from "./dashboard/crm/RecentLeadsList";
 import LeadsByDaySourceChart from "./dashboard/crm/LeadsByDaySourceChart";
+import { BusinessKpis } from "./dashboard/crm/BusinessKpis";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const LeadsCrmDashboard: React.FC = () => {
   const { leads } = useLeads();
@@ -35,110 +37,128 @@ const LeadsCrmDashboard: React.FC = () => {
         <h2 className="text-xl font-medium">Dashboard CRM de Custodios</h2>
       </div>
       
-      {/* Top metrics row */}
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
-        <MetricsCards byStage={funnel.byStage} conversions={funnel.conversions} />
-      </div>
-      
-      {/* Funnel and Monthly trend charts row */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card>
-          <CardHeader className="pb-2">
-            <div className="flex items-center gap-2">
-              <BarChart3 className="h-4 w-4 text-primary" />
-              <CardTitle className="text-base">Embudo de conversión</CardTitle>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="h-[280px]">
-              <FunnelChart byStage={funnel.byStage} />
-            </div>
-          </CardContent>
-        </Card>
+      {/* Dashboard Tabs - Añadimos una pestaña para KPIs de Negocio */}
+      <Tabs defaultValue="leads">
+        <TabsList className="mb-4">
+          <TabsTrigger value="leads">Leads y Conversión</TabsTrigger>
+          <TabsTrigger value="business">KPIs de Negocio</TabsTrigger>
+        </TabsList>
         
-        <Card>
-          <CardHeader className="pb-2">
-            <div className="flex items-center gap-2">
-              <LineChart className="h-4 w-4 text-primary" />
-              <CardTitle className="text-base">Rendimiento mensual onboarding de leads</CardTitle>
+        <TabsContent value="leads">
+          {/* Contenido original del dashboard */}
+          <div className="space-y-6">
+            {/* Top metrics row */}
+            <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
+              <MetricsCards byStage={funnel.byStage} conversions={funnel.conversions} />
             </div>
-          </CardHeader>
-          <CardContent>
-            <div className="h-[280px]">
-              <MonthlyLineChart data={monthlyTrend} />
+            
+            {/* Funnel and Monthly trend charts row */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <Card>
+                <CardHeader className="pb-2">
+                  <div className="flex items-center gap-2">
+                    <BarChart3 className="h-4 w-4 text-primary" />
+                    <CardTitle className="text-base">Embudo de conversión</CardTitle>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <div className="h-[280px]">
+                    <FunnelChart byStage={funnel.byStage} />
+                  </div>
+                </CardContent>
+              </Card>
+              
+              <Card>
+                <CardHeader className="pb-2">
+                  <div className="flex items-center gap-2">
+                    <LineChart className="h-4 w-4 text-primary" />
+                    <CardTitle className="text-base">Rendimiento mensual onboarding de leads</CardTitle>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <div className="h-[280px]">
+                    <MonthlyLineChart data={monthlyTrend} />
+                  </div>
+                </CardContent>
+              </Card>
             </div>
-          </CardContent>
-        </Card>
-      </div>
-      
-      {/* Source chart row */}
-      <Card>
-        <CardHeader className="pb-2">
-          <div className="flex items-center gap-2">
-            <BarChart3 className="h-4 w-4 text-secondary" />
-            <CardTitle className="text-base">Leads por día y fuente de ingreso</CardTitle>
-          </div>
-        </CardHeader>
-        <CardContent>
-          <div className="h-[320px]">
-            <LeadsByDaySourceChart leads={leads} />
-          </div>
-        </CardContent>
-      </Card>
-      
-      {/* Bottom charts and stats row */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <Card className="lg:col-span-1">
-          <CardHeader className="pb-2">
-            <div className="flex items-center gap-2">
-              <PieChart className="h-4 w-4 text-secondary" />
-              <CardTitle className="text-base">Distribución perfiles</CardTitle>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="h-[220px]">
-              <ProfilePieChart carTypes={carTypes} />
-            </div>
-          </CardContent>
-        </Card>
-        
-        <Card className="lg:col-span-1">
-          <CardHeader className="pb-2">
-            <div className="flex items-center gap-2">
-              <Activity className="h-4 w-4 text-secondary" />
-              <CardTitle className="text-base">Tiempo en cada etapa</CardTitle>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="h-[220px]">
-              <StageTimeBarChart leads={leads} />
-            </div>
-          </CardContent>
-        </Card>
-        
-        <div className="space-y-6">
-          <Card>
-            <CardHeader className="pb-2">
-              <div className="flex items-center gap-2">
-                <BellRing className="h-4 w-4 text-secondary" />
-                <CardTitle className="text-base">Alertas & Recomendaciones</CardTitle>
+            
+            {/* Source chart row */}
+            <Card>
+              <CardHeader className="pb-2">
+                <div className="flex items-center gap-2">
+                  <BarChart3 className="h-4 w-4 text-secondary" />
+                  <CardTitle className="text-base">Leads por día y fuente de ingreso</CardTitle>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="h-[320px]">
+                  <LeadsByDaySourceChart leads={leads} />
+                </div>
+              </CardContent>
+            </Card>
+            
+            {/* Bottom charts and stats row */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              <Card className="lg:col-span-1">
+                <CardHeader className="pb-2">
+                  <div className="flex items-center gap-2">
+                    <PieChart className="h-4 w-4 text-secondary" />
+                    <CardTitle className="text-base">Distribución perfiles</CardTitle>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <div className="h-[220px]">
+                    <ProfilePieChart carTypes={carTypes} />
+                  </div>
+                </CardContent>
+              </Card>
+              
+              <Card className="lg:col-span-1">
+                <CardHeader className="pb-2">
+                  <div className="flex items-center gap-2">
+                    <Activity className="h-4 w-4 text-secondary" />
+                    <CardTitle className="text-base">Tiempo en cada etapa</CardTitle>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <div className="h-[220px]">
+                    <StageTimeBarChart leads={leads} />
+                  </div>
+                </CardContent>
+              </Card>
+              
+              <div className="space-y-6">
+                <Card>
+                  <CardHeader className="pb-2">
+                    <div className="flex items-center gap-2">
+                      <BellRing className="h-4 w-4 text-secondary" />
+                      <CardTitle className="text-base">Alertas & Recomendaciones</CardTitle>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <AlertsPanel alerts={fakeAlerts} />
+                  </CardContent>
+                </Card>
+                
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-base">Leads recientes</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <RecentLeadsList leads={leads} />
+                  </CardContent>
+                </Card>
               </div>
-            </CardHeader>
-            <CardContent>
-              <AlertsPanel alerts={fakeAlerts} />
-            </CardContent>
-          </Card>
-          
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-base">Leads recientes</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <RecentLeadsList leads={leads} />
-            </CardContent>
-          </Card>
-        </div>
-      </div>
+            </div>
+          </div>
+        </TabsContent>
+        
+        {/* Nueva pestaña de KPIs de Negocio */}
+        <TabsContent value="business">
+          <BusinessKpis />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 };
