@@ -1,97 +1,35 @@
 
 import React from 'react';
-import { 
-  CheckCircle2, 
-  PhoneOff, 
-  PhoneMissed, 
-  AlertCircle, 
-  PhoneCall 
-} from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { Badge } from '@/components/ui/badge';
 
 interface CallStatusBadgeProps {
-  status: string;
-  className?: string;
-  showIcon?: boolean;
-  size?: 'sm' | 'md';
+  status: string | null;
 }
 
-export const CallStatusBadge: React.FC<CallStatusBadgeProps> = ({ 
-  status, 
-  className = '',
-  showIcon = true,
-  size = 'md'
-}) => {
-  // Normalize the status to handle various formats
-  const normalizedStatus = status?.toLowerCase() || '';
-
-  // Define badge configurations based on status
-  const getBadgeConfig = () => {
-    if (normalizedStatus.includes('complete')) {
-      return {
-        icon: <CheckCircle2 className={size === 'sm' ? "h-3 w-3 mr-0.5" : "h-3 w-3 mr-1"} />,
-        text: 'Completada',
-        classes: 'bg-green-50 text-green-700 border-green-200'
-      };
-    }
-    
-    if (normalizedStatus.includes('no-answer') || normalizedStatus.includes('no answer')) {
-      return {
-        icon: <PhoneOff className={size === 'sm' ? "h-3 w-3 mr-0.5" : "h-3 w-3 mr-1"} />,
-        text: 'Sin respuesta',
-        classes: 'bg-orange-50 text-orange-700 border-orange-200'
-      };
-    }
-    
-    if (normalizedStatus.includes('busy') || normalizedStatus.includes('ocupado')) {
-      return {
-        icon: <PhoneMissed className={size === 'sm' ? "h-3 w-3 mr-0.5" : "h-3 w-3 mr-1"} />,
-        text: 'Ocupado',
-        classes: 'bg-yellow-50 text-yellow-700 border-yellow-200'
-      };
-    }
-    
-    if (normalizedStatus.includes('fail')) {
-      return {
-        icon: <AlertCircle className={size === 'sm' ? "h-3 w-3 mr-0.5" : "h-3 w-3 mr-1"} />,
-        text: 'Fallida',
-        classes: 'bg-red-50 text-red-700 border-red-200'
-      };
-    }
-    
-    if (normalizedStatus.includes('assistant-ended-call-with-hangup-task') || normalizedStatus.includes('contacted')) {
-      return {
-        icon: <CheckCircle2 className={size === 'sm' ? "h-3 w-3 mr-0.5" : "h-3 w-3 mr-1"} />,
-        text: 'Contactado',
-        classes: 'bg-blue-50 text-blue-700 border-blue-200'
-      };
-    }
-    
-    // Default case
-    return {
-      icon: <PhoneCall className={size === 'sm' ? "h-3 w-3 mr-0.5" : "h-3 w-3 mr-1"} />,
-      text: status || 'Desconocido',
-      classes: 'bg-slate-50 text-slate-700 border-slate-200'
-    };
-  };
+export const CallStatusBadge: React.FC<CallStatusBadgeProps> = ({ status }) => {
+  if (!status) return <Badge variant="outline">Desconocido</Badge>;
   
-  const badgeConfig = getBadgeConfig();
+  const normalizedStatus = status.toLowerCase();
   
-  const sizeClasses = size === 'sm' 
-    ? "px-1 py-0.5 text-xs" 
-    : "px-1.5 py-0.5 text-xs";
+  if (normalizedStatus.includes('complet') || normalizedStatus.includes('success')) {
+    return <Badge variant="outline" className="bg-green-50 text-green-600 hover:bg-green-100">Completada</Badge>;
+  }
   
-  return (
-    <span 
-      className={cn(
-        "inline-flex items-center rounded-full font-medium border",
-        badgeConfig.classes,
-        sizeClasses,
-        className
-      )}
-    >
-      {showIcon && badgeConfig.icon}
-      {badgeConfig.text}
-    </span>
-  );
+  if (normalizedStatus.includes('progress') || normalizedStatus.includes('calling')) {
+    return <Badge variant="outline" className="bg-blue-50 text-blue-600 hover:bg-blue-100">En progreso</Badge>;
+  }
+  
+  if (normalizedStatus.includes('fail') || normalizedStatus.includes('error')) {
+    return <Badge variant="outline" className="bg-red-50 text-red-600 hover:bg-red-100">Fallida</Badge>;
+  }
+  
+  if (normalizedStatus.includes('busy')) {
+    return <Badge variant="outline" className="bg-yellow-50 text-yellow-600 hover:bg-yellow-100">Ocupado</Badge>;
+  }
+  
+  if (normalizedStatus.includes('answer') || normalizedStatus.includes('pick')) {
+    return <Badge variant="outline" className="bg-amber-50 text-amber-600 hover:bg-amber-100">No contestó</Badge>;
+  }
+  
+  return <Badge variant="outline">{status}</Badge>;
 };

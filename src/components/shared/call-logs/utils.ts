@@ -1,98 +1,42 @@
 
-import { format, parseISO } from 'date-fns';
-import { es } from 'date-fns/locale';
-import { CallFormattingOptions, VapiCallLog } from './types';
+import { VapiCallLog } from '@/components/leads/types';
 
-export const formatCallDuration = (seconds: number | null, includeSeconds: boolean = true) => {
-  if (seconds === null || seconds === undefined) return '00:00';
-  
-  // Convert from milliseconds if needed
-  if (seconds > 100000) {
-    seconds = Math.floor(seconds / 1000);
-  }
-  
-  const mins = Math.floor(seconds / 60);
-  const secs = Math.floor(seconds % 60);
-  
-  return includeSeconds 
-    ? `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`
-    : `${mins} min`;
-};
-
-export const formatCallDateTime = (
-  dateString: string | null, 
-  options: CallFormattingOptions = {}
-) => {
+/**
+ * Formats a call date for display
+ */
+export function formatCallDateTime(dateString: string | null): string {
   if (!dateString) return 'N/A';
   
-  try {
-    const formatString = options.use24Hour 
-      ? 'dd/MM/yyyy HH:mm'
-      : 'dd/MM/yyyy hh:mm a';
-      
-    return format(parseISO(dateString), formatString, { locale: es });
-  } catch (error) {
-    console.error('Error formatting date:', error);
-    return 'Fecha inválida';
-  }
-};
+  const date = new Date(dateString);
+  if (isNaN(date.getTime())) return 'Fecha inválida';
+  
+  return date.toLocaleString('es-MX', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit'
+  });
+}
 
-export const formatPhoneNumber = (phone: string | null): string => {
-  if (!phone) return 'N/A';
+/**
+ * Formats call duration in seconds to a readable format
+ */
+export function formatCallDuration(seconds: number | null): string {
+  if (!seconds) return '0:00';
   
-  const digits = phone.replace(/\D/g, '');
-  
-  if (digits.length >= 10) {
-    if (digits.length > 10) {
-      const countryCode = digits.slice(0, digits.length - 10);
-      const areaCode = digits.slice(digits.length - 10, digits.length - 7);
-      const firstPart = digits.slice(digits.length - 7, digits.length - 4);
-      const secondPart = digits.slice(digits.length - 4);
-      return `+${countryCode} (${areaCode}) ${firstPart}-${secondPart}`;
-    } else {
-      const areaCode = digits.slice(0, 3);
-      const firstPart = digits.slice(3, 6);
-      const secondPart = digits.slice(6);
-      return `(${areaCode}) ${firstPart}-${secondPart}`;
-    }
-  }
-  
-  return phone;
-};
+  const mins = Math.floor(seconds / 60);
+  const secs = seconds % 60;
+  return `${mins}:${secs.toString().padStart(2, '0')}`;
+}
 
-export const getBestPhoneNumber = (log: VapiCallLog): string => {
-  // Try customer_number first
-  if (log.customer_number) {
-    return formatPhoneNumber(log.customer_number);
-  }
-  
-  // Check metadata for customer number
-  if (log.metadata && typeof log.metadata === 'object') {
-    const metadataObj = log.metadata as Record<string, any>;
-    
-    if (metadataObj.vapi_customer_number) {
-      return formatPhoneNumber(metadataObj.vapi_customer_number);
-    }
-    
-    if (metadataObj.customer?.number) {
-      return formatPhoneNumber(metadataObj.customer.number);
-    }
-  }
-  
-  // Use direction-specific logic
-  if (log.direction === 'inbound' && log.caller_phone_number) {
-    return formatPhoneNumber(log.caller_phone_number);
-  }
-  
-  if (log.direction === 'outbound' && log.phone_number) {
-    return formatPhoneNumber(log.phone_number);
-  }
-  
-  // Final fallbacks
-  return formatPhoneNumber(
-    log.caller_phone_number || 
-    log.phone_number || 
-    log.assistant_phone_number || 
-    'Sin número'
-  );
-};
+/**
+ * Gets the best available phone number from a call log
+ */
+export function getBestPhoneNumber(log: VapiCallLog): string {
+  return log.customer_number || 
+         log.caller_phone_number || 
+         log.phone_number || 
+         'No disponible';
+}

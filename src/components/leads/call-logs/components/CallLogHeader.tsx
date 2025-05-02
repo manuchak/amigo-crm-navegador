@@ -1,24 +1,31 @@
 
 import React from 'react';
-import { Phone } from 'lucide-react';
-import { DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
-import { formatPhoneNumber } from './CallLogUtils';
+import { Badge } from '@/components/ui/badge';
+import { formatPhoneNumber } from '@/lib/utils';
 
 interface CallLogHeaderProps {
   leadName: string;
   leadPhone: string | null;
 }
 
-export const CallLogHeader: React.FC<CallLogHeaderProps> = ({ leadName, leadPhone }) => {
+export const CallLogHeader: React.FC<CallLogHeaderProps> = ({ 
+  leadName, 
+  leadPhone 
+}) => {
   return (
-    <DialogHeader className="px-6 pt-6 pb-2">
-      <DialogTitle className="flex items-center gap-2 text-lg font-medium">
-        <Phone className="h-4 w-4 text-primary" />
-        Historial de llamadas: {leadName}
-      </DialogTitle>
-      <DialogDescription className="text-sm text-slate-500">
-        {leadPhone ? `Teléfono: ${formatPhoneNumber(leadPhone)}` : 'Sin número de teléfono registrado'}
-      </DialogDescription>
-    </DialogHeader>
+    <div className="border-b p-6">
+      <h2 className="text-xl font-semibold">Historial de llamadas</h2>
+      <div className="flex items-center mt-1 text-sm text-muted-foreground">
+        <span>{leadName}</span>
+        {leadPhone && (
+          <>
+            <span className="mx-1.5">•</span>
+            <Badge variant="outline" className="font-mono">
+              {formatPhoneNumber(leadPhone)}
+            </Badge>
+          </>
+        )}
+      </div>
+    </div>
   );
 };

@@ -1,11 +1,14 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import ProspectsList from './prospects/ProspectsList';
 import { Prospect } from '@/services/prospectService';
 import { useToast } from '@/hooks/use-toast';
+import CallLogDialog from './CallLogDialog';
 
 const ProspectsPage: React.FC = () => {
   const { toast } = useToast();
+  const [callLogDialogOpen, setCallLogDialogOpen] = useState(false);
+  const [selectedProspect, setSelectedProspect] = useState<Prospect | null>(null);
 
   // Define handlers for button actions
   const handleViewDetails = (prospect: Prospect) => {
@@ -25,11 +28,8 @@ const ProspectsPage: React.FC = () => {
   };
 
   const handleViewCalls = (prospect: Prospect) => {
-    toast({
-      title: "Historial de llamadas",
-      description: `Viendo historial de llamadas para ${prospect.lead_name || prospect.custodio_name || 'Prospecto ' + prospect.lead_id}`,
-    });
-    // Add actual implementation for viewing call history
+    setSelectedProspect(prospect);
+    setCallLogDialogOpen(true);
   };
 
   const handleValidate = (prospect: Prospect) => {
@@ -66,6 +66,16 @@ const ProspectsPage: React.FC = () => {
         onViewCalls={handleViewCalls}
         onValidate={handleValidate}
       />
+
+      {selectedProspect && (
+        <CallLogDialog
+          open={callLogDialogOpen}
+          onOpenChange={setCallLogDialogOpen}
+          leadName={selectedProspect.lead_name || selectedProspect.custodio_name || `Prospecto ${selectedProspect.lead_id}`}
+          leadPhone={selectedProspect.lead_phone || selectedProspect.phone_number_intl}
+          leadId={selectedProspect.lead_id}
+        />
+      )}
     </div>
   );
 };

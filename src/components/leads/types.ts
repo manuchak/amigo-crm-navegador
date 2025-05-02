@@ -1,29 +1,25 @@
 
-import { Json } from '@/integrations/supabase/types';
-
 export interface VapiCallLog {
   id: string;
-  log_id: string;
-  assistant_id: string;
+  log_id: string | null;
+  assistant_id: string | null;
   assistant_name: string | null;
-  assistant_phone_number: string | null;
+  organization_id: string | null;
+  status: string | null;
+  ended_reason: string | null;
   call_type: string | null;
+  direction: string | null;
+  customer_number: string | null;
   caller_phone_number: string | null;
+  phone_number: string | null;
+  assistant_phone_number: string | null;
   conversation_id: string | null;
   cost: number | null;
-  created_at: string | null;
-  customer_number: string | null;
-  direction: string | null;
   duration: number | null;
-  end_time: string | null;
-  ended_reason: string | null;
-  metadata: Json | null;
-  organization_id: string;
-  phone_number: string | null;
-  recording_url: string | null;
-  start_time: string | null;
-  status: string | null;
   success_evaluation: string | null;
-  transcript: Json | null;
-  updated_at: string | null;
+  start_time: string | null;
+  end_time: string | null;
+  recording_url: string | null;
+  transcript: any | null;
+  metadata: any | null;
 }

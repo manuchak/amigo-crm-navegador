@@ -1,13 +1,12 @@
 
 import React from 'react';
-import { Skeleton } from '@/components/ui/skeleton';
+import { Loader2 } from 'lucide-react';
 
 export const CallLogsLoadingState: React.FC = () => {
   return (
-    <div className="space-y-2 p-4">
-      {Array(3).fill(null).map((_, i) => (
-        <Skeleton key={i} className="h-20 w-full" />
-      ))}
+    <div className="flex flex-col items-center justify-center py-12">
+      <Loader2 className="h-8 w-8 animate-spin text-primary mb-4" />
+      <p className="text-sm text-muted-foreground">Cargando registros de llamadas...</p>
     </div>
   );
 };

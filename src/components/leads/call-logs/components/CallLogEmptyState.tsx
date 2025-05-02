@@ -1,15 +1,16 @@
 
 import React from 'react';
-import { Phone } from 'lucide-react';
+import { PhoneOff } from 'lucide-react';
 
 export const CallLogEmptyState: React.FC = () => {
   return (
-    <div className="text-center py-8 text-slate-400 flex flex-col items-center">
-      <Phone className="h-8 w-8 mb-2 opacity-30" />
-      <p>No hay registros de llamadas para este custodio</p>
-      <p className="text-xs mt-2 max-w-md text-center">
-        Si ya se han realizado llamadas, es posible que los números no coincidan 
-        exactamente en los registros. Intente sincronizar los registros de VAPI.
+    <div className="flex flex-col items-center justify-center py-12 text-center">
+      <div className="flex h-12 w-12 items-center justify-center rounded-full bg-muted mb-4">
+        <PhoneOff className="h-6 w-6 text-muted-foreground" />
+      </div>
+      <h3 className="text-lg font-semibold">Sin registros de llamadas</h3>
+      <p className="text-sm text-muted-foreground mt-1 max-w-md">
+        Este contacto no tiene registros de llamadas aún.
       </p>
     </div>
   );

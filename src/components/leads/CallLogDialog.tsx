@@ -20,14 +20,14 @@ import {
   CallLogsLoadingState,
   TranscriptViewer
 } from './call-logs/components';
+import { useLeadCallLogs } from '@/hooks/lead-call-logs';
 
 interface CallLogDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   leadName: string;
   leadPhone: string | null;
-  callLogs: VapiCallLog[];
-  loading: boolean;
+  leadId: number | null;
 }
 
 const CallLogDialog: React.FC<CallLogDialogProps> = ({
@@ -35,9 +35,9 @@ const CallLogDialog: React.FC<CallLogDialogProps> = ({
   onOpenChange,
   leadName,
   leadPhone,
-  callLogs,
-  loading
+  leadId
 }) => {
+  const { callLogs, loading } = useLeadCallLogs(leadId, leadPhone);
   const [selectedLog, setSelectedLog] = useState<VapiCallLog | null>(null);
   const [transcriptOpen, setTranscriptOpen] = useState(false);
 
