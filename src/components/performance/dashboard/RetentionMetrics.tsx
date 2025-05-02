@@ -1,5 +1,5 @@
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -26,9 +26,25 @@ interface RetentionMetricsProps {
 }
 
 export function RetentionMetrics({ data, isLoading }: RetentionMetricsProps) {
+  // State for valid retention data
+  const [validRetentionData, setValidRetentionData] = useState<{ month: string; rate: number }[]>([]);
+
   // Log the data for debugging
   useEffect(() => {
     console.log('DEBUG RetentionMetrics: Data received:', data);
+    
+    // Filter out invalid retention data points for the chart
+    const filteredData = data?.retentionByMonth?.filter(
+      point => point.rate !== null && point.rate !== undefined && !isNaN(point.rate)
+    ) || [];
+    
+    setValidRetentionData(filteredData);
+    
+    // Log the chart data for debugging
+    console.log('DEBUG RetentionMetrics: Valid retention chart data points:', filteredData.length);
+    if (filteredData.length > 0) {
+      console.log('DEBUG RetentionMetrics: Sample chart data:', filteredData[0]);
+    }
   }, [data]);
 
   const RetentionCard = ({
@@ -53,19 +69,6 @@ export function RetentionMetrics({ data, isLoading }: RetentionMetricsProps) {
       </CardContent>
     </Card>
   );
-
-  // Filter out invalid retention data points for the chart
-  const validRetentionData = data?.retentionByMonth?.filter(
-    point => point.rate !== null && point.rate !== undefined && !isNaN(point.rate)
-  ) || [];
-
-  // Log the chart data for debugging
-  useEffect(() => {
-    console.log('DEBUG RetentionMetrics: Valid retention chart data points:', validRetentionData.length);
-    if (validRetentionData.length > 0) {
-      console.log('DEBUG RetentionMetrics: Sample chart data:', validRetentionData[0]);
-    }
-  }, [validRetentionData]);
 
   return (
     <div className="space-y-8">

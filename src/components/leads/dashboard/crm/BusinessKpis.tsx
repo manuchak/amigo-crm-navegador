@@ -45,7 +45,10 @@ export const BusinessKpis = () => {
     nps, cac, marketingRoi, avgRetention, avgLtv, ltvCacRatio 
   } = useCustodioKpi(calculateMonths()); // Get data based on selected date range
   
-  // Log detailed debug info when retention data changes
+  // State for retention chart data - moved up to keep consistent hook order
+  const [retentionData, setRetentionData] = useState<any[]>([]);
+  
+  // Log detailed debug info when retention data changes - moved here for consistent hook ordering
   useEffect(() => {
     console.log('DEBUG BusinessKpis: Retention data received:', retention);
     console.log('DEBUG BusinessKpis: Average retention from hook:', avgRetention);
@@ -70,7 +73,23 @@ export const BusinessKpis = () => {
         );
       }
     }
-  }, [retention, avgRetention]);
+    
+    // Format data for the retention chart - filter out null/N/A values
+    const formattedRetentionData = filteredRetention
+      .map(item => ({
+        month: new Date(item.month_year).toLocaleDateString('es-MX', { month: 'short', year: 'numeric' }),
+        'Retention Rate': item.retention_rate,
+        'Growth Rate': item.growth_rate
+      })) || [];
+      
+    setRetentionData(formattedRetentionData);
+    
+    // Extra debug for Chart data
+    console.log('DEBUG BusinessKpis: Retention chart data:', formattedRetentionData);
+    if (formattedRetentionData.length === 0) {
+      console.log('DEBUG BusinessKpis: No data available for retention chart');
+    }
+  }, [retention, filteredRetention, avgRetention]);
   
   // Filter data based on selected date range
   const filterDataByDateRange = (data: any[]) => {
@@ -84,7 +103,7 @@ export const BusinessKpis = () => {
   
   const filteredKpiData = filterDataByDateRange(kpiData || []);
   const filteredRetention = filterDataByDateRange(retention || [])
-    .filter(item => item.retention_rate !== null && !isNaN(item.retention_rate));
+    .filter(item => item?.retention_rate !== null && !isNaN(item?.retention_rate));
   
   // Custom tooltip for the charts
   const CustomTooltip = ({ active, payload, label }: any) => {
@@ -132,15 +151,6 @@ export const BusinessKpis = () => {
     'CAC': metrics?.find(m => m.month_year === item.month_year)?.acquisition_cost_manual || 0
   })) || [];
   
-  // Format data for the retention chart - filter out null/N/A values
-  const retentionData = filteredRetention
-    .filter(item => item.retention_rate !== null && !isNaN(item.retention_rate))
-    .map(item => ({
-      month: new Date(item.month_year).toLocaleDateString('es-MX', { month: 'short', year: 'numeric' }),
-      'Retention Rate': item.retention_rate,
-      'Growth Rate': item.growth_rate
-    })) || [];
-  
   // Format data for the LTV chart
   const ltvData = ltv?.map(item => ({
     name: item.nombre_custodio.length > 15 
@@ -185,14 +195,6 @@ export const BusinessKpis = () => {
     return null;
   })();
   
-  // Extra debug for Chart data
-  useEffect(() => {
-    console.log('DEBUG BusinessKpis: Retention chart data:', retentionData);
-    if (retentionData.length === 0) {
-      console.log('DEBUG BusinessKpis: No data available for retention chart');
-    }
-  }, [retentionData]);
-
   return (
     <div className="space-y-6">
       {/* Date range filter */}
