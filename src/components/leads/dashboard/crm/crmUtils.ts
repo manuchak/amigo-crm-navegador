@@ -1,3 +1,4 @@
+
 import { Lead } from "@/context/LeadsContext";
 
 export const STAGES = [
@@ -134,3 +135,28 @@ export function useFunnelStats(leads: any[]) {
 
   return { byStage, conversions };
 }
+
+// Calculate retention rate between two periods
+export function calculateRetentionRate(previousPeriodCustodians: string[], currentPeriodCustodians: string[]): number {
+  if (previousPeriodCustodians.length === 0) return 0;
+  
+  const retained = previousPeriodCustodians.filter(custodian => 
+    currentPeriodCustodians.includes(custodian)
+  );
+  
+  return (retained.length / previousPeriodCustodians.length) * 100;
+}
+
+// Helper to format date for display
+export const formatDate = (date: Date): string => {
+  return date.toLocaleDateString('es-MX', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric'
+  });
+};
+
+// Get month name from date
+export const getMonthName = (date: Date): string => {
+  return date.toLocaleDateString('es-MX', { month: 'long' });
+};

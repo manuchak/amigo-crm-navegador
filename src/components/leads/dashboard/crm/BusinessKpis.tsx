@@ -1,5 +1,5 @@
 
-import React from "react";
+import React, { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useCustodioKpi } from "@/hooks/useCustodioKpi";
 import { Loader2, TrendingUp, Users, Wallet, BarChart3, LineChart, Activity, Star } from "lucide-react";
@@ -8,6 +8,7 @@ import { ResponsiveContainer, LineChart as RechartLineChart, XAxis, YAxis, Carte
 import { formatCurrency, formatPercent } from "./crmUtils";
 import { MetricsForm } from "./MetricsForm";
 import { Tooltip as TooltipUI, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import DateRangePicker from "./DateRangePicker";
 
 // Helper to create tooltips for metrics
 const MetricTooltip = ({ children, explanation }: { children: React.ReactNode, explanation: string }) => (
@@ -24,11 +25,39 @@ const MetricTooltip = ({ children, explanation }: { children: React.ReactNode, e
 );
 
 export const BusinessKpis = () => {
+  // Add date range state with default values (last 12 months)
+  const [dateRange, setDateRange] = useState<{ from: Date | null; to: Date | null }>({
+    from: new Date(new Date().setFullYear(new Date().getFullYear() - 1)),
+    to: new Date()
+  });
+  
+  // Calculate months between dates for the API call
+  const calculateMonths = () => {
+    if (!dateRange.from || !dateRange.to) return 24; // Default to 24 months
+    
+    const start = new Date(dateRange.from);
+    const end = new Date(dateRange.to);
+    return (end.getFullYear() - start.getFullYear()) * 12 + (end.getMonth() - start.getMonth()) + 1;
+  };
+  
   const { 
     kpiData, metrics, newCustodios, retention, ltv, 
     isLoading, isError, updateMetrics, isUpdating,
     nps, cac, marketingRoi, avgRetention, avgLtv, ltvCacRatio 
-  } = useCustodioKpi(24); // Get 2 years of data
+  } = useCustodioKpi(calculateMonths()); // Get data based on selected date range
+  
+  // Filter data based on selected date range
+  const filterDataByDateRange = (data: any[]) => {
+    if (!dateRange.from || !dateRange.to || !data) return data;
+    
+    return data.filter(item => {
+      const itemDate = new Date(item.month_year);
+      return itemDate >= dateRange.from! && itemDate <= dateRange.to!;
+    });
+  };
+  
+  const filteredKpiData = filterDataByDateRange(kpiData || []);
+  const filteredRetention = filterDataByDateRange(retention || []);
   
   // Custom tooltip for the charts
   const CustomTooltip = ({ active, payload, label }: any) => {
@@ -70,14 +99,14 @@ export const BusinessKpis = () => {
   }
 
   // Format data for the Revenue vs CAC chart
-  const revenueVsCacData = kpiData?.map(item => ({
+  const revenueVsCacData = filteredKpiData.map(item => ({
     month: new Date(item.month_year).toLocaleDateString('es-MX', { month: 'short', year: 'numeric' }),
     'Revenue': item.total_revenue,
     'CAC': metrics?.find(m => m.month_year === item.month_year)?.acquisition_cost_manual || 0
   })) || [];
   
   // Format data for the retention chart
-  const retentionData = retention?.map(item => ({
+  const retentionData = filteredRetention.map(item => ({
     month: new Date(item.month_year).toLocaleDateString('es-MX', { month: 'short', year: 'numeric' }),
     'Retention Rate': item.retention_rate,
     'Growth Rate': item.growth_rate
@@ -94,6 +123,11 @@ export const BusinessKpis = () => {
 
   return (
     <div className="space-y-6">
+      {/* Date range filter */}
+      <div className="flex justify-end mb-4">
+        <DateRangePicker value={dateRange} onChange={setDateRange} />
+      </div>
+      
       {/* Top KPI cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <Card className="shadow-sm">
@@ -105,7 +139,7 @@ export const BusinessKpis = () => {
               <div className="flex items-center space-x-2">
                 <TrendingUp className="h-5 w-5 text-emerald-500" />
                 <span className="text-2xl font-bold">
-                  {formatCurrency(kpiData?.reduce((sum, item) => sum + item.total_revenue, 0) || 0)}
+                  {formatCurrency(filteredKpiData.reduce((sum, item) => sum + item.total_revenue, 0) || 0)}
                 </span>
               </div>
             </MetricTooltip>
@@ -121,7 +155,7 @@ export const BusinessKpis = () => {
               <div className="flex items-center space-x-2">
                 <Users className="h-5 w-5 text-blue-500" />
                 <span className="text-2xl font-bold">
-                  {kpiData?.slice(-1)[0]?.total_custodios || 0}
+                  {filteredKpiData.length > 0 ? filteredKpiData[filteredKpiData.length-1]?.total_custodios || 0 : 0}
                 </span>
               </div>
             </MetricTooltip>
@@ -165,7 +199,7 @@ export const BusinessKpis = () => {
             <CardTitle className="text-sm text-muted-foreground">Tasa de Retención</CardTitle>
           </CardHeader>
           <CardContent>
-            <MetricTooltip explanation="Porcentaje de custodios que continúan trabajando con la empresa de un período a otro. Calculado comparando custodios activos al inicio y al final del período.">
+            <MetricTooltip explanation="Porcentaje de custodios que continúan trabajando con la empresa de un período a otro. Calculado comparando custodios activos al inicio y al final del período seleccionado.">
               <div className="flex items-center space-x-2">
                 <LineChart className="h-5 w-5 text-cyan-500" />
                 <span className="text-2xl font-bold">
