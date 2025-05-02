@@ -129,6 +129,7 @@ function normalizeEndedReason(reason: string | null): string | null {
   if (lowerReason.includes('no-answer') || lowerReason.includes('no answer')) return 'no-answer';
   if (lowerReason.includes('busy') || lowerReason.includes('ocupado')) return 'busy';
   if (lowerReason.includes('fail')) return 'failed';
+  if (lowerReason.includes('assistant-ended-call-with-hangup-task')) return 'contacted';
   
   return reason;
 }

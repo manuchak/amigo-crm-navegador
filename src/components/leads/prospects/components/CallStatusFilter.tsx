@@ -13,6 +13,7 @@ const CallStatusFilter: React.FC<CallStatusFilterProps> = ({ selectedStatus, onS
   const statusOptions = [
     { value: null, label: 'Todos', classes: 'hover:bg-slate-50' },
     { value: 'completed', label: 'Completadas', status: 'completed' },
+    { value: 'contacted', label: 'Contactados', status: 'contacted' },
     { value: 'no-answer', label: 'Sin respuesta', status: 'no-answer' },
     { value: 'busy', label: 'Ocupado', status: 'busy' },
     { value: 'failed', label: 'Fallidas', status: 'failed' }

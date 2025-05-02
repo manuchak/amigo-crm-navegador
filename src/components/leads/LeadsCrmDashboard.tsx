@@ -1,4 +1,3 @@
-
 import React, { useMemo } from "react";
 import { useLeads } from "@/context/LeadsContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -17,6 +16,7 @@ import RecentLeadsList from "./dashboard/crm/RecentLeadsList";
 import LeadsByDaySourceChart from "./dashboard/crm/LeadsByDaySourceChart";
 import { BusinessKpis } from "./dashboard/crm/BusinessKpis";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import ContactedLeadsCard from "./dashboard/crm/ContactedLeadsCard";
 
 const LeadsCrmDashboard: React.FC = () => {
   const { leads } = useLeads();
@@ -47,9 +47,16 @@ const LeadsCrmDashboard: React.FC = () => {
         <TabsContent value="leads">
           {/* Contenido original del dashboard */}
           <div className="space-y-6">
-            {/* Top metrics row */}
-            <div className="grid grid-cols-1 lg:grid-cols-4 gap-4">
-              <MetricsCards byStage={funnel.byStage} conversions={funnel.conversions} />
+            {/* Top metrics row - Insert our new card */}
+            <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
+              {/* First the original 4 metric cards */}
+              <div className="lg:col-span-4 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+                <MetricsCards byStage={funnel.byStage} conversions={funnel.conversions} />
+              </div>
+              {/* Add the contacted leads card */}
+              <div className="lg:col-span-1">
+                <ContactedLeadsCard />
+              </div>
             </div>
             
             {/* Funnel and Monthly trend charts row */}

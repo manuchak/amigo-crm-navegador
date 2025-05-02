@@ -59,6 +59,14 @@ export const CallStatusBadge: React.FC<CallStatusBadgeProps> = ({
       };
     }
     
+    if (normalizedStatus.includes('assistant-ended-call-with-hangup-task') || normalizedStatus.includes('contacted')) {
+      return {
+        icon: <CheckCircle2 className={size === 'sm' ? "h-3 w-3 mr-0.5" : "h-3 w-3 mr-1"} />,
+        text: 'Contactado',
+        classes: 'bg-blue-50 text-blue-700 border-blue-200'
+      };
+    }
+    
     // Default case
     return {
       icon: <PhoneCall className={size === 'sm' ? "h-3 w-3 mr-0.5" : "h-3 w-3 mr-1"} />,
