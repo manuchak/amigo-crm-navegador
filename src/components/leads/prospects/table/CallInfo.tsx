@@ -3,6 +3,7 @@ import React from 'react';
 import { Phone, ClipboardCheck } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { TooltipProvider } from '@/components/ui/tooltip';
 
 interface CallInfoProps {
   callCount: number | null;
@@ -53,11 +54,14 @@ const CallInfo: React.FC<CallInfoProps> = ({
   };
   
   const endedReasonDisplay = endedReason ? (
-    <span className="block mt-1">
-      <Badge variant="outline" className={`text-xs font-normal px-2 py-0.5 ${getEndedReasonColor(endedReason)}`}>
+    <div className="mt-1">
+      <Badge 
+        variant="outline" 
+        className={`text-xs font-normal px-2 py-0.5 ${getEndedReasonColor(endedReason)}`}
+      >
         {endedReason}
       </Badge>
-    </span>
+    </div>
   ) : null;
 
   if (!callCount || callCount === 0) {
@@ -70,35 +74,37 @@ const CallInfo: React.FC<CallInfoProps> = ({
   }
 
   return (
-    <div className="flex flex-col">
-      <div className="flex items-center">
-        <Phone className="h-3.5 w-3.5 mr-1 text-slate-400" />
-        <span className="text-sm">
-          {callCount} {callCount === 1 ? 'llamada' : 'llamadas'}
-        </span>
-        
-        {hasInterviewData && (
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <div className="ml-2">
-                <ClipboardCheck className="h-3.5 w-3.5 text-green-500" />
-              </div>
-            </TooltipTrigger>
-            <TooltipContent>
-              <p className="text-xs">Entrevista completada</p>
-            </TooltipContent>
-          </Tooltip>
-        )}
-      </div>
-      
-      {formattedLastCallDate && (
-        <div className="text-xs text-slate-500">
-          Última: {formattedLastCallDate}
+    <TooltipProvider>
+      <div className="flex flex-col">
+        <div className="flex items-center">
+          <Phone className="h-3.5 w-3.5 mr-1 text-slate-400" />
+          <span className="text-sm">
+            {callCount} {callCount === 1 ? 'llamada' : 'llamadas'}
+          </span>
+          
+          {hasInterviewData && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div className="ml-2">
+                  <ClipboardCheck className="h-3.5 w-3.5 text-green-500" />
+                </div>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p className="text-xs">Entrevista completada</p>
+              </TooltipContent>
+            </Tooltip>
+          )}
         </div>
-      )}
-      
-      {endedReasonDisplay}
-    </div>
+        
+        {formattedLastCallDate && (
+          <div className="text-xs text-slate-500">
+            Última: {formattedLastCallDate}
+          </div>
+        )}
+        
+        {endedReasonDisplay}
+      </div>
+    </TooltipProvider>
   );
 };
 
