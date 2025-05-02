@@ -25,7 +25,7 @@ import Leads from './pages/Leads';
 import Auth from './pages/Auth';
 import Login from './pages/Login';
 import Prospects from './pages/Prospects';
-import Validation from './pages/Validation';
+// Remove the Validation import that no longer exists
 import Support from './pages/Support';
 import CallCenter from './pages/CallCenter';
 import Settings from './pages/Settings';
@@ -64,11 +64,7 @@ function App() {
                     <Prospects />
                   </AuthGuard>
                 } />
-                <Route path="/validation" element={
-                  <AuthGuard>
-                    <Validation />
-                  </AuthGuard>
-                } />
+                {/* Remove the Validation route that no longer exists */}
                 <Route path="/support" element={
                   <AuthGuard>
                     <Support />
