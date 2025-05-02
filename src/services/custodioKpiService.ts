@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { format, subMonths } from 'date-fns';
 
@@ -186,6 +185,8 @@ export async function getNewCustodiosByMonth(months: number = 12): Promise<NewCu
     return [];
   }
   
+  console.log('DEBUG: Retrieved data for new custodios calculation:', data?.length);
+  
   // Agrupar por mes y contar custodios únicos
   const monthlyData: Record<string, Set<string>> = {};
   
@@ -202,11 +203,14 @@ export async function getNewCustodiosByMonth(months: number = 12): Promise<NewCu
     monthlyData[monthYear].add(item.nombre_custodio);
   });
   
-  // Convert to desired format
-  return Object.entries(monthlyData).map(([month_year, custodiosSet]) => ({
+  const result = Object.entries(monthlyData).map(([month_year, custodiosSet]) => ({
     month_year,
     new_custodios: custodiosSet.size
   })).sort((a, b) => a.month_year.localeCompare(b.month_year));
+  
+  console.log('DEBUG: Calculated new custodios by month:', result);
+  
+  return result;
 }
 
 // Improved retention calculation function
@@ -226,7 +230,7 @@ export async function getCustodioRetention(months: number = 12): Promise<Custodi
   if (error) {
     console.error('Error fetching custodio retention from RPC:', error);
     
-    // If there's an error, let's implement our own calculation as fallback
+    // If there's an error with the RPC, let's implement our own calculation as fallback
     try {
       console.log('Using manual retention calculation fallback');
       return await calculateRetentionManually(startDate, endDate);
@@ -236,22 +240,31 @@ export async function getCustodioRetention(months: number = 12): Promise<Custodi
     }
   }
   
+  console.log('DEBUG: Raw data from retention RPC:', data?.slice(0, 3));
+  
   // Filter out any invalid data (NULL, N/A, undefined) from the database response
   const filteredData = data?.filter(item => 
+    item && 
     item.retention_rate !== null && 
-    !isNaN(item.retention_rate)
+    !isNaN(Number(item.retention_rate))
   ) || [];
   
   console.log(`DEBUG: Received ${data?.length || 0} retention records, ${filteredData.length} valid after filtering`);
   
   // Log the first few records for debugging
   if (filteredData.length > 0) {
-    console.log('DEBUG: Sample retention data:', filteredData.slice(0, 3));
+    console.log('DEBUG: Sample retention data after filtering:', filteredData.slice(0, 3));
   } else {
-    console.log('DEBUG: No valid retention data found');
+    console.log('DEBUG: No valid retention data found after filtering');
   }
   
-  return filteredData;
+  // Convert string values to numbers where needed
+  const processedData = filteredData.map(item => ({
+    ...item,
+    retention_rate: typeof item.retention_rate === 'string' ? parseFloat(item.retention_rate) : Number(item.retention_rate)
+  }));
+  
+  return processedData;
 }
 
 // Enhanced manual retention calculation function with improved null handling and detailed logging
@@ -283,6 +296,18 @@ async function calculateRetentionManually(startDate: Date, endDate: Date): Promi
   
   // Group servicios by month with custodio names
   const custodiosByMonth: Record<string, Set<string>> = {};
+  
+  // We need to look at each month separately
+  let currentDate = new Date(startDate);
+  
+  // Create empty sets for each month in our range
+  while (currentDate <= endDate) {
+    const monthKey = format(currentDate, 'yyyy-MM-01');
+    custodiosByMonth[monthKey] = new Set<string>();
+    currentDate.setMonth(currentDate.getMonth() + 1);
+  }
+  
+  // Now populate those sets with actual custodios
   allServiciosData.forEach(servicio => {
     if (!servicio.fecha_hora_cita || !servicio.nombre_custodio) return;
     
@@ -324,21 +349,11 @@ async function calculateRetentionManually(startDate: Date, endDate: Date): Promi
       `Previous month (${previousMonth}) custodios: ${previousCustodios.size}`,
       `Current month (${currentMonth}) custodios: ${currentCustodios.size}`);
     
-    // For debugging, print out some custodio names to verify data
-    if (previousCustodios.size > 0 && currentCustodios.size > 0) {
-      const prevSample = Array.from(previousCustodios).slice(0, 3);
-      const currSample = Array.from(currentCustodios).slice(0, 3);
-      console.log(`DEBUG: Previous month sample custodios: ${prevSample.join(', ')}`);
-      console.log(`DEBUG: Current month sample custodios: ${currSample.join(', ')}`);
-    }
-    
     // Count custodios that appear in both months (retained)
     let retainedCount = 0;
-    let retainedNames: string[] = [];
     previousCustodios.forEach(custodio => {
       if (currentCustodios.has(custodio)) {
         retainedCount++;
-        if (retainedNames.length < 5) retainedNames.push(custodio);
       }
     });
     
@@ -348,7 +363,6 @@ async function calculateRetentionManually(startDate: Date, endDate: Date): Promi
       : 0;
       
     console.log(`DEBUG: Retained: ${retainedCount} out of ${previousCustodios.size}, Rate: ${retentionRate.toFixed(2)}%`);
-    console.log(`DEBUG: Sample retained custodios: ${retainedNames.join(', ')}`);
       
     // Calculate new custodios (in current month but not in previous)
     let newCustodiosCount = 0;
@@ -379,10 +393,9 @@ async function calculateRetentionManually(startDate: Date, endDate: Date): Promi
   
   console.log(`DEBUG: Manual calculation completed with ${retentionData.length} retention data points`);
   
-  // Log the results for debugging
-  retentionData.forEach(data => {
-    console.log(`DEBUG: Month: ${data.month_year}, Retention Rate: ${data.retention_rate.toFixed(2)}%, Growth Rate: ${data.growth_rate.toFixed(2)}%`);
-  });
+  if (retentionData.length > 0) {
+    console.log('DEBUG: Sample calculated retention data:', retentionData.slice(0, 3));
+  }
   
   return retentionData;
 }

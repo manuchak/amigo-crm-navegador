@@ -1,4 +1,3 @@
-
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { 
   getCustodioKpiData, 
@@ -165,16 +164,18 @@ export function useCustodioKpi(months: number = 12, comparisonType: 'month' | 'y
     }
     
     console.log(`DEBUG: Raw retention data has ${retentionData.length} entries`);
+    console.log('DEBUG: Sample of raw retention data:', retentionData.slice(0, 2));
     
     // Filter out NULL, N/A, zero, or undefined retention rates that might skew the average
     const validRetentionData = retentionData.filter(item => 
       item && 
-      item.retention_rate !== null && 
+      typeof item.retention_rate === 'number' && 
       !isNaN(item.retention_rate) && 
       item.retention_rate > 0
     );
     
     console.log(`DEBUG: After filtering, we have ${validRetentionData.length} valid retention data entries`);
+    console.log('DEBUG: Sample of valid retention data:', validRetentionData.slice(0, 2));
     
     if (validRetentionData.length === 0) {
       console.log('DEBUG: No valid retention rates found after filtering NULL/N/A values');
@@ -183,12 +184,12 @@ export function useCustodioKpi(months: number = 12, comparisonType: 'month' | 'y
     
     // Calculate the average retention rate from valid data points
     const totalRetention = validRetentionData.reduce(
-      (sum, item) => sum + item.retention_rate, 0
+      (sum, item) => sum + Number(item.retention_rate), 0
     );
     
     const avgRetention = totalRetention / validRetentionData.length;
     console.log(`DEBUG: Calculating avg retention from ${validRetentionData.length} valid months:`, 
-      validRetentionData.map(d => d.retention_rate.toFixed(1)),
+      validRetentionData.map(d => parseFloat(d.retention_rate).toFixed(1)),
       `Avg: ${avgRetention.toFixed(2)}%`);
     
     return avgRetention;

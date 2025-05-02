@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo, useCallback } from 'react';
 import { useCustodioKpi } from '@/hooks/useCustodioKpi';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -61,7 +60,10 @@ export const BusinessKpis = () => {
   
   // Function to map retention and ltv data for our charts
   const mapRetentionData = useCallback((retentionData?: any[]) => {
-    if (!retentionData) return [];
+    if (!retentionData) {
+      console.log('BusinessKpis: No retention data provided to mapping function');
+      return [];
+    }
     
     console.log(`BusinessKpis: Mapping retention data for chart, received ${retentionData.length} records`);
     
@@ -70,18 +72,22 @@ export const BusinessKpis = () => {
       item && 
       item.retention_rate !== null && 
       item.retention_rate !== undefined && 
-      !isNaN(item.retention_rate)
+      !isNaN(item.retention_rate) &&
+      typeof item.retention_rate === 'number' &&
+      item.month_year // Ensure we have a date to work with
     );
     
     console.log(`BusinessKpis: Found ${validData.length} valid retention records after filtering`);
     
     if (validData.length > 0) {
       console.log('BusinessKpis: Sample valid retention data:', validData[0]);
+    } else {
+      console.log('BusinessKpis: No valid retention data found after filtering');
     }
     
     return validData.map(item => ({
       month: item.month_year,
-      rate: item.retention_rate
+      rate: Number(item.retention_rate) // Ensure it's a number
     }));
   }, []);
   

@@ -24,8 +24,23 @@ export function RetentionChart({ data = [], isLoading, title = "Tendencia de Ret
   const [period, setPeriod] = useState<PeriodOption>("6m");
   const [filteredData, setFilteredData] = useState<{ month: string; rate: number }[]>([]);
   
+  // Debug logs to understand what data we're receiving
+  useEffect(() => {
+    console.log("RetentionChart: Initial data received:", data);
+    console.log("RetentionChart: Initial data length:", data?.length);
+    
+    if (data && data.length > 0) {
+      const validCount = data.filter(item => 
+        item && item.rate !== null && item.rate !== undefined && !isNaN(item.rate)
+      ).length;
+      
+      console.log("RetentionChart: Valid data points count:", validCount);
+    }
+  }, [data]);
+  
   useEffect(() => {
     if (!data || data.length === 0) {
+      console.log("RetentionChart: No data available to filter");
       setFilteredData([]);
       return;
     }
@@ -57,11 +72,12 @@ export function RetentionChart({ data = [], isLoading, title = "Tendencia de Ret
         break;
     }
     
+    console.log(`RetentionChart: Filtering by period ${period}, start date: ${startDate.toISOString()}`);
+    
     // First filter out any invalid data points (null, undefined, NaN)
     const validData = data.filter(item => 
       item &&
-      item.rate !== null && 
-      item.rate !== undefined && 
+      typeof item.rate === 'number' && 
       !isNaN(item.rate)
     );
     
@@ -76,8 +92,18 @@ export function RetentionChart({ data = [], isLoading, title = "Tendencia de Ret
       try {
         if (!item.month) return false;
         
-        const [year, month] = item.month.split('-').map(Number);
-        const itemDate = new Date(year, month - 1); // month is 0-indexed in JS Date
+        // Handle different date formats that might be coming in
+        let itemDate;
+        if (item.month.includes('-')) {
+          const [year, month] = item.month.split('-').map(Number);
+          itemDate = new Date(year, month - 1); // month is 0-indexed in JS Date
+        } else {
+          // Try to parse the date directly
+          itemDate = new Date(item.month);
+          // If invalid, return false
+          if (isNaN(itemDate.getTime())) return false;
+        }
+        
         return itemDate >= startDate;
       } catch (e) {
         console.error("Error parsing date:", item.month, e);
@@ -86,6 +112,9 @@ export function RetentionChart({ data = [], isLoading, title = "Tendencia de Ret
     });
     
     console.log(`RetentionChart: After date filtering, ${dateFiltered.length} points remain`);
+    if (dateFiltered.length > 0) {
+      console.log("RetentionChart: First filtered data point:", dateFiltered[0]);
+    }
     
     setFilteredData(dateFiltered);
   }, [data, period]);
