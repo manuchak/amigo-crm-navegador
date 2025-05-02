@@ -101,7 +101,7 @@ const ProspectRow: React.FC<ProspectRowProps> = ({
 
         {/* Fecha Creación */}
         <TableCell>
-          <DateFormatter date={prospect.lead_created_at} />
+          <DateFormatter dateString={prospect.lead_created_at} />
         </TableCell>
 
         {/* Acciones */}
