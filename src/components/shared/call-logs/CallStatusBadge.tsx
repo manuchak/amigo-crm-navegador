@@ -3,7 +3,7 @@ import React from 'react';
 import { 
   CheckCircle2, 
   PhoneOff, 
-  PhoneX, 
+  PhoneMissed, 
   AlertCircle, 
   PhoneCall 
 } from 'lucide-react';
@@ -41,7 +41,7 @@ export const CallStatusBadge: React.FC<CallStatusBadgeProps> = ({
     
     if (normalizedStatus.includes('busy') || normalizedStatus.includes('ocupado')) {
       return {
-        icon: <PhoneX className="h-3 w-3 mr-1" />,
+        icon: <PhoneMissed className="h-3 w-3 mr-1" />,
         text: 'Ocupado',
         classes: 'bg-yellow-50 text-yellow-700 border-yellow-200'
       };
