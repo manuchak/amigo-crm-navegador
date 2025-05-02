@@ -40,3 +40,19 @@ export function getBestPhoneNumber(log: VapiCallLog): string {
          log.phone_number || 
          'No disponible';
 }
+
+/**
+ * Formats a phone number for display
+ */
+export function formatPhoneNumber(phoneNumberString: string): string {
+  if (!phoneNumberString) return 'No disponible';
+
+  const cleaned = ('' + phoneNumberString).replace(/\D/g, '');
+  const match = cleaned.match(/^(\d{3})(\d{3})(\d{4})$/);
+
+  if (match) {
+    return '(' + match[1] + ') ' + match[2] + '-' + match[3];
+  }
+
+  return phoneNumberString;
+}

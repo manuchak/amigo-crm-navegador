@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useLeads } from '@/context/LeadsContext';
@@ -335,8 +334,7 @@ const LeadsDashboard = () => {
           onOpenChange={setIsCallLogOpen}
           leadName={selectedLead.nombre}
           leadPhone={selectedLead.telefono}
-          callLogs={callLogs}
-          loading={loadingCallLogs}
+          leadId={selectedLeadId}
         />
       )}
     </div>
