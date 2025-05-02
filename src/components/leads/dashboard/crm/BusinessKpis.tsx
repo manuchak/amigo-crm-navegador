@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useCustodioKpi } from "@/hooks/useCustodioKpi";
 import { Loader2, TrendingUp, Users, Wallet, BarChart3, LineChart, Activity, Star } from "lucide-react";
@@ -44,6 +44,33 @@ export const BusinessKpis = () => {
     isLoading, isError, updateMetrics, isUpdating,
     nps, cac, marketingRoi, avgRetention, avgLtv, ltvCacRatio 
   } = useCustodioKpi(calculateMonths()); // Get data based on selected date range
+  
+  // Log detailed debug info when retention data changes
+  useEffect(() => {
+    console.log('DEBUG BusinessKpis: Retention data received:', retention);
+    console.log('DEBUG BusinessKpis: Average retention from hook:', avgRetention);
+    
+    // Check if there's any retention data at all
+    if (!retention || retention.length === 0) {
+      console.log('DEBUG BusinessKpis: No retention data available');
+    } else {
+      // Check if there's valid retention rates
+      const validRates = retention.filter(item => 
+        item.retention_rate !== null && !isNaN(item.retention_rate)
+      );
+      
+      console.log(`DEBUG BusinessKpis: Found ${validRates.length} out of ${retention.length} entries with valid retention rates`);
+      
+      if (validRates.length > 0) {
+        console.log('DEBUG BusinessKpis: Valid retention rates:', 
+          validRates.map(item => ({
+            month: item.month_year,
+            rate: item.retention_rate.toFixed(2) + '%'
+          }))
+        );
+      }
+    }
+  }, [retention, avgRetention]);
   
   // Filter data based on selected date range
   const filterDataByDateRange = (data: any[]) => {
@@ -130,12 +157,14 @@ export const BusinessKpis = () => {
       for (let i = filteredRetention.length - 1; i >= 0; i--) {
         const rate = filteredRetention[i]?.retention_rate;
         if (rate !== null && !isNaN(rate)) {
-          console.log('Found latest valid retention rate:', rate);
+          console.log('DEBUG BusinessKpis: Found latest valid retention rate:', rate);
           return rate;
         }
       }
+      console.log('DEBUG BusinessKpis: No valid current retention rate found');
       return null;
     }
+    console.log('DEBUG BusinessKpis: No filtered retention data available');
     return null;
   })();
     
@@ -143,17 +172,26 @@ export const BusinessKpis = () => {
   // Fall back to avgRetention if currentRetentionRate is null
   const displayRetentionRate = (() => {
     if (currentRetentionRate !== null && !isNaN(currentRetentionRate)) {
+      console.log('DEBUG BusinessKpis: Using current retention rate for display:', currentRetentionRate);
       return currentRetentionRate;
     }
-    console.log('Using average retention rate instead:', avgRetention);
-    return avgRetention;
+    
+    if (avgRetention !== null && !isNaN(avgRetention)) {
+      console.log('DEBUG BusinessKpis: Using average retention rate for display:', avgRetention);
+      return avgRetention;
+    }
+    
+    console.log('DEBUG BusinessKpis: No valid retention rate available for display');
+    return null;
   })();
   
-  // Log retention data to help debugging
-  console.log('Retention data:', filteredRetention);
-  console.log('Valid retention data count:', filteredRetention.filter(i => i.retention_rate !== null && !isNaN(i.retention_rate)).length);
-  console.log('Display retention rate:', displayRetentionRate);
-  console.log('Avg retention rate:', avgRetention);
+  // Extra debug for Chart data
+  useEffect(() => {
+    console.log('DEBUG BusinessKpis: Retention chart data:', retentionData);
+    if (retentionData.length === 0) {
+      console.log('DEBUG BusinessKpis: No data available for retention chart');
+    }
+  }, [retentionData]);
 
   return (
     <div className="space-y-6">
@@ -237,7 +275,7 @@ export const BusinessKpis = () => {
               <div className="flex items-center space-x-2">
                 <LineChart className="h-5 w-5 text-cyan-500" />
                 <span className="text-2xl font-bold">
-                  {(displayRetentionRate !== null && !isNaN(displayRetentionRate) && displayRetentionRate > 0) 
+                  {(displayRetentionRate !== null && !isNaN(displayRetentionRate)) 
                     ? formatPercent(displayRetentionRate) 
                     : 'N/A'}
                 </span>
@@ -331,17 +369,26 @@ export const BusinessKpis = () => {
               </CardHeader>
               <CardContent>
                 <div className="h-[350px]">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <RechartLineChart data={retentionData} margin={{ top: 20, right: 30, left: 20, bottom: 30 }}>
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="month" angle={-45} textAnchor="end" height={60} />
-                      <YAxis />
-                      <Tooltip content={<CustomTooltip />} />
-                      <Legend />
-                      <Line type="monotone" dataKey="Retention Rate" stroke="#0EA5E9" strokeWidth={2} dot={{ r: 4 }} />
-                      <Line type="monotone" dataKey="Growth Rate" stroke="#F43F5E" strokeWidth={2} dot={{ r: 4 }} />
-                    </RechartLineChart>
-                  </ResponsiveContainer>
+                  {retentionData.length > 0 ? (
+                    <ResponsiveContainer width="100%" height="100%">
+                      <RechartLineChart data={retentionData} margin={{ top: 20, right: 30, left: 20, bottom: 30 }}>
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis dataKey="month" angle={-45} textAnchor="end" height={60} />
+                        <YAxis 
+                          domain={[0, 100]} 
+                          tickFormatter={(value) => `${value}%`} 
+                        />
+                        <Tooltip content={<CustomTooltip />} />
+                        <Legend />
+                        <Line type="monotone" dataKey="Retention Rate" stroke="#0EA5E9" strokeWidth={2} dot={{ r: 4 }} />
+                        <Line type="monotone" dataKey="Growth Rate" stroke="#F43F5E" strokeWidth={2} dot={{ r: 4 }} />
+                      </RechartLineChart>
+                    </ResponsiveContainer>
+                  ) : (
+                    <div className="h-full flex items-center justify-center">
+                      <p className="text-muted-foreground text-center">No hay datos suficientes de retención. Asegúrate de tener al menos 2 meses de datos de servicios con custodios activos.</p>
+                    </div>
+                  )}
                 </div>
               </CardContent>
             </Card>

@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -26,6 +26,11 @@ interface RetentionMetricsProps {
 }
 
 export function RetentionMetrics({ data, isLoading }: RetentionMetricsProps) {
+  // Log the data for debugging
+  useEffect(() => {
+    console.log('DEBUG RetentionMetrics: Data received:', data);
+  }, [data]);
+
   const RetentionCard = ({
     title,
     value,
@@ -51,8 +56,16 @@ export function RetentionMetrics({ data, isLoading }: RetentionMetricsProps) {
 
   // Filter out invalid retention data points for the chart
   const validRetentionData = data?.retentionByMonth?.filter(
-    point => point.rate !== null && !isNaN(point.rate)
+    point => point.rate !== null && point.rate !== undefined && !isNaN(point.rate)
   ) || [];
+
+  // Log the chart data for debugging
+  useEffect(() => {
+    console.log('DEBUG RetentionMetrics: Valid retention chart data points:', validRetentionData.length);
+    if (validRetentionData.length > 0) {
+      console.log('DEBUG RetentionMetrics: Sample chart data:', validRetentionData[0]);
+    }
+  }, [validRetentionData]);
 
   return (
     <div className="space-y-8">
@@ -130,7 +143,7 @@ export function RetentionMetrics({ data, isLoading }: RetentionMetricsProps) {
             </div>
           ) : (
             <div className="h-[400px] w-full flex items-center justify-center">
-              <p className="text-muted-foreground">No hay datos de retención disponibles</p>
+              <p className="text-muted-foreground">No hay datos de retención disponibles o los datos contienen valores inválidos (NULL/N/A)</p>
             </div>
           )}
         </CardContent>
