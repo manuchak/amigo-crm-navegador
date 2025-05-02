@@ -22,7 +22,9 @@ export class VapiApiClient {
     // Try VAPI v2 API first
     try {
       console.log("Attempting to use VAPI v2 API");
-      const v2Url = `https://api.vapi.ai/assistant/${CONFIG.VAPI_ASSISTANT_ID}/calls?page=1&limit=50`;
+      // Use a larger limit to ensure we get as many calls as possible
+      // Include parameters for success_evaluation if available
+      const v2Url = `https://api.vapi.ai/assistant/${CONFIG.VAPI_ASSISTANT_ID}/calls?page=1&limit=100&include_success=true&include_evaluation=true`;
       console.log(`Trying VAPI v2 URL: ${v2Url}`);
       
       const v2Response = await fetch(v2Url, {
@@ -40,6 +42,15 @@ export class VapiApiClient {
         
         if (data && data.calls && Array.isArray(data.calls)) {
           console.log(`Retrieved ${data.calls.length} calls from VAPI v2 API`);
+          console.log("Sample call data:", JSON.stringify(data.calls[0]).substring(0, 500));
+          
+          // Check if success_evaluation is present in the response
+          if (data.calls.length > 0) {
+            console.log("Success evaluation field present:", 
+              data.calls[0].success_evaluation !== undefined || 
+              data.calls[0].success !== undefined || 
+              data.calls[0].evaluation !== undefined);
+          }
           
           // Enhance with detailed call information including customer data
           const enhancedCalls = await VapiCallEnhancer.enhanceCallsWithCustomerData(data.calls, apiKey);
@@ -58,8 +69,15 @@ export class VapiApiClient {
       try {
         console.log(`Trying VAPI endpoint: ${endpoint.url} with ${endpoint.method} method`);
         
+        // Add parameters to specifically request success evaluation if supported
         const params = VapiEndpointManager.formatParams(endpoint, startDate, endDate);
-        const requestUrl = `${endpoint.url}?${params}`;
+        let requestUrl = `${endpoint.url}?${params}`;
+        
+        // Add success evaluation parameters if not already included
+        if (!requestUrl.includes('include_success')) {
+          requestUrl += '&include_success=true&include_evaluation=true';
+        }
+        
         console.log(`Full GET URL: ${requestUrl}`);
         
         const response = await fetch(requestUrl, {

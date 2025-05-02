@@ -77,6 +77,10 @@ export async function storeWebhookDataAsCallLog(webhookData: any, callId: string
     const organizationId = extractOrganizationId(webhookData) || "manual-org";
     console.log("Using organization ID:", organizationId);
     
+    // Extract success evaluation from various possible fields
+    const successEvaluation = webhookData.success_evaluation || webhookData.success || webhookData.evaluation || null;
+    console.log("Success evaluation:", successEvaluation);
+    
     // Prepare data for storage
     const callLogInsertData = {
       log_id: finalCallId,
@@ -87,7 +91,9 @@ export async function storeWebhookDataAsCallLog(webhookData: any, callId: string
       customer_number: phoneNumber,
       status: webhookData.status || "completed",
       transcript: webhookData.transcript || null,
-      metadata: webhookData
+      metadata: webhookData,
+      success_evaluation: successEvaluation,
+      ended_reason: webhookData.ended_reason || null
     };
     
     console.log("Inserting new call log with data:", JSON.stringify(callLogInsertData, null, 2));
@@ -134,6 +140,36 @@ export async function getOrCreateCallLogData(webhookData: any, supabase: Supabas
   if (!finalCallLogData) {
     console.error("Failed to store or retrieve call log data");
     return null;
+  }
+  
+  // If the existing call log doesn't have success_evaluation but the webhook does, update it
+  if (finalCallLogData && 
+      (finalCallLogData.success_evaluation === null || finalCallLogData.success_evaluation === undefined) && 
+      (webhookData.success_evaluation !== undefined || 
+       webhookData.success !== undefined || 
+       webhookData.evaluation !== undefined)) {
+    
+    const successEvaluation = webhookData.success_evaluation || webhookData.success || webhookData.evaluation;
+    console.log(`Updating success_evaluation for existing call ${finalCallLogData.log_id} to: ${successEvaluation}`);
+    
+    try {
+      const { error } = await supabase
+        .from("vapi_call_logs")
+        .update({ 
+          success_evaluation: successEvaluation,
+          updated_at: new Date().toISOString()
+        })
+        .eq("id", finalCallLogData.id);
+        
+      if (error) {
+        console.error("Error updating success_evaluation on existing call log:", error);
+      } else {
+        finalCallLogData.success_evaluation = successEvaluation;
+        console.log("Successfully updated success_evaluation on existing call log");
+      }
+    } catch (updateError) {
+      console.error("Exception updating success_evaluation:", updateError);
+    }
   }
   
   return finalCallLogData;

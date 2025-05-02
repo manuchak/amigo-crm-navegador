@@ -1,78 +1,18 @@
-
 /**
- * VAPI Call Enhancer
- * Enhances call logs with additional data
+ * Enhances call data with additional information from other API endpoints
  */
 export class VapiCallEnhancer {
   /**
-   * Enhance call logs with customer data from the GET /call endpoint
-   * As recommended in VAPI documentation
+   * Fetch detailed call information for a specific call ID
    */
-  static async enhanceCallsWithCustomerData(calls, apiKey) {
-    if (!calls || !Array.isArray(calls) || calls.length === 0) {
-      return calls;
-    }
-    
+  static async fetchCallDetails(apiKey: string, callId: string) {
     try {
-      console.log(`Enhancing ${calls.length} call logs with customer data`);
-      const enhancedCalls = [];
+      console.log(`Fetching detailed information for call ${callId}`);
       
-      for (const call of calls) {
-        // Add the call to the result list (we'll process it even if we can't get details)
-        const enhancedCall = { ...call };
-        enhancedCalls.push(enhancedCall);
-        
-        // Skip if already has detailed customer number
-        if (call.customer && call.customer.number && call.customer.number.length > 6) {
-          console.log(`Call ${call.id} already has customer number: ${call.customer.number}`);
-          enhancedCall.customer_number = call.customer.number;
-          
-          // Add E164 format information if available
-          if (!enhancedCall.metadata) enhancedCall.metadata = {};
-          enhancedCall.metadata.numberE164Format = call.customer.numberE164CheckEnabled !== false;
-          continue;
-        }
-        
-        try {
-          // Fetch detailed call information via GET /call endpoint
-          if (call.id) {
-            const callDetails = await VapiCallEnhancer.fetchCallDetails(apiKey, call.id);
-            
-            if (callDetails && callDetails.customer && callDetails.customer.number) {
-              const customerPhone = callDetails.customer.number;
-              console.log(`Found customer number ${customerPhone} for call ${call.id}`);
-              
-              // Update call with proper customer phone info
-              enhancedCall.customer_number = customerPhone;
-              
-              // Add to metadata for extra assurance
-              if (!enhancedCall.metadata) enhancedCall.metadata = {};
-              enhancedCall.metadata.vapi_customer_number = customerPhone;
-              enhancedCall.metadata.numberE164Format = callDetails.customer.numberE164CheckEnabled !== false;
-            }
-          }
-        } catch (detailsError) {
-          console.error(`Error enhancing call ${call.id} with customer details:`, detailsError);
-          // Continue processing other calls even if one fails
-        }
-      }
+      // Try the v2 call details endpoint
+      const detailsUrl = `https://api.vapi.ai/call/${callId}?include_success=true&include_evaluation=true`;
       
-      return enhancedCalls;
-    } catch (error) {
-      console.error('Error in enhanceCallsWithCustomerData:', error);
-      // Return original calls if enhancement fails
-      return calls;
-    }
-  }
-  
-  /**
-   * Fetch detailed call information including customer data
-   * Using the GET /call/{id} endpoint as per VAPI documentation
-   */
-  static async fetchCallDetails(apiKey, callId) {
-    try {
-      console.log(`Fetching detailed call information for call ID: ${callId}`);
-      const response = await fetch(`https://api.vapi.ai/call/${callId}`, {
+      const response = await fetch(detailsUrl, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${apiKey}`,
@@ -81,25 +21,91 @@ export class VapiCallEnhancer {
       });
       
       if (!response.ok) {
-        console.error(`Call details API error: ${response.status}`);
+        console.error(`Failed to fetch call details for ${callId}: ${response.status}`);
         return null;
       }
       
-      const data = await response.json();
-      console.log('Call details response structure:', Object.keys(data));
+      const callData = await response.json();
+      console.log(`Call details fetched for ${callId}`, JSON.stringify(callData).substring(0, 200) + '...');
       
-      // Extract customer information as per VAPI docs
-      if (data && data.customer && data.customer.number) {
-        console.log(`Found customer phone number: ${data.customer.number} (E164 format: ${data.customer.numberE164CheckEnabled !== false})`);
-        return data;
+      // Check if success_evaluation is present
+      if (callData.success_evaluation !== undefined || callData.success !== undefined || callData.evaluation !== undefined) {
+        console.log(`Success evaluation found for call ${callId}:`, 
+          callData.success_evaluation || callData.success || callData.evaluation);
       } else {
-        console.log('No customer information found in call details', data);
+        console.log(`No success evaluation found for call ${callId}`);
       }
       
-      return data;
+      return callData;
     } catch (error) {
-      console.error('Error fetching call details:', error);
+      console.error(`Error fetching call details for ${callId}:`, error);
       return null;
     }
+  }
+
+  /**
+   * Enhances call logs with customer data and additional details
+   */
+  static async enhanceCallsWithCustomerData(calls: any[], apiKey: string) {
+    if (!calls || calls.length === 0) {
+      return [];
+    }
+    
+    console.log(`Enhancing ${calls.length} calls with customer data`);
+    
+    // Process in smaller batches to avoid overwhelming the API
+    const batchSize = 5;
+    const enhancedCalls = [];
+    
+    for (let i = 0; i < calls.length; i += batchSize) {
+      const batch = calls.slice(i, i + batchSize);
+      
+      // Process each call in the batch concurrently
+      const batchPromises = batch.map(async (call) => {
+        try {
+          // Only fetch details if the call has an ID and is missing success_evaluation
+          if (call.id && (call.success_evaluation === undefined || call.success_evaluation === null)) {
+            const detailedCall = await this.fetchCallDetails(apiKey, call.id);
+            
+            if (detailedCall) {
+              // Update the call with the detailed information
+              call.success_evaluation = detailedCall.success_evaluation || detailedCall.success || detailedCall.evaluation || null;
+              
+              // Copy other fields that might be present in the detailed call but not in the original
+              if (call.transcript === undefined && detailedCall.transcript) {
+                call.transcript = detailedCall.transcript;
+              }
+              
+              if (call.recording_url === undefined && detailedCall.recording_url) {
+                call.recording_url = detailedCall.recording_url;
+              }
+              
+              if (call.ended_reason === undefined && detailedCall.ended_reason) {
+                call.ended_reason = detailedCall.ended_reason;
+              }
+            }
+          }
+          
+          // Ensure all calls have consistent field structure
+          return {
+            ...call,
+            success_evaluation: call.success_evaluation || call.success || call.evaluation || null
+          };
+        } catch (error) {
+          console.error(`Error enhancing call ${call.id}:`, error);
+          return call;
+        }
+      });
+      
+      const processedBatch = await Promise.all(batchPromises);
+      enhancedCalls.push(...processedBatch);
+      
+      // Add a small delay between batches to avoid rate limiting
+      if (i + batchSize < calls.length) {
+        await new Promise(resolve => setTimeout(resolve, 100));
+      }
+    }
+    
+    return enhancedCalls;
   }
 }

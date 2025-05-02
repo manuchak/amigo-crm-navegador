@@ -1,103 +1,91 @@
 
 import { SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.38.4";
-import { extractCallId } from "../utils/extractors.ts";
-import { handleTestConnection } from "./testing/testConnectionHandler.ts";
 import { getOrCreateCallLogData } from "./callLogs/callLogManager.ts";
-import { processLeadValidation } from "./validation/leadValidation.ts";
+import { processAndStoreTranscript } from "./callLogs/transcriptProcessor.ts";
+import { updateLeadWithCallData } from "./leads/leadProcessor.ts";
 
 /**
- * Main handler for webhook data processing
+ * Process VAPI Webhook Data 
  */
-export async function processWebhookData(
-  webhookData: any, 
-  supabase: SupabaseClient, 
-  corsHeaders: HeadersInit
-) {
+export async function processWebhookData(webhookData: any, supabase: SupabaseClient, corsHeaders: Record<string, string>) {
   try {
-    console.log("Processing webhook data:", JSON.stringify(webhookData, null, 2));
+    // Extract critical data for logging
+    console.log("Processing webhook data:", {
+      call_id: webhookData.call_id || webhookData.id || "unknown",
+      status: webhookData.status || "unknown",
+      has_transcript: webhookData.transcript ? true : false,
+      has_success_evaluation: webhookData.success_evaluation !== undefined || webhookData.success !== undefined || webhookData.evaluation !== undefined
+    });
 
-    // Extract lead ID from webhook data if present
-    if (webhookData.leadId || webhookData.lead_id) {
-      console.log("Lead ID found in webhook data:", webhookData.leadId || webhookData.lead_id);
-    } else {
-      console.warn("No lead ID found in webhook data - will attempt to match by phone number");
-    }
-
-    // Get or create the call log data
-    const finalCallLogData = await getOrCreateCallLogData(webhookData, supabase);
+    // Get or create the call log entry
+    const callLogData = await getOrCreateCallLogData(webhookData, supabase);
     
-    if (!finalCallLogData) {
-      console.error("Failed to store or retrieve call log data");
-      return new Response(JSON.stringify({ error: "Failed to store or retrieve call log data" }), {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+    if (!callLogData) {
+      throw new Error("Failed to create or retrieve call log");
+    }
+    
+    // Process and store transcript data if present
+    await processAndStoreTranscript(webhookData, callLogData, supabase);
+    
+    // Update lead with call data
+    await updateLeadWithCallData(webhookData, callLogData, supabase);
+    
+    // Check for success_evaluation
+    const successEvaluation = webhookData.success_evaluation || webhookData.success || webhookData.evaluation;
+    
+    // If success evaluation is present but not stored yet, update it
+    if (successEvaluation !== undefined && callLogData.success_evaluation === null) {
+      console.log(`Updating success_evaluation for call ${callLogData.log_id} to: ${successEvaluation}`);
+      
+      const { data, error } = await supabase
+        .from("vapi_call_logs")
+        .update({ 
+          success_evaluation: successEvaluation,
+          updated_at: new Date().toISOString()
+        })
+        .eq("id", callLogData.id);
+        
+      if (error) {
+        console.error("Error updating success_evaluation:", error);
+      } else {
+        console.log("Successfully updated success_evaluation");
+      }
     }
 
-    console.log("Call log data processed successfully:", JSON.stringify(finalCallLogData, null, 2));
-
-    // Process lead validation with enhanced error handling
-    try {
-      const validationResult = await processLeadValidation(webhookData, finalCallLogData, supabase);
-      console.log("Validation result:", JSON.stringify(validationResult, null, 2));
-
-      // Handle case where no lead ID was found but we still extracted information
-      if (validationResult.requires_lead_assignment) {
-        console.log("Webhook data processed but requires lead assignment");
-        return new Response(
-          JSON.stringify({
-            success: true,
-            message: "VAPI call data processed but requires lead assignment",
-            extracted_info: validationResult.extracted_info,
-            requires_lead_assignment: true
-          }),
-          {
-            status: 200,
-            headers: { ...corsHeaders, "Content-Type": "application/json" },
-          }
-        );
-      }
-
-      if (validationResult.error) {
-        console.error("Error in lead validation:", validationResult.error);
-        return new Response(JSON.stringify({ 
-          error: "Error validating lead", 
-          details: validationResult.error 
-        }), {
-          status: 500,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-
-      // Return success response
-      return new Response(
-        JSON.stringify({
-          success: true,
-          message: "VAPI call data processed successfully",
-          validated_lead_id: validationResult.validated_lead_id,
-          linked_lead_id: validationResult.linked_lead_id,
-          extracted_info: validationResult.extracted_info,
-          saved_record: !!validationResult.validated_lead_id // Boolean flag indicating record was saved
-        }),
-        {
-          status: 200,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
+    return new Response(
+      JSON.stringify({
+        success: true,
+        message: "Webhook data processed successfully",
+        call_id: webhookData.call_id || webhookData.id || null
+      }),
+      {
+        headers: {
+          'Content-Type': 'application/json',
+          ...corsHeaders
         }
-      );
-    } catch (validationError) {
-      console.error("Unexpected error during validation processing:", validationError);
-      return new Response(JSON.stringify({ 
-        error: "Unexpected error during validation", 
-        details: validationError.message || validationError 
-      }), {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
+      }
+    );
   } catch (error) {
     console.error("Error in processWebhookData:", error);
-    throw error; // Let the main handler catch this
+    throw error;
   }
 }
 
-export { handleTestConnection };
+/**
+ * Handle test connection requests
+ */
+export function handleTestConnection(corsHeaders: Record<string, string>) {
+  return new Response(
+    JSON.stringify({
+      success: true,
+      message: "Test connection successful!",
+      timestamp: new Date().toISOString()
+    }),
+    {
+      headers: {
+        'Content-Type': 'application/json',
+        ...corsHeaders
+      }
+    }
+  );
+}
