@@ -48,65 +48,65 @@ const ProspectRow: React.FC<ProspectRowProps> = ({
   };
 
   return (
-    <TooltipProvider>
-      <TableRow 
-        className={`hover:bg-slate-50/80 transition-colors ${getBorderClass()}`}
-      >
-        {/* Nombre */}
-        <TableCell className="font-medium">
-          <div className="flex flex-col">
-            <span className="text-sm">
-              {prospect.lead_name || prospect.custodio_name || "Sin nombre"}
-            </span>
-            <span className="text-xs text-slate-500">
-              ID: {prospect.lead_id}
-            </span>
-          </div>
-        </TableCell>
+    <TableRow 
+      className={`hover:bg-slate-50/80 transition-colors ${getBorderClass()}`}
+    >
+      {/* Nombre */}
+      <TableCell className="font-medium">
+        <div className="flex flex-col">
+          <span className="text-sm">
+            {prospect.lead_name || prospect.custodio_name || "Sin nombre"}
+          </span>
+          <span className="text-xs text-slate-500">
+            ID: {prospect.lead_id}
+          </span>
+        </div>
+      </TableCell>
 
-        {/* Estado */}
-        <TableCell>
-          <StatusBadge status={prospect.lead_status} />
-        </TableCell>
+      {/* Estado */}
+      <TableCell>
+        <StatusBadge status={prospect.lead_status} />
+      </TableCell>
 
-        {/* Teléfono - Single-line display with consistent styling */}
-        <TableCell>
-          <div className="text-sm font-medium text-slate-700 whitespace-nowrap">
-            {formatPhoneNumber(prospect.lead_phone || prospect.phone_number_intl || "No disponible")}
-          </div>
-        </TableCell>
+      {/* Teléfono - Single-line display with consistent styling */}
+      <TableCell>
+        <div className="text-sm font-medium text-slate-700 whitespace-nowrap">
+          {formatPhoneNumber(prospect.lead_phone || prospect.phone_number_intl || "No disponible")}
+        </div>
+      </TableCell>
 
-        {/* Llamadas */}
-        <TableCell>
-          <CallInfo 
-            callCount={prospect.call_count}
-            lastCallDate={prospect.last_call_date}
-            hasInterviewData={hasInterviewData}
-            endedReason={prospect.ended_reason}
-          />
-        </TableCell>
+      {/* Llamadas */}
+      <TableCell>
+        <CallInfo 
+          callCount={prospect.call_count}
+          lastCallDate={prospect.last_call_date}
+          hasInterviewData={hasInterviewData}
+          endedReason={prospect.ended_reason}
+        />
+      </TableCell>
 
-        {/* Vehículo */}
-        <TableCell>
-          <VehicleInfo 
-            brand={prospect.car_brand}
-            model={prospect.car_model}
-            year={prospect.car_year}
-          />
-        </TableCell>
+      {/* Vehículo */}
+      <TableCell>
+        <VehicleInfo 
+          brand={prospect.car_brand}
+          model={prospect.car_model}
+          year={prospect.car_year}
+        />
+      </TableCell>
 
-        {/* SEDENA */}
-        <TableCell>
-          <SedenaInfo sedenaId={prospect.sedena_id} />
-        </TableCell>
+      {/* SEDENA */}
+      <TableCell>
+        <SedenaInfo sedenaId={prospect.sedena_id} />
+      </TableCell>
 
-        {/* Fecha Creación */}
-        <TableCell>
-          <DateFormatter dateString={prospect.lead_created_at} />
-        </TableCell>
+      {/* Fecha Creación */}
+      <TableCell>
+        <DateFormatter dateString={prospect.lead_created_at} />
+      </TableCell>
 
-        {/* Acciones */}
-        <TableCell className="text-right">
+      {/* Acciones - Updated to ensure visibility */}
+      <TableCell>
+        <TooltipProvider>
           <ActionButtons 
             prospect={prospect}
             onViewDetails={onViewDetails}
@@ -116,9 +116,9 @@ const ProspectRow: React.FC<ProspectRowProps> = ({
             hasCallHistory={hasCallHistory}
             hasInterviewData={hasInterviewData}
           />
-        </TableCell>
-      </TableRow>
-    </TooltipProvider>
+        </TooltipProvider>
+      </TableCell>
+    </TableRow>
   );
 };
 

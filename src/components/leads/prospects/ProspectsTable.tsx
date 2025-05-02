@@ -22,9 +22,9 @@ const ProspectsTable: React.FC<ProspectsTableProps> = ({
   onValidate
 }) => {
   return (
-    <TooltipProvider>
-      <Card className="border shadow-sm overflow-hidden">
-        <div className="overflow-x-auto">
+    <Card className="border shadow-sm overflow-hidden">
+      <div className="overflow-x-auto">
+        <TooltipProvider>
           <Table>
             <ProspectsTableHeader />
             <TableBody>
@@ -45,9 +45,9 @@ const ProspectsTable: React.FC<ProspectsTableProps> = ({
               })}
             </TableBody>
           </Table>
-        </div>
-      </Card>
-    </TooltipProvider>
+        </TooltipProvider>
+      </div>
+    </Card>
   );
 };
 

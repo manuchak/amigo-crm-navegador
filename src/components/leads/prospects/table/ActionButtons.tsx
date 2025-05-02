@@ -25,7 +25,7 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({
   hasInterviewData
 }) => {
   return (
-    <div className="flex justify-end space-x-1">
+    <div className="flex items-center justify-end space-x-2">
       {onViewDetails && (
         <Tooltip>
           <TooltipTrigger asChild>

@@ -10,7 +10,6 @@ import {
   ProspectsContent,
   CallStatusFilter
 } from './components';
-import { TooltipProvider } from '@/components/ui/tooltip';
 import { normalizeCallStatus } from '@/lib/utils';
 
 interface ProspectsListProps {
@@ -95,42 +94,40 @@ const ProspectsList: React.FC<ProspectsListProps> = ({
   };
 
   return (
-    <TooltipProvider>
-      <div className="space-y-4">
-        <ProspectFilters 
-          searchQuery={searchQuery}
-          onSearchChange={setSearchQuery}
-          filter={filterStatus || undefined}
-          onFilterChange={setFilterStatus} 
-          showOnlyInterviewed={showOnlyInterviewed}
-          onToggleInterviewed={() => setShowOnlyInterviewed(!showOnlyInterviewed)}
-          viewMode={viewMode}
-          onViewModeChange={handleViewModeChange}
-          onRefresh={handleRefresh}
-          refreshing={refreshing}
+    <div className="space-y-4">
+      <ProspectFilters 
+        searchQuery={searchQuery}
+        onSearchChange={setSearchQuery}
+        filter={filterStatus || undefined}
+        onFilterChange={setFilterStatus} 
+        showOnlyInterviewed={showOnlyInterviewed}
+        onToggleInterviewed={() => setShowOnlyInterviewed(!showOnlyInterviewed)}
+        viewMode={viewMode}
+        onViewModeChange={handleViewModeChange}
+        onRefresh={handleRefresh}
+        refreshing={refreshing}
+      />
+      
+      {/* Call status filter now prominently displayed */}
+      <Card className="p-3 border shadow-sm">
+        <div className="font-medium text-sm mb-2 text-slate-600">Filtrar por resultado de llamada:</div>
+        <CallStatusFilter
+          selectedStatus={callStatusFilter}
+          onStatusChange={handleCallStatusFilterChange}
         />
-        
-        {/* Call status filter now prominently displayed */}
-        <Card className="p-3 border shadow-sm">
-          <div className="font-medium text-sm mb-2 text-slate-600">Filtrar por resultado de llamada:</div>
-          <CallStatusFilter
-            selectedStatus={callStatusFilter}
-            onStatusChange={handleCallStatusFilterChange}
-          />
-        </Card>
-        
-        <ProspectsContent
-          loading={loading}
-          prospects={filteredProspects}
-          showOnlyInterviewed={showOnlyInterviewed}
-          viewMode={viewMode}
-          onViewDetails={onViewDetails}
-          onCall={onCall}
-          onViewCalls={onViewCalls}
-          onValidate={onValidate}
-        />
-      </div>
-    </TooltipProvider>
+      </Card>
+      
+      <ProspectsContent
+        loading={loading}
+        prospects={filteredProspects}
+        showOnlyInterviewed={showOnlyInterviewed}
+        viewMode={viewMode}
+        onViewDetails={onViewDetails}
+        onCall={onCall}
+        onViewCalls={onViewCalls}
+        onValidate={onValidate}
+      />
+    </div>
   );
 };
 
