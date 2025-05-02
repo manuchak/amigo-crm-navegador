@@ -51,6 +51,41 @@ export const webhookCalls = {
       
       console.log("VAPI call successfully initiated:", data);
       
+      // Also send the data to the Make.com webhook
+      try {
+        const webhookUrl = "https://hook.us2.make.com/nlckmsej5cwmfe93gv4g6xvmavhilujl";
+        
+        // Get full lead data to send to webhook
+        const { data: leadData } = await supabase
+          .from("leads")
+          .select("*")
+          .eq("id", leadId)
+          .single();
+        
+        // Send webhook with lead data and call information
+        await fetch(webhookUrl, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            action: "vapi_call_initiated",
+            timestamp: new Date().toISOString(),
+            vapi_call_id: data.callId,
+            phone_number: phoneNumber,
+            lead: leadData || {
+              id: leadId,
+              nombre: leadName
+            }
+          })
+        });
+        
+        console.log("Make.com webhook notification sent");
+      } catch (webhookError) {
+        // Log webhook error but don't fail the call if webhook fails
+        console.error("Error sending to Make.com webhook:", webhookError);
+      }
+      
       return {
         success: true,
         callId: data.callId,
