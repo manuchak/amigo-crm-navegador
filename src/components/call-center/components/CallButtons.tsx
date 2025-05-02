@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { executeWebhook } from '../utils/webhook';
 import { useLeads } from '@/context/LeadsContext';
 import { toast } from 'sonner';
+import { vapiWebhookUtils } from '@/hooks/lead-call-logs/webhook';
 
 interface CallButtonsProps {
   isCallActive: boolean;
@@ -48,15 +49,27 @@ const CallButtons: React.FC<CallButtonsProps> = ({
     
     if (!phoneNumber) {
       toast.warning("No se encontró un número telefónico para este custodio");
+      return;
     }
     
     try {
       // Update lead status to "Contacto Llamado"
       await updateLeadStatus(selectedLead, "Contacto Llamado");
       
-      // Send all lead data to the webhook
+      // Initiate VAPI call using the webhook utility
+      const callResult = await vapiWebhookUtils.initiateVapiCall(
+        phoneNumber,
+        lead.nombre || 'Cliente', 
+        lead.id
+      );
+
+      if (!callResult.success) {
+        throw new Error(callResult.error || callResult.message || "Error al iniciar llamada VAPI");
+      }
+
+      // Also send all lead data to the webhook for tracking
       await executeWebhook({
-        telefono: phoneNumber, // This is now properly extracted
+        telefono: phoneNumber,
         id: lead.id,
         nombre: lead.nombre,
         empresa: lead.empresa,
@@ -71,17 +84,18 @@ const CallButtons: React.FC<CallButtonsProps> = ({
         lastCallDate: lead.lastCallDate,
         valor: lead.valor,
         timestamp: new Date().toISOString(),
-        action: "outbound_call_requested"
+        action: "outbound_call_requested",
+        vapiCallId: callResult.callId
       });
       
       console.log("Webhook ejecutado para llamada saliente con teléfono:", phoneNumber);
-      toast.success(`Llamada saliente iniciada para ${lead.nombre}`);
+      toast.success(`Llamada VAPI iniciada para ${lead.nombre}`);
       
       // Continue with the call process
       await handleStartCall();
       
     } catch (error) {
-      console.error("Error al ejecutar webhook:", error);
+      console.error("Error al iniciar llamada VAPI:", error);
       toast.error("Error al iniciar la llamada saliente");
     }
   };
