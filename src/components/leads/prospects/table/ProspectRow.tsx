@@ -69,6 +69,7 @@ const ProspectRow: React.FC<ProspectRowProps> = ({
           callCount={prospect.call_count}
           lastCallDate={prospect.last_call_date}
           hasInterviewData={hasInterviewData}
+          endedReason={prospect.ended_reason}
         />
       </TableCell>
       <TableCell>

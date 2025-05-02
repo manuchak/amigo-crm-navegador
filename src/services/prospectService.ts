@@ -34,6 +34,9 @@ export interface Prospect {
   has_security_experience: boolean | null;
   has_firearm_license: boolean | null;
   has_military_background: boolean | null;
+  
+  // Add the ended_reason field to store the latest call ended reason
+  ended_reason: string | null;
 }
 
 export async function getProspects(): Promise<Prospect[]> {
@@ -50,7 +53,11 @@ export async function getProspects(): Promise<Prospect[]> {
     }
     
     console.log(`Retrieved ${data?.length || 0} prospects`);
-    return data as Prospect[] || [];
+    
+    // After getting prospects, fetch the latest ended_reason for each one
+    const enrichedProspects = await enrichProspectsWithEndedReason(data as Prospect[]);
+    
+    return enrichedProspects || [];
   } catch (error) {
     console.error("Failed to fetch prospects:", error);
     throw error;
@@ -71,7 +78,13 @@ export async function getProspectById(leadId: number): Promise<Prospect | null> 
       throw error;
     }
     
-    return data as Prospect | null;
+    if (data) {
+      // Enrich the prospect with ended_reason
+      const enrichedProspects = await enrichProspectsWithEndedReason([data as Prospect]);
+      return enrichedProspects[0];
+    }
+    
+    return null;
   } catch (error) {
     console.error(`Failed to fetch prospect with ID ${leadId}:`, error);
     throw error;
@@ -93,9 +106,80 @@ export async function getProspectsByStatus(status: string): Promise<Prospect[]> 
     }
     
     console.log(`Retrieved ${data?.length || 0} prospects with status ${status}`);
-    return data as Prospect[] || [];
+    
+    // After getting prospects, fetch the latest ended_reason for each one
+    const enrichedProspects = await enrichProspectsWithEndedReason(data as Prospect[]);
+    
+    return enrichedProspects || [];
   } catch (error) {
     console.error(`Failed to fetch prospects with status ${status}:`, error);
     throw error;
   }
+}
+
+/**
+ * Enriches prospect data with the latest ended_reason from vapi_call_logs
+ */
+async function enrichProspectsWithEndedReason(prospects: Prospect[]): Promise<Prospect[]> {
+  if (!prospects || prospects.length === 0) {
+    return [];
+  }
+  
+  console.log(`Enriching ${prospects.length} prospects with ended_reason data`);
+  
+  // Process in batches to avoid performance issues with large datasets
+  const batchSize = 50;
+  const enrichedProspects: Prospect[] = [];
+  
+  for (let i = 0; i < prospects.length; i += batchSize) {
+    const batch = prospects.slice(i, i + batchSize);
+    const phoneNumbers = batch
+      .map(p => p.lead_phone || p.phone_number_intl)
+      .filter(Boolean);
+    
+    if (phoneNumbers.length === 0) {
+      enrichedProspects.push(...batch);
+      continue;
+    }
+    
+    try {
+      // Get all the last call logs for each phone number in this batch
+      const { data: callLogs, error } = await supabase
+        .from('vapi_call_logs')
+        .select('customer_number, ended_reason, start_time')
+        .in('customer_number', phoneNumbers)
+        .order('start_time', { ascending: false });
+      
+      if (error) {
+        console.error("Error fetching call logs for ended_reason:", error);
+        enrichedProspects.push(...batch);
+        continue;
+      }
+      
+      // Create a map of phone numbers to their latest ended_reason
+      const phoneToEndedReason: Record<string, string> = {};
+      
+      callLogs?.forEach(log => {
+        if (log.customer_number && !phoneToEndedReason[log.customer_number]) {
+          phoneToEndedReason[log.customer_number] = log.ended_reason || null;
+        }
+      });
+      
+      // Enrich each prospect with its ended_reason
+      batch.forEach(prospect => {
+        const phone = prospect.lead_phone || prospect.phone_number_intl;
+        if (phone && phoneToEndedReason[phone]) {
+          prospect.ended_reason = phoneToEndedReason[phone];
+        }
+      });
+      
+      enrichedProspects.push(...batch);
+    } catch (error) {
+      console.error("Error enriching prospects with ended_reason:", error);
+      enrichedProspects.push(...batch);
+    }
+  }
+  
+  console.log(`Completed enriching prospects with ended_reason data`);
+  return enrichedProspects;
 }
