@@ -58,7 +58,7 @@ export const BusinessKpis = () => {
   // Comparison type: month over month or year over year
   const [comparisonType, setComparisonType] = useState<'month' | 'year'>('month');
   
-  // Function to map retention and ltv data for our charts
+  // Function to map retention and ltv data for our charts - improved to handle data validation
   const mapRetentionData = useCallback((retentionData?: any[]) => {
     if (!retentionData) {
       console.log('BusinessKpis: No retention data provided to mapping function');
@@ -70,10 +70,8 @@ export const BusinessKpis = () => {
     // Filter out invalid data points before mapping
     const validData = retentionData.filter(item => 
       item && 
-      item.retention_rate !== null && 
-      item.retention_rate !== undefined && 
+      typeof item.retention_rate === 'number' && 
       !isNaN(item.retention_rate) &&
-      typeof item.retention_rate === 'number' &&
       item.month_year // Ensure we have a date to work with
     );
     

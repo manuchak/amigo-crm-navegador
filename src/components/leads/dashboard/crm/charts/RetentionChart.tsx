@@ -45,6 +45,15 @@ export function RetentionChart({ data = [], isLoading, title = "Tendencia de Ret
       return;
     }
     
+    // First filter out any invalid data points (null, undefined, NaN)
+    const validData = data.filter(item => 
+      item &&
+      typeof item.rate === 'number' && 
+      !isNaN(item.rate)
+    );
+    
+    console.log(`RetentionChart: Found ${validData.length} valid data points out of ${data.length}`);
+    
     // Get current date for calculations
     const now = new Date();
     
@@ -73,19 +82,6 @@ export function RetentionChart({ data = [], isLoading, title = "Tendencia de Ret
     }
     
     console.log(`RetentionChart: Filtering by period ${period}, start date: ${startDate.toISOString()}`);
-    
-    // First filter out any invalid data points (null, undefined, NaN)
-    const validData = data.filter(item => 
-      item &&
-      typeof item.rate === 'number' && 
-      !isNaN(item.rate)
-    );
-    
-    console.log(`RetentionChart: Found ${validData.length} valid data points out of ${data.length}`);
-    
-    if (validData.length > 0) {
-      console.log('RetentionChart: Sample valid data:', validData[0]);
-    }
     
     // Then filter based on date range
     const dateFiltered = validData.filter(item => {

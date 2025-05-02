@@ -6,7 +6,8 @@ import {
   getCustodioRetention, 
   getCustodioLtv,
   updateCustodioMetrics,
-  CustodioMetrics
+  CustodioMetrics,
+  cleanRetentionData
 } from '@/services/custodioKpiService';
 import { subMonths, subYears, format } from 'date-fns';
 
@@ -167,12 +168,7 @@ export function useCustodioKpi(months: number = 12, comparisonType: 'month' | 'y
     console.log('DEBUG: Sample of raw retention data:', retentionData.slice(0, 2));
     
     // Filter out NULL, N/A, zero, or undefined retention rates that might skew the average
-    const validRetentionData = retentionData.filter(item => 
-      item && 
-      typeof item.retention_rate === 'number' && 
-      !isNaN(item.retention_rate) && 
-      item.retention_rate > 0
-    );
+    const validRetentionData = cleanRetentionData(retentionData);
     
     console.log(`DEBUG: After filtering, we have ${validRetentionData.length} valid retention data entries`);
     console.log('DEBUG: Sample of valid retention data:', validRetentionData.slice(0, 2));
@@ -189,7 +185,7 @@ export function useCustodioKpi(months: number = 12, comparisonType: 'month' | 'y
     
     const avgRetention = totalRetention / validRetentionData.length;
     console.log(`DEBUG: Calculating avg retention from ${validRetentionData.length} valid months:`, 
-      validRetentionData.map(d => parseFloat(d.retention_rate).toFixed(1)),
+      validRetentionData.map(d => parseFloat(d.retention_rate.toString()).toFixed(1)),
       `Avg: ${avgRetention.toFixed(2)}%`);
     
     return avgRetention;

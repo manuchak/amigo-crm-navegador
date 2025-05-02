@@ -175,8 +175,8 @@ export async function getNewCustodiosByMonth(months: number = 12): Promise<NewCu
   const { data, error } = await supabase
     .from('servicios_custodia')
     .select('nombre_custodio, fecha_primer_servicio')
-    .is('nombre_custodio', 'not.null')
-    .not('fecha_primer_servicio', 'is', null)
+    .not('nombre_custodio', 'is', null)  // Corrected syntax for filtering non-null values
+    .not('fecha_primer_servicio', 'is', null)  // Corrected syntax for filtering non-null values
     .gte('fecha_primer_servicio', startDate)
     .order('fecha_primer_servicio', { ascending: true });
     
@@ -220,51 +220,13 @@ export async function getCustodioRetention(months: number = 12): Promise<Custodi
   
   console.log('DEBUG: Getting custodio retention from', format(startDate, 'yyyy-MM-dd'), 'to', format(endDate, 'yyyy-MM-dd'));
   
-  // Use the function calculate_custodio_retention in the database
-  const { data, error } = await supabase
-    .rpc('calculate_custodio_retention', { 
-      start_date: format(startDate, 'yyyy-MM-dd'),
-      end_date: format(endDate, 'yyyy-MM-dd')
-    });
-    
-  if (error) {
-    console.error('Error fetching custodio retention from RPC:', error);
-    
-    // If there's an error with the RPC, let's implement our own calculation as fallback
-    try {
-      console.log('Using manual retention calculation fallback');
-      return await calculateRetentionManually(startDate, endDate);
-    } catch (fallbackError) {
-      console.error('Error in fallback retention calculation:', fallbackError);
-      return [];
-    }
+  try {
+    console.log('Calculating retention manually');
+    return await calculateRetentionManually(startDate, endDate);
+  } catch (error) {
+    console.error('Error in retention calculation:', error);
+    return [];
   }
-  
-  console.log('DEBUG: Raw data from retention RPC:', data?.slice(0, 3));
-  
-  // Filter out any invalid data (NULL, N/A, undefined) from the database response
-  const filteredData = data?.filter(item => 
-    item && 
-    item.retention_rate !== null && 
-    !isNaN(Number(item.retention_rate))
-  ) || [];
-  
-  console.log(`DEBUG: Received ${data?.length || 0} retention records, ${filteredData.length} valid after filtering`);
-  
-  // Log the first few records for debugging
-  if (filteredData.length > 0) {
-    console.log('DEBUG: Sample retention data after filtering:', filteredData.slice(0, 3));
-  } else {
-    console.log('DEBUG: No valid retention data found after filtering');
-  }
-  
-  // Convert string values to numbers where needed
-  const processedData = filteredData.map(item => ({
-    ...item,
-    retention_rate: typeof item.retention_rate === 'string' ? parseFloat(item.retention_rate) : Number(item.retention_rate)
-  }));
-  
-  return processedData;
 }
 
 // Enhanced manual retention calculation function with improved null handling and detailed logging
@@ -278,8 +240,7 @@ async function calculateRetentionManually(startDate: Date, endDate: Date): Promi
     .select('nombre_custodio, fecha_hora_cita, estado')
     .gte('fecha_hora_cita', format(startDate, 'yyyy-MM-dd'))
     .lte('fecha_hora_cita', format(endDate, 'yyyy-MM-dd'))
-    .neq('estado', 'Cancelado')
-    .is('nombre_custodio', 'not.null')
+    .not('nombre_custodio', 'is', null)  // Corrected syntax for filtering non-null values
     .order('fecha_hora_cita', { ascending: true });
     
   if (allServiciosError || !allServiciosData || allServiciosData.length === 0) {
@@ -310,6 +271,9 @@ async function calculateRetentionManually(startDate: Date, endDate: Date): Promi
   // Now populate those sets with actual custodios
   allServiciosData.forEach(servicio => {
     if (!servicio.fecha_hora_cita || !servicio.nombre_custodio) return;
+    
+    // Skip cancelled services
+    if (servicio.estado === 'Cancelado') return;
     
     // Format the date to first day of month for grouping
     const monthKey = format(new Date(servicio.fecha_hora_cita), 'yyyy-MM-01');
@@ -431,4 +395,19 @@ export async function updateCustodioMetrics(metrics: Partial<CustodioMetrics>): 
     .eq('id', metrics.id);
     
   return !error;
+}
+
+// Add additional helper function to better handle calculateAvgRetention
+export function cleanRetentionData(retentionData?: any[]) {
+  if (!retentionData) {
+    return [];
+  }
+  
+  // Filter out invalid data (null rates, undefined, etc)
+  return retentionData.filter(item => 
+    item && 
+    typeof item.retention_rate === 'number' && 
+    !isNaN(item.retention_rate) && 
+    item.retention_rate !== null
+  );
 }
