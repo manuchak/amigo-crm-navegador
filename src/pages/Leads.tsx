@@ -11,6 +11,7 @@ import QualifiedLeadsApproval from '@/components/leads/QualifiedLeadsApproval';
 import LeadsIntro from '@/components/leads/LeadsIntro';
 import LeadsCrmDashboard from '@/components/leads/LeadsCrmDashboard';
 import ProspectsPage from '@/components/leads/ProspectsPage';
+import { TooltipProvider } from '@/components/ui/tooltip';
 
 const Leads = () => {
   const [activeTab, setActiveTab] = useState("dashboard");
@@ -64,55 +65,57 @@ const Leads = () => {
   }
 
   return (
-    <div className="container mx-auto px-6 py-16 bg-white">
-      <div className="mb-6">
-        <h1 className="text-2xl font-medium mb-1">Gestión de Custodios</h1>
-        <p className="text-slate-500 text-sm">
-          Reclutamiento y seguimiento de custodios para servicios de seguridad
-        </p>
+    <TooltipProvider>
+      <div className="container mx-auto px-6 py-16 bg-white">
+        <div className="mb-6">
+          <h1 className="text-2xl font-medium mb-1">Gestión de Custodios</h1>
+          <p className="text-slate-500 text-sm">
+            Reclutamiento y seguimiento de custodios para servicios de seguridad
+          </p>
+        </div>
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+          <TabsList className="mb-6 bg-slate-100 p-1 rounded-lg">
+            <TabsTrigger value="dashboard" className="rounded-md font-semibold">
+              <LayoutDashboard className="h-4 w-4 mr-1" />
+              Resumen CRM
+            </TabsTrigger>
+            <TabsTrigger value="seguimiento" className="rounded-md">Seguimiento</TabsTrigger>
+            <TabsTrigger value="prospectos" className="rounded-md">
+              <Users className="h-4 w-4 mr-1" />
+              Prospectos
+            </TabsTrigger>
+            <TabsTrigger value="aprobacion" className="rounded-md">
+              <UserCheck className="mr-1 h-4 w-4" />
+              Aprobación
+            </TabsTrigger>
+            <TabsTrigger value="callcenter" className="rounded-md">Call Center</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="dashboard" className="mt-4">
+            <LeadsCrmDashboard />
+          </TabsContent>
+
+          <TabsContent value="seguimiento" className="mt-4">
+            <LeadsDashboard />
+          </TabsContent>
+          
+          <TabsContent value="prospectos" className="mt-4">
+            <ProspectsPage />
+          </TabsContent>
+
+          <TabsContent value="aprobacion" className="mt-4">
+            <QualifiedLeadsApproval />
+          </TabsContent>
+
+          <TabsContent value="callcenter" className="mt-4">
+            <CallCenterTabs
+              leads={leads}
+              onUpdateLeadStatus={updateLeadStatus}
+            />
+          </TabsContent>
+        </Tabs>
       </div>
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="mb-6 bg-slate-100 p-1 rounded-lg">
-          <TabsTrigger value="dashboard" className="rounded-md font-semibold">
-            <LayoutDashboard className="h-4 w-4 mr-1" />
-            Resumen CRM
-          </TabsTrigger>
-          <TabsTrigger value="seguimiento" className="rounded-md">Seguimiento</TabsTrigger>
-          <TabsTrigger value="prospectos" className="rounded-md">
-            <Users className="h-4 w-4 mr-1" />
-            Prospectos
-          </TabsTrigger>
-          <TabsTrigger value="aprobacion" className="rounded-md">
-            <UserCheck className="mr-1 h-4 w-4" />
-            Aprobación
-          </TabsTrigger>
-          <TabsTrigger value="callcenter" className="rounded-md">Call Center</TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="dashboard" className="mt-4">
-          <LeadsCrmDashboard />
-        </TabsContent>
-
-        <TabsContent value="seguimiento" className="mt-4">
-          <LeadsDashboard />
-        </TabsContent>
-        
-        <TabsContent value="prospectos" className="mt-4">
-          <ProspectsPage />
-        </TabsContent>
-
-        <TabsContent value="aprobacion" className="mt-4">
-          <QualifiedLeadsApproval />
-        </TabsContent>
-
-        <TabsContent value="callcenter" className="mt-4">
-          <CallCenterTabs
-            leads={leads}
-            onUpdateLeadStatus={updateLeadStatus}
-          />
-        </TabsContent>
-      </Tabs>
-    </div>
+    </TooltipProvider>
   );
 };
 
