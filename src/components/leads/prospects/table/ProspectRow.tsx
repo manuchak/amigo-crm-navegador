@@ -29,10 +29,10 @@ const ProspectRow: React.FC<ProspectRowProps> = ({
     if (!prospect.ended_reason) return "";
     
     const status = prospect.ended_reason.toLowerCase();
-    if (status.includes('completed')) return "bg-green-50/30";
-    if (status.includes('no-answer')) return "bg-orange-50/30";
-    if (status.includes('busy')) return "bg-yellow-50/30";
-    if (status.includes('failed')) return "bg-red-50/30";
+    if (status.includes('complete')) return "bg-green-50/30";
+    if (status.includes('no-answer') || status.includes('no answer')) return "bg-orange-50/30";
+    if (status.includes('busy') || status.includes('ocupado')) return "bg-yellow-50/30";
+    if (status.includes('fail')) return "bg-red-50/30";
     
     return "";
   };
@@ -43,10 +43,10 @@ const ProspectRow: React.FC<ProspectRowProps> = ({
     }
     
     const status = prospect.ended_reason.toLowerCase();
-    if (status.includes('completed')) return "border-l-4 border-l-green-400";
-    if (status.includes('no-answer')) return "border-l-4 border-l-orange-400";
-    if (status.includes('busy')) return "border-l-4 border-l-yellow-400";
-    if (status.includes('failed')) return "border-l-4 border-l-red-400";
+    if (status.includes('complete')) return "border-l-4 border-l-green-400";
+    if (status.includes('no-answer') || status.includes('no answer')) return "border-l-4 border-l-orange-400";
+    if (status.includes('busy') || status.includes('ocupado')) return "border-l-4 border-l-yellow-400";
+    if (status.includes('fail')) return "border-l-4 border-l-red-400";
     
     return "";
   };

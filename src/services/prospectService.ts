@@ -118,6 +118,22 @@ export async function getProspectsByStatus(status: string): Promise<Prospect[]> 
 }
 
 /**
+ * Normaliza diferentes formatos de ended_reason a un formato estándar
+ */
+function normalizeEndedReason(reason: string | null): string | null {
+  if (!reason) return null;
+  
+  const lowerReason = reason.toLowerCase();
+  
+  if (lowerReason.includes('complete')) return 'completed';
+  if (lowerReason.includes('no-answer') || lowerReason.includes('no answer')) return 'no-answer';
+  if (lowerReason.includes('busy') || lowerReason.includes('ocupado')) return 'busy';
+  if (lowerReason.includes('fail')) return 'failed';
+  
+  return reason;
+}
+
+/**
  * Enriches prospect data with the latest ended_reason from vapi_call_logs
  * ALWAYS using phone number as the primary linking field between tables
  */
@@ -241,6 +257,9 @@ async function enrichProspectsWithEndedReason(prospects: Prospect[]): Promise<Pr
         
         if (!phoneField || !log.ended_reason) return;
         
+        // Normalize the ended_reason value
+        const normalizedReason = normalizeEndedReason(log.ended_reason) || log.ended_reason;
+        
         // Multiple phones might match, so we need to find the specific one
         uniquePhoneNumbers.forEach(phone => {
           const formattedPhone = phone.replace(/\D/g, '');
@@ -252,10 +271,10 @@ async function enrichProspectsWithEndedReason(prospects: Prospect[]): Promise<Pr
             const existing = phoneToEndedReason[phone];
             if (!existing || (log.start_time && (!existing.timestamp || log.start_time > existing.timestamp))) {
               phoneToEndedReason[phone] = {
-                reason: log.ended_reason,
+                reason: normalizedReason,
                 timestamp: log.start_time
               };
-              console.log(`Found newer ended_reason "${log.ended_reason}" for phone ${phone} at ${log.start_time}`);
+              console.log(`Found newer ended_reason "${normalizedReason}" for phone ${phone} at ${log.start_time}`);
             }
           }
         });
@@ -283,8 +302,8 @@ async function enrichProspectsWithEndedReason(prospects: Prospect[]): Promise<Pr
         
         // If no ended_reason found but call_count > 0, set a default value
         if (!foundEndedReason && prospect.call_count && prospect.call_count > 0) {
-          prospect.ended_reason = "Unknown";
-          console.log(`Set default "Unknown" ended_reason for prospect ${prospect.lead_id} with call count ${prospect.call_count}`);
+          prospect.ended_reason = "unknown";
+          console.log(`Set default "unknown" ended_reason for prospect ${prospect.lead_id} with call count ${prospect.call_count}`);
         }
       });
       

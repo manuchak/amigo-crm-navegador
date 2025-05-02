@@ -1,115 +1,56 @@
 
 import React from 'react';
-import { Phone, ClipboardCheck } from 'lucide-react';
-import { Badge } from '@/components/ui/badge';
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { format, isValid } from 'date-fns';
+import { es } from 'date-fns/locale';
+import { CallStatusBadge } from '@/components/shared/call-logs/CallStatusBadge';
 
 interface CallInfoProps {
   callCount: number | null;
   lastCallDate: string | null;
-  hasInterviewData: boolean;
+  hasInterviewData?: boolean;
   endedReason?: string | null;
 }
 
-const CallInfo: React.FC<CallInfoProps> = ({
+const CallInfo: React.FC<CallInfoProps> = ({ 
   callCount,
   lastCallDate,
-  hasInterviewData,
+  hasInterviewData = false,
   endedReason
 }) => {
-  // Format the last call date for display
-  const formattedLastCallDate = lastCallDate ? 
-    new Date(lastCallDate).toLocaleDateString('es-MX', {
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit'
-    }) : null;
-    
-  // Generate a appropriate color based on the ended_reason
-  const getEndedReasonColor = (reason: string | null | undefined): string => {
-    if (!reason) return "bg-gray-200 text-gray-700";
-    
-    const reasonLower = reason.toLowerCase();
-    
-    if (reasonLower.includes('completed') || reasonLower.includes('completado')) {
-      return "bg-green-100 text-green-800 border-green-200";
-    } 
-    else if (reasonLower.includes('answered') || reasonLower.includes('contestado')) {
-      return "bg-blue-100 text-blue-800 border-blue-200";
-    }
-    else if (reasonLower.includes('busy') || reasonLower.includes('ocupado')) {
-      return "bg-yellow-100 text-yellow-800 border-yellow-200";
-    } 
-    else if (reasonLower.includes('no-answer') || reasonLower.includes('no contestado') || reasonLower.includes('missing')) {
-      return "bg-orange-100 text-orange-800 border-orange-200";
-    }
-    else if (reasonLower.includes('failed') || reasonLower.includes('fallido') || reasonLower.includes('error')) {
-      return "bg-red-100 text-red-800 border-red-200";
-    }
-    else if (reasonLower === 'unknown') {
-      return "bg-purple-100 text-purple-800 border-purple-200";
-    }
-    
-    return "bg-gray-200 text-gray-700";
-  };
-
-  if (!callCount || callCount === 0) {
-    return (
-      <div className="text-xs text-slate-500">
-        No hay llamadas registradas
-      </div>
-    );
+  // Format the date if it's valid
+  const formattedDate = lastCallDate && isValid(new Date(lastCallDate))
+    ? format(new Date(lastCallDate), "dd/MM/yyyy, HH:mm", { locale: es })
+    : null;
+  
+  // Si no hay llamadas, mostrar "Sin llamadas"
+  if (!callCount || callCount <= 0) {
+    return <div className="text-sm text-slate-500">Sin llamadas</div>;
   }
-
+  
   return (
     <div className="flex flex-col">
       <div className="flex items-center">
-        <Phone className="h-3.5 w-3.5 mr-1 text-slate-400" />
-        <span className="text-sm">
-          {callCount} {callCount === 1 ? 'llamada' : 'llamadas'}
-        </span>
-        
-        {hasInterviewData && (
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <div className="ml-2">
-                <ClipboardCheck className="h-3.5 w-3.5 text-green-500" />
-              </div>
-            </TooltipTrigger>
-            <TooltipContent>
-              <p className="text-xs">Entrevista completada</p>
-            </TooltipContent>
-          </Tooltip>
+        <span className="font-medium text-sm">{callCount} {callCount === 1 ? 'llamada' : 'llamadas'}</span>
+        {endedReason && (
+          <span className="ml-2">
+            <CallStatusBadge status={endedReason} />
+          </span>
         )}
       </div>
       
-      {formattedLastCallDate && (
-        <div className="text-xs text-slate-500">
-          Última: {formattedLastCallDate}
+      {formattedDate && (
+        <div className="flex flex-col">
+          <span className="text-xs text-slate-500">
+            Última: {formattedDate}
+          </span>
         </div>
       )}
       
-      {endedReason ? (
-        <div className="mt-1">
-          <Badge 
-            variant="outline" 
-            className={`text-xs font-medium px-2 py-0.5 w-full flex justify-center truncate ${getEndedReasonColor(endedReason)}`}
-          >
-            {endedReason}
-          </Badge>
-        </div>
-      ) : callCount > 0 ? (
-        <div className="mt-1">
-          <Badge 
-            variant="outline" 
-            className="text-xs font-medium px-2 py-0.5 w-full flex justify-center truncate bg-purple-100 text-purple-800 border-purple-200"
-          >
-            Estado desconocido
-          </Badge>
-        </div>
-      ) : null}
+      {hasInterviewData && (
+        <span className="inline-flex items-center px-1.5 py-0.5 mt-1 rounded-full text-xs font-medium bg-indigo-50 text-indigo-700 border border-indigo-200">
+          Entrevista
+        </span>
+      )}
     </div>
   );
 };
