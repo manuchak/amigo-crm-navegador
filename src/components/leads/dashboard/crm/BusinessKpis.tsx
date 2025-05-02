@@ -11,6 +11,7 @@ import DateRangePicker from "./DateRangePicker";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { format, subMonths } from "date-fns";
+import { DateRange } from "react-day-picker";
 
 // Helper to create tooltips for metrics
 const MetricTooltip = ({ children, explanation }: { children: React.ReactNode, explanation: string }) => (
@@ -46,7 +47,7 @@ const TrendIndicator = ({ value, suffix = '%' }: { value: number, suffix?: strin
 
 export const BusinessKpis = () => {
   // Add date range state with default values (last 12 months)
-  const [dateRange, setDateRange] = useState<{ from: Date | null; to: Date | null }>({
+  const [dateRange, setDateRange] = useState<DateRange>({
     from: new Date(new Date().setFullYear(new Date().getFullYear() - 1)),
     to: new Date()
   });
@@ -73,7 +74,7 @@ export const BusinessKpis = () => {
     previousPeriodData
   } = useCustodioKpi(calculateMonths(), comparisonType); // Get data based on selected date range
   
-  // Filter data based on selected date range - moved up for proper variable declaration order
+  // Filter data based on selected date range
   const filterDataByDateRange = useCallback((data: any[]) => {
     if (!dateRange.from || !dateRange.to || !data) return data;
     
@@ -83,7 +84,7 @@ export const BusinessKpis = () => {
     });
   }, [dateRange]);
   
-  // These filtered values are now defined before they're used
+  // Define filtered data using the filter function
   const filteredKpiData = useMemo(() => filterDataByDateRange(kpiData || []), [kpiData, filterDataByDateRange]);
   const filteredRetention = useMemo(() => 
     filterDataByDateRange(retention || [])

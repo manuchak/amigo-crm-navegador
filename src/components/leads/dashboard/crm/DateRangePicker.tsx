@@ -14,8 +14,8 @@ import {
 } from "@/components/ui/popover";
 
 interface DateRangePickerProps {
-  value: DateRange;
-  onChange: (value: DateRange) => void;
+  value: DateRange | undefined;
+  onChange: (value: DateRange | undefined) => void;
   className?: string;
 }
 
@@ -132,7 +132,7 @@ export default function DateRangePicker({
               defaultMonth={value?.from}
               selected={value}
               onSelect={(newValue) => {
-                onChange(newValue || { from: null, to: null });
+                onChange(newValue);
                 if (newValue?.from && newValue?.to) {
                   setIsOpen(false);
                 }

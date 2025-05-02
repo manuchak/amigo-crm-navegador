@@ -5,6 +5,7 @@ import { ChartContainer } from "@/components/ui/chart";
 import { Lead } from "@/context/LeadsContext";
 import DateRangePicker from "./DateRangePicker";
 import { isValid, parseISO } from "date-fns";
+import { DateRange } from "react-day-picker";
 
 const DARK_GRAY = "#222222";
 
@@ -69,7 +70,7 @@ const sourceLabels: Record<string, string> = {
 };
 
 const LeadsByDaySourceChart: React.FC<LeadsByDaySourceChartProps> = ({ leads }) => {
-  const [dateRange, setDateRange] = useState<{ from: Date | null, to: Date | null }>({
+  const [dateRange, setDateRange] = useState<DateRange>({
     from: null,
     to: null,
   });
