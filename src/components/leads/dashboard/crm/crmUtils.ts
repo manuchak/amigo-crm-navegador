@@ -1,3 +1,4 @@
+
 import { Lead } from "@/context/LeadsContext";
 
 export const STAGES = [
@@ -184,11 +185,12 @@ export function useFunnelStats(leads: any[], contactedCount?: number) {
   };
 
   // Calculate total leads for percentage
-  const totalLeads = Object.values(statuses).reduce((sum, count) => sum + count, 0);
+  const totalLeads = leads.length; // Use the total leads count directly
 
   const byStage = STAGES.map(stage => {
     const stageValue = statuses[stage.key as keyof typeof statuses];
-    const percentageOfTotal = totalLeads > 0 ? (stageValue / totalLeads) * 100 : 0;
+    // Calculate percentage based on total leads count
+    const percentageOfTotal = (stageValue / totalLeads) * 100;
     
     return {
       key: stage.key,
