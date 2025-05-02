@@ -1,5 +1,5 @@
 
-import React, { Suspense } from 'react';
+import React from 'react';
 import { BrowserRouter as Router, Route, Routes, Navigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Toaster } from 'sonner';
@@ -48,13 +48,6 @@ function App() {
                 <Route path="/inicio" element={<Index />} />
                 <Route path="/" element={<Index />} />
                 
-                {/* UserManagement - directly imported */}
-                <Route path="/user-management" element={
-                  <AuthGuard>
-                    <UserManagement />
-                  </AuthGuard>
-                } />
-                
                 {/* Protected routes */}
                 <Route path="/dashboard" element={
                   <AuthGuard>
@@ -91,8 +84,13 @@ function App() {
                     <Settings />
                   </AuthGuard>
                 } />
+                <Route path="/user-management" element={
+                  <AuthGuard>
+                    <UserManagement />
+                  </AuthGuard>
+                } />
                 
-                {/* GPS Installation routes - Now using direct imports */}
+                {/* GPS Installation routes - Using static imports */}
                 <Route path="/instalacion-gps" element={
                   <AuthGuard>
                     <InstalacionGPS />
