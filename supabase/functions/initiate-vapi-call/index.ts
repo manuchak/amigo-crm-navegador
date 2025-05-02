@@ -48,10 +48,13 @@ Deno.serve(async (req) => {
     const VAPI_API_URL = 'https://api.vapi.ai/call'
     const VAPI_ASSISTANT_ID = '0b7c2a96-0360-4fef-9956-e847fd696ea2' // Your VAPI assistant ID
 
-    // Prepare VAPI call payload
+    // Prepare VAPI call payload - FIX: Format according to VAPI API requirements
+    // Removing the assistant_id from the root level and using correct property names
     const payload = {
-      assistant_id: VAPI_ASSISTANT_ID,
-      phone_number: phoneNumber,
+      recipient: {
+        phone_number: phoneNumber
+      },
+      assistant: VAPI_ASSISTANT_ID, // Changed from assistant_id to assistant
       metadata: {
         lead_id: leadId,
         lead_name: leadName
@@ -59,6 +62,7 @@ Deno.serve(async (req) => {
     }
 
     console.log(`Initiating VAPI call to ${phoneNumber} for lead ${leadName}`)
+    console.log('Request payload:', JSON.stringify(payload))
 
     // Make request to VAPI API
     const response = await fetch(VAPI_API_URL, {
@@ -72,6 +76,7 @@ Deno.serve(async (req) => {
 
     if (!response.ok) {
       const errorText = await response.text()
+      console.error(`VAPI API error (${response.status}): ${errorText}`)
       throw new Error(`VAPI API returned ${response.status}: ${errorText}`)
     }
 
