@@ -4,6 +4,7 @@ import { webhookRegistration } from './webhook/webhookRegistration';
 import { webhookTesting } from './webhook/webhookTesting';
 import { webhookProcessing } from './webhook/webhookProcessing';
 import { webhookTestData } from './webhook/webhookTestData';
+import { webhookCalls } from './webhook/webhookCalls';
 
 /**
  * Export the webhook utilities for use in components
@@ -14,6 +15,7 @@ export const vapiWebhookUtils = {
   ...webhookTesting,
   ...webhookProcessing,
   ...webhookTestData,
+  ...webhookCalls,
 
   /**
    * Helper functions for processing webhook data
