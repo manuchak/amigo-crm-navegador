@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo } from 'react';
 import { ActiveServicesMap } from './ActiveServicesMap';
 import { ServiceCard } from './ServiceCard';
@@ -9,6 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { motion } from 'framer-motion';
 import { mockActiveServices } from './mockActiveServices';
+import { cn } from '@/lib/utils';
 
 export function ActiveServicesDashboard() {
   const [selectedServiceId, setSelectedServiceId] = useState<string | undefined>();
@@ -245,7 +245,4 @@ export function ActiveServicesDashboard() {
   );
 }
 
-// Helper for className conditionals
-function cn(...classes: (string | boolean | undefined)[]) {
-  return classes.filter(Boolean).join(' ');
-}
+// Helper for className conditionals moved to lib/utils.ts
