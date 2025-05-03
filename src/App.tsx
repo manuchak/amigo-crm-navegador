@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { BrowserRouter as Router, Route, Routes, Navigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -111,6 +112,13 @@ function App() {
                 <Route path="/performance" element={
                   <AuthGuard>
                     <Performance />
+                  </AuthGuard>
+                } />
+                
+                {/* Active Services route */}
+                <Route path="/active-services" element={
+                  <AuthGuard>
+                    <ActiveServices />
                   </AuthGuard>
                 } />
                 

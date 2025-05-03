@@ -2,7 +2,7 @@
 import React from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
-import { Shield, LogIn, Users, LifeBuoy, Home } from 'lucide-react';
+import { Shield, LogIn, Users, LifeBuoy, Home, MapPin } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import {
   DropdownMenu,
@@ -55,6 +55,7 @@ const Navbar = () => {
       // Admin y Owner tienen acceso a todo
       if (['admin', 'owner'].includes(userData.role)) {
         items.push({ name: 'Performance', path: '/performance' });
+        items.push({ name: 'Servicios Activos', path: '/active-services' });
         items.push({ name: 'Leads', path: '/leads' });
         items.push({ name: 'Requerimientos', path: '/requerimientos' });
         items.push({ name: 'Instalación GPS', path: '/instalacion-gps' });

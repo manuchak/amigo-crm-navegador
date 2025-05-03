@@ -1,5 +1,5 @@
-
 import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { CustodioPerformanceDashboard } from "@/components/performance/CustodioPerformanceDashboard";
 import { PerformanceHeader } from "@/components/performance/PerformanceHeader";
 import { DriverBehaviorHeader } from "@/components/performance/DriverBehaviorHeader";
@@ -11,6 +11,8 @@ import { subDays, startOfMonth, endOfMonth } from "date-fns";
 import { PerformanceDateFilter } from '@/components/performance/PerformanceDateFilter';
 import { ServiceImport } from '@/components/performance/filters/ServiceImport';
 import { Card } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { MapPin } from 'lucide-react';
 import { toast } from 'sonner';
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -168,11 +170,18 @@ export default function Performance() {
             presets={presets}
           />
           
-          {activeTab === "servicios" && (
-            <div className="flex-shrink-0">
+          <div className="flex items-center gap-2">
+            {activeTab === "servicios" && (
               <ServiceImport onImportComplete={handleImportComplete} />
-            </div>
-          )}
+            )}
+            
+            <Button variant="outline" asChild className="flex items-center gap-2">
+              <Link to="/active-services">
+                <MapPin className="h-4 w-4" />
+                <span>Monitoreo en vivo</span>
+              </Link>
+            </Button>
+          </div>
         </div>
       </Card>
       
