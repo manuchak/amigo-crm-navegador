@@ -5,9 +5,9 @@ import { MapPin } from 'lucide-react';
 
 export default function ActiveServices() {
   return (
-    <div className="w-full px-2 md:px-4 py-4">
-      <div className="mb-4">
-        <div className="flex items-center gap-3 mb-1">
+    <div className="w-full px-0 md:px-1 py-2">
+      <div className="mb-3">
+        <div className="flex items-center gap-3 mb-1 px-2">
           <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
             <MapPin className="h-5 w-5 text-primary" />
           </div>

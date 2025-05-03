@@ -26,21 +26,21 @@ export function ServicesList({
   setShowAllServices
 }: ServicesListProps) {
   return (
-    <Card className="flex-grow shadow-md border-0 bg-white overflow-hidden">
-      <CardHeader className="py-4 px-5 border-b bg-slate-50/80">
-        <CardTitle className="text-base flex items-center justify-between">
-          <span className="flex items-center gap-2">
-            <div className="bg-primary/10 p-1.5 rounded">
-              <Truck className="w-4 h-4 text-primary" />
+    <Card className="flex-grow shadow-sm border overflow-hidden">
+      <CardHeader className="py-2 px-3 border-b bg-slate-50/80">
+        <CardTitle className="text-sm flex items-center justify-between">
+          <span className="flex items-center gap-1.5">
+            <div className="bg-primary/10 p-1 rounded">
+              <Truck className="w-3.5 h-3.5 text-primary" />
             </div>
             Servicios Activos
           </span>
-          <Badge variant="secondary" className="bg-slate-100 font-medium">{services.length}</Badge>
+          <Badge variant="secondary" className="bg-slate-100 text-xs font-medium">{services.length}</Badge>
         </CardTitle>
       </CardHeader>
-      <ScrollArea className="h-[calc(100vh-280px)]">
-        <CardContent className="p-4">
-          <div className="space-y-3">
+      <ScrollArea className="h-[calc(100vh-220px)]">
+        <CardContent className="p-2">
+          <div className="space-y-2">
             {displayedServices.map(service => (
               <ServiceCard
                 key={service.id}
@@ -54,16 +54,16 @@ export function ServicesList({
           {services.length > 4 && (
             <Button 
               variant="ghost" 
-              className="w-full mt-4 text-sm text-muted-foreground flex items-center justify-center gap-1"
+              className="w-full mt-2 text-xs text-muted-foreground flex items-center justify-center gap-1 h-8"
               onClick={() => setShowAllServices(!showAllServices)}
             >
               {showAllServices ? (
                 <>
-                  Mostrar menos <ChevronUp className="h-4 w-4" />
+                  Mostrar menos <ChevronUp className="h-3 w-3" />
                 </>
               ) : (
                 <>
-                  Mostrar todos ({services.length}) <ChevronDown className="h-4 w-4" />
+                  Mostrar todos ({services.length}) <ChevronDown className="h-3 w-3" />
                 </>
               )}
             </Button>

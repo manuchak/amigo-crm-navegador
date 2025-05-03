@@ -13,11 +13,11 @@ export function RiskIndicators({ service }: RiskIndicatorsProps) {
   }
   
   return (
-    <div className="mt-4 bg-white p-3 rounded-lg shadow-sm border border-red-100">
+    <div className="mt-3 bg-white p-2.5 rounded-lg shadow-sm border border-red-100">
       <h4 className="font-semibold text-sm text-red-600 mb-2">Indicadores de Riesgo</h4>
       
       {service.delayRisk && (
-        <div className="flex items-center gap-2 mb-2.5 bg-amber-50 p-2 rounded-md">
+        <div className="flex items-center gap-2 mb-2 bg-amber-50 p-2 rounded-md">
           <Timer className="h-4 w-4 text-amber-500" />
           <div className="flex flex-col">
             <span className="text-sm font-medium">
