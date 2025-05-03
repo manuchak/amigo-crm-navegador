@@ -14,11 +14,14 @@ interface ActiveServicesMapProps {
   onServiceSelect: (id: string) => void;
 }
 
-// Risk zones (mock data) - defined outside component to avoid recreation on each render
+// Risk zones defined outside component to avoid recreation on each render
+// Using coordinates for Puebla, Tlaxcala, Veracruz, and Arco Norte
 const riskZones = [
-  { center: [-99.1447, 19.3827], radius: 0.03 }, // Example risk zone in CDMX
-  { center: [-99.2029, 19.4326], radius: 0.025 }, // Another example risk zone
-  { center: [-99.0856, 19.4091], radius: 0.022 }, // Third example risk zone
+  { center: [-98.2063, 19.0414], radius: 0.05, name: "Puebla" },              // Puebla
+  { center: [-98.2370, 19.3139], radius: 0.04, name: "Tlaxcala" },            // Tlaxcala
+  { center: [-96.1342, 19.1738], radius: 0.06, name: "Veracruz" },            // Veracruz
+  { center: [-99.0045, 19.7128], radius: 0.035, name: "Arco Norte" },         // Arco Norte (approximate)
+  { center: [-98.5823, 19.5633], radius: 0.04, name: "Arco Norte - Este" },   // Arco Norte section
 ];
 
 export function ActiveServicesMap({ services, selectedServiceId, onServiceSelect }: ActiveServicesMapProps) {
@@ -38,9 +41,10 @@ export function ActiveServicesMap({ services, selectedServiceId, onServiceSelect
       
       map.current = new mapboxgl.Map({
         container: mapContainer.current,
-        style: 'mapbox://styles/mapbox/streets-v11',
-        center: [-99.1332, 19.4326], // Mexico City default center
-        zoom: 11,
+        style: 'mapbox://styles/mapbox/streets-v12',
+        center: [-98.5795, 19.3910], // Center between Puebla, Tlaxcala, Veracruz
+        zoom: 7.5,
+        pitchWithRotate: false,
       });
       
       // Add navigation controls
@@ -62,6 +66,65 @@ export function ActiveServicesMap({ services, selectedServiceId, onServiceSelect
       map.current.on('load', () => {
         console.log('Map style loaded successfully');
         setMapLoaded(true);
+        
+        // Add risk zones after map is fully loaded
+        riskZones.forEach((zone, index) => {
+          const id = `risk-zone-${index}`;
+          
+          // Add source for this risk zone
+          map.current?.addSource(id, {
+            type: 'geojson',
+            data: {
+              type: 'Feature',
+              geometry: {
+                type: 'Point',
+                coordinates: zone.center
+              },
+              properties: {
+                name: zone.name
+              }
+            }
+          });
+          
+          // Add layer for this risk zone
+          map.current?.addLayer({
+            id: id,
+            type: 'circle',
+            source: id,
+            paint: {
+              'circle-radius': zone.radius * 10000,
+              'circle-color': 'rgba(255, 0, 0, 0.15)',
+              'circle-stroke-width': 1.5,
+              'circle-stroke-color': 'rgba(255, 0, 0, 0.5)',
+            }
+          });
+          
+          // Add popup for risk zone name
+          const popup = new mapboxgl.Popup({
+            closeButton: false,
+            closeOnClick: false,
+            offset: 15,
+            className: 'risk-zone-popup'
+          });
+          
+          map.current?.on('mouseenter', id, (e) => {
+            if (!map.current) return;
+            map.current.getCanvas().style.cursor = 'pointer';
+            
+            const coordinates = zone.center;
+            const description = `<div class="text-sm font-medium text-red-500">Zona de riesgo: ${zone.name}</div>`;
+            
+            popup.setLngLat(coordinates)
+              .setHTML(description)
+              .addTo(map.current);
+          });
+          
+          map.current?.on('mouseleave', id, () => {
+            if (!map.current) return;
+            map.current.getCanvas().style.cursor = '';
+            popup.remove();
+          });
+        });
       });
     } catch (error) {
       console.error('Error initializing map:', error);
@@ -75,47 +138,6 @@ export function ActiveServicesMap({ services, selectedServiceId, onServiceSelect
       }
     };
   }, []);
-
-  // Add risk zones after map style is fully loaded
-  useEffect(() => {
-    if (!map.current || !mapLoaded) return;
-    
-    try {
-      // Add risk zones as circles
-      riskZones.forEach((zone, index) => {
-        const id = `risk-zone-${index}`;
-        
-        // Check if source already exists to avoid duplicate adds
-        if (!map.current?.getSource(id)) {
-          map.current?.addSource(id, {
-            type: 'geojson',
-            data: {
-              type: 'Feature',
-              geometry: {
-                type: 'Point',
-                coordinates: zone.center
-              },
-              properties: {}
-            }
-          });
-          
-          map.current?.addLayer({
-            id: id,
-            type: 'circle',
-            source: id,
-            paint: {
-              'circle-radius': zone.radius * 10000,
-              'circle-color': 'rgba(255, 0, 0, 0.15)',
-              'circle-stroke-width': 1,
-              'circle-stroke-color': 'rgba(255, 0, 0, 0.5)',
-            }
-          });
-        }
-      });
-    } catch (error) {
-      console.error('Error adding risk zones:', error);
-    }
-  }, [mapLoaded]);
   
   // Update markers when services change
   useEffect(() => {
@@ -131,25 +153,57 @@ export function ActiveServicesMap({ services, selectedServiceId, onServiceSelect
         // Skip if no coordinates
         if (!service.currentLocation?.coordinates) return;
         
-        // Create custom marker element
+        // Create marker element with improved styling
         const markerEl = document.createElement('div');
         markerEl.className = cn(
-          'w-8 h-8 bg-white rounded-full flex items-center justify-center shadow-lg transition-all duration-300',
-          selectedServiceId === service.id ? 'border-2 border-primary scale-125' : 'border border-gray-200'
+          'w-10 h-10 rounded-full bg-white flex items-center justify-center shadow-lg transition-all duration-300',
+          selectedServiceId === service.id ? 'border-[3px] border-primary scale-110' : 'border border-gray-200'
         );
         
         // Add status indicator
         const statusIndicator = document.createElement('div');
         statusIndicator.className = cn(
-          'w-4 h-4 rounded-full',
+          'w-5 h-5 rounded-full transition-colors',
           service.inRiskZone ? "bg-red-500" : service.delayRisk ? "bg-amber-500" : "bg-green-500"
         );
         markerEl.appendChild(statusIndicator);
         
+        // Add ID label
+        const idLabel = document.createElement('div');
+        idLabel.className = 'absolute -bottom-5 bg-white px-1.5 py-0.5 rounded text-xs font-medium shadow-sm';
+        idLabel.textContent = `#${service.id}`;
+        markerEl.appendChild(idLabel);
+        
+        // Create popup for marker
+        const popup = new mapboxgl.Popup({
+          offset: 25,
+          closeButton: false,
+          closeOnClick: false,
+          className: 'service-marker-popup'
+        }).setHTML(`
+          <div class="p-2">
+            <div class="font-medium">Servicio #${service.id}</div>
+            <div class="text-sm text-muted-foreground">${service.custodioName}</div>
+            <div class="text-xs mt-1">
+              <span class="font-medium">ETA:</span> ${service.eta}
+            </div>
+          </div>
+        `);
+        
         // Create and add the marker
         const marker = new mapboxgl.Marker(markerEl)
           .setLngLat(service.currentLocation.coordinates)
+          .setPopup(popup)
           .addTo(map.current!);
+        
+        // Add hover events
+        markerEl.addEventListener('mouseenter', () => {
+          popup.addTo(map.current!);
+        });
+        
+        markerEl.addEventListener('mouseleave', () => {
+          popup.remove();
+        });
         
         // Add click event
         markerEl.addEventListener('click', () => {
@@ -173,16 +227,18 @@ export function ActiveServicesMap({ services, selectedServiceId, onServiceSelect
       
       // Only proceed if we have a valid service with route coordinates
       if (service?.currentLocation?.coordinates) {
-        // Center map on the selected service
+        // Center map on the selected service with smooth animation
         map.current.flyTo({
           center: service.currentLocation.coordinates,
-          zoom: 14,
-          essential: true
+          zoom: 12,
+          essential: true,
+          speed: 0.8,
+          curve: 1
         });
         
         // Draw route if available
         if (service.routeCoordinates && service.routeCoordinates.length > 1) {
-          // Check if route source exists
+          // Setup the route source and layer if they don't exist yet
           if (!map.current.getSource('route')) {
             // Add new source and layer
             map.current.addSource('route', {
@@ -197,6 +253,7 @@ export function ActiveServicesMap({ services, selectedServiceId, onServiceSelect
               }
             });
             
+            // Add route line layer
             map.current.addLayer({
               id: 'route',
               type: 'line',
@@ -207,9 +264,29 @@ export function ActiveServicesMap({ services, selectedServiceId, onServiceSelect
               },
               paint: {
                 'line-color': '#16a34a',
-                'line-width': 4
+                'line-width': 4,
+                'line-opacity': 0.8,
+                'line-dasharray': [0.2, 1]
               }
             });
+            
+            // Add direction arrows on the route
+            map.current.addLayer({
+              id: 'route-arrows',
+              type: 'symbol',
+              source: 'route',
+              layout: {
+                'symbol-placement': 'line',
+                'symbol-spacing': 100,
+                'icon-image': 'arrow',
+                'icon-size': 0.5,
+                'icon-rotate': 90,
+                'icon-rotation-alignment': 'map',
+                'icon-allow-overlap': true,
+                'icon-ignore-placement': true
+              }
+            });
+            
           } else {
             // Update existing route
             (map.current.getSource('route') as mapboxgl.GeoJSONSource).setData({
@@ -222,10 +299,10 @@ export function ActiveServicesMap({ services, selectedServiceId, onServiceSelect
             });
           }
           
-          // Fit bounds to show the entire route
+          // Fit bounds to show the entire route with padding
           const bounds = new mapboxgl.LngLatBounds();
           service.routeCoordinates.forEach(coord => bounds.extend(coord as mapboxgl.LngLatLike));
-          map.current.fitBounds(bounds, { padding: 80 });
+          map.current.fitBounds(bounds, { padding: 100, maxZoom: 13 });
         }
       }
     } catch (error) {
@@ -248,19 +325,22 @@ export function ActiveServicesMap({ services, selectedServiceId, onServiceSelect
         <div ref={mapContainer} className="absolute inset-0" />
       )}
       
-      <div className="absolute bottom-4 left-4 flex flex-col space-y-1.5">
-        <Badge className="bg-green-500 flex items-center gap-1 shadow-sm">
-          <div className="w-2 h-2 rounded-full bg-white" />
-          <span>En tiempo</span>
-        </Badge>
-        <Badge className="bg-amber-500 flex items-center gap-1 shadow-sm">
-          <div className="w-2 h-2 rounded-full bg-white" />
-          <span>Riesgo de retraso</span>
-        </Badge>
-        <Badge className="bg-red-500 flex items-center gap-1 shadow-sm">
-          <div className="w-2 h-2 rounded-full bg-white" />
-          <span>Zona de riesgo</span>
-        </Badge>
+      <div className="absolute bottom-4 left-4 bg-white/90 backdrop-blur-sm p-2.5 rounded-lg shadow-md border border-border/50">
+        <div className="text-xs font-medium mb-1.5 text-muted-foreground">Leyenda</div>
+        <div className="flex flex-col space-y-1.5">
+          <Badge className="bg-green-500 flex items-center gap-1.5 shadow-sm py-1">
+            <div className="w-2 h-2 rounded-full bg-white/90" />
+            <span>En tiempo</span>
+          </Badge>
+          <Badge className="bg-amber-500 flex items-center gap-1.5 shadow-sm py-1">
+            <div className="w-2 h-2 rounded-full bg-white/90" />
+            <span>Riesgo de retraso</span>
+          </Badge>
+          <Badge className="bg-red-500 flex items-center gap-1.5 shadow-sm py-1">
+            <div className="w-2 h-2 rounded-full bg-white/90" />
+            <span>Zona de riesgo</span>
+          </Badge>
+        </div>
       </div>
     </div>
   );
