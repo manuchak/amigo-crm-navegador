@@ -13,19 +13,34 @@ export function RiskIndicators({ service }: RiskIndicatorsProps) {
   }
   
   return (
-    <div className="mt-4 bg-white p-3 rounded-lg shadow-sm">
+    <div className="mt-4 bg-white p-3 rounded-lg shadow-sm border border-red-100">
+      <h4 className="font-semibold text-sm text-red-600 mb-2">Indicadores de Riesgo</h4>
+      
       {service.delayRisk && (
-        <div className="flex items-center gap-2 mb-2">
+        <div className="flex items-center gap-2 mb-2.5 bg-amber-50 p-2 rounded-md">
           <Timer className="h-4 w-4 text-amber-500" />
-          <span className="text-sm font-medium">
-            {service.delayRiskPercent}% probabilidad de retraso
-          </span>
+          <div className="flex flex-col">
+            <span className="text-sm font-medium">
+              Riesgo de retraso detectado
+            </span>
+            <span className="text-xs text-slate-600">
+              {service.delayRiskPercent}% probabilidad de retraso en la entrega
+            </span>
+          </div>
         </div>
       )}
+      
       {service.inRiskZone && (
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 bg-red-50 p-2 rounded-md">
           <AlertCircle className="h-4 w-4 text-red-500" />
-          <span className="text-sm font-medium">En zona de alto riesgo</span>
+          <div className="flex flex-col">
+            <span className="text-sm font-medium">
+              En zona de alto riesgo
+            </span>
+            <span className="text-xs text-slate-600">
+              La ubicación actual está en una zona marcada como insegura
+            </span>
+          </div>
         </div>
       )}
     </div>

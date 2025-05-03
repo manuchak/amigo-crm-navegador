@@ -1,4 +1,3 @@
-
 import React, { useEffect, useRef, useState } from 'react';
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
@@ -16,12 +15,13 @@ interface ActiveServicesMapProps {
 
 // Risk zones defined outside component to avoid recreation on each render
 // Using coordinates for Puebla, Tlaxcala, Veracruz, and Arco Norte
+// Radius reduced to approximately 1km (0.01 degrees ≈ 1.1km at these latitudes)
 const riskZones = [
-  { center: [-98.2063, 19.0414], radius: 0.05, name: "Puebla" },              // Puebla
-  { center: [-98.2370, 19.3139], radius: 0.04, name: "Tlaxcala" },            // Tlaxcala
-  { center: [-96.1342, 19.1738], radius: 0.06, name: "Veracruz" },            // Veracruz
-  { center: [-99.0045, 19.7128], radius: 0.035, name: "Arco Norte" },         // Arco Norte (approximate)
-  { center: [-98.5823, 19.5633], radius: 0.04, name: "Arco Norte - Este" },   // Arco Norte section
+  { center: [-98.2063, 19.0414], radius: 0.009, name: "Puebla" },              // Puebla
+  { center: [-98.2370, 19.3139], radius: 0.008, name: "Tlaxcala" },            // Tlaxcala
+  { center: [-96.1342, 19.1738], radius: 0.009, name: "Veracruz" },            // Veracruz
+  { center: [-99.0045, 19.7128], radius: 0.009, name: "Arco Norte" },         // Arco Norte (approximate)
+  { center: [-98.5823, 19.5633], radius: 0.008, name: "Arco Norte - Este" },   // Arco Norte section
 ];
 
 export function ActiveServicesMap({ services, selectedServiceId, onServiceSelect }: ActiveServicesMapProps) {
@@ -67,7 +67,7 @@ export function ActiveServicesMap({ services, selectedServiceId, onServiceSelect
         console.log('Map style loaded successfully');
         setMapLoaded(true);
         
-        // Add risk zones after map is fully loaded
+        // Add risk zones after map is fully loaded - reduced radius to approx 1km
         riskZones.forEach((zone, index) => {
           const id = `risk-zone-${index}`;
           
@@ -86,13 +86,13 @@ export function ActiveServicesMap({ services, selectedServiceId, onServiceSelect
             }
           });
           
-          // Add layer for this risk zone
+          // Add layer for this risk zone - radius in meters (approximately 1km)
           map.current?.addLayer({
             id: id,
             type: 'circle',
             source: id,
             paint: {
-              'circle-radius': zone.radius * 10000,
+              'circle-radius': zone.radius * 1000,
               'circle-color': 'rgba(255, 0, 0, 0.15)',
               'circle-stroke-width': 1.5,
               'circle-stroke-color': 'rgba(255, 0, 0, 0.5)',
