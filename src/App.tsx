@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { BrowserRouter as Router, Route, Routes, Navigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -25,12 +24,12 @@ import Leads from './pages/Leads';
 import Auth from './pages/Auth';
 import Login from './pages/Login';
 import Prospects from './pages/Prospects';
-// Remove the Validation import that no longer exists
 import Support from './pages/Support';
 import CallCenter from './pages/CallCenter';
 import Settings from './pages/Settings';
 import Requerimientos from './pages/Requerimientos';
 import AdminConfig from './pages/AdminConfig';
+import ActiveServices from './pages/ActiveServices';
 
 function App() {
   return (
