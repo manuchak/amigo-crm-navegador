@@ -1,4 +1,6 @@
 
+import { Lead } from "@/context/LeadsContext";
+
 // Array of status colors for different stages
 export const statusColors = ["#2563eb", "#f59e42", "#16a34a", "#8957e5"];
 export const statusTextColor = ["text-blue-600", "text-amber-600", "text-green-600", "text-purple-600"];
@@ -21,4 +23,3 @@ export const useTimeMetrics = (leads: Lead[]) => {
     { name: 'contratado', displayName: 'Contratado', avgDays: 1.5 }
   ];
 };
-
