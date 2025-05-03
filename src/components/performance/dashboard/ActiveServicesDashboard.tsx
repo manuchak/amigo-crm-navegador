@@ -1,6 +1,6 @@
 
 import React, { useState, useMemo } from 'react';
-import { ActiveServicesMap } from './ActiveServicesMap';
+import { ActiveServicesMap } from './map';
 import { ActiveService } from './types';
 import { mockActiveServices } from './mockActiveServices';
 import { StatsCards, ServicesList, MapHeader, ServiceDetailsPanel } from './components';
