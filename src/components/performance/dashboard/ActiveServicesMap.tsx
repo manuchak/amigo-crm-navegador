@@ -33,9 +33,8 @@ export function ActiveServicesMap({ services, selectedServiceId, onServiceSelect
     if (!mapContainer.current) return;
     
     try {
-      // Initialize map
-      // Use environment variable for production or a default token for development
-      mapboxgl.accessToken = 'pk.eyJ1IjoibGVvbmFyZG9wY2UiLCJhIjoiY2tqZHc2NjZ5MGdmejJ5cWp4Z2NmbWF6eSJ9.Z_BwEDFyO7N_x-I-afk1aQ';
+      // Use the updated token
+      mapboxgl.accessToken = 'pk.eyJ1IjoiZGV0ZWN0YXNlYyIsImEiOiJjbTlzdjg3ZmkwNGVoMmpwcGg3MWMwNXlhIn0.zIQ8khHoZsJt8bL4jXf35Q';
       
       map.current = new mapboxgl.Map({
         container: mapContainer.current,
@@ -135,15 +134,15 @@ export function ActiveServicesMap({ services, selectedServiceId, onServiceSelect
         // Create custom marker element
         const markerEl = document.createElement('div');
         markerEl.className = cn(
-          'w-6 h-6 bg-white rounded-full border-2 flex items-center justify-center shadow-md transition-all duration-300',
-          selectedServiceId === service.id ? 'border-primary scale-125' : 'border-gray-300'
+          'w-8 h-8 bg-white rounded-full flex items-center justify-center shadow-lg transition-all duration-300',
+          selectedServiceId === service.id ? 'border-2 border-primary scale-125' : 'border border-gray-200'
         );
         
         // Add status indicator
         const statusIndicator = document.createElement('div');
         statusIndicator.className = cn(
-          'w-3 h-3 rounded-full',
-          service.inRiskZone ? 'bg-red-500' : service.delayRisk ? 'bg-amber-500' : 'bg-green-500'
+          'w-4 h-4 rounded-full',
+          service.inRiskZone ? "bg-red-500" : service.delayRisk ? "bg-amber-500" : "bg-green-500"
         );
         markerEl.appendChild(statusIndicator);
         
@@ -235,7 +234,7 @@ export function ActiveServicesMap({ services, selectedServiceId, onServiceSelect
   }, [selectedServiceId, services, mapLoaded]);
 
   return (
-    <div className="relative w-full h-full rounded-xl overflow-hidden border">
+    <div className="relative w-full h-full rounded-xl overflow-hidden border shadow-sm bg-card">
       {mapError ? (
         <div className="absolute inset-0 flex items-center justify-center bg-gray-50 text-center p-6">
           <div className="max-w-md">
@@ -249,16 +248,16 @@ export function ActiveServicesMap({ services, selectedServiceId, onServiceSelect
         <div ref={mapContainer} className="absolute inset-0" />
       )}
       
-      <div className="absolute bottom-4 left-4 space-y-2">
-        <Badge className="bg-green-500 flex items-center gap-1">
+      <div className="absolute bottom-4 left-4 flex flex-col space-y-1.5">
+        <Badge className="bg-green-500 flex items-center gap-1 shadow-sm">
           <div className="w-2 h-2 rounded-full bg-white" />
           <span>En tiempo</span>
         </Badge>
-        <Badge className="bg-amber-500 flex items-center gap-1">
+        <Badge className="bg-amber-500 flex items-center gap-1 shadow-sm">
           <div className="w-2 h-2 rounded-full bg-white" />
           <span>Riesgo de retraso</span>
         </Badge>
-        <Badge className="bg-red-500 flex items-center gap-1">
+        <Badge className="bg-red-500 flex items-center gap-1 shadow-sm">
           <div className="w-2 h-2 rounded-full bg-white" />
           <span>Zona de riesgo</span>
         </Badge>
