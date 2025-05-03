@@ -1,146 +1,113 @@
 
-import * as React from "react";
-import { format } from "date-fns";
+import { useState, useEffect } from "react";
+import { CalendarIcon } from "lucide-react";
+import { addDays, format } from "date-fns";
 import { es } from "date-fns/locale";
-import { Calendar as CalendarIcon } from "lucide-react";
 import { DateRange } from "react-day-picker";
-import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 interface DateRangePickerProps {
-  value: DateRange | undefined;
-  onChange: (value: DateRange | undefined) => void;
-  className?: string;
+  value: DateRange;
+  onChange: (value: DateRange) => void;
 }
 
-const presets = [
-  {
-    label: "Último mes",
-    getValue: () => {
-      const today = new Date();
-      const firstDayOfMonth = new Date(today.getFullYear(), today.getMonth() - 1, 1);
-      const lastDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 0);
-      return { from: firstDayOfMonth, to: lastDayOfMonth };
-    },
-  },
-  {
-    label: "Este mes",
-    getValue: () => {
-      const today = new Date();
-      const firstDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
-      return { from: firstDayOfMonth, to: today };
-    },
-  },
-  {
-    label: "Últimos 3 meses",
-    getValue: () => {
-      const today = new Date();
-      const threeMonthsAgo = new Date();
-      threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
-      return { from: threeMonthsAgo, to: today };
-    },
-  },
-  {
-    label: "Últimos 6 meses",
-    getValue: () => {
-      const today = new Date();
-      const sixMonthsAgo = new Date();
-      sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
-      return { from: sixMonthsAgo, to: today };
-    },
-  },
-  {
-    label: "Este año",
-    getValue: () => {
-      const today = new Date();
-      const firstDayOfYear = new Date(today.getFullYear(), 0, 1);
-      return { from: firstDayOfYear, to: today };
-    },
-  },
-  {
-    label: "Último año",
-    getValue: () => {
-      const today = new Date();
-      const oneYearAgo = new Date(today.getFullYear() - 1, today.getMonth(), today.getDate());
-      return { from: oneYearAgo, to: today };
-    },
-  },
-];
+export default function DateRangePicker({ value, onChange }: DateRangePickerProps) {
+  const [date, setDate] = useState<DateRange | undefined>(value);
 
-export default function DateRangePicker({
-  value,
-  onChange,
-  className,
-}: DateRangePickerProps) {
-  const [isOpen, setIsOpen] = React.useState(false);
+  // Update component state when value prop changes
+  useEffect(() => {
+    setDate(value);
+  }, [value]);
+
+  // Function to handle date selection and propagate changes
+  const handleSelect = (newDate: DateRange | undefined) => {
+    setDate(newDate);
+    if (newDate) {
+      onChange(newDate);
+    }
+  };
+
+  // Function to get the display text for the selected date range
+  const getDateRangeText = () => {
+    if (date?.from) {
+      if (date.to) {
+        return `${format(date.from, "dd/MM/yyyy", { locale: es })} - ${format(date.to, "dd/MM/yyyy", { locale: es })}`;
+      }
+      return format(date.from, "dd/MM/yyyy", { locale: es });
+    }
+    return "Seleccionar fechas";
+  };
+
+  // Generate preset date ranges
+  const last7Days = {
+    from: addDays(new Date(), -7),
+    to: new Date(),
+  };
+  
+  const last30Days = {
+    from: addDays(new Date(), -30),
+    to: new Date(),
+  };
+  
+  const last90Days = {
+    from: addDays(new Date(), -90),
+    to: new Date(),
+  };
 
   return (
-    <div className={cn("grid gap-2", className)}>
-      <Popover open={isOpen} onOpenChange={setIsOpen}>
+    <div className="grid gap-2">
+      <Popover>
         <PopoverTrigger asChild>
           <Button
             id="date"
-            variant={"outline"}
+            variant="outline"
             size="sm"
-            className={cn(
-              "w-auto justify-start text-left font-normal hover:bg-muted/30",
-              !value && "text-muted-foreground"
-            )}
+            className="w-[240px] justify-start text-left font-normal border-slate-200"
           >
             <CalendarIcon className="mr-2 h-4 w-4" />
-            {value?.from ? (
-              value.to ? (
-                <>
-                  {format(value.from, "dd MMM yyyy", { locale: es })} -{" "}
-                  {format(value.to, "dd MMM yyyy", { locale: es })}
-                </>
-              ) : (
-                format(value.from, "dd MMM yyyy", { locale: es })
-              )
-            ) : (
-              <span>Seleccionar fechas</span>
-            )}
+            {getDateRangeText()}
           </Button>
         </PopoverTrigger>
-        <PopoverContent className="w-auto p-0" align="start">
-          <div className="grid gap-2 p-3 bg-muted/20">
-            {presets.map((preset) => (
+        <PopoverContent className="w-auto p-0" align="end">
+          <div className="p-3 border-b">
+            <div className="flex gap-2">
               <Button
-                key={preset.label}
                 size="sm"
                 variant="ghost"
-                className="justify-start font-normal"
-                onClick={() => {
-                  onChange(preset.getValue());
-                  setIsOpen(false);
-                }}
+                className="text-xs"
+                onClick={() => handleSelect(last7Days)}
               >
-                {preset.label}
+                7 días
               </Button>
-            ))}
+              <Button
+                size="sm"
+                variant="ghost"
+                className="text-xs"
+                onClick={() => handleSelect(last30Days)}
+              >
+                30 días
+              </Button>
+              <Button
+                size="sm"
+                variant="ghost"
+                className="text-xs"
+                onClick={() => handleSelect(last90Days)}
+              >
+                90 días
+              </Button>
+            </div>
           </div>
-          <div className="p-3 border-t">
-            <Calendar
-              initialFocus
-              mode="range"
-              defaultMonth={value?.from}
-              selected={value}
-              onSelect={(newValue) => {
-                onChange(newValue);
-                if (newValue?.from && newValue?.to) {
-                  setIsOpen(false);
-                }
-              }}
-              numberOfMonths={2}
-              locale={es}
-            />
-          </div>
+          <Calendar
+            initialFocus
+            mode="range"
+            defaultMonth={date?.from}
+            selected={date}
+            onSelect={handleSelect}
+            numberOfMonths={2}
+            locale={es}
+          />
         </PopoverContent>
       </Popover>
     </div>

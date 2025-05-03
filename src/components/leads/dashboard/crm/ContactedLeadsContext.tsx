@@ -1,17 +1,20 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { useLeads } from '@/context/LeadsContext';
 import { supabase } from '@/integrations/supabase/client';
 
 interface ContactedLeadsContextType {
   contactedCount: number;
   loading: boolean;
   percentage: number;
+  error: string | null;
 }
 
 const ContactedLeadsContext = createContext<ContactedLeadsContextType>({
   contactedCount: 0,
   loading: true,
-  percentage: 0
+  percentage: 0,
+  error: null
 });
 
 export const useContactedLeads = () => useContext(ContactedLeadsContext);
@@ -20,55 +23,48 @@ export const ContactedLeadsProvider: React.FC<{ children: React.ReactNode }> = (
   const [contactedCount, setContactedCount] = useState<number>(0);
   const [loading, setLoading] = useState<boolean>(true);
   const [percentage, setPercentage] = useState<number>(0);
+  const [error, setError] = useState<string | null>(null);
+  const { leads } = useLeads();
 
   useEffect(() => {
     const fetchContactedLeads = async () => {
       setLoading(true);
       try {
-        // Query for leads with the specific ended_reason
-        // Using a different approach to get distinct customer numbers
-        const { data, error } = await supabase
-          .from('vapi_call_logs')
-          .select('customer_number')
-          .eq('ended_reason', 'assistant-ended-call-with-hangup-task');
+        // Query for contacted leads count
+        const { count, error } = await supabase
+          .from('leads')
+          .select('id', { count: 'exact', head: true })
+          .eq('estado', 'Contactado');
           
         if (error) {
           console.error('Error fetching contacted leads:', error);
+          setError(error.message);
           return;
         }
         
-        // Get unique customer numbers
-        const uniqueNumbers = new Set(data.map(log => log.customer_number));
-        const distinctCount = uniqueNumbers.size;
+        setContactedCount(count || 0);
         
-        setContactedCount(distinctCount || 0);
-        
-        // Get total count for percentage calculation
-        const { count: totalCount, error: totalError } = await supabase
-          .from('leads')
-          .select('id', { count: 'exact', head: true });
-          
-        if (totalError) {
-          console.error('Error fetching total leads:', totalError);
-          return;
+        // Calculate percentage based on total leads
+        const totalLeads = leads.length;
+        if (totalLeads > 0) {
+          const percentageValue = ((count || 0) / totalLeads) * 100;
+          setPercentage(Math.round(percentageValue * 10) / 10); // Round to 1 decimal place
+        } else {
+          setPercentage(0);
         }
-        
-        // Calculate percentage
-        const calculatedPercentage = totalCount ? ((distinctCount || 0) / totalCount) * 100 : 0;
-        setPercentage(Math.round(calculatedPercentage * 10) / 10); // Round to 1 decimal place
-        
       } catch (error) {
         console.error('Error in fetching contacted leads:', error);
+        setError('Error fetching data');
       } finally {
         setLoading(false);
       }
     };
 
     fetchContactedLeads();
-  }, []);
+  }, [leads]);
 
   return (
-    <ContactedLeadsContext.Provider value={{ contactedCount, loading, percentage }}>
+    <ContactedLeadsContext.Provider value={{ contactedCount, loading, percentage, error }}>
       {children}
     </ContactedLeadsContext.Provider>
   );

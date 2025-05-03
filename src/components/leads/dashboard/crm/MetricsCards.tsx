@@ -36,7 +36,7 @@ const MetricsCards: React.FC<MetricsCardsProps> = ({ byStage, conversions }) => 
   <>
     {byStage.map((stage, i) => {
       // Calculate the correct conversion index based on stage position
-      const conversionIndex = i > 0 ? i - 1 : null;
+      const conversionIndex = i;
       const conversionValue = conversionIndex !== null ? conversions[conversionIndex] : null;
       
       return (
