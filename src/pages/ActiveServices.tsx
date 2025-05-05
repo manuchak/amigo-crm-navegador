@@ -5,7 +5,7 @@ import { MapPin } from 'lucide-react';
 
 export default function ActiveServices() {
   return (
-    <div className="w-full h-full">
+    <div className="w-full h-full pt-16">
       <div className="mb-2 px-2">
         <div className="flex items-center gap-2 mb-1">
           <div className="h-9 w-9 rounded-lg bg-primary/10 flex items-center justify-center">

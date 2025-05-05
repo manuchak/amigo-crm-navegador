@@ -36,7 +36,7 @@ export function ActiveServicesDashboard() {
   }, [services, showAllServices]);
   
   return (
-    <div className="h-[calc(100vh-130px)] mx-1">
+    <div className="h-[calc(100vh-160px)]">
       <div className="grid grid-cols-12 gap-2 h-full">
         {/* Left sidebar with active service cards - optimized width */}
         <div className="col-span-3 lg:col-span-2 flex flex-col h-full overflow-hidden">
