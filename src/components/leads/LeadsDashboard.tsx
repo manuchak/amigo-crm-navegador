@@ -12,13 +12,13 @@ import {
 } from './dashboard';
 import { incrementCallCount } from '@/services/leadService';
 import { useLeadCallLogs } from '@/hooks/lead-call-logs';
-import CallBatchDialog from './CallBatchDialog';
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Plus, PhoneCall, Filter, RefreshCw } from "lucide-react";
 import LeadCreationForm from './LeadCreationForm';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
+import { CallBatchDialog } from './batch-calling';
 
 const LeadsDashboard = () => {
   const { leads, updateLeadStatus, refetchLeads } = useLeads();

@@ -26,5 +26,13 @@ export const webhookUrls = {
    */
   formatTestUrl(baseUrl: string, action: string): string {
     return `${baseUrl}?test=true&action=${action}`;
+  },
+  
+  /**
+   * Get the VAPI webhook URL
+   * @returns The webhook URL
+   */
+  getVapiWebhookUrl(): string {
+    return this.LEADS_WEBHOOK_URL;
   }
 };
