@@ -1,6 +1,6 @@
 
 import { UserRole } from '@/types/auth';
-import { PageAccess, RolePermission, availablePages, availableActions, ROLES } from './rolePermissions.constants';
+import { RolePermission, availablePages, availableActions, ROLES } from './rolePermissions.constants';
 
 export const getDisplayName = (role: UserRole): string => {
   const displayNames: Record<UserRole, string> = {
