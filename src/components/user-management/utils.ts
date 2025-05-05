@@ -29,3 +29,18 @@ export const canEditUser = (currentUser: UserData | null, targetUser: UserData):
   // All other roles can't edit
   return false;
 };
+
+/**
+ * Format a date to a localized string
+ */
+export const formatDate = (date: Date | null | undefined): string => {
+  if (!date) return 'N/A';
+  
+  try {
+    return new Date(date).toLocaleDateString();
+  } catch (error) {
+    console.error('Error formatting date:', error);
+    return 'Invalid date';
+  }
+};
+
