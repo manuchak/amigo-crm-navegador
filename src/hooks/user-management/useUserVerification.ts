@@ -29,6 +29,20 @@ export const useUserVerification = ({ setLoading, refreshUserData }: UserManagem
         localVerifyUserEmail(uid);
       }
       
+      // Additionally update the profiles table
+      try {
+        const { error: updateError } = await supabase
+          .from('profiles')
+          .update({ email_verified: true })
+          .eq('id', uid);
+          
+        if (updateError) {
+          console.error('Error updating profile email_verified status:', updateError);
+        }
+      } catch (profileErr) {
+        console.error('Error updating profile:', profileErr);
+      }
+      
       toast.success('Correo electrónico verificado con éxito');
       await refreshUserData();
       return { success: true };

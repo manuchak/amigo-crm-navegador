@@ -18,6 +18,7 @@ import {
 import { toast } from 'sonner';
 import { useAuth } from '@/context/AuthContext';
 import { checkForOwnerRole } from '@/integrations/supabase/client';
+import { UserVerificationBadge } from '../admin/user-management/components/UserVerificationBadge';
 
 const UserPermissionConfig = () => {
   const { userData, refreshUserData } = useAuth();
@@ -323,6 +324,26 @@ interface UserRolesTableProps {
 const UserRolesTable: React.FC<UserRolesTableProps> = ({ users }) => {
   console.log("Users in UserRolesTable:", users);
   
+  const { verifyEmail } = useAuth();
+  const [verifyingUser, setVerifyingUser] = useState<string | null>(null);
+  
+  const handleVerifyUser = async (userId: string) => {
+    setVerifyingUser(userId);
+    try {
+      const result = await verifyEmail(userId);
+      if (result.success) {
+        toast.success("Usuario verificado correctamente");
+      } else {
+        toast.error("Error al verificar usuario: " + (result.error || "Error desconocido"));
+      }
+    } catch (err) {
+      console.error("Error verifying user:", err);
+      toast.error("Error al verificar usuario");
+    } finally {
+      setVerifyingUser(null);
+    }
+  };
+  
   if (!users || users.length === 0) {
     return (
       <Alert className="mb-6 rounded-lg">
@@ -344,6 +365,8 @@ const UserRolesTable: React.FC<UserRolesTableProps> = ({ users }) => {
               <TableHead className="font-medium">Usuario</TableHead>
               <TableHead className="font-medium">Email</TableHead>
               <TableHead className="font-medium text-center">Rol Actual</TableHead>
+              <TableHead className="font-medium text-center">Verificado</TableHead>
+              <TableHead className="font-medium text-center">Acciones</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -364,6 +387,32 @@ const UserRolesTable: React.FC<UserRolesTableProps> = ({ users }) => {
                   >
                     {getDisplayName(user.role)}
                   </Badge>
+                </TableCell>
+                <TableCell className="text-center">
+                  <UserVerificationBadge isVerified={user.emailVerified} />
+                </TableCell>
+                <TableCell className="text-center">
+                  {!user.emailVerified && (
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={() => handleVerifyUser(user.uid)}
+                      disabled={verifyingUser === user.uid}
+                      className="bg-white hover:bg-slate-50 border-slate-200 text-slate-700"
+                    >
+                      {verifyingUser === user.uid ? (
+                        <>
+                          <Loader2 className="mr-2 h-3 w-3 animate-spin" />
+                          Verificando...
+                        </>
+                      ) : (
+                        <>
+                          <CheckCircle2 className="mr-2 h-3 w-3" />
+                          Verificar
+                        </>
+                      )}
+                    </Button>
+                  )}
                 </TableCell>
               </TableRow>
             ))}
