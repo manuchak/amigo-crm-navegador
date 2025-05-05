@@ -1,5 +1,5 @@
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { UserData, UserRole } from '@/types/auth';
 import { toast } from 'sonner';
 

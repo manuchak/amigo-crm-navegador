@@ -15,6 +15,7 @@ const useUserManagement = ({ getAllUsers }: UseUserManagementProps) => {
   const [isConfirmationOpen, setIsConfirmationOpen] = useState<boolean>(false);
   const [newRole, setNewRole] = useState<UserRole>('unverified');
   const [error, setError] = useState<string | null>(null);
+  const [forceRefresh, setForceRefresh] = useState(0);
   
   // Control variables to prevent infinite loops and unnecessary fetches
   const isInitialFetchComplete = useRef<boolean>(false);
@@ -84,6 +85,14 @@ const useUserManagement = ({ getAllUsers }: UseUserManagementProps) => {
     }
   }, [fetchUsers, loading]);
 
+  // Add effect to handle forceRefresh changes
+  useEffect(() => {
+    if (forceRefresh > 0) {
+      console.log('Force refresh triggered in useUserManagement');
+      fetchUsers(true);
+    }
+  }, [forceRefresh, fetchUsers]);
+
   const handleEditClick = useCallback((user: UserData) => {
     setSelectedUser(user);
     setNewRole(user.role);
@@ -93,6 +102,12 @@ const useUserManagement = ({ getAllUsers }: UseUserManagementProps) => {
   const handleRoleChange = useCallback((role: UserRole) => {
     setNewRole(role);
   }, []);
+
+  // Force a refresh of the user list
+  const refreshUserList = () => {
+    console.log('Forcing refresh of user list');
+    setForceRefresh(prev => prev + 1);
+  };
 
   return {
     users,
@@ -112,6 +127,7 @@ const useUserManagement = ({ getAllUsers }: UseUserManagementProps) => {
     handleEditClick,
     isInitialFetchComplete,
     lastFetchedAt: lastFetchedAt.current,
+    refreshUserList,
   };
 };
 
