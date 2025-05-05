@@ -176,7 +176,7 @@ const AdminConfig = () => {
                 <ul className="list-disc pl-5 space-y-1">
                   <li>Email: {userData.email}</li>
                   <li>Rol: {userData.role}</li>
-                  <li>ID: {userData.id}</li>
+                  <li>ID: {userData.uid}</li>
                   <li>Verificado por email: {userData.emailVerified ? 'Sí' : 'No'}</li>
                 </ul>
               </div>
