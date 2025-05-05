@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useRolePermissions } from './hooks/useRolePermissions';
 import { getDisplayName, isUserOwner } from './rolePermissions.utils';
@@ -43,10 +42,10 @@ const UserPermissionConfig = () => {
   } = useRolePermissions();
 
   const { verifyEmail, setUserAsVerifiedOwner } = useUserVerification({
-    setLoading: setLoadingVerify, 
-    refreshUserData: () => {
-      refreshUserData();
-      reloadPermissions();
+    setLoading: (id: string | null) => setLoadingVerify(id), 
+    refreshUserData: async () => {
+      await refreshUserData();
+      await reloadPermissions();
     }
   });
 

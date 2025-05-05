@@ -19,6 +19,14 @@ const badgeVariants = cva(
           "text-foreground",
         success:
           "border-green-200 bg-green-100 text-green-700 hover:bg-green-200",
+        warning:
+          "border-yellow-200 bg-yellow-100 text-yellow-700 hover:bg-yellow-200",
+        info:
+          "border-blue-200 bg-blue-100 text-blue-600 hover:bg-blue-200",
+        purple:
+          "border-purple-200 bg-purple-100 text-purple-700 hover:bg-purple-200",
+        primary:
+          "border-indigo-200 bg-indigo-100 text-indigo-700 hover:bg-indigo-200",
       },
     },
     defaultVariants: {
