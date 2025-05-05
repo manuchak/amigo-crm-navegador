@@ -40,22 +40,30 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setUserData
   });
 
-  // Mejorar refreshUserData para evitar llamadas recursivas
-  const refreshUserData = async () => {
+  // Mejorar refreshUserData para evitar llamadas recursivas y retornar el tipo correcto
+  const refreshUserData = async (): Promise<void> => {
     if (refreshInProgress.current) {
       console.log('Refresh user data already in progress, skipping duplicate request');
-      return { success: true };
+      return;
     }
 
     refreshInProgress.current = true;
     try {
       await authMethods.refreshUserData();
-      return { success: true };
     } catch (error) {
       console.error('Error refreshing user data:', error);
-      return { success: false, error };
     } finally {
       refreshInProgress.current = false;
+    }
+  };
+
+  // Obtener métodos de gestión de usuarios con wrapper de refreshUserData
+  const refreshUserDataWrapper = async (): Promise<{ success: boolean; error?: any }> => {
+    try {
+      await refreshUserData();
+      return { success: true };
+    } catch (error) {
+      return { success: false, error };
     }
   };
 
@@ -63,7 +71,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const userManagementMethods = useUserManagementMethods(
     setUserData, 
     setLoading, 
-    refreshUserData
+    refreshUserDataWrapper
   );
 
   const value: AuthContextProps = {
@@ -118,7 +126,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return false;
       }
     },
-    refreshUserData,
+    refreshUserData: refreshUserDataWrapper,
     resetPassword: authMethods.resetPassword
   };
 

@@ -1,4 +1,5 @@
-import { useState, useCallback, useEffect } from 'react';
+
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { UserData } from '@/types/auth';
 import { toast } from 'sonner';
 
@@ -16,33 +17,21 @@ const useUserManagement = ({ getAllUsers }: UseUserManagementProps) => {
   const [error, setError] = useState<Error | null>(null);
   const [lastFetchedAt, setLastFetchedAt] = useState<number | null>(null);
   const [fetchCount, setFetchCount] = useState<number>(0);
+  const fetchInProgress = useRef<boolean>(false);
 
   // Mejorado para ser más resiliente a errores
-  const fetchUsers = useCallback(async (forceRefresh = false) => {
+  const fetchUsers = useCallback(async (forceRefresh = false): Promise<UserData[]> => {
     // No fetch if already loading (prevent duplicate calls)
-    if (loading && !forceRefresh) {
+    if (fetchInProgress.current && !forceRefresh) {
       console.log('Already loading users, skipping additional fetch');
-      return;
+      return users;
     }
     
-    // Track fetch count
+    // Track fetch count and indicate fetch in progress
     setFetchCount(prev => prev + 1);
+    fetchInProgress.current = true;
     
-    // Cache TTL in milliseconds (5 minutes)
-    const CACHE_TTL = 5 * 60 * 1000;
-    const now = Date.now();
-    
-    // Use cache unless forced refresh or cache expired
-    if (
-      !forceRefresh && 
-      lastFetchedAt && 
-      (now - lastFetchedAt < CACHE_TTL) && 
-      users.length > 0
-    ) {
-      console.log('Using cached users list');
-      return;
-    }
-    
+    // Start loading state
     setLoading(true);
     setError(null);
     
@@ -52,8 +41,15 @@ const useUserManagement = ({ getAllUsers }: UseUserManagementProps) => {
       
       if (Array.isArray(usersData)) {
         console.log(`Successfully loaded ${usersData.length} users`);
+        
+        // Ensure we have data to display
+        if (usersData.length === 0) {
+          console.warn('API returned 0 users - this might indicate a problem');
+        }
+        
         setUsers(usersData);
-        setLastFetchedAt(now);
+        setLastFetchedAt(Date.now());
+        return usersData;
       } else {
         throw new Error('Invalid response format from getAllUsers');
       }
@@ -67,29 +63,33 @@ const useUserManagement = ({ getAllUsers }: UseUserManagementProps) => {
       } else {
         toast.warning('Error al actualizar usuarios. Mostrando datos en caché.');
       }
+      
+      return users; // Return existing users as fallback
     } finally {
       setLoading(false);
+      fetchInProgress.current = false;
     }
-  }, [getAllUsers, loading, lastFetchedAt, users.length]);
+  }, [getAllUsers, users]);
 
-  // Auto-refresh on mount and after inactivity 
+  // Auto-refresh on mount
   useEffect(() => {
     // Initial load if needed
-    if (users.length === 0 && !loading && fetchCount === 0) {
+    if (!fetchInProgress.current) {
+      console.log('Initial load triggered in useUserManagement hook');
       fetchUsers(true);
     }
     
     // Set up timer for periodic refresh
-    const REFRESH_INTERVAL = 10 * 60 * 1000; // 10 minutes
+    const REFRESH_INTERVAL = 5 * 60 * 1000; // 5 minutes
     const refreshTimer = setTimeout(() => {
-      if (!loading) {
+      if (!fetchInProgress.current) {
         console.log('Performing background refresh of users list');
         fetchUsers(true);
       }
     }, REFRESH_INTERVAL);
     
     return () => clearTimeout(refreshTimer);
-  }, [fetchUsers, users.length, loading, fetchCount]);
+  }, [fetchUsers]);
 
   const handleEditClick = (user: UserData) => {
     setSelectedUser(user);

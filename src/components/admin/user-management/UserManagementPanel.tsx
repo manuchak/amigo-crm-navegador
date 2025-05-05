@@ -1,7 +1,7 @@
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
-import { Loader2 } from 'lucide-react';
+import { Loader2, RefreshCw, AlertTriangle } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { UserData } from '@/types/auth';
 import { toast } from 'sonner';
@@ -18,6 +18,9 @@ import { Button } from '@/components/ui/button';
 
 const UserManagementPanel = () => {
   const { getAllUsers, updateUserRole, verifyEmail, userData: currentUserData } = useAuth();
+  const [retryCount, setRetryCount] = useState(0);
+  const [fetchSuccess, setFetchSuccess] = useState(false);
+  
   const { 
     users, 
     loading, 
@@ -37,21 +40,38 @@ const UserManagementPanel = () => {
     lastFetchedAt
   } = useUserManagement({ getAllUsers });
   
-  // Only fetch data once on component mount
+  // More aggressive fetch on mount to ensure data loads
   useEffect(() => {
-    if (!users.length && !loading) {
-      console.log('Initial fetch of users in UserManagementPanel');
-      fetchUsers(true);
-    }
-  // The empty dependency array ensures this only runs once on mount
-  }, []);
+    const initialLoad = async () => {
+      console.log('Initial user data fetch attempt in UserManagementPanel');
+      if (!fetchSuccess) {
+        try {
+          const fetchedUsers = await fetchUsers(true);
+          if (fetchedUsers && fetchedUsers.length > 0) {
+            console.log(`Successfully loaded ${fetchedUsers.length} users`);
+            setFetchSuccess(true);
+          } else {
+            console.log('No users loaded in initial fetch');
+          }
+        } catch (err) {
+          console.error('Error in initial fetch:', err);
+        }
+      }
+    };
+    
+    initialLoad();
+  }, [retryCount, fetchSuccess]);
   
   const handleUpdateRole = async () => {
     if (!selectedUser || !newRole) return;
     
     try {
       console.log(`Updating role for user ${selectedUser.uid} to ${newRole}`);
-      await updateUserRole(selectedUser.uid, newRole);
+      const result = await updateUserRole(selectedUser.uid, newRole);
+      
+      if (!result.success) {
+        throw new Error(result.error || 'Unknown error updating role');
+      }
       
       setIsEditDialogOpen(false);
       setIsConfirmationOpen(true);
@@ -62,6 +82,9 @@ const UserManagementPanel = () => {
       ));
       
       toast.success(`Rol actualizado a ${newRole} para ${selectedUser.displayName || selectedUser.email}`);
+      
+      // Force refresh the user list to ensure we have the latest data
+      setTimeout(() => fetchUsers(true), 1000);
     } catch (error: any) {
       console.error('Error updating role:', error);
       toast.error(`Error al actualizar el rol del usuario: ${error?.message || 'Error desconocido'}`);
@@ -71,7 +94,11 @@ const UserManagementPanel = () => {
   const handleVerifyUser = async (user: UserData) => {
     try {
       console.log(`Verifying email for user ${user.uid}`);
-      await verifyEmail(user.uid);
+      const result = await verifyEmail(user.uid);
+      
+      if (!result.success) {
+        throw new Error(result.error || 'Unknown error verifying email');
+      }
       
       // Update local state to reflect the change
       setUsers(prevUsers => prevUsers.map(u => 
@@ -79,6 +106,9 @@ const UserManagementPanel = () => {
       ));
       
       toast.success(`Email verificado para ${user.displayName || user.email}`);
+      
+      // Force refresh to ensure we have the latest data
+      setTimeout(() => fetchUsers(true), 1000);
     } catch (error: any) {
       console.error('Error verifying user email:', error);
       toast.error(`Error al verificar el email del usuario: ${error?.message || 'Error desconocido'}`);
@@ -86,7 +116,9 @@ const UserManagementPanel = () => {
   };
 
   const handleRefresh = () => {
-    console.log('Manual refresh triggered');
+    console.log('Manual refresh triggered with forced reload');
+    setRetryCount(prev => prev + 1);
+    setFetchSuccess(false);
     fetchUsers(true);
   };
 
@@ -100,6 +132,9 @@ const UserManagementPanel = () => {
           <li>Usuario actual: {currentUserData?.email || 'No autenticado'} (Rol: {currentUserData?.role || 'ninguno'})</li>
           <li>Total de usuarios cargados: {users.length}</li>
           <li>Última actualización: {lastFetchedAt ? new Date(lastFetchedAt).toLocaleString() : 'Nunca'}</li>
+          <li>Número de intentos: {retryCount}</li>
+          <li>Estado de carga: {loading ? 'Cargando' : 'Completado'}</li>
+          <li>Fuente de datos: {fetchSuccess ? 'API' : 'Caché/Fallback'}</li>
         </ul>
         {currentUserData && (
           <>
@@ -119,19 +154,51 @@ const UserManagementPanel = () => {
       <CardContent className="pt-6">
         {error && (
           <Alert variant="destructive" className="mb-4">
+            <AlertTriangle className="h-4 w-4 mr-2" />
             <AlertTitle>Error al cargar usuarios</AlertTitle>
             <AlertDescription>
-              {error}
-              <div className="mt-2">
-                <Button size="sm" onClick={() => fetchUsers(true)}>Reintentar</Button>
+              <p>{error.toString()}</p>
+              <div className="mt-2 flex gap-2">
+                <Button size="sm" onClick={() => fetchUsers(true)}>
+                  <RefreshCw className="mr-2 h-4 w-4" />
+                  Reintentar
+                </Button>
+                <Button 
+                  size="sm" 
+                  variant="outline" 
+                  onClick={() => {
+                    setRetryCount(prev => prev + 1);
+                    setFetchSuccess(false);
+                  }}
+                >
+                  Forzar recarga completa
+                </Button>
               </div>
+            </AlertDescription>
+          </Alert>
+        )}
+        
+        {users.length === 0 && !loading && !error && (
+          <Alert variant="warning" className="mb-4">
+            <AlertTriangle className="h-4 w-4 mr-2" />
+            <AlertTitle>No se encontraron usuarios</AlertTitle>
+            <AlertDescription>
+              <p>No se encontraron usuarios en el sistema. Intente actualizar los datos.</p>
+              <Button size="sm" className="mt-2" onClick={handleRefresh}>
+                <RefreshCw className="mr-2 h-4 w-4" />
+                Actualizar ahora
+              </Button>
             </AlertDescription>
           </Alert>
         )}
         
         {loading ? (
           <div className="flex justify-center py-8">
-            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+            <div className="flex flex-col items-center">
+              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground mb-4" />
+              <p className="text-sm text-muted-foreground">Cargando usuarios...</p>
+              {retryCount > 0 && <p className="text-xs text-muted-foreground">Intento #{retryCount}</p>}
+            </div>
           </div>
         ) : (
           <>
