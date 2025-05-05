@@ -1,91 +1,117 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { useAuth } from '@/context/AuthContext';
 import UserManagementPanel from '@/components/admin/UserManagementPanel';
 import UserPermissionConfig from '@/components/user-management/UserPermissionConfig';
-import { Settings, Users, Lock, RefreshCw } from 'lucide-react';
+import { Settings, Users, Lock, RefreshCw, AlertTriangle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { setSpecificUserAsVerifiedOwner, setManuelAsOwner } from '@/utils/setVerifiedOwner';
 import { Button } from '@/components/ui/button';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 const AdminConfig = () => {
   const { currentUser, userData, refreshUserData } = useAuth();
   const [activeTab, setActiveTab] = useState<string>("users");
   const [ownerStatus, setOwnerStatus] = useState<boolean>(false);
   const [isCheckingOwner, setIsCheckingOwner] = useState<boolean>(false);
+  const [lastChecked, setLastChecked] = useState<Date | null>(null);
+  const [ownerError, setOwnerError] = useState<string | null>(null);
   
-  // Check and verify owner status on component mount
-  useEffect(() => {
-    const checkOwnerStatus = async () => {
-      try {
-        setIsCheckingOwner(true);
+  // Check and verify owner status function
+  const checkOwnerStatus = useCallback(async () => {
+    try {
+      setIsCheckingOwner(true);
+      setOwnerError(null);
+      
+      // First check if current user is already an owner
+      if (userData?.role === 'owner') {
+        console.log("User is already verified as owner");
+        setOwnerStatus(true);
+        setLastChecked(new Date());
+        return true;
+      }
+      
+      // Get current user from Supabase
+      const { data: authData } = await supabase.auth.getUser();
+      if (!authData.user) {
+        setOwnerError("No authenticated user found");
+        console.error("No authenticated user found");
+        return false;
+      }
+      
+      console.log("Current user:", authData.user.email);
+      
+      // Check user role from Supabase
+      const { data: roleData, error: roleError } = await supabase.rpc('get_user_role', {
+        user_uid: authData.user.id
+      });
+      
+      if (roleError) {
+        setOwnerError(`Error getting user role: ${roleError.message}`);
+        console.error("Error getting user role:", roleError);
+        return false;
+      }
+      
+      // Update owner status based on role check
+      const isOwner = roleData === 'owner';
+      setOwnerStatus(isOwner);
+      setLastChecked(new Date());
+      
+      if (isOwner) {
+        console.log("✅ Current user verified as owner");
+        toast.success("Has sido verificado como propietario del sistema");
+        return true;
+      } else {
+        console.log("❌ Current user is not owner, role:", roleData);
         
-        // First check if current user is already an owner
-        if (userData?.role === 'owner') {
-          console.log("User is already verified as owner");
-          setOwnerStatus(true);
-          return;
-        }
-        
-        // Get current user from Supabase
-        const { data: authData } = await supabase.auth.getUser();
-        if (!authData.user) {
-          console.error("No authenticated user found");
-          return;
-        }
-        
-        console.log("Current user:", authData.user.email);
-        
-        // Check user role from Supabase
-        const { data: roleData, error: roleError } = await supabase.rpc('get_user_role', {
-          user_uid: authData.user.id
-        });
-        
-        if (roleError) {
-          console.error("Error getting user role:", roleError);
-          return;
-        }
-        
-        // Update owner status based on role check
-        const isOwner = roleData === 'owner';
-        setOwnerStatus(isOwner);
-        
-        if (isOwner) {
-          console.log("✅ Current user verified as owner");
-          toast.success("Has sido verificado como propietario del sistema");
-        } else {
-          console.log("❌ Current user is not owner, role:", roleData);
-          
-          // If email matches Manuel, try to set as owner
-          if (authData.user.email?.toLowerCase() === 'manuel.chacon@detectasecurity.io') {
-            console.log("Attempting to set Manuel as owner...");
-            const success = await setSpecificUserAsVerifiedOwner(authData.user.email, false);
-            if (success) {
-              console.log("Manuel has been set as owner");
-              toast.success("Tu cuenta ha sido establecida como propietario del sistema");
-              await refreshUserData();
-              setOwnerStatus(true);
-            } else {
-              console.error("Failed to set Manuel as owner");
-            }
+        // If email matches Manuel, try to set as owner
+        if (authData.user.email?.toLowerCase() === 'manuel.chacon@detectasecurity.io') {
+          console.log("Attempting to set Manuel as owner...");
+          const success = await setSpecificUserAsVerifiedOwner(authData.user.email, false);
+          if (success) {
+            console.log("Manuel has been set as owner");
+            toast.success("Tu cuenta ha sido establecida como propietario del sistema");
+            await refreshUserData();
+            setOwnerStatus(true);
+            return true;
+          } else {
+            setOwnerError("Failed to set Manuel as owner automatically");
+            console.error("Failed to set Manuel as owner");
+            return false;
           }
         }
-        
-        // Force refresh user data to reflect any role changes
-        await refreshUserData();
-      } catch (error) {
-        console.error("Error checking owner status:", error);
-      } finally {
-        setIsCheckingOwner(false);
+        return false;
       }
+    } catch (error: any) {
+      setOwnerError(`Error checking owner status: ${error.message}`);
+      console.error("Error checking owner status:", error);
+      return false;
+    } finally {
+      setIsCheckingOwner(false);
+    }
+  }, [userData, refreshUserData]);
+
+  // Initial owner status check
+  useEffect(() => {
+    const checkInitialOwnerStatus = async () => {
+      await checkOwnerStatus();
     };
 
-    checkOwnerStatus();
-  }, [userData, refreshUserData]);
+    if (!lastChecked) {
+      checkInitialOwnerStatus();
+    }
+  }, [lastChecked, checkOwnerStatus]);
+  
+  // Force refresh when userData changes
+  useEffect(() => {
+    if (userData && !lastChecked) {
+      checkOwnerStatus();
+    }
+  }, [userData, lastChecked, checkOwnerStatus]);
   
   const handleForceOwnerCheck = async () => {
     setIsCheckingOwner(true);
@@ -94,10 +120,12 @@ const AdminConfig = () => {
       if (success) {
         await refreshUserData();
         toast.success("Permisos de propietario actualizados correctamente");
+        setOwnerStatus(true);
       } else {
         toast.error("No se pudo establecer el permiso de propietario");
       }
-    } catch (error) {
+    } catch (error: any) {
+      setOwnerError(`Error setting owner: ${error.message}`);
       console.error("Error setting owner:", error);
       toast.error("Error al actualizar permisos de propietario");
     } finally {
@@ -120,6 +148,14 @@ const AdminConfig = () => {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
+            {ownerError && (
+              <Alert variant="destructive" className="mb-4">
+                <AlertTriangle className="h-4 w-4 mr-2" />
+                <AlertTitle>Error de verificación</AlertTitle>
+                <AlertDescription>{ownerError}</AlertDescription>
+              </Alert>
+            )}
+            
             <p className="text-muted-foreground">
               Si crees que deberías tener acceso, por favor contacta al administrador del sistema.
             </p>
@@ -132,6 +168,18 @@ const AdminConfig = () => {
                 <RefreshCw className={`h-4 w-4 mr-2 ${isCheckingOwner ? 'animate-spin' : ''}`} />
                 Verificar permisos de propietario
               </Button>
+            )}
+            
+            {userData && (
+              <div className="mt-4 p-3 bg-muted rounded text-xs">
+                <p className="font-semibold mb-1">Información del usuario:</p>
+                <ul className="list-disc pl-5 space-y-1">
+                  <li>Email: {userData.email}</li>
+                  <li>Rol: {userData.role}</li>
+                  <li>ID: {userData.id}</li>
+                  <li>Verificado por email: {userData.emailVerified ? 'Sí' : 'No'}</li>
+                </ul>
+              </div>
             )}
           </CardContent>
         </Card>

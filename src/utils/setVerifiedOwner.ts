@@ -46,6 +46,10 @@ export const setSpecificUserAsVerifiedOwner = async (email: string, showToast: b
             toast.success(`Ya eres propietario del sistema`);
           }
           return true;
+        } else if (roleError) {
+          console.error("Error checking role:", roleError);
+        } else {
+          console.log(`Current role is "${roleData}", attempting to update to owner`);
         }
       }
       
@@ -61,51 +65,84 @@ export const setSpecificUserAsVerifiedOwner = async (email: string, showToast: b
         userId = profileData.id;
         console.log(`User found with ID: ${profileData.id}`);
       } else if (profileError) {
-        console.error('Error checking for existing user:', profileError);
+        console.error('Error checking for existing user in profiles:', profileError);
       } else {
         console.log(`User with email ${email} not found in profiles`);
         
-        // Try to find user in auth.users directly (requires admin privileges)
+        // Try to find user in auth.users directly
         try {
-          const { data: userData, error: userError } = await supabase.auth.admin.listUsers() as { 
-            data: SupabaseAuthResponse | null; 
-            error: any 
-          };
+          const { data: authData } = await supabase.auth.getUser();
+          console.log("Current authenticated user:", authData?.user?.email);
           
-          if (userError) {
-            console.error('Error listing users:', userError);
-          } else if (userData && userData.users) {
-            // Now TypeScript knows that users have an email property
-            const foundUser = userData.users.find(u => u.email?.toLowerCase() === email.toLowerCase());
-            if (foundUser) {
-              userExists = true;
-              userId = foundUser.id;
-              console.log(`User found in auth.users with ID: ${foundUser.id}`);
+          // If current user email matches the target email
+          if (authData?.user?.email?.toLowerCase() === email.toLowerCase()) {
+            userExists = true;
+            userId = authData.user.id;
+            console.log(`Using current authenticated user with ID: ${userId}`);
+          } else {
+            // Try to use admin.listUsers if available
+            try {
+              console.log("Attempting to use admin.listUsers API");
+              const { data: userData, error: userError } = await supabase.auth.admin.listUsers() as { 
+                data: SupabaseAuthResponse | null; 
+                error: any 
+              };
+              
+              if (userError) {
+                console.error('Error listing users:', userError);
+              } else if (userData && userData.users) {
+                // Now TypeScript knows that users have an email property
+                const foundUser = userData.users.find(u => u.email?.toLowerCase() === email.toLowerCase());
+                if (foundUser) {
+                  userExists = true;
+                  userId = foundUser.id;
+                  console.log(`User found in auth.users with ID: ${foundUser.id}`);
+                } else {
+                  console.log(`User with email ${email} not found in auth.users list`);
+                }
+              }
+            } catch (authError) {
+              console.error('Error checking auth.users:', authError);
             }
           }
-        } catch (authError) {
-          console.error('Error checking auth.users:', authError);
-        }
-        
-        // If user still not found, try another approach with getUser
-        if (!userExists) {
-          const { data: sessionData } = await supabase.auth.getSession();
-          if (sessionData?.session?.user?.email?.toLowerCase() === email.toLowerCase()) {
-            userExists = true;
-            userId = sessionData.session.user.id;
-            console.log(`User found from session with ID: ${userId}`);
-          }
+        } catch (sessionError) {
+          console.error('Error getting current user session:', sessionError);
         }
       }
     } catch (error) {
-      console.error('Error checking for existing user:', error);
+      console.error('Error searching for user:', error);
     }
     
     if (userExists && userId) {
-      // First try: direct user_roles table manipulation
-      console.log(`Attempting to update user ${email} (${userId}) to owner role via direct table access...`);
+      console.log(`User found! Attempting to update ${userId} to owner role`);
       
+      // First try: direct role assignment through RPC function
       try {
+        console.log(`Attempting to use update_user_role RPC function for user ${userId}`);
+        
+        const { error: rpcError } = await supabase.rpc('update_user_role', {
+          target_user_id: userId,
+          new_role: 'owner'
+        });
+        
+        if (rpcError) {
+          console.error('RPC Error:', rpcError);
+          // Continue to fallback methods
+        } else {
+          console.log('Successfully set role to owner via RPC function');
+          if (showToast) {
+            toast.success(`${email} ha sido configurado como propietario`);
+          }
+          return true;
+        }
+      } catch (rpcError) {
+        console.error('Error using RPC method:', rpcError);
+      }
+      
+      // Second try: direct user_roles table manipulation
+      try {
+        console.log(`Attempting direct table manipulation for user ${userId}`);
+        
         // Check if entry exists
         const { data: existingRole, error: checkError } = await supabase
           .from('user_roles')
@@ -126,9 +163,12 @@ export const setSpecificUserAsVerifiedOwner = async (email: string, showToast: b
             
           if (updateError) {
             console.error('Error updating role:', updateError);
-            throw updateError;
           } else {
             console.log('Successfully updated role to owner via direct table update');
+            if (showToast) {
+              toast.success(`${email} ha sido configurado como propietario`);
+            }
+            return true;
           }
         } else {
           // Insert new entry
@@ -142,74 +182,58 @@ export const setSpecificUserAsVerifiedOwner = async (email: string, showToast: b
             
           if (insertError) {
             console.error('Error inserting owner role:', insertError);
-            throw insertError;
           } else {
             console.log('Successfully inserted owner role via direct table insert');
+            if (showToast) {
+              toast.success(`${email} ha sido configurado como propietario`);
+            }
+            return true;
           }
         }
-      } catch (directUpdateError) {
-        console.error('Error with direct table manipulation:', directUpdateError);
+      } catch (directError) {
+        console.error('Error with direct table manipulation:', directError);
+      }
+      
+      // Last resort: Another attempt with a different approach
+      try {
+        console.log('Trying final approach to set user as owner');
         
-        // Second try: Use the RPC function
-        try {
-          console.log(`Attempting to update user ${email} (${userId}) to owner role using RPC...`);
+        // Delete any existing roles first
+        const { error: deleteError } = await supabase
+          .from('user_roles')
+          .delete()
+          .eq('user_id', userId);
           
-          const { error: rpcError } = await supabase.rpc('update_user_role', {
-            target_user_id: userId,
-            new_role: 'owner'
+        if (deleteError) {
+          console.error('Error deleting existing roles:', deleteError);
+        }
+        
+        // Wait a moment before inserting new role (to avoid race conditions)
+        await new Promise(resolve => setTimeout(resolve, 500));
+        
+        // Insert new owner role
+        const { error: insertError } = await supabase
+          .from('user_roles')
+          .insert({
+            user_id: userId,
+            role: 'owner',
+            assigned_by: userId // Self-assigned as fallback
           });
           
-          if (rpcError) {
-            console.error('RPC Error setting user as owner:', rpcError);
-            throw rpcError;
-          } else {
-            console.log('Successfully set role to owner via RPC function');
+        if (insertError) {
+          console.error('Error inserting owner role in final attempt:', insertError);
+          throw insertError;
+        } else {
+          console.log('Successfully set owner role via final approach');
+          if (showToast) {
+            toast.success(`${email} ha sido configurado como propietario`);
           }
-        } catch (rpcError) {
-          console.error('Error using RPC method:', rpcError);
-          
-          // Last resort: Try another table operation with different approach
-          try {
-            console.log('Trying final fallback method to set user as owner...');
-            
-            // Delete any existing roles first
-            const { error: deleteError } = await supabase
-              .from('user_roles')
-              .delete()
-              .eq('user_id', userId);
-              
-            if (deleteError) {
-              console.error('Error deleting existing roles:', deleteError);
-            }
-            
-            // Insert new owner role
-            const { error: insertError } = await supabase
-              .from('user_roles')
-              .insert({
-                user_id: userId,
-                role: 'owner',
-                assigned_by: userId // Self-assigned as fallback
-              });
-              
-            if (insertError) {
-              console.error('Error inserting owner role in fallback:', insertError);
-              throw insertError;
-            } else {
-              console.log('Successfully set owner role via direct insert fallback');
-            }
-          } catch (fallbackError) {
-            console.error('Error in all fallback methods:', fallbackError);
-            throw fallbackError;
-          }
+          return true;
         }
+      } catch (finalError) {
+        console.error('Error in final owner assignment attempt:', finalError);
+        throw finalError;
       }
-      
-      if (showToast) {
-        toast.success(`${email} ha sido configurado como propietario`);
-      }
-      
-      console.log(`✅ ${email} successfully set as owner`);
-      return true;
     } else {
       console.log(`User ${email} not found in database`);
       if (showToast) {
@@ -217,6 +241,10 @@ export const setSpecificUserAsVerifiedOwner = async (email: string, showToast: b
       }
       return false;
     }
+    
+    // If we reach here, all attempts failed
+    throw new Error("All methods to set owner role failed");
+    
   } catch (error) {
     console.error('Error setting verified owner:', error);
     if (showToast) {
