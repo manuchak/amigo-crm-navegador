@@ -83,14 +83,22 @@ const UserManagementPanel = () => {
       }
       
       setIsEditDialogOpen(false);
-      setIsConfirmationOpen(true);
       
       // Update local state to show the change immediately
       setUsers(prevUsers => prevUsers.map(user => 
         user.uid === selectedUser.uid ? { ...user, role: newRole } : user
       ));
       
+      // Show confirmation dialog
+      setIsConfirmationOpen(true);
+      
       toast.success(`Rol actualizado a ${newRole} para ${selectedUser.displayName || selectedUser.email}`);
+      
+      // Force refresh the user list to ensure we have the latest data
+      setTimeout(() => {
+        console.log('Refreshing user list after role update');
+        fetchUsers(true);
+      }, 1000);
     } catch (error: any) {
       console.error('Error updating role:', error);
       toast.error(`Error al actualizar el rol del usuario: ${error?.message || 'Error desconocido'}`);
@@ -112,6 +120,12 @@ const UserManagementPanel = () => {
       ));
       
       toast.success(`Email verificado para ${user.displayName || user.email}`);
+      
+      // Force refresh to ensure we have the latest data
+      setTimeout(() => {
+        console.log('Refreshing user list after email verification');
+        fetchUsers(true);
+      }, 1000);
     } catch (error: any) {
       console.error('Error verifying user email:', error);
       toast.error(`Error al verificar el email del usuario: ${error?.message || 'Error desconocido'}`);

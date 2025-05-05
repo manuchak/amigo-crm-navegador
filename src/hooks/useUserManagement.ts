@@ -46,12 +46,15 @@ export const useUserManagement = (
   const updateUserRole = async (uid: string, role: UserRole) => {
     setLoading(true);
     try {
+      console.log(`Updating role in useUserManagement hook: ${uid} -> ${role}`);
       localUpdateUserRole(uid, role);
       toast.success('Rol de usuario actualizado con éxito');
       await refreshUserData();
+      return { success: true };
     } catch (error) {
       console.error('Error updating user role:', error);
       toast.error('Error al actualizar el rol de usuario');
+      return { success: false, error };
     } finally {
       setLoading(false);
     }
@@ -60,7 +63,9 @@ export const useUserManagement = (
   const getAllUsers = async (): Promise<UserData[]> => {
     setLoading(true);
     try {
+      console.log('Getting all users from storage');
       const users = localGetAllUsers();
+      console.log('Users retrieved:', users.length);
       return users;
     } catch (error) {
       console.error('Error getting all users:', error);
@@ -77,9 +82,11 @@ export const useUserManagement = (
       verifyUserEmail(uid);
       toast.success('Correo electrónico verificado con éxito');
       await refreshUserData();
+      return { success: true };
     } catch (error) {
       console.error('Error verifying email:', error);
       toast.error('Error al verificar el correo electrónico');
+      return { success: false, error };
     } finally {
       setLoading(false);
     }
@@ -91,15 +98,17 @@ export const useUserManagement = (
       const user = findUserByEmail(email);
       if (!user) {
         toast.error(`Usuario con email ${email} no encontrado`);
-        return;
+        return { success: false, error: 'User not found' };
       }
       
       setAsVerifiedOwner(user.uid);
       toast.success(`Usuario ${email} configurado como propietario verificado`);
       await refreshUserData();
+      return { success: true };
     } catch (error) {
       console.error('Error setting user as verified owner:', error);
       toast.error('Error al configurar el usuario como propietario verificado');
+      return { success: false, error };
     } finally {
       setLoading(false);
     }

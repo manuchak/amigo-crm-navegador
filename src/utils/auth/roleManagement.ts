@@ -3,9 +3,14 @@ import { UserRole, UserData } from '@/types/auth';
 import { getUsers, saveUsers, getCurrentUser, setCurrentUser } from './storage';
 
 export const updateUserRole = (uid: string, role: UserRole): void => {
+  console.log(`Role management: Updating user ${uid} to role ${role}`);
+  
   const users = getUsers();
+  console.log('Current users before update:', users.length);
+  
   const updatedUsers = users.map(user => {
     if (user.uid === uid) {
+      console.log(`Found user to update: ${user.email}`);
       return {
         ...user,
         role
@@ -14,10 +19,14 @@ export const updateUserRole = (uid: string, role: UserRole): void => {
     return user;
   });
   
+  // Save changes to storage
   saveUsers(updatedUsers);
+  console.log('Users saved after role update');
   
+  // If this is the current user, update current user data too
   const currentUser = getCurrentUser();
   if (currentUser && currentUser.uid === uid) {
+    console.log('Updating current user role as well');
     setCurrentUser({
       ...currentUser,
       role
