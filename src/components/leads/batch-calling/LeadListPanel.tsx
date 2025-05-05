@@ -24,9 +24,10 @@ const LeadListPanel: React.FC<LeadListPanelProps> = ({
               id="select-all"
               className="mr-2"
               checked={allSelected}
-              ref={ref => {
+              ref={(ref) => {
+                // We need to cast this to HTMLInputElement because indeterminate is a property of input elements, not button elements
                 if (ref) {
-                  ref.indeterminate = someSelected && !allSelected;
+                  (ref as unknown as HTMLInputElement).indeterminate = someSelected && !allSelected;
                 }
               }}
               onCheckedChange={handleSelectAll}
