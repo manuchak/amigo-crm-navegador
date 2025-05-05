@@ -12,6 +12,7 @@ import { toast } from 'sonner';
 import { setSpecificUserAsVerifiedOwner, setManuelAsOwner } from '@/utils/setVerifiedOwner';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { isUserAdminOrOwner } from '@/components/user-management/rolePermissions.utils';
 
 // Define AdminConfig as a regular function component instead of an arrow function
 function AdminConfig() {
@@ -23,6 +24,17 @@ function AdminConfig() {
   const [ownerError, setOwnerError] = useState<string | null>(null);
   const [isRunningEdgeFunction, setIsRunningEdgeFunction] = useState<boolean>(false);
   const [directDbSuccess, setDirectDbSuccess] = useState<boolean>(false);
+  const [localAdminStatus, setLocalAdminStatus] = useState<boolean>(false);
+  
+  // Check local storage for admin/owner status
+  useEffect(() => {
+    const isLocalAdmin = isUserAdminOrOwner();
+    setLocalAdminStatus(isLocalAdmin);
+    
+    if (isLocalAdmin) {
+      console.log("User identified as admin or owner from local storage");
+    }
+  }, [userData]);
   
   // Check and verify owner status function
   const checkOwnerStatus = useCallback(async () => {
@@ -205,10 +217,13 @@ function AdminConfig() {
     }
   };
   
-  // Only show admin features if user has correct role
-  const isAdmin = userData?.role === 'admin' || userData?.role === 'owner' || ownerStatus;
+  // Use both database check and local storage check for admin status
+  const effectiveAdminStatus = userData?.role === 'admin' || 
+                             userData?.role === 'owner' || 
+                             ownerStatus || 
+                             localAdminStatus;
 
-  if (!isAdmin) {
+  if (!effectiveAdminStatus) {
     return (
       <div className="container mx-auto px-4 py-8 pt-20">
         <Card>
@@ -272,6 +287,7 @@ function AdminConfig() {
                   <li>Rol: {userData.role}</li>
                   <li>ID: {userData.uid}</li>
                   <li>Verificado por email: {userData.emailVerified ? 'Sí' : 'No'}</li>
+                  <li>Admin/Owner en localStorage: {localAdminStatus ? 'Sí' : 'No'}</li>
                 </ul>
               </div>
             )}

@@ -14,6 +14,7 @@ import { toast } from 'sonner';
 import { setManuelAsOwner } from '@/utils/setVerifiedOwner';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { availablePages, availableActions } from './rolePermissions.constants';
+import { isUserOwner, isUserAdminOrOwner } from './rolePermissions.utils';
 
 const UserPermissionConfig = () => {
   const {
@@ -36,6 +37,17 @@ const UserPermissionConfig = () => {
   const [ownerAssignmentStatus, setOwnerAssignmentStatus] = useState<'idle' | 'assigning' | 'success' | 'failed'>('idle');
   const [debugInfo, setDebugInfo] = useState<any>(null);
   const [permissionError, setPermissionError] = useState<string | null>(null);
+  const [localOwnerStatus, setLocalOwnerStatus] = useState<boolean>(false);
+  
+  // Check local storage for owner status along with database check
+  useEffect(() => {
+    const localOwner = isUserOwner();
+    setLocalOwnerStatus(localOwner);
+    
+    if (localOwner) {
+      console.log("User identified as owner from local storage");
+    }
+  }, [userData]);
   
   // Verificar status de propietario al cargar y cuando cambia el usuario
   useEffect(() => {
@@ -177,6 +189,9 @@ const UserPermissionConfig = () => {
     }
   };
   
+  // Force user to be treated as owner if they have that role in local storage
+  const effectiveOwnerStatus = isOwner || localOwnerStatus;
+  
   if (loading) {
     return (
       <div className="flex justify-center items-center p-8">
@@ -187,7 +202,7 @@ const UserPermissionConfig = () => {
   }
   
   // Si no es propietario, mostrar mensaje y botón para refrescar
-  if (!isOwner) {
+  if (!effectiveOwnerStatus) {
     return (
       <Card className="bg-amber-50 border-amber-200">
         <CardContent className="pt-6 space-y-4">
@@ -212,7 +227,8 @@ const UserPermissionConfig = () => {
             <ul className="list-disc pl-5 mt-2 space-y-1">
               <li>Usuario: {userData?.email || 'No identificado'}</li>
               <li>Rol actual: {userData?.role || 'No definido'}</li>
-              <li>Estado propietario: {isOwner ? 'Sí' : 'No'}</li>
+              <li>Estado propietario DB: {isOwner ? 'Sí' : 'No'}</li>
+              <li>Estado propietario Local: {localOwnerStatus ? 'Sí' : 'No'}</li>
               <li>Estado de asignación: {
                 ownerAssignmentStatus === 'idle' ? 'No iniciado' :
                 ownerAssignmentStatus === 'assigning' ? 'En proceso' :

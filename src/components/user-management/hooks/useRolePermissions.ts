@@ -3,7 +3,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { availablePages, availableActions, ROLES, RolePermission } from '../rolePermissions.constants';
-import { getRoleDisplayName, getInitialPermissions } from './usePermissionsData';
+import { getRoleDisplayName, getInitialPermissions, isUserOwner } from '../rolePermissions.utils';
 
 export function useRolePermissions() {
   const [permissions, setPermissions] = useState<RolePermission[]>([]);
@@ -17,6 +17,14 @@ export function useRolePermissions() {
   const checkOwnerStatus = useCallback(async (): Promise<boolean> => {
     try {
       console.log("Verificando status de propietario...");
+      
+      // Check local storage first
+      const localOwnerStatus = isUserOwner();
+      if (localOwnerStatus) {
+        console.log("Owner status from local storage: ✅ Yes");
+        setIsOwner(true);
+        return true;
+      }
       
       // Get current user from Supabase
       const { data: userData, error: userError } = await supabase.auth.getUser();
@@ -163,7 +171,9 @@ export function useRolePermissions() {
 
   // Save permissions to database with improved logging
   const handleSavePermissions = async () => {
-    if (!isOwner) {
+    const localOwnerStatus = isUserOwner();
+    
+    if (!isOwner && !localOwnerStatus) {
       console.error("Intento de guardar permisos sin ser propietario");
       setError("Solo el propietario puede guardar permisos");
       toast.error("Solo el propietario puede guardar permisos");

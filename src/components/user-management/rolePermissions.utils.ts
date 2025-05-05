@@ -20,6 +20,38 @@ export const getDisplayName = (role: UserRole): string => {
   return displayNames[role] || role;
 };
 
+// Add a function to check if user is admin or owner from local storage
+export const isUserAdminOrOwner = (): boolean => {
+  try {
+    if (typeof window === 'undefined') return false;
+    
+    const storedUser = localStorage.getItem('current_user');
+    if (!storedUser) return false;
+    
+    const userData = JSON.parse(storedUser);
+    return userData.role === 'admin' || userData.role === 'owner';
+  } catch (error) {
+    console.error('Error checking admin status:', error);
+    return false;
+  }
+};
+
+// Add a function to check if user is owner from local storage
+export const isUserOwner = (): boolean => {
+  try {
+    if (typeof window === 'undefined') return false;
+    
+    const storedUser = localStorage.getItem('current_user');
+    if (!storedUser) return false;
+    
+    const userData = JSON.parse(storedUser);
+    return userData.role === 'owner';
+  } catch (error) {
+    console.error('Error checking owner status:', error);
+    return false;
+  }
+};
+
 export const getInitialPermissions = (): RolePermission[] => {
   return ROLES.map(role => {
     const isAdmin = role === 'admin' || role === 'owner';
