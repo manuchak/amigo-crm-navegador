@@ -36,10 +36,10 @@ export function ActiveServicesDashboard() {
   }, [services, showAllServices]);
   
   return (
-    <div className="w-full h-full">
-      <div className="grid grid-cols-1 lg:grid-cols-16 gap-1 h-full px-1 md:px-2">
+    <div className="h-[calc(100vh-130px)] mx-1">
+      <div className="grid grid-cols-12 gap-2 h-full">
         {/* Left sidebar with active service cards - optimized width */}
-        <div className="lg:col-span-2 xl:col-span-2 flex flex-col h-[calc(100vh-140px)]">
+        <div className="col-span-3 lg:col-span-2 flex flex-col h-full overflow-hidden">
           <StatsCards 
             total={stats.total} 
             onTime={stats.onTime} 
@@ -58,12 +58,12 @@ export function ActiveServicesDashboard() {
         </div>
         
         {/* Main area with map and details - expanded width */}
-        <div className="lg:col-span-14 xl:col-span-14 flex flex-col h-[calc(100vh-140px)]">
+        <div className="col-span-9 lg:col-span-10 flex flex-col h-full overflow-hidden">
           <MapHeader />
           
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-1 flex-grow">
-            {/* Map container - expanded width */}
-            <div className="lg:col-span-9 xl:col-span-9 flex flex-col h-full">
+          <div className="grid grid-cols-12 gap-2 flex-grow h-[calc(100%-50px)] overflow-hidden">
+            {/* Map container - expanded width for better visualization */}
+            <div className="col-span-9 h-full">
               <ActiveServicesMap 
                 services={services} 
                 selectedServiceId={selectedServiceId} 
@@ -72,7 +72,7 @@ export function ActiveServicesDashboard() {
             </div>
             
             {/* Service details - optimized width */}
-            <div className="lg:col-span-3 xl:col-span-3">
+            <div className="col-span-3 h-full overflow-hidden">
               <ServiceDetailsPanel selectedService={selectedService} />
             </div>
           </div>

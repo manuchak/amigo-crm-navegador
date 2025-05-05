@@ -25,8 +25,8 @@ export function ServicesList({
   setShowAllServices,
 }: ServicesListProps) {
   return (
-    <div className="flex-grow overflow-hidden flex flex-col">
-      <div className="flex items-center justify-between mb-1">
+    <div className="flex-grow overflow-hidden flex flex-col mt-2">
+      <div className="flex items-center justify-between mb-1 px-1">
         <h3 className="text-xs font-medium">Servicios Activos</h3>
         <Badge variant="secondary" className="text-xs">{services.length}</Badge>
       </div>
@@ -65,7 +65,7 @@ export function ServicesList({
         <Button
           variant="ghost"
           size="sm"
-          className="w-full text-xs border"
+          className="w-full text-xs border mt-1"
           onClick={() => setShowAllServices(!showAllServices)}
         >
           {showAllServices ? (

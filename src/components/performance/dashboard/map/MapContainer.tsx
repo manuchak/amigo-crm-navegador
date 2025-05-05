@@ -78,7 +78,14 @@ export function MapContainer({ services, selectedServiceId, onServiceSelect }: M
     
     window.addEventListener('resize', handleResize);
     
+    // Add an additional resize event after a small delay to ensure the map
+    // adjusts properly when the component layout has stabilized
+    const resizeTimer = setTimeout(() => {
+      handleResize();
+    }, 500);
+    
     return () => {
+      clearTimeout(resizeTimer);
       window.removeEventListener('resize', handleResize);
       if (map.current) {
         map.current.remove();
@@ -114,6 +121,15 @@ export function MapContainer({ services, selectedServiceId, onServiceSelect }: M
       updateRouteDisplay(services, selectedServiceId);
     }
   }, [selectedServiceId, services, mapLoaded, updateRouteDisplay]);
+
+  // Add an additional resize handler when component updates
+  useEffect(() => {
+    if (map.current) {
+      setTimeout(() => {
+        map.current?.resize();
+      }, 100);
+    }
+  }, [services, selectedServiceId]);
 
   if (mapError) {
     return <MapErrorDisplay errorMessage={mapError} />;

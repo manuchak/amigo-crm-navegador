@@ -23,7 +23,7 @@ export function ServiceDetailsPanel({ selectedService }: ServiceDetailsPanelProp
   return (
     <div className="bg-white rounded-lg shadow-sm border h-full overflow-auto">
       <div className="p-2">
-        <h3 className="text-base font-semibold mb-2 truncate">
+        <h3 className="text-sm font-semibold mb-2 truncate">
           Detalles del Servicio #{selectedService.id}
         </h3>
         

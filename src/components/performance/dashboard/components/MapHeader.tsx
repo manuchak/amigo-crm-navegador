@@ -3,7 +3,7 @@ import React from 'react';
 
 export function MapHeader() {
   return (
-    <div className="flex justify-between items-center bg-white rounded-lg border p-2 mb-1 shadow-sm">
+    <div className="flex justify-between items-center bg-white rounded-lg border p-2 mb-2 shadow-sm">
       <div>
         <h3 className="text-sm font-semibold">Ubicación de servicios activos</h3>
         <p className="text-xs text-muted-foreground">
