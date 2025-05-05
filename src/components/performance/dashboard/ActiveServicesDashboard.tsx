@@ -97,13 +97,13 @@ export function ActiveServicesDashboard() {
     return showAllServices ? services : services.slice(0, 4);
   }, [services, showAllServices]);
   
-  // Twitter feed for traffic and weather alerts - reduced frequency to avoid jumpiness
+  // Twitter feed for traffic and weather alerts 
   const { tweets, isLoading, error, direction } = useTwitterFeed(120); // Update every 2 minutes
   
   return (
     <div className="h-[calc(100vh-160px)]">
       {/* Twitter feed banner at the top for traffic and weather alerts */}
-      <div className="mb-3 h-8">
+      <div className="mb-3 h-11 relative">
         <TwitterFeed 
           tweets={tweets} 
           isLoading={isLoading} 
@@ -112,7 +112,7 @@ export function ActiveServicesDashboard() {
         />
       </div>
       
-      <div className="grid grid-cols-12 gap-3 h-[calc(100%-40px)]">
+      <div className="grid grid-cols-12 gap-3 h-[calc(100%-44px)]">
         {/* Left sidebar with active service cards - optimized width */}
         <div className="col-span-3 lg:col-span-2 flex flex-col h-full overflow-hidden">
           <StatsCards 

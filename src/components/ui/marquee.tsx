@@ -60,7 +60,7 @@ export function Marquee({
       <div
         ref={contentRef}
         className={cn(
-          "flex min-w-full gap-4 py-1 whitespace-nowrap no-scrollbar",
+          "flex min-w-full gap-4 py-1 whitespace-nowrap no-scrollbar animate-marquee",
           direction === "left" ? "animate-scroll-left" : "animate-scroll-right"
         )}
         style={{ 
