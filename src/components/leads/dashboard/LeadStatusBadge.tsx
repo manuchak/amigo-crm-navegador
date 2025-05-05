@@ -13,6 +13,7 @@ const LeadStatusBadge: React.FC<LeadStatusBadgeProps> = ({ status }) => {
       case "Contactado": return "warning";
       case "1er Contacto": return "warning";
       case "Contacto Llamado": return "purple";
+      case "No Llamado": return "outline"; // New status
       case "Calificado": return "success";
       case "Validado": return "primary";  // Specific style for Validado status
       case "Rechazado": return "destructive";

@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 
 export interface Prospect {
@@ -57,7 +56,10 @@ export async function getProspects(): Promise<Prospect[]> {
     // After getting prospects, fetch the latest ended_reason for each one using phone number as link
     const enrichedProspects = await enrichProspectsWithEndedReason(data as Prospect[]);
     
-    return enrichedProspects || [];
+    // Mark prospects with no call logs as "No Llamado"
+    const prospectsWithCallStatus = markProspectsWithNoCallStatus(enrichedProspects);
+    
+    return prospectsWithCallStatus || [];
   } catch (error) {
     console.error("Failed to fetch prospects:", error);
     throw error;
@@ -110,7 +112,10 @@ export async function getProspectsByStatus(status: string): Promise<Prospect[]> 
     // After getting prospects, fetch the latest ended_reason for each one
     const enrichedProspects = await enrichProspectsWithEndedReason(data as Prospect[]);
     
-    return enrichedProspects || [];
+    // Mark prospects with no call logs as "No Llamado"
+    const prospectsWithCallStatus = markProspectsWithNoCallStatus(enrichedProspects);
+    
+    return prospectsWithCallStatus || [];
   } catch (error) {
     console.error(`Failed to fetch prospects with status ${status}:`, error);
     throw error;
@@ -317,4 +322,26 @@ async function enrichProspectsWithEndedReason(prospects: Prospect[]): Promise<Pr
   
   console.log(`Completed enriching prospects with ended_reason data. ${enrichedProspects.filter(p => p.ended_reason).length} prospects have an ended_reason.`);
   return enrichedProspects;
+}
+
+/**
+ * Marks prospects with no call logs as "No Llamado"
+ */
+function markProspectsWithNoCallStatus(prospects: Prospect[]): Prospect[] {
+  return prospects.map(prospect => {
+    // If there's no call_count or it's 0, and the status is not already set
+    // or if there's no ended_reason and no call_count
+    if (
+      (!prospect.call_count || prospect.call_count === 0) &&
+      prospect.lead_status !== 'No Llamado' &&
+      !prospect.ended_reason
+    ) {
+      console.log(`Marking prospect ${prospect.lead_id} as "No Llamado" because it has no call logs`);
+      return {
+        ...prospect,
+        lead_status: 'No Llamado'
+      };
+    }
+    return prospect;
+  });
 }

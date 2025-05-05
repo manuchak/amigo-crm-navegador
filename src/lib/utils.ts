@@ -1,88 +1,50 @@
+// Add this to your utils.ts file or create it if it doesn't exist
 
-import { type ClassValue, clsx } from "clsx"
-import { twMerge } from "tailwind-merge"
+import { type ClassValue, clsx } from "clsx";
+import { twMerge } from "tailwind-merge";
 
 export function cn(...inputs: ClassValue[]) {
-  return twMerge(clsx(inputs))
+  return twMerge(clsx(inputs));
 }
 
-export const formatPhoneNumber = (phoneNumberString: string) => {
-  if (!phoneNumberString) return 'No disponible';
-
-  const cleaned = ('' + phoneNumberString).replace(/\D/g, '');
-  const match = cleaned.match(/^(\d{3})(\d{3})(\d{4})$/);
-
-  if (match) {
-    return '(' + match[1] + ') ' + match[2] + '-' + match[3];
+export function formatPhoneNumber(phone: string | null): string {
+  if (!phone) return '—';
+  
+  // Remove non-numeric characters
+  const cleanedNumber = phone.replace(/\D/g, '');
+  
+  // Format based on length - Mexican number format
+  if (cleanedNumber.length === 10) {
+    return `${cleanedNumber.slice(0, 3)}-${cleanedNumber.slice(3, 6)}-${cleanedNumber.slice(6)}`;
+  } else if (cleanedNumber.length > 10) {
+    // International format
+    return `+${cleanedNumber.slice(0, cleanedNumber.length - 10)} ${cleanedNumber.slice(-10, -7)}-${cleanedNumber.slice(-7, -4)}-${cleanedNumber.slice(-4)}`;
   }
-
-  return phoneNumberString;
+  
+  // Return formatted if possible, otherwise original
+  return phone;
 }
 
-/**
- * Normalizes different call status formats from VAPI to a standard format
- */
-export function normalizeCallStatus(endedReason: string | null): string | null {
-  if (!endedReason) return null;
+export function normalizeCallStatus(status: string | null): string | null {
+  if (!status) return null;
   
-  const lowerReason = endedReason.toLowerCase();
+  const lowercaseStatus = status.toLowerCase();
   
-  // Match exactly the VAPI ended_reason values
-  if (lowerReason.includes('completed') || lowerReason === 'complete') return 'completed';
-  if (lowerReason.includes('customer-did-not-answer') || lowerReason.includes('no answer') || lowerReason.includes('no-answer')) return 'customer-did-not-answer';
-  if (lowerReason.includes('busy') || lowerReason.includes('ocupado')) return 'busy';
-  if (lowerReason.includes('failed') || lowerReason.includes('fail')) return 'failed';
-  if (lowerReason.includes('queued') || lowerReason.includes('queue')) return 'queued';
-  if (lowerReason.includes('assistant-ended-call-with-hangup-task')) return 'completed';
-  
-  // Default fallback
-  return 'queued';
-}
-
-/**
- * Gets a color class for call status badge based on the status
- */
-export function getCallStatusColor(endedReason: string | null): string {
-  if (!endedReason) return 'bg-slate-100 text-slate-700';
-  
-  const normalizedStatus = normalizeCallStatus(endedReason);
-  
-  switch (normalizedStatus) {
-    case 'completed':
-      return 'bg-green-100 border-green-400 text-green-700';
-    case 'customer-did-not-answer':
-      return 'bg-amber-100 border-amber-400 text-amber-700';
-    case 'busy':
-      return 'bg-yellow-100 border-yellow-400 text-yellow-700';
-    case 'failed':
-      return 'bg-red-100 border-red-400 text-red-700';
-    case 'queued':
-      return 'bg-blue-100 border-blue-400 text-blue-700';
-    default:
-      return 'bg-slate-100 text-slate-700';
+  if (lowercaseStatus.includes('complete') || lowercaseStatus.includes('success')) {
+    return 'completed';
+  } else if (lowercaseStatus.includes('no-answer') || lowercaseStatus.includes('no answer')) {
+    return 'customer-did-not-answer';
+  } else if (lowercaseStatus.includes('busy')) {
+    return 'busy';
+  } else if (lowercaseStatus.includes('queue')) {
+    return 'queued';
+  } else if (lowercaseStatus.includes('fail')) {
+    return 'failed';
+  } else if (lowercaseStatus.includes('no llamado')) {
+    return 'no-call';
   }
+  
+  return lowercaseStatus;
 }
 
-/**
- * Gets a human-readable label for call status
- */
-export function getCallStatusLabel(endedReason: string | null): string {
-  if (!endedReason) return 'Sin información';
-  
-  const normalizedStatus = normalizeCallStatus(endedReason);
-  
-  switch (normalizedStatus) {
-    case 'completed':
-      return 'Completada';
-    case 'customer-did-not-answer':
-      return 'No contestó';
-    case 'busy':
-      return 'Ocupado';
-    case 'failed':
-      return 'Fallida';
-    case 'queued':
-      return 'En cola';
-    default:
-      return endedReason;
-  }
-}
+// Add more utility functions as needed...

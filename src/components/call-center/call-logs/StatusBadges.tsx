@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Badge } from '@/components/ui/badge';
-import { Check, Phone, PhoneForwarded, XCircle } from 'lucide-react';
+import { Check, Phone, PhoneForwarded, XCircle, PhoneOff } from 'lucide-react';
 
 interface StatusBadgeProps {
   status: string | null;
@@ -19,6 +19,8 @@ export const StatusBadge: React.FC<StatusBadgeProps> = ({ status }) => {
       return <Badge variant="warning" className="bg-yellow-500 hover:bg-yellow-600">En curso</Badge>;
     case 'queued':
       return <Badge variant="outline" className="border-blue-500 text-blue-700">En cola</Badge>;
+    case 'no llamado':
+      return <Badge variant="outline" className="border-slate-500 text-slate-700 flex items-center"><PhoneOff className="mr-1 h-3 w-3" />No llamado</Badge>;
     default:
       return <Badge variant="secondary">{status}</Badge>;
   }

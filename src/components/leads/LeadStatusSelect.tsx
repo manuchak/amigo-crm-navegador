@@ -3,7 +3,7 @@ import React from "react";
 import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from "@/components/ui/select";
 
 // Should match estadosLead
-const estados = ["Nuevo", "Contactado", "En progreso", "Calificado", "No calificado"];
+const estados = ["Nuevo", "Contactado", "En progreso", "No Llamado", "Calificado", "No calificado"];
 
 interface LeadStatusSelectProps {
   value: string;

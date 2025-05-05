@@ -5,6 +5,7 @@ import { Prospect } from '@/services/prospectService';
 import { formatPhoneNumber, normalizeCallStatus } from '@/lib/utils';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { StatusBadge, CallInfo, VehicleInfo, SedenaInfo, DateFormatter, BooleanDisplay, ActionButtons } from '.';
+import { PhoneOff } from 'lucide-react';
 
 interface ProspectRowProps {
   prospect: Prospect;
@@ -24,9 +25,14 @@ const ProspectRow: React.FC<ProspectRowProps> = ({
   const hasCallHistory = prospect.call_count !== null && prospect.call_count > 0;
   const hasInterviewData = prospect.transcript !== null;
   const normalizedStatus = normalizeCallStatus(prospect.ended_reason);
+  const isUncalled = prospect.lead_status === 'No Llamado';
 
   // Determine row highlight based on call status
   const getBorderClass = () => {
+    if (isUncalled) {
+      return "border-l-4 border-l-slate-300";
+    }
+    
     if (!normalizedStatus) {
       return prospect.lead_status === "Calificado" ? 'border-l-4 border-l-purple-400' : '';
     }

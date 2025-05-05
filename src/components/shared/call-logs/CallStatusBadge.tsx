@@ -1,6 +1,7 @@
 
 import React from 'react';
 import { Badge } from '@/components/ui/badge';
+import { PhoneOff } from 'lucide-react';
 
 interface CallStatusBadgeProps {
   status: string | null;
@@ -29,6 +30,13 @@ export const CallStatusBadge: React.FC<CallStatusBadgeProps> = ({ status }) => {
   
   if (normalizedStatus.includes('answer') || normalizedStatus.includes('pick')) {
     return <Badge variant="outline" className="bg-amber-50 text-amber-600 hover:bg-amber-100">No contestó</Badge>;
+  }
+  
+  if (normalizedStatus.includes('no llamado')) {
+    return <Badge variant="outline" className="bg-slate-50 text-slate-600 hover:bg-slate-100 flex items-center">
+      <PhoneOff className="h-3 w-3 mr-1" />
+      No llamado
+    </Badge>;
   }
   
   return <Badge variant="outline">{status}</Badge>;
