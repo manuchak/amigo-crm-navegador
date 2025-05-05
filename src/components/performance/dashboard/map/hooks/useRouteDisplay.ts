@@ -21,9 +21,11 @@ export function useRouteDisplay(
           // Remove incident markers if they exist
           if (map.current.getLayer('weather-incidents')) {
             map.current.removeLayer('weather-incidents');
+            map.current.removeLayer('weather-symbols');
           }
           if (map.current.getLayer('road-blocks')) {
             map.current.removeLayer('road-blocks');
+            map.current.removeLayer('roadblock-symbols');
           }
           
           map.current.removeSource('route');
@@ -36,6 +38,11 @@ export function useRouteDisplay(
         // Find the selected service
         const selectedService = services.find((s) => s.id === selectedServiceId);
         if (!selectedService) return;
+
+        // Determine if service is on time
+        const isOnTime = selectedService.isOnTime !== undefined 
+          ? selectedService.isOnTime 
+          : (selectedService.status !== 'delayed' && !(selectedService.delayRisk && selectedService.delayRiskPercent > 50));
 
         // Create route data
         const routeData = {
@@ -73,17 +80,18 @@ export function useRouteDisplay(
           },
         });
 
-        // Determine line color based on service status
+        // Determine line color based on risk factors
         let lineColor = '#34d399'; // Green for on-time
         
+        // Route color represents the primary risk factor, not necessarily if it's delayed
         if (selectedService.roadBlockage && selectedService.roadBlockage.active) {
-          lineColor = '#ef4444'; // Red for blockages
+          lineColor = selectedService.roadBlockage.causesDelay ? '#ef4444' : '#f97316'; // Red for blockages causing delay, orange otherwise
         } else if (selectedService.weatherEvent && selectedService.weatherEvent.severity > 0) {
-          lineColor = '#f59e0b'; // Amber for weather
+          lineColor = selectedService.weatherEvent.causesDelay ? '#f59e0b' : '#fbbf24'; // Amber for weather causing delay, yellow otherwise
         } else if (selectedService.inRiskZone) {
           lineColor = '#ef4444'; // Red for risk zone
-        } else if (selectedService.delayRisk && selectedService.delayRiskPercent > 50) {
-          lineColor = '#f59e0b'; // Amber for delay risk
+        } else if (!isOnTime) {
+          lineColor = '#f59e0b'; // Amber for general delay without specific risk factor
         }
 
         // Add the main route line
@@ -98,7 +106,7 @@ export function useRouteDisplay(
           paint: {
             'line-color': lineColor,
             'line-width': 4,
-            'line-dasharray': [0, 2, 4], // Create a dashed line effect
+            'line-dasharray': isOnTime ? [0, 0, 0] : [0, 2, 4], // Create a dashed line effect for delayed services
           },
         });
 
@@ -108,6 +116,7 @@ export function useRouteDisplay(
         // Add weather incident if it exists
         if (selectedService.weatherEvent && selectedService.weatherEvent.severity > 0) {
           // Position the weather incident halfway between origin and current location
+          // or at the exact coordinates if available in the future
           const weatherIncidentPos = [
             (selectedService.originCoordinates[0] + selectedService.currentLocation.coordinates[0]) / 2,
             (selectedService.originCoordinates[1] + selectedService.currentLocation.coordinates[1]) / 2,
@@ -124,6 +133,7 @@ export function useRouteDisplay(
               severity: selectedService.weatherEvent.severity,
               description: selectedService.weatherEvent.type,
               location: selectedService.weatherEvent.location,
+              causesDelay: selectedService.weatherEvent.causesDelay || false
             },
           });
         }
@@ -131,6 +141,7 @@ export function useRouteDisplay(
         // Add road blockage if it exists
         if (selectedService.roadBlockage && selectedService.roadBlockage.active) {
           // Position the road blockage incident halfway between current location and destination
+          // or at the exact coordinates if available in the future
           const blockagePos = [
             (selectedService.currentLocation.coordinates[0] + selectedService.destinationCoordinates[0]) / 2,
             (selectedService.currentLocation.coordinates[1] + selectedService.destinationCoordinates[1]) / 2,
@@ -146,6 +157,7 @@ export function useRouteDisplay(
               type: 'roadblock',
               description: selectedService.roadBlockage.reason,
               location: selectedService.roadBlockage.location,
+              causesDelay: selectedService.roadBlockage.causesDelay || false
             },
           });
         }
@@ -161,7 +173,7 @@ export function useRouteDisplay(
             },
           });
           
-          // Add weather incidents layer
+          // Add weather incidents layer with color based on whether it causes delay
           if (incidents.some(i => i.properties.type === 'weather')) {
             map.current.addLayer({
               id: 'weather-incidents',
@@ -169,15 +181,19 @@ export function useRouteDisplay(
               source: 'incidents',
               filter: ['==', 'type', 'weather'],
               paint: {
-                'circle-radius': 15,
-                'circle-color': '#f59e0b',
-                'circle-opacity': 0.7,
+                'circle-radius': 18,
+                'circle-color': [
+                  'case',
+                  ['==', ['get', 'causesDelay'], true], '#f59e0b', // Amber if causing delay
+                  '#fbbf24' // Yellow if not causing delay
+                ],
+                'circle-opacity': 0.8,
                 'circle-stroke-width': 2,
                 'circle-stroke-color': '#ffffff',
               },
             });
             
-            // Add a cloud icon (we'd ideally use Lucide but this is a simpler approach)
+            // Add a cloud icon
             map.current.addLayer({
               id: 'weather-symbols',
               type: 'symbol',
@@ -185,13 +201,13 @@ export function useRouteDisplay(
               filter: ['==', 'type', 'weather'],
               layout: {
                 'text-field': '☁️',
-                'text-size': 14,
+                'text-size': 16,
                 'text-allow-overlap': true,
               },
             });
           }
           
-          // Add road blockage layer
+          // Add road blockage layer with color based on whether it causes delay
           if (incidents.some(i => i.properties.type === 'roadblock')) {
             map.current.addLayer({
               id: 'road-blocks',
@@ -199,9 +215,13 @@ export function useRouteDisplay(
               source: 'incidents',
               filter: ['==', 'type', 'roadblock'],
               paint: {
-                'circle-radius': 15,
-                'circle-color': '#ef4444',
-                'circle-opacity': 0.7,
+                'circle-radius': 18,
+                'circle-color': [
+                  'case',
+                  ['==', ['get', 'causesDelay'], true], '#ef4444', // Red if causing delay
+                  '#f97316' // Orange if not causing delay
+                ],
+                'circle-opacity': 0.8,
                 'circle-stroke-width': 2,
                 'circle-stroke-color': '#ffffff',
               },
@@ -215,7 +235,7 @@ export function useRouteDisplay(
               filter: ['==', 'type', 'roadblock'],
               layout: {
                 'text-field': '❌',
-                'text-size': 12,
+                'text-size': 14,
                 'text-allow-overlap': true,
               },
             });

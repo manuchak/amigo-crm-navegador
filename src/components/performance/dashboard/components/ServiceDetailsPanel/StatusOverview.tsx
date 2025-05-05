@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Badge } from '@/components/ui/badge';
-import { Clock, CloudRain, ArrowDown, AlertCircle } from 'lucide-react';
+import { Clock, CloudRain, ArrowDown, AlertCircle, CheckCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { ActiveService } from '../../types';
 import { ProgressBar } from './ProgressBar';
@@ -11,56 +11,79 @@ interface StatusOverviewProps {
 }
 
 export function StatusOverview({ service }: StatusOverviewProps) {
-  // Determine the highest priority status
-  let statusIcon = <div className="w-2 h-2 rounded-full bg-green-500" />;
-  let statusText = "En tiempo";
+  // Determine if service is on time based on status and delayRisk
+  const isOnTime = service.isOnTime !== undefined 
+    ? service.isOnTime 
+    : (service.status !== 'delayed' && !(service.delayRisk && service.delayRiskPercent > 50));
   
-  if (service.roadBlockage && service.roadBlockage.active) {
-    statusIcon = <ArrowDown className="h-4 w-4 text-red-500" />;
-    statusText = "Bloqueo vial";
-  } else if (service.weatherEvent && service.weatherEvent.severity > 0) {
-    statusIcon = <CloudRain className="h-4 w-4 text-amber-500" />;
-    statusText = "Alerta climática";
-  } else if (service.inRiskZone) {
-    statusIcon = <AlertCircle className="h-4 w-4 text-red-500" />;
-    statusText = "Zona de riesgo";
-  } else if (service.delayRisk && service.delayRiskPercent > 50) {
-    statusIcon = <Clock className="h-4 w-4 text-amber-500" />;
-    statusText = "Posible retraso";
-  }
+  // Primary status icon and text based on on-time status
+  let primaryStatusIcon = isOnTime 
+    ? <CheckCircle className="h-4 w-4 text-green-500" />
+    : <Clock className="h-4 w-4 text-amber-500" />;
   
-  // Calculate delivery progress (simplified for demonstration)
+  let primaryStatusText = isOnTime ? "En tiempo" : "Retraso en tránsito";
+  
+  // Calculate active risk factors
+  const hasRoadBlockage = service.roadBlockage && service.roadBlockage.active;
+  const hasWeatherEvent = service.weatherEvent && service.weatherEvent.severity > 0;
+  const isInRiskZone = service.inRiskZone;
+  
+  // Calculate delivery progress
   const progress = service.progress || 65; // Default to 65% if not specified
   
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          {statusIcon}
-          <span className="text-sm font-medium">{statusText}</span>
+          {primaryStatusIcon}
+          <span className="text-sm font-medium">{primaryStatusText}</span>
         </div>
         <Badge 
           className={cn(
             "text-xs font-medium",
-            service.roadBlockage && service.roadBlockage.active ? "bg-red-500" :
-            service.weatherEvent && service.weatherEvent.severity > 0 ? "bg-amber-500" :
-            service.inRiskZone ? "bg-red-500" :
-            service.delayRisk && service.delayRiskPercent > 50 ? "bg-amber-500" :
-            "bg-green-500"
+            !isOnTime ? "bg-amber-500" : "bg-green-500"
           )}
         >
           {service.status === 'delayed' ? 'Con retraso' : 
            service.status === 'completed' ? 'Completado' : 
-           'En tránsito'}
+           isOnTime ? 'En tránsito (en tiempo)' : 'En tránsito (demorado)'}
         </Badge>
       </div>
       
       {/* Progress bar indicating delivery progress */}
       <ProgressBar 
         progress={progress}
-        isDelayed={service.delayRisk && service.delayRiskPercent > 50}
-        hasBlockage={service.roadBlockage && service.roadBlockage.active}
+        isDelayed={!isOnTime}
+        hasBlockage={hasRoadBlockage}
       />
+      
+      {/* Risk factors display */}
+      {(hasRoadBlockage || hasWeatherEvent || isInRiskZone) && (
+        <div className="flex flex-wrap gap-1.5 mt-1 mb-2">
+          {hasRoadBlockage && (
+            <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200 text-xs flex items-center gap-1">
+              <ArrowDown className="h-3 w-3" />
+              <span>Bloqueo</span>
+              {service.roadBlockage?.causesDelay ? " (causa retraso)" : ""}
+            </Badge>
+          )}
+          
+          {hasWeatherEvent && (
+            <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200 text-xs flex items-center gap-1">
+              <CloudRain className="h-3 w-3" />
+              <span>Clima</span>
+              {service.weatherEvent?.causesDelay ? " (causa retraso)" : ""}
+            </Badge>
+          )}
+          
+          {isInRiskZone && (
+            <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200 text-xs flex items-center gap-1">
+              <AlertCircle className="h-3 w-3" />
+              <span>Zona riesgo</span>
+            </Badge>
+          )}
+        </div>
+      )}
       
       <div className="grid grid-cols-2 gap-4">
         <div className="flex flex-col">
@@ -78,11 +101,7 @@ export function StatusOverview({ service }: StatusOverviewProps) {
           </div>
           <span className={cn(
             "text-sm font-medium pl-4",
-            (service.delayRisk && service.delayRiskPercent > 50) || 
-            (service.roadBlockage && service.roadBlockage.active) || 
-            (service.weatherEvent && service.weatherEvent.severity > 0) 
-              ? "text-red-600" 
-              : ""
+            !isOnTime ? "text-red-600" : ""
           )}>
             {service.adjustedEta || service.eta}
           </span>

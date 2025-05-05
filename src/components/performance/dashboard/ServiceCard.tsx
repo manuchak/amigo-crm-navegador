@@ -2,7 +2,7 @@
 import React from 'react';
 import { ActiveService } from './types';
 import { cn } from '@/lib/utils';
-import { Clock, AlertTriangle, Check, User, MapPin, CloudRain, ArrowDown } from 'lucide-react';
+import { Clock, AlertTriangle, CheckCircle, User, MapPin, CloudRain, ArrowDown } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 
 interface ServiceCardProps {
@@ -12,10 +12,16 @@ interface ServiceCardProps {
 }
 
 export function ServiceCard({ service, isSelected, onClick }: ServiceCardProps) {
-  // Determine if there are any weather or road risks affecting this service
+  // Determine if service is on time
+  const isOnTime = service.isOnTime !== undefined 
+    ? service.isOnTime 
+    : (service.status !== 'delayed' && !(service.delayRisk && service.delayRiskPercent > 50));
+  
+  // Determine if there are any risks affecting this service
   const hasWeatherRisk = service.weatherEvent && service.weatherEvent.severity > 0;
   const hasRoadBlockage = service.roadBlockage && service.roadBlockage.active;
-
+  const isInRiskZone = service.inRiskZone;
+  
   return (
     <div
       className={cn(
@@ -47,12 +53,13 @@ export function ServiceCard({ service, isSelected, onClick }: ServiceCardProps) 
         </div>
         
         {/* Display risk indicators if present */}
-        {(hasWeatherRisk || hasRoadBlockage || service.delayRisk) && (
+        {(hasWeatherRisk || hasRoadBlockage || isInRiskZone) && (
           <div className="mt-2 flex flex-wrap gap-1.5">
             {hasWeatherRisk && (
               <Badge variant="outline" className="h-5 text-[10px] py-0 bg-amber-50 text-amber-700 border-amber-200 flex items-center gap-1">
                 <CloudRain className="h-2.5 w-2.5" />
                 <span>Clima</span>
+                {service.weatherEvent?.causesDelay && <span className="ml-0.5">(retraso)</span>}
               </Badge>
             )}
             
@@ -60,6 +67,14 @@ export function ServiceCard({ service, isSelected, onClick }: ServiceCardProps) 
               <Badge variant="outline" className="h-5 text-[10px] py-0 bg-red-50 text-red-700 border-red-200 flex items-center gap-1">
                 <ArrowDown className="h-2.5 w-2.5" />
                 <span>Bloqueo</span>
+                {service.roadBlockage?.causesDelay && <span className="ml-0.5">(retraso)</span>}
+              </Badge>
+            )}
+            
+            {isInRiskZone && (
+              <Badge variant="outline" className="h-5 text-[10px] py-0 bg-red-50 text-red-700 border-red-200 flex items-center gap-1">
+                <AlertTriangle className="h-2.5 w-2.5" />
+                <span>Zona</span>
               </Badge>
             )}
             
@@ -79,7 +94,12 @@ export function ServiceCard({ service, isSelected, onClick }: ServiceCardProps) 
 function StatusIcon({ service }: { service: ActiveService }) {
   const baseClasses = "h-9 w-9 rounded-full flex items-center justify-center";
   
-  // Prioritize road blockage over risk zone over delay risk
+  // Determine if service is on time
+  const isOnTime = service.isOnTime !== undefined 
+    ? service.isOnTime 
+    : (service.status !== 'delayed' && !(service.delayRisk && service.delayRiskPercent > 50));
+  
+  // Show appropriate risk icon based on priority
   if (service.roadBlockage && service.roadBlockage.active) {
     return (
       <div className={`${baseClasses} bg-red-50`}>
@@ -120,21 +140,27 @@ function StatusIcon({ service }: { service: ActiveService }) {
     );
   }
   
+  // Default to on-time status icon
   return (
     <div className={`${baseClasses} bg-green-50`}>
       <div className="h-7 w-7 rounded-full bg-green-500 flex items-center justify-center">
-        <Check className="h-4 w-4 text-white" />
+        <CheckCircle className="h-4 w-4 text-white" />
       </div>
     </div>
   );
 }
 
 function StatusBadge({ service }: { service: ActiveService }) {
-  // Prioritize road blockage over weather event over risk zone over delay risk
+  // Determine if service is on time
+  const isOnTime = service.isOnTime !== undefined 
+    ? service.isOnTime 
+    : (service.status !== 'delayed' && !(service.delayRisk && service.delayRiskPercent > 50));
+  
+  // Display risk status badges with priority
   if (service.roadBlockage && service.roadBlockage.active) {
     return (
       <Badge variant="outline" className="h-5 text-xs bg-red-50 text-red-700 border-red-200">
-        Bloqueo vial
+        {isOnTime ? "En tiempo (Bloqueo)" : "Retraso por bloqueo"}
       </Badge>
     );
   }
@@ -142,7 +168,7 @@ function StatusBadge({ service }: { service: ActiveService }) {
   if (service.weatherEvent && service.weatherEvent.severity > 1) {
     return (
       <Badge variant="outline" className="h-5 text-xs bg-amber-50 text-amber-700 border-amber-200">
-        Alerta climática
+        {isOnTime ? "En tiempo (Clima)" : "Retraso por clima"}
       </Badge>
     );
   }
@@ -150,7 +176,7 @@ function StatusBadge({ service }: { service: ActiveService }) {
   if (service.inRiskZone) {
     return (
       <Badge variant="outline" className="h-5 text-xs bg-red-50 text-red-700 border-red-200">
-        Zona riesgo
+        {isOnTime ? "En tiempo (Zona riesgo)" : "En zona de riesgo"}
       </Badge>
     );
   }
@@ -158,14 +184,15 @@ function StatusBadge({ service }: { service: ActiveService }) {
   if (service.delayRisk && service.delayRiskPercent > 50) {
     return (
       <Badge variant="outline" className="h-5 text-xs bg-amber-50 text-amber-700 border-amber-200">
-        Posible retraso
+        {isOnTime ? "En tiempo (Posible retraso)" : "Posible retraso"}
       </Badge>
     );
   }
   
+  // Default status badge
   return (
     <Badge variant="outline" className="h-5 text-xs bg-green-50 text-green-700 border-green-200">
-      En tiempo
+      {isOnTime ? "En tiempo" : "Con retraso"}
     </Badge>
   );
 }

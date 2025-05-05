@@ -13,7 +13,49 @@ export function ActiveServicesDashboard() {
   const [showAllServices, setShowAllServices] = useState(false);
   
   // In a real application, you would fetch this data from the backend
-  const services = useMemo(() => mockActiveServices, []);
+  const services = useMemo(() => {
+    // Add isOnTime and causesDelay properties to demonstrate services with risks that are still on-time
+    return mockActiveServices.map(service => {
+      // Make a copy to avoid modifying the original object
+      const updatedService = { ...service };
+      
+      // Add explicit isOnTime flag to some services with risks
+      if (service.id === "SVC-002" && service.inRiskZone) {
+        updatedService.isOnTime = true; // Example of service in risk zone but still on time
+      }
+      
+      if (service.id === "SVC-006" && service.weatherEvent) {
+        updatedService.isOnTime = true; // Service with weather event but on time
+        if (updatedService.weatherEvent) {
+          updatedService.weatherEvent = {
+            ...updatedService.weatherEvent,
+            causesDelay: false
+          };
+        }
+      }
+      
+      // Add some blockages that don't cause delays
+      if (service.id === "SVC-007" && service.weatherEvent) {
+        if (updatedService.weatherEvent) {
+          updatedService.weatherEvent = {
+            ...updatedService.weatherEvent,
+            causesDelay: true
+          };
+        }
+      }
+      
+      if (service.id === "SVC-008" && service.roadBlockage) {
+        if (updatedService.roadBlockage) {
+          updatedService.roadBlockage = {
+            ...updatedService.roadBlockage,
+            causesDelay: true
+          };
+        }
+      }
+      
+      return updatedService;
+    });
+  }, []);
   
   const selectedService = useMemo(() => {
     return services.find(s => s.id === selectedServiceId);
@@ -24,18 +66,27 @@ export function ActiveServicesDashboard() {
     const totalServices = services.length;
     const roadBlockCount = services.filter(s => s.roadBlockage && s.roadBlockage.active).length;
     const weatherEventCount = services.filter(s => s.weatherEvent && s.weatherEvent.severity > 0).length;
-    const delayedCount = services.filter(s => s.delayRisk && s.delayRiskPercent > 50).length;
+    
+    // Count delayed services based on explicit isOnTime flag or delay properties
+    const delayedByRiskCount = services.filter(s => 
+      (s.isOnTime === false) || 
+      (s.isOnTime === undefined && (
+        (s.roadBlockage?.active && s.roadBlockage?.causesDelay) || 
+        (s.weatherEvent?.severity > 0 && s.weatherEvent?.causesDelay) ||
+        (s.delayRisk && s.delayRiskPercent > 50)
+      ))
+    ).length;
+    
     const riskZoneCount = services.filter(s => s.inRiskZone).length;
     
-    // Calculate onTime by subtracting all risky services from total, ensuring non-negative
-    const riskyServicesCount = roadBlockCount + weatherEventCount + delayedCount + riskZoneCount;
-    const onTime = Math.max(0, totalServices - riskyServicesCount);
+    // Calculate onTime by subtracting delayed services from total, ensuring non-negative
+    const onTime = Math.max(0, totalServices - delayedByRiskCount);
     
     return {
       total: totalServices,
       roadBlocks: roadBlockCount,
       weatherEvents: weatherEventCount,
-      delayed: delayedCount,
+      delayed: delayedByRiskCount,
       riskZone: riskZoneCount,
       onTime: onTime,
     };
@@ -46,13 +97,13 @@ export function ActiveServicesDashboard() {
     return showAllServices ? services : services.slice(0, 4);
   }, [services, showAllServices]);
   
-  // Twitter feed for traffic and weather alerts
-  const { tweets, isLoading, error, direction } = useTwitterFeed(30); // Reduced frequency of updates
+  // Twitter feed for traffic and weather alerts - reduced frequency to avoid jumpiness
+  const { tweets, isLoading, error, direction } = useTwitterFeed(120); // Update every 2 minutes
   
   return (
     <div className="h-[calc(100vh-160px)]">
       {/* Twitter feed banner at the top for traffic and weather alerts */}
-      <div className="mb-3">
+      <div className="mb-3 h-8">
         <TwitterFeed 
           tweets={tweets} 
           isLoading={isLoading} 
@@ -105,7 +156,7 @@ export function ActiveServicesDashboard() {
                   <div className="mb-2 px-1 flex items-center justify-between">
                     <h3 className="text-xs font-medium text-slate-500">Servicios en riesgo</h3>
                     <span className="text-xs text-slate-400">
-                      {Math.min(stats.roadBlocks + stats.weatherEvents + stats.riskZone + stats.delayed, stats.total)} de {stats.total}
+                      {Math.min(stats.roadBlocks + stats.weatherEvents + stats.riskZone, stats.total)} de {stats.total}
                     </span>
                   </div>
                   <div className="space-y-2 p-0.5 overflow-auto">
@@ -113,8 +164,7 @@ export function ActiveServicesDashboard() {
                       .filter(service => 
                         (service.roadBlockage && service.roadBlockage.active) ||
                         (service.weatherEvent && service.weatherEvent.severity > 0) ||
-                        service.inRiskZone || 
-                        (service.delayRisk && service.delayRiskPercent > 50)
+                        service.inRiskZone
                       )
                       .slice(0, 3)
                       .map(service => (
@@ -125,7 +175,7 @@ export function ActiveServicesDashboard() {
                           onClick={() => setSelectedServiceId(service.id)}
                         />
                       ))}
-                    {stats.roadBlocks + stats.weatherEvents + stats.riskZone + stats.delayed === 0 && (
+                    {stats.roadBlocks + stats.weatherEvents + stats.riskZone === 0 && (
                       <div className="flex items-center justify-center h-24 text-sm text-slate-400">
                         No hay servicios en riesgo
                       </div>

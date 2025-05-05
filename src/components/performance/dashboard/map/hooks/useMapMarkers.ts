@@ -4,7 +4,7 @@ import mapboxgl from 'mapbox-gl';
 import { ActiveService } from '../../types';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
-import { AlertTriangle, CloudRain, ArrowDown, Check, Clock } from 'lucide-react';
+import { AlertTriangle, CloudRain, ArrowDown, CheckCircle, Clock } from 'lucide-react';
 
 export function useMapMarkers(
   map: React.MutableRefObject<mapboxgl.Map | null>,
@@ -26,6 +26,11 @@ export function useMapMarkers(
         // Skip if no coordinates
         if (!service.currentLocation?.coordinates) return;
         
+        // Determine if service is on time
+        const isOnTime = service.isOnTime !== undefined 
+          ? service.isOnTime 
+          : (service.status !== 'delayed' && !(service.delayRisk && service.delayRiskPercent > 50));
+        
         // Create marker element with improved styling
         const markerEl = document.createElement('div');
         markerEl.className = cn(
@@ -33,11 +38,12 @@ export function useMapMarkers(
           selectedServiceId === service.id ? 'border-[3px] border-primary scale-110 z-50' : 'border border-gray-200'
         );
         
-        // Determine which icon to show based on service status
+        // Determine which icon to show based on service status and risks
         let icon;
         let iconColor;
         let iconBgColor;
         
+        // Prioritize showing risk factors over on-time status
         if (service.roadBlockage && service.roadBlockage.active) {
           icon = `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-arrow-down"><path d="M12 5v14"/><path d="m19 12-7 7-7-7"/></svg>`;
           iconColor = 'text-white';
@@ -50,7 +56,7 @@ export function useMapMarkers(
           icon = `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-alert-triangle"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>`;
           iconColor = 'text-white';
           iconBgColor = 'bg-red-500';
-        } else if (service.delayRisk && service.delayRiskPercent > 50) {
+        } else if (!isOnTime) {
           icon = `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-clock"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>`;
           iconColor = 'text-white';
           iconBgColor = 'bg-amber-500';
@@ -72,21 +78,36 @@ export function useMapMarkers(
         idLabel.textContent = service.id.replace('SVC-', '');
         markerEl.appendChild(idLabel);
         
+        // Create popup content with more descriptive status
+        let statusDesc = isOnTime ? "En tiempo" : "Con retraso";
+        if (service.roadBlockage?.active) {
+          statusDesc += " (Bloqueo vial)";
+        } else if (service.weatherEvent?.severity > 0) {
+          statusDesc += " (Condición climática)";
+        } else if (service.inRiskZone) {
+          statusDesc += " (En zona de riesgo)";
+        }
+        
         // Create popup for marker with more details
         const popupContent = `
           <div class="p-2">
             <div class="font-medium">${service.id}</div>
             <div class="text-sm text-muted-foreground">${service.custodioName}</div>
             <div class="text-xs mt-1">
+              <span class="font-medium">Estado:</span> ${statusDesc}
+            </div>
+            <div class="text-xs mt-1">
               <span class="font-medium">ETA:</span> ${service.adjustedEta || service.eta}
             </div>
             ${service.roadBlockage && service.roadBlockage.active ? 
               `<div class="text-xs mt-1 text-red-600">
                 <span class="font-medium">Bloqueo:</span> ${service.roadBlockage.location}
+                ${service.roadBlockage.causesDelay ? " (causa retraso)" : " (sin retraso)"}
               </div>` : ''}
             ${service.weatherEvent && service.weatherEvent.severity > 0 ? 
               `<div class="text-xs mt-1 text-amber-600">
                 <span class="font-medium">Clima:</span> ${service.weatherEvent.type}
+                ${service.weatherEvent.causesDelay ? " (causa retraso)" : " (sin retraso)"}
               </div>` : ''}
           </div>
         `;

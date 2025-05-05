@@ -19,6 +19,7 @@ export function Marquee({
   className,
   ...props
 }: MarqueeProps) {
+  const contentRef = React.useRef<HTMLDivElement>(null);
   const speedMap = {
     slow: "35s",
     normal: "25s",
@@ -34,7 +35,7 @@ export function Marquee({
   // Check if there are any children to display
   const hasChildren = React.Children.count(children) > 0;
 
-  // If no children, return a minimal height container that won't cause layout shifts
+  // If no children, return null so it doesn't affect layout
   if (!hasChildren) {
     return null;
   }
@@ -50,11 +51,16 @@ export function Marquee({
       {...props}
     >
       <div
+        ref={contentRef}
         className={cn(
           "flex min-w-full gap-4 py-1 animate-scroll whitespace-nowrap no-scrollbar",
           direction === "left" ? "animate-scroll-left" : "animate-scroll-right"
         )}
-        style={{ animationDuration: "var(--duration)" }}
+        style={{ 
+          animationDuration: "var(--duration)",
+          animationTimingFunction: "linear",
+          animationIterationCount: "infinite"
+        }}
       >
         {children}
         {/* Duplicate children for a seamless loop */}

@@ -17,6 +17,11 @@ export function RiskIndicators({ service }: RiskIndicatorsProps) {
     return null;
   }
   
+  // Determine if service is on time
+  const isOnTime = service.isOnTime !== undefined 
+    ? service.isOnTime 
+    : (service.status !== 'delayed' && !(service.delayRisk && service.delayRiskPercent > 50));
+  
   return (
     <div className="space-y-3">
       <div className="flex items-center gap-2">
@@ -30,6 +35,9 @@ export function RiskIndicators({ service }: RiskIndicatorsProps) {
           <div>
             <p className="text-sm font-medium text-red-700">
               Bloqueo vial en ruta
+              {service.roadBlockage.causesDelay 
+                ? " (causa retraso)" 
+                : isOnTime ? " (sin afectar tiempo de entrega)" : ""}
             </p>
             <p className="text-xs text-red-600">
               {service.roadBlockage.location || 'En ruta programada'} - {service.roadBlockage.reason || 'Bloqueo reportado'}
@@ -47,6 +55,9 @@ export function RiskIndicators({ service }: RiskIndicatorsProps) {
           <div>
             <p className="text-sm font-medium text-amber-700">
               Alerta climática en ruta
+              {service.weatherEvent.causesDelay 
+                ? " (causa retraso)" 
+                : isOnTime ? " (sin afectar tiempo de entrega)" : ""}
             </p>
             <p className="text-xs text-amber-600">
               {service.weatherEvent.type || 'Lluvia intensa'} en {service.weatherEvent.location || 'área de tránsito'}
@@ -64,6 +75,7 @@ export function RiskIndicators({ service }: RiskIndicatorsProps) {
           <div>
             <p className="text-sm font-medium text-red-700">
               En zona de alto riesgo
+              {isOnTime ? " (sin afectar tiempo de entrega)" : ""}
             </p>
             <p className="text-xs text-red-600">
               Ubicación actual en zona marcada como insegura
@@ -78,6 +90,7 @@ export function RiskIndicators({ service }: RiskIndicatorsProps) {
           <div>
             <p className="text-sm font-medium text-amber-700">
               Riesgo de retraso detectado
+              {isOnTime ? " (sin afectar tiempo de entrega actual)" : ""}
             </p>
             <p className="text-xs text-amber-600">
               {service.delayRiskPercent}% probabilidad de retraso
@@ -86,7 +99,7 @@ export function RiskIndicators({ service }: RiskIndicatorsProps) {
         </div>
       )}
       
-      {hasRisks && (
+      {!isOnTime && (
         <div className="border-t pt-2 mt-2">
           <p className="text-xs text-slate-500">
             Nuevo ETA esperado: <span className="font-medium text-red-500">{service.adjustedEta || service.eta}</span>
