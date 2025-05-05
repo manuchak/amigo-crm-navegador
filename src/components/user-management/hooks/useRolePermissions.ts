@@ -12,6 +12,7 @@ export function useRolePermissions() {
   const [error, setError] = useState<string | null>(null);
   const [isOwner, setIsOwner] = useState<boolean>(false);
   const [retryCount, setRetryCount] = useState(0);
+  const [users, setUsers] = useState<any[]>([]);
 
   // Check if the current user is an owner with more verbose logging
   const checkOwnerStatus = useCallback(async (): Promise<boolean> => {
@@ -37,6 +38,66 @@ export function useRolePermissions() {
     }
   }, []);
 
+  // Fetch users from Supabase
+  const fetchUsers = useCallback(async () => {
+    try {
+      console.log("Fetching users from Supabase...");
+      
+      // Get all profiles
+      const { data: profiles, error: profilesError } = await supabase
+        .from('profiles')
+        .select('*');
+      
+      if (profilesError) {
+        console.error("Error fetching profiles:", profilesError);
+        throw profilesError;
+      }
+
+      if (profiles && profiles.length > 0) {
+        console.log(`Found ${profiles.length} users in profiles table`);
+        
+        // Get user roles
+        const { data: userRoles, error: rolesError } = await supabase
+          .from('user_roles')
+          .select('*');
+        
+        if (rolesError) {
+          console.error("Error fetching user roles:", rolesError);
+        }
+        
+        // Create a map of user_id to role
+        const roleMap = new Map();
+        if (userRoles && userRoles.length > 0) {
+          console.log(`Found ${userRoles.length} role assignments`);
+          userRoles.forEach(ur => {
+            roleMap.set(ur.user_id, ur.role);
+          });
+        } else {
+          console.log("No user roles found in database");
+        }
+        
+        // Combine profiles with roles
+        const usersWithRoles = profiles.map(profile => {
+          return {
+            id: profile.id,
+            email: profile.email,
+            displayName: profile.display_name || profile.email,
+            role: roleMap.get(profile.id) || 'unverified',
+          };
+        });
+        
+        console.log("Users with roles:", usersWithRoles);
+        setUsers(usersWithRoles);
+      } else {
+        console.log("No user profiles found");
+        setUsers([]);
+      }
+    } catch (err) {
+      console.error("Error fetching users:", err);
+      setUsers([]);
+    }
+  }, []);
+
   // Load permissions from database with improved error handling
   const loadPermissions = useCallback(async () => {
     setLoading(true);
@@ -48,6 +109,9 @@ export function useRolePermissions() {
       // Check owner status first
       const ownerStatus = await checkOwnerStatus();
       console.log("Estado de propietario verificado:", ownerStatus);
+      
+      // Fetch user list - crucial for permission management UI
+      await fetchUsers();
       
       // Get permissions from database
       const { data, error } = await supabase
@@ -128,7 +192,7 @@ export function useRolePermissions() {
     } finally {
       setLoading(false);
     }
-  }, [checkOwnerStatus]);
+  }, [checkOwnerStatus, fetchUsers]);
 
   // Save permissions to database with improved logging
   const handleSavePermissions = async () => {
@@ -248,6 +312,7 @@ export function useRolePermissions() {
     saving,
     error,
     isOwner,
+    users,
     loadPermissions,
     savePermissions: handleSavePermissions,
     handleSavePermissions,
@@ -257,7 +322,7 @@ export function useRolePermissions() {
     availablePages,
     availableActions,
     ROLES,
-    getRoleDisplayName: getDisplayName, // Provide the function under the expected name for backward compatibility
+    getRoleDisplayName: getDisplayName,
     reloadPermissions
   };
 }

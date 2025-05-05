@@ -37,7 +37,9 @@ import {
   Shield, 
   Lock, 
   CheckCircle2, 
-  Info 
+  Info, 
+  Users,
+  UserCog
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '@/context/AuthContext';
@@ -46,7 +48,7 @@ import { isUserOwner } from './rolePermissions.utils';
 
 const UserPermissionConfig = () => {
   const { userData, refreshUserData } = useAuth();
-  const [activeTab, setActiveTab] = useState('pages');
+  const [activeTab, setActiveTab] = useState('roles');
   const [isVerifyingOwner, setIsVerifyingOwner] = useState(false);
   const [showDebugInfo, setShowDebugInfo] = useState(false);
   
@@ -56,6 +58,7 @@ const UserPermissionConfig = () => {
     saving,
     error,
     isOwner,
+    users,
     handlePermissionChange,
     handleSavePermissions,
     reloadPermissions,
@@ -253,8 +256,12 @@ const UserPermissionConfig = () => {
         </div>
         
         <div className="flex justify-between items-center flex-wrap gap-3">
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full sm:w-auto">
-            <TabsList>
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+            <TabsList className="grid grid-cols-3 w-full mb-6">
+              <TabsTrigger value="roles" className="flex items-center gap-1.5">
+                <UserCog className="h-3.5 w-3.5" />
+                <span>Roles y Usuarios</span>
+              </TabsTrigger>
               <TabsTrigger value="pages" className="flex items-center gap-1.5">
                 <Lock className="h-3.5 w-3.5" />
                 <span>Acceso a Páginas</span>
@@ -266,12 +273,12 @@ const UserPermissionConfig = () => {
             </TabsList>
           </Tabs>
           
-          <div className="flex gap-2 w-full sm:w-auto">
+          <div className="flex gap-2 w-full mb-4">
             <Button 
               onClick={reloadPermissions} 
               variant="outline"
               size="sm"
-              className="flex-1 sm:flex-none"
+              className="flex-1"
             >
               <RefreshCw className="mr-2 h-4 w-4" />
               Recargar
@@ -280,7 +287,7 @@ const UserPermissionConfig = () => {
             <Button 
               onClick={handleSavePermissions}
               disabled={saving}
-              className="flex-1 sm:flex-none"
+              className="flex-1"
             >
               {saving ? (
                 <>
@@ -295,9 +302,12 @@ const UserPermissionConfig = () => {
               )}
             </Button>
           </div>
-        </div>
         
-        <TabsContent value="pages" className="m-0 pt-4">
+        <TabsContent value="roles" className="m-0">
+          <UserRolesTable users={users} />
+        </TabsContent>
+        
+        <TabsContent value="pages" className="m-0">
           <PermissionsTable
             title="Permisos de Páginas"
             permissions={permissions}
@@ -308,7 +318,7 @@ const UserPermissionConfig = () => {
           />
         </TabsContent>
         
-        <TabsContent value="actions" className="m-0 pt-4">
+        <TabsContent value="actions" className="m-0">
           <PermissionsTable
             title="Permisos de Acciones"
             permissions={permissions}
@@ -320,6 +330,62 @@ const UserPermissionConfig = () => {
         </TabsContent>
       </CardContent>
     </Card>
+  );
+};
+
+interface UserRolesTableProps {
+  users: any[];
+}
+
+const UserRolesTable: React.FC<UserRolesTableProps> = ({ users }) => {
+  if (!users || users.length === 0) {
+    return (
+      <Alert className="mb-6">
+        <Info className="h-4 w-4" />
+        <AlertTitle>No hay usuarios registrados</AlertTitle>
+        <AlertDescription>
+          No se encontraron usuarios en el sistema. Cuando los usuarios se registren, aparecerán aquí.
+        </AlertDescription>
+      </Alert>
+    );
+  }
+
+  return (
+    <div className="border rounded-md overflow-hidden mb-6">
+      <div className="overflow-x-auto">
+        <Table>
+          <TableHeader>
+            <TableRow className="bg-muted/50">
+              <TableHead className="font-medium">Usuario</TableHead>
+              <TableHead className="font-medium">Email</TableHead>
+              <TableHead className="font-medium text-center">Rol Actual</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {users.map((user) => (
+              <TableRow key={user.id} className="hover:bg-muted/50">
+                <TableCell>{user.displayName}</TableCell>
+                <TableCell>{user.email}</TableCell>
+                <TableCell className="text-center">
+                  <Badge 
+                    variant={
+                      user.role === 'owner' 
+                        ? 'default' 
+                        : user.role === 'admin' 
+                          ? 'destructive' 
+                          : 'outline'
+                    }
+                    className="font-normal"
+                  >
+                    {user.role}
+                  </Badge>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </div>
+    </div>
   );
 };
 

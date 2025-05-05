@@ -18,7 +18,15 @@ export const supabase = createClient(supabaseUrl, supabaseKey, {
 export const checkForOwnerRole = async (): Promise<boolean> => {
   try {
     console.log("Checking for owner role from Supabase...");
-    const { data: userData } = await supabase.auth.getUser();
+    
+    // First, get the current authenticated user
+    const { data: userData, error: userError } = await supabase.auth.getUser();
+    
+    if (userError) {
+      console.error("Error retrieving authenticated user:", userError);
+      return false;
+    }
+    
     if (!userData.user) {
       console.log("No authenticated user found");
       return false;
@@ -26,17 +34,40 @@ export const checkForOwnerRole = async (): Promise<boolean> => {
     
     console.log("Found authenticated user:", userData.user.email);
     
-    const { data, error } = await supabase.rpc('get_user_role', {
-      user_uid: userData.user.id
-    });
+    // Query user_roles table directly to check for the owner role
+    const { data: rolesData, error: rolesError } = await supabase
+      .from('user_roles')
+      .select('role')
+      .eq('user_id', userData.user.id)
+      .eq('role', 'owner')
+      .single();
     
-    if (error) {
-      console.error('Error checking user role:', error);
-      return false;
+    if (rolesError) {
+      console.log("No owner role found in user_roles table:", rolesError);
+      
+      // Fallback to RPC function if direct query fails
+      try {
+        const { data: rpcData, error: rpcError } = await supabase.rpc('get_user_role', {
+          user_uid: userData.user.id
+        });
+        
+        if (rpcError) {
+          console.error('Error checking user role via RPC:', rpcError);
+          return false;
+        }
+        
+        const isOwner = rpcData === 'owner';
+        console.log(`User role from RPC: ${rpcData}, is owner: ${isOwner}`);
+        return isOwner;
+      } catch (rpcFallbackError) {
+        console.error('Error in RPC fallback:', rpcFallbackError);
+        return false;
+      }
     }
     
-    const isOwner = data === 'owner';
-    console.log(`User role from Supabase: ${data}, is owner: ${isOwner}`);
+    // If we got a successful result from the direct query
+    const isOwner = rolesData && rolesData.role === 'owner';
+    console.log(`User is owner (from direct query): ${isOwner}`);
     return isOwner;
   } catch (error) {
     console.error('Error checking for owner role:', error);
