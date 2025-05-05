@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import * as leadService from '@/services/leadService';
 import { toast } from 'sonner';
@@ -19,6 +18,9 @@ export interface Lead {
   callCount?: number;
   lastCallDate?: string;
   valor?: number;
+  modelovehiculo?: string | null;
+  credencialsedena?: string | null;
+  anovehiculo?: string | null;
 }
 
 interface LeadsContextType {

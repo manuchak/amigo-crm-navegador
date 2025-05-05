@@ -12,7 +12,7 @@ const useWebhookDebugger = () => {
   const [showApiKey, setShowApiKey] = useState<boolean>(true);
 
   useEffect(() => {
-    const url = vapiWebhookUtils.getVapiWebhookUrl(showApiKey);
+    const url = vapiWebhookUtils.getVapiWebhookUrl();
     setWebhookUrl(url);
   }, [showApiKey]);
 

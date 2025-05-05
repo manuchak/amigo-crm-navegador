@@ -24,7 +24,11 @@ const LeadListPanel: React.FC<LeadListPanelProps> = ({
               id="select-all"
               className="mr-2"
               checked={allSelected}
-              indeterminate={someSelected && !allSelected}
+              ref={ref => {
+                if (ref) {
+                  ref.indeterminate = someSelected && !allSelected;
+                }
+              }}
               onCheckedChange={handleSelectAll}
             />
           )}
