@@ -1,22 +1,55 @@
 
 import React, { useState, useEffect } from 'react';
-import { Card, CardContent } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Button } from '@/components/ui/button';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Switch } from '@/components/ui/switch';
-import { Loader2, Save, RefreshCw, AlertTriangle, ShieldCheck } from 'lucide-react';
 import { useRolePermissions } from './hooks/useRolePermissions';
+import { 
+  Card, 
+  CardContent, 
+  CardHeader, 
+  CardTitle, 
+  CardDescription 
+} from '@/components/ui/card';
+import { 
+  Tabs, 
+  TabsContent, 
+  TabsList, 
+  TabsTrigger 
+} from '@/components/ui/tabs';
+import { 
+  Table, 
+  TableBody, 
+  TableCell, 
+  TableHead, 
+  TableHeader, 
+  TableRow 
+} from '@/components/ui/table';
+import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/context/AuthContext';
-import { toast } from 'sonner';
-import { setManuelAsOwner } from '@/utils/setVerifiedOwner';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { availablePages, availableActions } from './rolePermissions.constants';
-import { isUserOwner, isUserAdminOrOwner, logPermissionsState } from './rolePermissions.utils';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Switch } from '@/components/ui/switch';
+import { 
+  ShieldCheck, 
+  Save, 
+  RefreshCw, 
+  Loader2, 
+  AlertTriangle, 
+  Shield, 
+  Lock, 
+  CheckCircle2, 
+  Info 
+} from 'lucide-react';
+import { toast } from 'sonner';
+import { useAuth } from '@/context/AuthContext';
+import { checkForOwnerRole } from '@/integrations/supabase/client';
+import { isUserOwner } from './rolePermissions.utils';
 
 const UserPermissionConfig = () => {
+  const { userData, refreshUserData } = useAuth();
+  const [activeTab, setActiveTab] = useState('pages');
+  const [isVerifyingOwner, setIsVerifyingOwner] = useState(false);
+  const [showDebugInfo, setShowDebugInfo] = useState(false);
+  
   const {
     permissions,
     loading,
@@ -24,390 +57,292 @@ const UserPermissionConfig = () => {
     error,
     isOwner,
     handlePermissionChange,
-    savePermissions,
     handleSavePermissions,
     reloadPermissions,
-    checkOwnerStatus,
-    setRetryCount
+    availablePages,
+    availableActions,
+    ROLES
   } = useRolePermissions();
-  
-  const { currentUser, userData, refreshUserData } = useAuth();
-  const [activeTab, setActiveTab] = useState('pages');
-  const [verifyingOwner, setVerifyingOwner] = useState(false);
-  const [ownerAssignmentStatus, setOwnerAssignmentStatus] = useState<'idle' | 'assigning' | 'success' | 'failed'>('idle');
-  const [debugInfo, setDebugInfo] = useState<any>(null);
-  const [permissionError, setPermissionError] = useState<string | null>(null);
-  const [localOwnerStatus, setLocalOwnerStatus] = useState<boolean>(false);
-  
-  // Check local storage for owner status along with database check
-  useEffect(() => {
-    const localOwner = isUserOwner();
-    setLocalOwnerStatus(localOwner);
-    
-    if (localOwner) {
-      console.log("User identified as owner from local storage");
-    }
-  }, [userData]);
-  
-  // Log permissions for debugging when they change
-  useEffect(() => {
-    if (permissions.length > 0) {
-      logPermissionsState(permissions);
-    }
-  }, [permissions]);
-  
-  // Verificar status de propietario al cargar y cuando cambia el usuario
+
+  // Check owner status on mount
   useEffect(() => {
     const verifyOwnerStatus = async () => {
+      setIsVerifyingOwner(true);
       try {
-        setVerifyingOwner(true);
+        // Check local storage
+        const localOwnerStatus = isUserOwner();
         
-        // Verificar si el usuario actual ya es propietario
-        const isCurrentOwner = await checkOwnerStatus();
-        console.log("Owner verification result:", isCurrentOwner ? "✅ Yes" : "❌ No");
+        // Double check with Supabase
+        const dbOwnerStatus = await checkForOwnerRole();
         
-        // Si no es propietario y el email coincide con Manuel, intentar asignar automáticamente
-        if (!isCurrentOwner && userData?.email === 'manuel.chacon@detectasecurity.io') {
-          console.log("Attempting to automatically set Manuel Chacon as owner...");
-          setOwnerAssignmentStatus('assigning');
-          
-          const success = await setManuelAsOwner();
-          if (success) {
-            console.log("✅ Manuel Chacon successfully set as owner");
-            setOwnerAssignmentStatus('success');
-            toast.success("Has sido asignado como propietario del sistema");
-            await refreshUserData();
-            
-            // Wait a moment before retrying permission load
-            setTimeout(() => {
-              setRetryCount(prev => prev + 1);
-            }, 1500);
-          } else {
-            console.log("❌ Failed to set Manuel as owner automatically");
-            setOwnerAssignmentStatus('failed');
-            
-            // Collect diagnostic information
-            try {
-              const { data: sessionData } = await supabase.auth.getSession();
-              
-              // Get current role
-              const { data: roleData, error: roleError } = await supabase.rpc('get_user_role', {
-                user_uid: sessionData?.session?.user?.id || ''
-              });
-              
-              // Try to get user_roles data directly
-              const { data: userRolesData, error: userRolesError } = await supabase
-                .from('user_roles')
-                .select('*')
-                .eq('user_id', sessionData?.session?.user?.id || '');
-              
-              setDebugInfo({
-                timestamp: new Date().toISOString(),
-                session: sessionData?.session ? {
-                  userId: sessionData.session.user.id,
-                  email: sessionData.session.user.email,
-                  aud: sessionData.session.user.aud,
-                  role: sessionData.session.user.role
-                } : null,
-                role: {
-                  fromRpc: roleData,
-                  rpcError: roleError ? String(roleError) : null
-                },
-                userRoles: {
-                  data: userRolesData,
-                  error: userRolesError ? String(userRolesError) : null
-                }
-              });
-            } catch (diagError) {
-              console.error("Error collecting diagnostic info:", diagError);
-              setDebugInfo({
-                error: String(diagError),
-                timestamp: new Date().toISOString()
-              });
-            }
-          }
+        console.log('Owner status check results:', {
+          localStorage: localOwnerStatus ? '✅' : '❌',
+          supabase: dbOwnerStatus ? '✅' : '❌'
+        });
+        
+        if (!localOwnerStatus && !dbOwnerStatus && userData?.email === 'manuel.chacon@detectasecurity.io') {
+          toast.warning('Se detectó que tu cuenta debería tener permisos de propietario pero no los tiene configurados correctamente');
         }
       } catch (error) {
-        console.error("Error verifying owner status:", error);
-        setDebugInfo({
-          error: String(error),
-          timestamp: new Date().toISOString()
-        });
-        setOwnerAssignmentStatus('failed');
+        console.error('Error verifying owner status:', error);
       } finally {
-        setVerifyingOwner(false);
+        setIsVerifyingOwner(false);
       }
     };
-
-    verifyOwnerStatus();
-  }, [userData, checkOwnerStatus, refreshUserData, setRetryCount]);
-  
-  const handleForceAssignOwner = async () => {
-    setVerifyingOwner(true);
-    setOwnerAssignmentStatus('assigning');
-    setPermissionError(null);
     
-    try {
-      const success = await setManuelAsOwner();
-      if (success) {
-        toast.success("Has sido asignado como propietario del sistema");
-        setOwnerAssignmentStatus('success');
-        await refreshUserData();
-        
-        // Wait a bit before reloading permissions to ensure role is updated
-        setTimeout(() => {
-          reloadPermissions();
-        }, 1000);
-      } else {
-        setOwnerAssignmentStatus('failed');
-        setPermissionError("No se pudo asignar el rol de propietario");
-        toast.error("No se pudo asignar el rol de propietario");
-      }
-    } catch (error) {
-      console.error("Error assigning owner:", error);
-      setOwnerAssignmentStatus('failed');
-      setPermissionError(`Error al intentar asignar permisos de propietario: ${error}`);
-      toast.error("Error al intentar asignar permisos de propietario");
-    } finally {
-      setVerifyingOwner(false);
-    }
-  };
+    verifyOwnerStatus();
+  }, [userData, refreshUserData]);
+
+  // Determine effective owner status combining DB and localStorage checks
+  const effectiveOwnerStatus = isOwner || isUserOwner();
   
   const handleForceRefresh = async () => {
-    setVerifyingOwner(true);
-    setPermissionError(null);
-    
     try {
       await refreshUserData();
       reloadPermissions();
-      toast.success("Información de permisos actualizada");
-      
-      // Re-check owner status after refresh
-      const isOwnerNow = await checkOwnerStatus();
-      if (isOwnerNow) {
-        setOwnerAssignmentStatus('success');
-      }
+      toast.success('Información de permisos actualizada');
     } catch (error) {
-      console.error("Error updating permissions:", error);
-      setPermissionError(`Error al actualizar información de permisos: ${error}`);
-      toast.error("Error al actualizar información de permisos");
-    } finally {
-      setVerifyingOwner(false);
+      console.error('Error updating permission data:', error);
+      toast.error('Error al actualizar información de permisos');
     }
   };
   
-  // Force user to be treated as owner if they have that role in local storage
-  const effectiveOwnerStatus = isOwner || localOwnerStatus;
-  console.log("Estado efectivo de propietario:", effectiveOwnerStatus, 
-    "DB Owner:", isOwner, "Local Owner:", localOwnerStatus);
-  
+  // Loading state
   if (loading) {
     return (
-      <div className="flex flex-col justify-center items-center p-8 space-y-4">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        <span className="ml-2">Cargando configuración de permisos...</span>
-        <Button onClick={handleForceRefresh} variant="outline" size="sm">
-          <RefreshCw className="h-4 w-4 mr-2" />
-          Intentar cargar de nuevo
-        </Button>
-      </div>
-    );
-  }
-  
-  // Si no es propietario, mostrar mensaje y botón para refrescar
-  if (!effectiveOwnerStatus) {
-    return (
-      <Card className="bg-amber-50 border-amber-200">
-        <CardContent className="pt-6 space-y-4">
-          {permissionError && (
-            <Alert variant="destructive" className="mb-4">
-              <AlertTriangle className="h-4 w-4" />
-              <AlertTitle>Error de permisos</AlertTitle>
-              <AlertDescription>{permissionError}</AlertDescription>
-            </Alert>
-          )}
-          
-          <div className="flex items-center gap-3 mb-4">
-            <ShieldCheck className="h-6 w-6 text-amber-600" />
-            <div>
-              <h3 className="text-lg font-medium text-amber-800">Acceso Restringido</h3>
-              <p className="text-sm text-amber-700">Solo el propietario puede configurar permisos del sistema.</p>
-            </div>
+      <Card className="border shadow">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <ShieldCheck className="h-5 w-5 text-primary" />
+            <span>Gestión de Permisos</span>
+          </CardTitle>
+          <CardDescription>
+            Cargando configuración de permisos del sistema...
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          <div className="flex justify-center py-4">
+            <Loader2 className="h-8 w-8 animate-spin text-primary" />
           </div>
           
-          <div className="text-sm text-amber-700 bg-white rounded-md p-4 border border-amber-200">
-            <p className="font-medium mb-2">Estado actual:</p>
-            <ul className="list-disc pl-5 mt-2 space-y-1">
-              <li>Usuario: {userData?.email || 'No identificado'}</li>
-              <li>Rol actual: {userData?.role || 'No definido'}</li>
-              <li>Estado propietario DB: {isOwner ? 'Sí' : 'No'}</li>
-              <li>Estado propietario Local: {localOwnerStatus ? 'Sí' : 'No'}</li>
-              <li>Estado de asignación: {
-                ownerAssignmentStatus === 'idle' ? 'No iniciado' :
-                ownerAssignmentStatus === 'assigning' ? 'En proceso' :
-                ownerAssignmentStatus === 'success' ? 'Exitoso' :
-                ownerAssignmentStatus === 'failed' ? 'Fallido' : 'Desconocido'
-              }</li>
-            </ul>
+          <div className="space-y-4">
+            <Skeleton className="h-12 w-full" />
+            <Skeleton className="h-48 w-full" />
           </div>
           
-          {userData?.email === 'manuel.chacon@detectasecurity.io' && (
-            <div className="mt-4 space-y-2">
-              <Button 
-                onClick={handleForceAssignOwner} 
-                className="w-full"
-                disabled={verifyingOwner || ownerAssignmentStatus === 'assigning'}
-              >
-                {verifyingOwner || ownerAssignmentStatus === 'assigning' ? (
-                  <>
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    Asignando permisos...
-                  </>
-                ) : (
-                  <>
-                    <ShieldCheck className="h-4 w-4 mr-2" />
-                    Asignar permisos de propietario
-                  </>
-                )}
-              </Button>
-              
-              <Button 
-                onClick={handleForceRefresh} 
-                variant="outline" 
-                className="w-full border-amber-300"
-                disabled={verifyingOwner}
-              >
-                {verifyingOwner ? (
-                  <>
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    Verificando...
-                  </>
-                ) : (
-                  <>
-                    <RefreshCw className="h-4 w-4 mr-2" />
-                    Actualizar estado
-                  </>
-                )}
-              </Button>
-            </div>
-          )}
-          
-          {debugInfo && (
-            <div className="mt-4 p-3 bg-white rounded-md border border-amber-200 text-xs font-mono">
-              <p className="font-semibold mb-1">Información de diagnóstico:</p>
-              <pre className="overflow-auto">
-                {JSON.stringify(debugInfo, null, 2)}
-              </pre>
-            </div>
-          )}
+          <Button 
+            onClick={handleForceRefresh} 
+            variant="outline" 
+            className="w-full"
+          >
+            <RefreshCw className="mr-2 h-4 w-4" />
+            Intentar cargar de nuevo
+          </Button>
         </CardContent>
       </Card>
     );
   }
   
-  // Registrar los permisos y roles disponibles para diagnóstico
-  console.log("Permisos cargados:", permissions);
-  console.log("Páginas disponibles:", availablePages);
-  console.log("Acciones disponibles:", availableActions);
-  
+  // Access denied state
+  if (!effectiveOwnerStatus) {
+    return (
+      <Card className="border shadow">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-amber-600">
+            <Shield className="h-5 w-5 text-amber-600" />
+            <span>Acceso Restringido</span>
+          </CardTitle>
+          <CardDescription className="text-amber-700">
+            Solo el propietario del sistema puede configurar los permisos.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <Alert variant="warning" className="bg-amber-50 text-amber-800 border-amber-200">
+            <AlertTriangle className="h-4 w-4 text-amber-700" />
+            <AlertTitle className="text-amber-800">Permisos insuficientes</AlertTitle>
+            <AlertDescription className="text-amber-700">
+              Para gestionar los permisos del sistema, necesitas tener el rol de Propietario.
+              Si crees que deberías tener acceso, contacta al administrador del sistema.
+            </AlertDescription>
+          </Alert>
+          
+          <div className="p-4 bg-slate-50 rounded-md">
+            <h3 className="font-medium text-sm mb-2">Información de usuario:</h3>
+            <div className="text-sm space-y-1 text-slate-600">
+              <p><span className="font-medium">Usuario:</span> {userData?.email || 'No autenticado'}</p>
+              <p><span className="font-medium">Rol actual:</span> {userData?.role || 'No definido'}</p>
+            </div>
+          </div>
+          
+          <Button 
+            onClick={handleForceRefresh} 
+            variant="outline" 
+            className="w-full"
+          >
+            <RefreshCw className="mr-2 h-4 w-4" />
+            Verificar permisos
+          </Button>
+          
+          <div className="text-xs text-muted-foreground mt-4">
+            <button 
+              onClick={() => setShowDebugInfo(!showDebugInfo)} 
+              className="text-xs text-muted-foreground underline"
+            >
+              {showDebugInfo ? 'Ocultar información de depuración' : 'Mostrar información de depuración'}
+            </button>
+            
+            {showDebugInfo && (
+              <div className="mt-2 p-3 border rounded bg-slate-50 overflow-auto text-xs">
+                <p className="font-semibold mb-1">Variables de estado:</p>
+                <ul className="list-disc pl-5 space-y-1">
+                  <li>isOwner (DB): {isOwner ? 'true' : 'false'}</li>
+                  <li>isUserOwner (localStorage): {isUserOwner() ? 'true' : 'false'}</li>
+                  <li>effectiveOwnerStatus: {effectiveOwnerStatus ? 'true' : 'false'}</li>
+                </ul>
+                
+                {userData && (
+                  <>
+                    <p className="mt-2 font-semibold">Datos de usuario:</p>
+                    <pre className="mt-1 p-2 bg-slate-100 rounded text-xs overflow-auto">
+                      {JSON.stringify(userData, null, 2)}
+                    </pre>
+                  </>
+                )}
+              </div>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  // Main content - permission management
   return (
-    <div className="space-y-6">
-      {error && (
-        <Alert variant="destructive" className="mb-4">
-          <AlertTriangle className="h-4 w-4" />
-          <AlertTitle>Error de permisos</AlertTitle>
-          <AlertDescription>{error}</AlertDescription>
-        </Alert>
-      )}
+    <Card className="border shadow">
+      <CardHeader className="pb-3">
+        <CardTitle className="flex items-center gap-2">
+          <ShieldCheck className="h-5 w-5 text-primary" />
+          <span>Gestión de Permisos</span>
+        </CardTitle>
+        <CardDescription>
+          Configura los permisos para cada rol del sistema. Define qué páginas y acciones pueden realizar los usuarios según su rol.
+        </CardDescription>
+      </CardHeader>
       
-      <div className="flex items-center gap-2 mb-4 p-4 bg-blue-50 rounded-lg border border-blue-100">
-        <ShieldCheck className="h-5 w-5 text-blue-600" />
-        <div>
-          <h3 className="font-medium text-blue-800">Gestión de Permisos</h3>
-          <p className="text-sm text-blue-700">
-            Aquí puedes configurar qué permisos tiene cada rol en el sistema. Puedes habilitar o deshabilitar 
-            acceso a páginas y acciones específicas.
-          </p>
-        </div>
-      </div>
-      
-      <div className="flex justify-between items-center">
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList>
-            <TabsTrigger value="pages">Acceso a Páginas</TabsTrigger>
-            <TabsTrigger value="actions">Acceso a Acciones</TabsTrigger>
-          </TabsList>
-        </Tabs>
+      <CardContent className="space-y-6">
+        {error && (
+          <Alert variant="destructive">
+            <AlertTriangle className="h-4 w-4" />
+            <AlertTitle>Error</AlertTitle>
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
+        )}
         
-        <Button 
-          onClick={handleSavePermissions} 
-          disabled={saving || loading}
-          className="ml-4"
-        >
-          {saving ? (
-            <>
-              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-              Guardando...
-            </>
-          ) : (
-            <>
-              <Save className="h-4 w-4 mr-2" />
-              Guardar Cambios
-            </>
-          )}
-        </Button>
-      </div>
-      
-      <Button 
-        onClick={handleForceRefresh} 
-        variant="outline" 
-        size="sm" 
-        className="mb-4"
-      >
-        <RefreshCw className="h-4 w-4 mr-2" />
-        Recargar permisos
-      </Button>
-      
-      <TabsContent value="pages" className="m-0">
-        <PermissionsTable
-          title="Permisos de Páginas"
-          permissions={permissions}
-          items={availablePages}
-          type="pages"
-          onChange={handlePermissionChange}
-        />
-      </TabsContent>
-      
-      <TabsContent value="actions" className="m-0">
-        <PermissionsTable
-          title="Permisos de Acciones"
-          permissions={permissions}
-          items={availableActions}
-          type="actions"
-          onChange={handlePermissionChange}
-        />
-      </TabsContent>
-    </div>
+        <div className="bg-blue-50 rounded-lg border border-blue-100 p-4 flex items-start gap-3">
+          <Info className="h-5 w-5 text-blue-600 mt-0.5" />
+          <div>
+            <h3 className="font-medium text-blue-800">Información sobre permisos</h3>
+            <p className="text-sm text-blue-700 mt-1">
+              Aquí puedes configurar qué permisos tiene cada rol en el sistema. Puedes habilitar o deshabilitar 
+              acceso a páginas y acciones específicas para cada rol.
+            </p>
+            <div className="mt-2 text-sm text-blue-700">
+              <p><span className="font-medium">Importante:</span> El rol de Propietario siempre tiene todos los permisos habilitados y no se puede modificar.</p>
+            </div>
+          </div>
+        </div>
+        
+        <div className="flex justify-between items-center flex-wrap gap-3">
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full sm:w-auto">
+            <TabsList>
+              <TabsTrigger value="pages" className="flex items-center gap-1.5">
+                <Lock className="h-3.5 w-3.5" />
+                <span>Acceso a Páginas</span>
+              </TabsTrigger>
+              <TabsTrigger value="actions" className="flex items-center gap-1.5">
+                <CheckCircle2 className="h-3.5 w-3.5" />
+                <span>Acceso a Acciones</span>
+              </TabsTrigger>
+            </TabsList>
+          </Tabs>
+          
+          <div className="flex gap-2 w-full sm:w-auto">
+            <Button 
+              onClick={reloadPermissions} 
+              variant="outline"
+              size="sm"
+              className="flex-1 sm:flex-none"
+            >
+              <RefreshCw className="mr-2 h-4 w-4" />
+              Recargar
+            </Button>
+            
+            <Button 
+              onClick={handleSavePermissions}
+              disabled={saving}
+              className="flex-1 sm:flex-none"
+            >
+              {saving ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Guardando...
+                </>
+              ) : (
+                <>
+                  <Save className="mr-2 h-4 w-4" />
+                  Guardar Cambios
+                </>
+              )}
+            </Button>
+          </div>
+        </div>
+        
+        <TabsContent value="pages" className="m-0 pt-4">
+          <PermissionsTable
+            title="Permisos de Páginas"
+            permissions={permissions}
+            items={availablePages}
+            type="pages"
+            onChange={handlePermissionChange}
+            roles={ROLES}
+          />
+        </TabsContent>
+        
+        <TabsContent value="actions" className="m-0 pt-4">
+          <PermissionsTable
+            title="Permisos de Acciones"
+            permissions={permissions}
+            items={availableActions}
+            type="actions"
+            onChange={handlePermissionChange}
+            roles={ROLES}
+          />
+        </TabsContent>
+      </CardContent>
+    </Card>
   );
 };
 
-const PermissionsTable = ({
-  title,
-  permissions,
-  items,
-  type,
-  onChange,
-}: {
+interface PermissionsTableProps {
   title: string;
   permissions: any[];
   items: any[];
   type: 'pages' | 'actions';
   onChange: (roleIndex: number, type: 'pages' | 'actions', id: string, checked: boolean) => void;
+  roles: string[];
+}
+
+const PermissionsTable: React.FC<PermissionsTableProps> = ({
+  title,
+  permissions,
+  items,
+  type,
+  onChange,
+  roles
 }) => {
   if (!permissions || permissions.length === 0) {
     return (
-      <Alert className="mb-4">
-        <AlertTriangle className="h-4 w-4" />
+      <Alert>
         <AlertTitle>No hay datos de permisos</AlertTitle>
         <AlertDescription>
           No se pudieron cargar los permisos. Intente recargar la página.
@@ -416,20 +351,38 @@ const PermissionsTable = ({
     );
   }
 
-  // Filter out unverified and pending roles
-  const activerPermissions = permissions.filter(
+  // Filter out unverified and pending roles for display
+  const activeRoles = permissions.filter(
     p => !['unverified', 'pending'].includes(p.role)
   );
+  
+  // Sort roles by importance
+  const sortedActiveRoles = [...activeRoles].sort((a, b) => {
+    const roleOrder: Record<string, number> = {
+      'owner': 1,
+      'admin': 2,
+      'monitoring_supervisor': 3,
+      'monitoring': 4,
+      'supply_admin': 5,
+      'bi': 6,
+      'supply': 7,
+      'soporte': 8,
+      'atención_afiliado': 9,
+      'afiliados': 10
+    };
+    
+    return (roleOrder[a.role] || 100) - (roleOrder[b.role] || 100);
+  });
 
   return (
-    <div className="rounded-md border overflow-hidden">
+    <div className="border rounded-md overflow-hidden">
       <div className="overflow-x-auto">
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="bg-muted/50 border-b">
-              <th className="h-12 px-4 text-left font-medium">{title}</th>
-              {activerPermissions.map((role, index) => (
-                <th key={index} className="h-12 px-2 text-center font-medium">
+        <Table>
+          <TableHeader>
+            <TableRow className="bg-muted/50">
+              <TableHead className="w-[240px] font-medium">{title}</TableHead>
+              {sortedActiveRoles.map((role, index) => (
+                <TableHead key={index} className="text-center min-w-[90px]">
                   <Badge 
                     variant={
                       role.role === 'owner' 
@@ -438,59 +391,61 @@ const PermissionsTable = ({
                           ? 'destructive' 
                           : 'outline'
                     }
-                    className="font-normal"
+                    className="font-normal whitespace-nowrap"
                   >
                     {role.displayName}
                   </Badge>
-                </th>
+                </TableHead>
               ))}
-            </tr>
-          </thead>
-          <tbody>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
             {items.map((item) => (
-              <tr key={item.id} className="border-b hover:bg-muted/50 transition-colors">
-                <td className="p-4 align-middle">
-                  <div className="font-medium">{item.name}</div>
-                  <div className="text-muted-foreground text-xs">{item.description}</div>
-                </td>
+              <TableRow key={item.id} className="hover:bg-muted/50">
+                <TableCell className="font-medium">
+                  <div>{item.name}</div>
+                  <div className="text-xs text-muted-foreground">{item.description}</div>
+                </TableCell>
                 
-                {activerPermissions.map((role, roleIndex) => {
-                  // Owner always has all permissions and can't be changed
+                {sortedActiveRoles.map((role, roleIndex) => {
+                  const originalRoleIndex = permissions.findIndex(p => p.role === role.role);
                   const isOwnerRole = role.role === 'owner';
-                  
-                  // For manage_permissions action, only owner can have it
                   const isManagePermissions = type === 'actions' && item.id === 'manage_permissions';
                   const isDisabled = isOwnerRole || (isManagePermissions && role.role !== 'owner');
+                  const isChecked = type === 'pages' 
+                    ? role.pages[item.id] 
+                    : role.actions[item.id];
                   
                   return (
-                    <td key={roleIndex} className="p-2 text-center align-middle">
+                    <TableCell key={roleIndex} className="text-center">
                       {isOwnerRole ? (
                         <Switch 
                           checked={true} 
                           disabled 
-                          className="data-[state=checked]:bg-amber-500" 
+                          className="data-[state=checked]:bg-amber-500 data-[state=checked]:border-amber-500" 
                         />
                       ) : (
                         <Checkbox
-                          checked={type === 'pages' ? role.pages[item.id] : role.actions[item.id]}
+                          checked={isChecked}
                           onCheckedChange={(checked) => {
                             onChange(
-                              permissions.findIndex(p => p.role === role.role),
+                              originalRoleIndex,
                               type,
                               item.id,
                               !!checked
                             );
                           }}
                           disabled={isDisabled}
+                          className={isChecked ? "data-[state=checked]:bg-primary" : ""}
                         />
                       )}
-                    </td>
+                    </TableCell>
                   );
                 })}
-              </tr>
+              </TableRow>
             ))}
-          </tbody>
-        </table>
+          </TableBody>
+        </Table>
       </div>
     </div>
   );

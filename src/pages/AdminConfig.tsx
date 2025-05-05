@@ -7,7 +7,7 @@ import { useAuth } from '@/context/AuthContext';
 import UserManagementPanel from '@/components/admin/UserManagementPanel';
 import UserPermissionConfig from '@/components/user-management/UserPermissionConfig';
 import { Settings, Users, Lock, RefreshCw, AlertTriangle, Database, ShieldCheck } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
+import { supabase, checkForOwnerRole } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { setSpecificUserAsVerifiedOwner, setManuelAsOwner } from '@/utils/setVerifiedOwner';
 import { Button } from '@/components/ui/button';
@@ -50,43 +50,22 @@ function AdminConfig() {
         return true;
       }
       
-      // Get current user from Supabase
-      const { data: authData } = await supabase.auth.getUser();
-      if (!authData.user) {
-        setOwnerError("No authenticated user found");
-        console.error("No authenticated user found");
-        return false;
-      }
-      
-      console.log("Current user:", authData.user.email);
-      
-      // Check user role from Supabase
-      const { data: roleData, error: roleError } = await supabase.rpc('get_user_role', {
-        user_uid: authData.user.id
-      });
-      
-      if (roleError) {
-        setOwnerError(`Error getting user role: ${roleError.message}`);
-        console.error("Error getting user role:", roleError);
-        return false;
-      }
-      
-      // Update owner status based on role check
-      const isOwner = roleData === 'owner';
-      setOwnerStatus(isOwner);
+      // Check with Supabase DB using our helper function
+      const supabaseOwnerStatus = await checkForOwnerRole();
+      setOwnerStatus(supabaseOwnerStatus);
       setLastChecked(new Date());
       
-      if (isOwner) {
+      if (supabaseOwnerStatus) {
         console.log("✅ Current user verified as owner");
         toast.success("Has sido verificado como propietario del sistema");
         return true;
       } else {
-        console.log("❌ Current user is not owner, role:", roleData);
+        console.log("❌ Current user is not owner");
         
         // If email matches Manuel, try to set as owner
-        if (authData.user.email?.toLowerCase() === 'manuel.chacon@detectasecurity.io') {
+        if (userData?.email?.toLowerCase() === 'manuel.chacon@detectasecurity.io') {
           console.log("Attempting to set Manuel as owner...");
-          const success = await setSpecificUserAsVerifiedOwner(authData.user.email, false);
+          const success = await setSpecificUserAsVerifiedOwner(userData.email, false);
           if (success) {
             console.log("Manuel has been set as owner");
             toast.success("Tu cuenta ha sido establecida como propietario del sistema");
@@ -307,7 +286,7 @@ function AdminConfig() {
           </p>
         </div>
         
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
           <TabsList className="bg-white border rounded-lg p-1">
             <TabsTrigger value="users" className="rounded-md text-sm">
               <Users className="h-4 w-4 mr-2" />
@@ -328,20 +307,7 @@ function AdminConfig() {
           </TabsContent>
           
           <TabsContent value="permissions" className="space-y-4">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center">
-                  <ShieldCheck className="h-5 w-5 mr-2 text-primary" />
-                  Gestión de Permisos
-                </CardTitle>
-                <CardDescription>
-                  Configura los permisos para cada rol del sistema. Define qué páginas y acciones pueden realizar los usuarios según su rol.
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <UserPermissionConfig />
-              </CardContent>
-            </Card>
+            <UserPermissionConfig />
           </TabsContent>
           
           <TabsContent value="settings" className="space-y-4">

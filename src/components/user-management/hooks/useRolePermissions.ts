@@ -1,6 +1,6 @@
 
 import { useState, useEffect, useCallback } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { supabase, checkForOwnerRole } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { availablePages, availableActions, ROLES, RolePermission } from '../rolePermissions.constants';
 import { getDisplayName, getInitialPermissions, isUserOwner } from '../rolePermissions.utils';
@@ -26,55 +26,12 @@ export function useRolePermissions() {
         return true;
       }
       
-      // Get current user from Supabase
-      const { data: userData, error: userError } = await supabase.auth.getUser();
-      
-      if (userError) {
-        console.error("Error al obtener usuario actual:", userError);
-        return false;
-      }
-      
-      if (!userData.user) {
-        console.log("No se encontró un usuario autenticado");
-        return false;
-      }
-      
-      console.log("Usuario autenticado:", userData.user.email);
-      
-      // Check if user is owner through RPC function
-      const { data: roleData, error: roleError } = await supabase.rpc('get_user_role', {
-        user_uid: userData.user.id
-      });
-      
-      if (roleError) {
-        console.error("Error al verificar rol de usuario:", roleError);
-        return false;
-      }
-      
-      const ownerStatus = roleData === 'owner';
-      console.log("Resultado de verificación de rol:", roleData, "¿Es propietario?:", ownerStatus);
-      
-      // Update state with owner status
-      setIsOwner(ownerStatus);
-      
-      return ownerStatus;
+      // Check via Supabase helper function
+      const supabaseOwnerStatus = await checkForOwnerRole();
+      setIsOwner(supabaseOwnerStatus);
+      return supabaseOwnerStatus;
     } catch (err) {
       console.error('Error checking owner status:', err);
-      
-      // Fallback check from localStorage
-      if (typeof window !== 'undefined') {
-        try {
-          const userData = JSON.parse(localStorage.getItem('current_user') || '{}');
-          if (userData && userData.role === 'owner') {
-            console.log('Owner status from localStorage fallback: ✅ Yes');
-            setIsOwner(true);
-            return true;
-          }
-        } catch (e) {
-          console.error('localStorage parsing error:', e);
-        }
-      }
-      
       setIsOwner(false);
       return false;
     }
