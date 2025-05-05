@@ -8,18 +8,55 @@ import UserManagementPanel from '@/components/admin/UserManagementPanel';
 import UserPermissionConfig from '@/components/user-management/UserPermissionConfig';
 import { Settings, Users, Lock } from 'lucide-react';
 import { setSpecificUserAsVerifiedOwner } from '@/utils/setVerifiedOwner';
+import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
 
 const AdminConfig = () => {
-  const { currentUser, userData } = useAuth();
+  const { currentUser, userData, refreshUserData } = useAuth();
   const [activeTab, setActiveTab] = useState<string>("users");
+  const [ownerStatus, setOwnerStatus] = useState<boolean>(false);
   
-  // Ensure Manuel Chacon is set as owner on component mount
+  // Force check and set owner status on component mount
   useEffect(() => {
-    setSpecificUserAsVerifiedOwner('manuel.chacon@detectasecurity.io');
-  }, []);
+    const ensureOwnerIsSet = async () => {
+      // Always try to set Manuel as owner on component mount
+      const result = await setSpecificUserAsVerifiedOwner('manuel.chacon@detectasecurity.io');
+      if (result) {
+        console.log("Manuel Chacon has been set as owner successfully");
+        
+        // Force refresh user data to reflect the new role
+        try {
+          await refreshUserData();
+          
+          // Double-check if current user is the owner
+          const { data: userData } = await supabase.auth.getUser();
+          if (userData.user) {
+            const { data: roleData } = await supabase.rpc('get_user_role', {
+              user_uid: userData.user.id
+            });
+            
+            setOwnerStatus(roleData === 'owner');
+            
+            if (roleData === 'owner') {
+              toast.success("Has sido verificado como propietario del sistema");
+              console.log("✅ Current user is owner");
+            } else {
+              console.warn("❌ Current user is not owner, role:", roleData);
+            }
+          }
+        } catch (error) {
+          console.error("Error refreshing user data after setting owner:", error);
+        }
+      } else {
+        console.error("Failed to set Manuel Chacon as owner");
+      }
+    };
+
+    ensureOwnerIsSet();
+  }, [refreshUserData]);
   
   // Only show admin features if user has correct role
-  const isAdmin = userData?.role === 'admin' || userData?.role === 'owner';
+  const isAdmin = userData?.role === 'admin' || userData?.role === 'owner' || ownerStatus;
 
   if (!isAdmin) {
     return (
@@ -29,8 +66,14 @@ const AdminConfig = () => {
             <CardTitle>Acceso Restringido</CardTitle>
             <CardDescription>
               No tienes permisos para acceder a la configuración de administrador.
+              Tu rol actual es: {userData?.role || "no definido"}
             </CardDescription>
           </CardHeader>
+          <CardContent>
+            <p className="text-muted-foreground">
+              Si crees que deberías tener acceso, por favor contacta al administrador del sistema.
+            </p>
+          </CardContent>
         </Card>
       </div>
     );

@@ -1,33 +1,58 @@
 
-import { findUserByEmail, setAsVerifiedOwner, createUser } from './auth';
+import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
-// This function can be called to set a specific user as verified owner
-export const setSpecificUserAsVerifiedOwner = (email: string) => {
+export const setSpecificUserAsVerifiedOwner = async (email: string, showToast: boolean = false): Promise<boolean> => {
+  if (!email) {
+    console.error("No email provided for setSpecificUserAsVerifiedOwner");
+    return false;
+  }
+
   try {
-    let user = findUserByEmail(email);
+    console.log(`Setting ${email} as verified owner...`);
     
-    // If user doesn't exist, create it first
-    if (!user) {
-      console.log(`User with email ${email} not found, creating account...`);
-      const password = 'Custodios2024'; 
-      const userData = createUser(email, password, `Admin ${email.split('@')[0]}`);
-      user = {
-        ...userData,
-        password
-      };
-      console.log(`User account created for ${email}`);
+    // Try finding the user in the database first
+    let userExists = false;
+    
+    try {
+      const { data: profileData } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('email', email.toLowerCase())
+        .maybeSingle();
+      
+      if (profileData && profileData.id) {
+        userExists = true;
+        console.log(`User found with ID: ${profileData.id}`);
+      }
+    } catch (error) {
+      console.error('Error checking for existing user:', error);
     }
     
-    setAsVerifiedOwner(user.uid);
-    console.log(`User ${email} has been set as verified owner successfully`);
-    return true;
+    if (userExists) {
+      // Update the user role to owner using the RPC function
+      const { error: rpcError } = await supabase.rpc('update_user_role', {
+        target_user_id: userExists,
+        new_role: 'owner'
+      });
+      
+      if (rpcError) {
+        console.error('RPC Error setting user as owner:', rpcError);
+        throw rpcError;
+      }
+      
+      if (showToast) {
+        toast.success(`${email} ha sido configurado como propietario`);
+      }
+      
+      console.log(`✅ ${email} successfully set as owner`);
+      return true;
+    } else {
+      console.log(`User ${email} not found in database`);
+      return false;
+    }
   } catch (error) {
-    console.error('Error setting user as verified owner:', error);
+    console.error('Error setting verified owner:', error);
     return false;
   }
 };
-
-// Always set manuel.chacon@detectasecurity.io as verified owner at import time
-console.log("Setting manuel.chacon@detectasecurity.io as verified owner");
-setSpecificUserAsVerifiedOwner('manuel.chacon@detectasecurity.io');

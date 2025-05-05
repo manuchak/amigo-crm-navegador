@@ -1,60 +1,57 @@
 
+import { UserRole } from '@/types/auth';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
-import { verifyUserEmail, findUserByEmail, setAsVerifiedOwner } from '@/utils/auth';
+import { verifyUserEmail as localVerifyUserEmail, findUserByEmail, setAsVerifiedOwner, createUser } from '@/utils/auth';
 import { UserManagementHookProps } from './types';
-import { useCallback } from 'react';
 
 export const useUserVerification = ({ setLoading, refreshUserData }: UserManagementHookProps) => {
-  // Función para verificar el email de un usuario
-  const verifyEmail = useCallback(async (uid: string): Promise<{ success: boolean; error?: any }> => {
+  const verifyEmail = async (uid: string): Promise<{ success: boolean; error?: any }> => {
     setLoading(true);
     try {
-      console.log(`Verificando el email para el usuario ${uid}`);
-      
-      // Intentar usar la función RPC de Supabase primero
+      console.log(`Verifying email for user ${uid}`);
+      // Try to use the Supabase RPC function first
       try {
         const { error: rpcError } = await supabase.rpc('verify_user_email', {
           target_user_id: uid
         });
         
         if (rpcError) {
-          console.error('Error usando RPC para verificación de email:', rpcError);
-          // Usar implementación local como fallback
-          verifyUserEmail(uid);
+          console.error('Error using RPC for email verification:', rpcError);
+          // Fall back to local implementation
+          localVerifyUserEmail(uid);
         } else {
-          console.log('Email verificado exitosamente vía RPC de Supabase');
+          console.log('Email verified successfully via Supabase RPC');
         }
       } catch (rpcErr) {
-        console.error('No se pudo usar el método RPC, usando implementación local:', rpcErr);
-        // Marcar email como verificado en localStorage
-        verifyUserEmail(uid);
+        console.error('Could not use RPC method, falling back to local implementation:', rpcErr);
+        // Mark email as verified in local storage
+        localVerifyUserEmail(uid);
       }
       
       toast.success('Correo electrónico verificado con éxito');
       await refreshUserData();
       return { success: true };
     } catch (error) {
-      console.error('Error al verificar email:', error);
+      console.error('Error verifying email:', error);
       toast.error('Error al verificar el correo electrónico');
       return { success: false, error };
     } finally {
       setLoading(false);
     }
-  }, [setLoading, refreshUserData]);
+  };
   
-  // Función para establecer un usuario como propietario verificado
-  const setUserAsVerifiedOwner = useCallback(async (email: string, showNotification: boolean = true): Promise<{ success: boolean; error?: any }> => {
+  const setUserAsVerifiedOwner = async (email: string, showNotification: boolean = true): Promise<{ success: boolean; error?: any }> => {
     if (!email) {
-      console.error("No se proporcionó email para setUserAsVerifiedOwner");
+      console.error("No email provided for setUserAsVerifiedOwner");
       return { success: false, error: "No email provided" };
     }
 
     setLoading(true);
     try {
-      console.log(`Intentando establecer el usuario ${email} como propietario verificado`);
+      console.log(`Attempting to set user ${email} as verified owner`);
       
-      // Primero intentar encontrar el usuario en Supabase
+      // First try to find the user in Supabase
       let userUid: string | undefined;
       
       try {
@@ -66,25 +63,32 @@ export const useUserVerification = ({ setLoading, refreshUserData }: UserManagem
         
         if (profileData && !profileError) {
           userUid = profileData.id;
-          console.log(`Usuario encontrado en Supabase con id: ${userUid}`);
+          console.log(`User found in Supabase with id: ${userUid}`);
+        } else if (profileError) {
+          console.error('Error searching for user in Supabase:', profileError);
+        } else {
+          console.log(`User with email ${email} not found in Supabase`);
         }
       } catch (supabaseError) {
-        console.error('Error buscando usuario en Supabase:', supabaseError);
+        console.error('Error searching user in Supabase:', supabaseError);
       }
       
-      // Si no se encontró en Supabase, verificar localStorage
+      // If not found in Supabase, check local storage
       if (!userUid) {
         const user = findUserByEmail(email);
         
         if (user && user.uid) {
           userUid = user.uid;
-          console.log(`Usuario encontrado en localStorage con id: ${userUid}`);
+          console.log(`User found in local storage with id: ${userUid}`);
+        } else {
+          console.log(`User with email ${email} not found in local storage either`);
         }
       }
       
-      // Si el usuario existe en cualquiera de las ubicaciones
+      // If user exists in either location
       if (userUid) {
-        // Intentar actualizar rol vía RPC de Supabase primero
+        console.log(`Setting user ${email} (${userUid}) as owner...`);
+        // Try to update role via Supabase RPC first
         try {
           const { error: rpcError } = await supabase.rpc('update_user_role', {
             target_user_id: userUid,
@@ -92,22 +96,35 @@ export const useUserVerification = ({ setLoading, refreshUserData }: UserManagem
           });
           
           if (!rpcError) {
-            console.log(`Rol actualizado a propietario para usuario ${email} vía RPC de Supabase`);
+            console.log(`Role updated to owner for user ${email} via Supabase RPC`);
           } else {
-            // Fallar a implementación local
+            console.error('RPC error when updating role:', rpcError);
+            // Fall back to local implementation
             setAsVerifiedOwner(userUid);
-            console.log(`Rol actualizado a propietario para usuario ${email} vía localStorage`);
+            console.log(`Role updated to owner for user ${email} via local storage`);
           }
         } catch (rpcErr) {
-          // Fallar a implementación local
+          console.error('Exception when calling RPC to update role:', rpcErr);
+          // Fall back to local implementation
           setAsVerifiedOwner(userUid);
-          console.log(`Rol actualizado a propietario para usuario ${email} vía localStorage después de falla de RPC`);
+          console.log(`Role updated to owner for user ${email} via local storage after RPC failure`);
         }
       } else {
-        throw new Error(`Usuario ${email} no encontrado`);
+        console.log(`User ${email} not found, creating new user`);
+        
+        // Create a new user with default password
+        const userData = createUser(email, 'Custodios2024', `Admin ${email.split('@')[0]}`);
+        
+        if (userData && userData.uid) {
+          // Set as verified owner
+          setAsVerifiedOwner(userData.uid);
+          console.log(`New user created and set as owner: ${email}`);
+        } else {
+          throw new Error("Failed to create user");
+        }
       }
       
-      // Solo mostrar notificación de éxito si se solicitó explícitamente
+      // Only show success notification if explicitly requested
       if (showNotification) {
         toast.success(`Usuario ${email} configurado como propietario verificado`);
       }
@@ -115,16 +132,13 @@ export const useUserVerification = ({ setLoading, refreshUserData }: UserManagem
       await refreshUserData();
       return { success: true };
     } catch (error: any) {
-      console.error('Error al establecer el usuario como propietario verificado:', error);
+      console.error('Error setting user as verified owner:', error);
       toast.error('Error al configurar el usuario como propietario verificado: ' + (error.message || 'Error desconocido'));
       return { success: false, error };
     } finally {
       setLoading(false);
     }
-  }, [setLoading, refreshUserData]);
-
-  return {
-    verifyEmail,
-    setUserAsVerifiedOwner
   };
+
+  return { verifyEmail, setUserAsVerifiedOwner };
 };
