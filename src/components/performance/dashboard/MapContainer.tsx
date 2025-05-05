@@ -1,13 +1,12 @@
-
 import React, { useEffect, useRef, useState } from 'react';
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
-import { ActiveService } from '../types';
+import { ActiveService } from './types';
 import { cn } from '@/lib/utils';
-import { MapErrorDisplay } from './MapErrorDisplay';
-import { useRiskZones } from './hooks/useRiskZones';
-import { useMapMarkers } from './hooks/useMapMarkers';
-import { useRouteDisplay } from './hooks/useRouteDisplay';
+import { MapErrorDisplay } from './map/MapErrorDisplay';
+import { useRiskZones } from './map/hooks/useRiskZones';
+import { useMapMarkers } from './map/hooks/useMapMarkers';
+import { useRouteDisplay } from './map/hooks/useRouteDisplay';
 
 interface MapContainerProps {
   services: ActiveService[];
