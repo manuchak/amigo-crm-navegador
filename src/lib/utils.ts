@@ -1,3 +1,4 @@
+
 // Add this to your utils.ts file or create it if it doesn't exist
 
 import { type ClassValue, clsx } from "clsx";
@@ -45,6 +46,58 @@ export function normalizeCallStatus(status: string | null): string | null {
   }
   
   return lowercaseStatus;
+}
+
+/**
+ * Gets the appropriate color class for a call status
+ */
+export function getCallStatusColor(status: string | null): string {
+  if (!status) return 'text-slate-500 border-slate-200';
+  
+  const normalizedStatus = normalizeCallStatus(status);
+  
+  switch (normalizedStatus) {
+    case 'completed':
+      return 'text-green-600 bg-green-50';
+    case 'customer-did-not-answer':
+      return 'text-amber-600 bg-amber-50';
+    case 'busy':
+      return 'text-yellow-600 bg-yellow-50';
+    case 'queued':
+      return 'text-blue-600 bg-blue-50';
+    case 'failed':
+      return 'text-red-600 bg-red-50';
+    case 'no-call':
+      return 'text-slate-600 bg-slate-50 border border-slate-200';
+    default:
+      return 'text-slate-600 bg-slate-100';
+  }
+}
+
+/**
+ * Transforms a call status into a human-readable label
+ */
+export function getCallStatusLabel(status: string | null): string {
+  if (!status) return 'Desconocido';
+  
+  const normalizedStatus = normalizeCallStatus(status);
+  
+  switch (normalizedStatus) {
+    case 'completed':
+      return 'Completada';
+    case 'customer-did-not-answer':
+      return 'No contestó';
+    case 'busy':
+      return 'Ocupado';
+    case 'queued':
+      return 'En cola';
+    case 'failed':
+      return 'Fallida';
+    case 'no-call':
+      return 'No llamado';
+    default:
+      return status;
+  }
 }
 
 // Add more utility functions as needed...
