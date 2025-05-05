@@ -37,9 +37,9 @@ export function ActiveServicesDashboard() {
   
   return (
     <div className="w-full h-full">
-      <div className="grid grid-cols-1 lg:grid-cols-16 gap-2 lg:gap-3 h-full px-2 md:px-4">
-        {/* Left sidebar with active service cards - adjusted width */}
-        <div className="lg:col-span-3 flex flex-col h-[calc(100vh-150px)]">
+      <div className="grid grid-cols-1 lg:grid-cols-16 gap-1 h-full px-1 md:px-2">
+        {/* Left sidebar with active service cards - optimized width */}
+        <div className="lg:col-span-2 xl:col-span-2 flex flex-col h-[calc(100vh-140px)]">
           <StatsCards 
             total={stats.total} 
             onTime={stats.onTime} 
@@ -57,13 +57,13 @@ export function ActiveServicesDashboard() {
           />
         </div>
         
-        {/* Main area with map and details - adjusted width */}
-        <div className="lg:col-span-13 flex flex-col h-[calc(100vh-150px)]">
+        {/* Main area with map and details - expanded width */}
+        <div className="lg:col-span-14 xl:col-span-14 flex flex-col h-[calc(100vh-140px)]">
           <MapHeader />
           
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-2 lg:gap-3 flex-grow">
-            {/* Map container - adjusted width */}
-            <div className="lg:col-span-8 xl:col-span-9 flex flex-col h-full">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-1 flex-grow">
+            {/* Map container - expanded width */}
+            <div className="lg:col-span-9 xl:col-span-9 flex flex-col h-full">
               <ActiveServicesMap 
                 services={services} 
                 selectedServiceId={selectedServiceId} 
@@ -71,8 +71,8 @@ export function ActiveServicesDashboard() {
               />
             </div>
             
-            {/* Service details - adjusted width */}
-            <div className="lg:col-span-4 xl:col-span-3">
+            {/* Service details - optimized width */}
+            <div className="lg:col-span-3 xl:col-span-3">
               <ServiceDetailsPanel selectedService={selectedService} />
             </div>
           </div>

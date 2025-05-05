@@ -38,9 +38,13 @@ export function MapContainer({ services, selectedServiceId, onServiceSelect }: M
         pitchWithRotate: false,
       });
       
-      // Add navigation controls
+      // Add navigation controls (making them smaller and in bottom-right)
       map.current.addControl(
-        new mapboxgl.NavigationControl(),
+        new mapboxgl.NavigationControl({
+          showCompass: true,
+          visualizePitch: false,
+          showZoom: true,
+        }),
         'bottom-right'
       );
       
@@ -54,13 +58,28 @@ export function MapContainer({ services, selectedServiceId, onServiceSelect }: M
       map.current.on('load', () => {
         console.log('Map style loaded successfully');
         setMapLoaded(true);
+        
+        // Resize the map to ensure it fills the container properly
+        if (map.current) {
+          map.current.resize();
+        }
       });
     } catch (error) {
       console.error('Error initializing map:', error);
       setMapError(`Error initializing map: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
     
+    // Ensure map resizes when window size changes
+    const handleResize = () => {
+      if (map.current) {
+        map.current.resize();
+      }
+    };
+    
+    window.addEventListener('resize', handleResize);
+    
     return () => {
+      window.removeEventListener('resize', handleResize);
       if (map.current) {
         map.current.remove();
         map.current = null;

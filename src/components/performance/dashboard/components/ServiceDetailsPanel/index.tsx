@@ -14,16 +14,16 @@ interface ServiceDetailsPanelProps {
 export function ServiceDetailsPanel({ selectedService }: ServiceDetailsPanelProps) {
   if (!selectedService) {
     return (
-      <div className="bg-white rounded-xl shadow-sm border h-full overflow-hidden">
+      <div className="bg-white rounded-lg shadow-sm border h-full overflow-hidden">
         <EmptyState />
       </div>
     );
   }
 
   return (
-    <div className="bg-white rounded-xl shadow-sm border h-full overflow-auto">
-      <div className="p-3">
-        <h3 className="text-lg font-semibold mb-3 truncate">
+    <div className="bg-white rounded-lg shadow-sm border h-full overflow-auto">
+      <div className="p-2">
+        <h3 className="text-base font-semibold mb-2 truncate">
           Detalles del Servicio #{selectedService.id}
         </h3>
         

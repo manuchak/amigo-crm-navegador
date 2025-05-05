@@ -1,18 +1,17 @@
 
 import React from 'react';
-import { Badge } from '@/components/ui/badge';
 
 export function MapHeader() {
   return (
-    <div className="flex items-center justify-between mb-2 px-1">
-      <div className="flex items-center gap-2">
-        <h2 className="font-medium text-base">Ubicación de servicios activos</h2>
-        <Badge variant="outline" className="bg-slate-100">
+    <div className="flex justify-between items-center bg-white rounded-lg border p-2 mb-1 shadow-sm">
+      <div>
+        <h3 className="text-sm font-semibold">Ubicación de servicios activos</h3>
+        <p className="text-xs text-muted-foreground">
           En tiempo real
-        </Badge>
+        </p>
       </div>
-      <div className="text-sm text-muted-foreground">
-        Actualizado hace 5 mins
+      <div className="text-xs text-muted-foreground flex items-center">
+        <span>Actualizado hace 5 mins</span>
       </div>
     </div>
   );

@@ -13,7 +13,7 @@ interface ActiveServicesMapProps {
 
 export function ActiveServicesMap({ services, selectedServiceId, onServiceSelect }: ActiveServicesMapProps) {
   return (
-    <div className="relative w-full h-full rounded-xl overflow-hidden border shadow-sm bg-card">
+    <div className="relative w-full h-full rounded-lg overflow-hidden border shadow-sm bg-card">
       <MapContainer 
         services={services} 
         selectedServiceId={selectedServiceId} 

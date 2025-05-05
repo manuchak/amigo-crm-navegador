@@ -5,15 +5,15 @@ import { MapPin } from 'lucide-react';
 
 export default function ActiveServices() {
   return (
-    <div className="w-full px-0 py-2">
-      <div className="mb-3 px-2 md:px-4">
-        <div className="flex items-center gap-3 mb-1">
-          <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
-            <MapPin className="h-5 w-5 text-primary" />
+    <div className="w-full h-full py-2">
+      <div className="mb-2 px-4">
+        <div className="flex items-center gap-2 mb-1">
+          <div className="h-9 w-9 rounded-lg bg-primary/10 flex items-center justify-center">
+            <MapPin className="h-4 w-4 text-primary" />
           </div>
           <div>
-            <h1 className="text-2xl font-bold">Servicios Activos</h1>
-            <p className="text-muted-foreground">Monitoreo en tiempo real de servicios en tránsito</p>
+            <h1 className="text-xl font-bold">Servicios Activos</h1>
+            <p className="text-sm text-muted-foreground">Monitoreo en tiempo real de servicios en tránsito</p>
           </div>
         </div>
       </div>

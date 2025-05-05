@@ -1,8 +1,8 @@
 
 import React from 'react';
-import { Card, CardContent } from '@/components/ui/card';
-import { Clock, AlertCircle, Timer } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { Card } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Clock, AlertTriangle, CheckCircle } from 'lucide-react';
 
 interface StatsCardsProps {
   total: number;
@@ -13,34 +13,43 @@ interface StatsCardsProps {
 
 export function StatsCards({ total, onTime, delayed, riskZone }: StatsCardsProps) {
   return (
-    <div className="grid grid-cols-3 gap-2 mb-2">
-      <Card className="bg-white shadow-sm hover:shadow transition-all duration-300 border">
-        <CardContent className="p-2 text-center flex flex-col items-center">
-          <div className="flex items-center justify-center w-8 h-8 rounded-full bg-green-50 mb-1">
-            <Clock className="h-4 w-4 text-green-500" />
-          </div>
-          <p className="text-xs text-muted-foreground mb-0.5">En tiempo</p>
-          <p className="text-lg font-bold text-green-600">{onTime}</p>
-        </CardContent>
+    <div className="grid grid-cols-1 gap-1 mb-2">
+      <Card className="p-2">
+        <p className="text-xs text-muted-foreground">Total Servicios</p>
+        <p className="text-2xl font-bold">{total}</p>
       </Card>
-      <Card className="bg-white shadow-sm hover:shadow transition-all duration-300 border">
-        <CardContent className="p-2 text-center flex flex-col items-center">
-          <div className="flex items-center justify-center w-8 h-8 rounded-full bg-amber-50 mb-1">
-            <Timer className="h-4 w-4 text-amber-500" />
+      
+      <div className="grid grid-cols-1 gap-1">
+        <Card className="bg-green-50 p-2 border-green-100">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-xs text-green-700">En tiempo</p>
+              <p className="text-xl font-bold text-green-700">{onTime}</p>
+            </div>
+            <CheckCircle className="w-4 h-4 text-green-500" />
           </div>
-          <p className="text-xs text-muted-foreground mb-0.5">Con retraso</p>
-          <p className="text-lg font-bold text-amber-600">{delayed}</p>
-        </CardContent>
-      </Card>
-      <Card className="bg-white shadow-sm hover:shadow transition-all duration-300 border">
-        <CardContent className="p-2 text-center flex flex-col items-center">
-          <div className="flex items-center justify-center w-8 h-8 rounded-full bg-red-50 mb-1">
-            <AlertCircle className="h-4 w-4 text-red-500" />
+        </Card>
+        
+        <Card className="bg-amber-50 p-2 border-amber-100">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-xs text-amber-700">Con retraso</p>
+              <p className="text-xl font-bold text-amber-700">{delayed}</p>
+            </div>
+            <Clock className="w-4 h-4 text-amber-500" />
           </div>
-          <p className="text-xs text-muted-foreground mb-0.5">Zona riesgo</p>
-          <p className="text-lg font-bold text-red-600">{riskZone}</p>
-        </CardContent>
-      </Card>
+        </Card>
+        
+        <Card className="bg-red-50 p-2 border-red-100">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-xs text-red-700">Zona riesgo</p>
+              <p className="text-xl font-bold text-red-700">{riskZone}</p>
+            </div>
+            <AlertTriangle className="w-4 h-4 text-red-500" />
+          </div>
+        </Card>
+      </div>
     </div>
   );
 }

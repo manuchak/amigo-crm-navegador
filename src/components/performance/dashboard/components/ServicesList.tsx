@@ -1,12 +1,11 @@
 
 import React from 'react';
+import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { ServiceCard } from '../ServiceCard';
+import { ChevronDown, ChevronUp, User } from 'lucide-react';
+import { cn } from '@/lib/utils';
 import { ActiveService } from '../types';
-import { Truck, ChevronDown, ChevronUp } from 'lucide-react';
 
 interface ServicesListProps {
   services: ActiveService[];
@@ -23,53 +22,77 @@ export function ServicesList({
   selectedServiceId,
   setSelectedServiceId,
   showAllServices,
-  setShowAllServices
+  setShowAllServices,
 }: ServicesListProps) {
   return (
-    <Card className="flex-grow shadow-sm border overflow-hidden">
-      <CardHeader className="py-2 px-3 border-b bg-slate-50/80">
-        <CardTitle className="text-sm flex items-center justify-between">
-          <span className="flex items-center gap-1.5">
-            <div className="bg-primary/10 p-1 rounded">
-              <Truck className="w-3.5 h-3.5 text-primary" />
-            </div>
-            Servicios Activos
-          </span>
-          <Badge variant="secondary" className="bg-slate-100 text-xs font-medium">{services.length}</Badge>
-        </CardTitle>
-      </CardHeader>
-      <ScrollArea className="h-[calc(100vh-220px)]">
-        <CardContent className="p-2">
-          <div className="space-y-2">
-            {displayedServices.map(service => (
-              <ServiceCard
-                key={service.id}
-                service={service}
-                isSelected={service.id === selectedServiceId}
-                onClick={() => setSelectedServiceId(service.id)}
-              />
-            ))}
-          </div>
-          
-          {services.length > 4 && (
-            <Button 
-              variant="ghost" 
-              className="w-full mt-2 text-xs text-muted-foreground flex items-center justify-center gap-1 h-8"
-              onClick={() => setShowAllServices(!showAllServices)}
-            >
-              {showAllServices ? (
-                <>
-                  Mostrar menos <ChevronUp className="h-3 w-3" />
-                </>
-              ) : (
-                <>
-                  Mostrar todos ({services.length}) <ChevronDown className="h-3 w-3" />
-                </>
+    <div className="flex-grow overflow-hidden flex flex-col">
+      <div className="flex items-center justify-between mb-1">
+        <h3 className="text-xs font-medium">Servicios Activos</h3>
+        <Badge variant="secondary" className="text-xs">{services.length}</Badge>
+      </div>
+      
+      <div className="flex-grow overflow-auto rounded-lg border bg-white mb-1">
+        <div className="divide-y">
+          {displayedServices.map((service) => (
+            <button
+              key={service.id}
+              onClick={() => setSelectedServiceId(service.id)}
+              className={cn(
+                "w-full text-left p-1.5 transition-colors flex flex-col",
+                service.id === selectedServiceId
+                  ? "bg-primary/5 border-l-2 border-l-primary"
+                  : "hover:bg-muted/30"
               )}
-            </Button>
+            >
+              <div className="flex items-center justify-between">
+                <span className="font-medium text-xs truncate">
+                  Servicio #{service.id.substring(0, 5)}
+                </span>
+                {getRiskBadge(service)}
+              </div>
+              <div className="flex items-center gap-1 mt-1">
+                <User className="w-3 h-3 text-muted-foreground" />
+                <span className="text-xs text-muted-foreground truncate">
+                  {service.custodio}
+                </span>
+              </div>
+            </button>
+          ))}
+        </div>
+      </div>
+      
+      {services.length > 4 && (
+        <Button
+          variant="ghost"
+          size="sm"
+          className="w-full text-xs border"
+          onClick={() => setShowAllServices(!showAllServices)}
+        >
+          {showAllServices ? (
+            <>
+              <ChevronUp className="w-3 h-3 mr-1" />
+              Mostrar menos
+            </>
+          ) : (
+            <>
+              <ChevronDown className="w-3 h-3 mr-1" />
+              Mostrar todos ({services.length})
+            </>
           )}
-        </CardContent>
-      </ScrollArea>
-    </Card>
+        </Button>
+      )}
+    </div>
   );
+}
+
+function getRiskBadge(service: ActiveService) {
+  if (service.inRiskZone) {
+    return <Badge variant="destructive" className="text-[10px]">Zona riesgo</Badge>;
+  }
+  
+  if (service.delayRisk && service.delayRiskPercent > 50) {
+    return <Badge variant="warning" className="text-[10px]">Posible retraso</Badge>;
+  }
+  
+  return <Badge variant="success" className="text-[10px]">En tiempo</Badge>;
 }
