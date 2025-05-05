@@ -37,7 +37,8 @@ const UserManagementPanel = () => {
     fetchUsers,
     handleRoleChange,
     handleEditClick,
-    lastFetchedAt
+    lastFetchedAt,
+    refreshUserList
   } = useUserManagement({ getAllUsers });
   
   // Automatic retry when error occurs
@@ -56,14 +57,12 @@ const UserManagementPanel = () => {
   // Initial data fetch with improved error handling
   useEffect(() => {
     const loadInitialData = async () => {
-      if (!users.length && !loading) {
+      if (users.length === 0 && !loading) {
         console.log('Initial fetch of users in UserManagementPanel');
-        
         try {
           await fetchUsers(true);
         } catch (err) {
           console.error('Failed to load users:', err);
-          // Will be handled by the component's error state
         }
       }
     };
@@ -98,7 +97,7 @@ const UserManagementPanel = () => {
       setTimeout(() => {
         console.log('Refreshing user list after role update');
         fetchUsers(true);
-      }, 1000);
+      }, 500);
     } catch (error: any) {
       console.error('Error updating role:', error);
       toast.error(`Error al actualizar el rol del usuario: ${error?.message || 'Error desconocido'}`);
@@ -114,7 +113,7 @@ const UserManagementPanel = () => {
         throw new Error(result.error || 'Unknown error verifying email');
       }
       
-      // Update local state to reflect the change
+      // Update local state to reflect the change immediately
       setUsers(prevUsers => prevUsers.map(u => 
         u.uid === user.uid ? { ...u, emailVerified: true } : u
       ));
@@ -125,7 +124,7 @@ const UserManagementPanel = () => {
       setTimeout(() => {
         console.log('Refreshing user list after email verification');
         fetchUsers(true);
-      }, 1000);
+      }, 500);
     } catch (error: any) {
       console.error('Error verifying user email:', error);
       toast.error(`Error al verificar el email del usuario: ${error?.message || 'Error desconocido'}`);
@@ -136,6 +135,12 @@ const UserManagementPanel = () => {
     console.log('Manual refresh triggered');
     setRetryCount(prev => prev + 1);
     fetchUsers(true);
+  };
+  
+  // Format date function for UserTable
+  const formatDate = (date: Date | null | undefined): string => {
+    if (!date) return 'N/A';
+    return new Date(date).toLocaleDateString();
   };
 
   const showDebugInfo = () => {
@@ -159,6 +164,14 @@ const UserManagementPanel = () => {
             </pre>
           </>
         )}
+        <p className="mt-2 font-medium">Datos de usuarios:</p>
+        <div className="bg-gray-100 p-2 rounded text-xs overflow-auto mt-1 max-h-40">
+          {users.map(user => (
+            <div key={user.uid} className="mb-1">
+              {user.email}: rol={user.role}, verificado={user.emailVerified ? 'sí' : 'no'}
+            </div>
+          ))}
+        </div>
       </div>
     );
   };
@@ -204,7 +217,7 @@ const UserManagementPanel = () => {
               onEditClick={handleEditClick}
               onVerifyUser={handleVerifyUser}
               canEditUser={(user) => canEditUser(currentUserData, user)}
-              formatDate={(date) => date ? new Date(date).toLocaleDateString() : 'N/A'}
+              formatDate={formatDate}
               currentUser={currentUserData}
             />
             

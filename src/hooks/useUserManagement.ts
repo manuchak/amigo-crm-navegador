@@ -63,9 +63,15 @@ export const useUserManagement = (
   const getAllUsers = async (): Promise<UserData[]> => {
     setLoading(true);
     try {
-      console.log('Getting all users from storage');
+      console.log('Getting all users from storage in useUserManagement hook');
       const users = localGetAllUsers();
       console.log('Users retrieved:', users.length);
+      
+      // Add additional logging to help debug role issues
+      users.forEach(user => {
+        console.log(`User ${user.email} has role: ${user.role}`);
+      });
+      
       return users;
     } catch (error) {
       console.error('Error getting all users:', error);

@@ -16,6 +16,7 @@ const useUserManagement = ({ getAllUsers }: UseUserManagementProps) => {
   const [isConfirmationOpen, setIsConfirmationOpen] = useState(false);
   const [newRole, setNewRole] = useState<UserRole | null>(null);
   const [lastFetchedAt, setLastFetchedAt] = useState<number | null>(null);
+  const [forceRefresh, setForceRefresh] = useState(0);
 
   const fetchUsers = useCallback(async (forceRefresh: boolean = false) => {
     // Skip if already loading
@@ -25,7 +26,7 @@ const useUserManagement = ({ getAllUsers }: UseUserManagementProps) => {
     }
     
     // If not forcing refresh and we fetched recently, return cached users
-    const CACHE_TTL = 10 * 1000; // 10 seconds (reduced from 30 to make testing easier)
+    const CACHE_TTL = 5 * 1000; // 5 seconds (reduced from 30 to make testing easier)
     if (
       !forceRefresh && 
       lastFetchedAt && 
@@ -43,6 +44,14 @@ const useUserManagement = ({ getAllUsers }: UseUserManagementProps) => {
     try {
       const data = await getAllUsers();
       console.log('Fetched users data:', data);
+      
+      // Deep check each user to ensure we got valid data
+      if (Array.isArray(data)) {
+        data.forEach(user => {
+          console.log(`Checking user: ${user.email}, role: ${user.role}, verified: ${user.emailVerified}`);
+        });
+      }
+      
       setUsers(data);
       setLastFetchedAt(Date.now());
       return data;
@@ -69,13 +78,19 @@ const useUserManagement = ({ getAllUsers }: UseUserManagementProps) => {
     setNewRole(role);
   };
 
-  // Load users on component mount
+  // Load users on component mount and whenever forceRefresh changes
   useEffect(() => {
-    if (users.length === 0 && !loading) {
-      console.log('Initial user load in useUserManagement hook');
-      fetchUsers();
+    if (!loading) {
+      console.log('Fetching users due to mount or forceRefresh trigger');
+      fetchUsers(true);
     }
-  }, []);
+  }, [forceRefresh]);
+
+  // Force a refresh of the user list
+  const refreshUserList = () => {
+    console.log('Forcing refresh of user list');
+    setForceRefresh(prev => prev + 1);
+  };
 
   return {
     users,
@@ -93,7 +108,8 @@ const useUserManagement = ({ getAllUsers }: UseUserManagementProps) => {
     setNewRole,
     handleEditClick,
     handleRoleChange,
-    lastFetchedAt
+    lastFetchedAt,
+    refreshUserList
   };
 };
 
