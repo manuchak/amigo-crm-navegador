@@ -1,8 +1,7 @@
-
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { UserRole } from '@/types/auth';
+import { UserRole, UserData } from '@/types/auth';
 
 // Permission types
 export interface Permission {
@@ -117,6 +116,7 @@ export const useRolePermissions = () => {
   const [error, setError] = useState<string | null>(null);
   const [isOwner, setIsOwner] = useState<boolean>(false);
   const [retryCount, setRetryCount] = useState(0);
+  const [users, setUsers] = useState<any[]>([]);
 
   // Check if the current user is an owner with more verbose logging
   const checkOwnerStatus = useCallback(async (): Promise<boolean> => {
@@ -177,6 +177,75 @@ export const useRolePermissions = () => {
     }
   }, []);
 
+  // New function to fetch users from Supabase
+  const fetchUsers = useCallback(async () => {
+    try {
+      console.log("Fetching users from Supabase...");
+      
+      // Get profiles from Supabase
+      const { data: profiles, error: profilesError } = await supabase
+        .from('profiles')
+        .select('*');
+      
+      if (profilesError) {
+        console.error("Error fetching profiles:", profilesError);
+        throw profilesError;
+      }
+      
+      if (!profiles || profiles.length === 0) {
+        console.log("No profiles found in Supabase");
+        return [];
+      }
+      
+      console.log(`Found ${profiles.length} profiles in Supabase`);
+      
+      // Get role information for each profile
+      const usersWithRoles = await Promise.all(
+        profiles.map(async (profile) => {
+          try {
+            // Get role for this user
+            const { data: roleData, error: roleError } = await supabase.rpc(
+              'get_user_role',
+              { user_uid: profile.id }
+            );
+            
+            const role = roleError ? 'unverified' : (roleData as UserRole || 'unverified');
+            console.log(`User ${profile.id} (${profile.email}) has role: ${role}`);
+            
+            return {
+              id: profile.id,
+              uid: profile.id,
+              email: profile.email || '',
+              displayName: profile.display_name || profile.email || '',
+              photoURL: profile.photo_url || undefined,
+              role: role,
+              createdAt: profile.created_at ? new Date(profile.created_at) : new Date(),
+              lastLogin: profile.last_login ? new Date(profile.last_login) : new Date()
+            };
+          } catch (error) {
+            console.error(`Error getting role for user ${profile.id}:`, error);
+            return {
+              id: profile.id,
+              uid: profile.id,
+              email: profile.email || '',
+              displayName: profile.display_name || profile.email || '',
+              photoURL: profile.photo_url || undefined,
+              role: 'unverified',
+              createdAt: profile.created_at ? new Date(profile.created_at) : new Date(),
+              lastLogin: profile.last_login ? new Date(profile.last_login) : new Date()
+            };
+          }
+        })
+      );
+      
+      console.log(`Processed ${usersWithRoles.length} users with roles`);
+      return usersWithRoles;
+    } catch (error) {
+      console.error('Error fetching users:', error);
+      return [];
+    }
+  }, []);
+
   // Load permissions from database with improved error handling
   const loadPermissions = useCallback(async () => {
     setLoading(true);
@@ -188,6 +257,11 @@ export const useRolePermissions = () => {
       // Check owner status first
       const ownerStatus = await checkOwnerStatus();
       console.log("Estado de propietario verificado:", ownerStatus);
+      
+      // Fetch users
+      const fetchedUsers = await fetchUsers();
+      setUsers(fetchedUsers);
+      console.log(`Loaded ${fetchedUsers.length} users`);
       
       // Get permissions from database
       const { data, error } = await supabase
@@ -264,7 +338,7 @@ export const useRolePermissions = () => {
     } finally {
       setLoading(false);
     }
-  }, [checkOwnerStatus]);
+  }, [checkOwnerStatus, fetchUsers]);
 
   // Save permissions to database with improved logging
   const handleSavePermissions = async () => {
@@ -436,6 +510,7 @@ export const useRolePermissions = () => {
     saving,
     error,
     isOwner,
+    users,
     loadPermissions,
     savePermissions: handleSavePermissions,
     handleSavePermissions,

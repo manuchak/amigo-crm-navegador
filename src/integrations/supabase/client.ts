@@ -14,7 +14,7 @@ export const supabase = createClient(supabaseUrl, supabaseKey, {
   },
 });
 
-// Helper function to check if the current user has the owner role
+// Enhanced helper function to check if the current user has the owner role
 export const checkForOwnerRole = async (): Promise<boolean> => {
   try {
     console.log("Checking for owner role from Supabase...");
@@ -34,13 +34,28 @@ export const checkForOwnerRole = async (): Promise<boolean> => {
     
     console.log("Found authenticated user:", userData.user.email);
     
+    // Try to get the profile
+    const { data: profileData, error: profileError } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', userData.user.id)
+      .maybeSingle();
+    
+    if (profileError) {
+      console.error("Error fetching profile:", profileError);
+    } else if (profileData) {
+      console.log("Found profile for user:", profileData.email);
+    } else {
+      console.log("No profile found for user");
+    }
+    
     // Query user_roles table directly to check for the owner role
     const { data: rolesData, error: rolesError } = await supabase
       .from('user_roles')
       .select('role')
       .eq('user_id', userData.user.id)
       .eq('role', 'owner')
-      .single();
+      .maybeSingle();
     
     if (rolesError) {
       console.log("No owner role found in user_roles table:", rolesError);

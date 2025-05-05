@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useRolePermissions } from './hooks/useRolePermissions';
 import { 
@@ -66,6 +65,11 @@ const UserPermissionConfig = () => {
     availableActions,
     ROLES
   } = useRolePermissions();
+
+  // Log users when component mounts or users change
+  useEffect(() => {
+    console.log("Users in UserPermissionConfig:", users);
+  }, [users]);
 
   // Check owner status on mount
   useEffect(() => {
@@ -271,63 +275,63 @@ const UserPermissionConfig = () => {
                 <span>Acceso a Acciones</span>
               </TabsTrigger>
             </TabsList>
-          </Tabs>
           
-          <div className="flex gap-2 w-full mb-4">
-            <Button 
-              onClick={reloadPermissions} 
-              variant="outline"
-              size="sm"
-              className="flex-1"
-            >
-              <RefreshCw className="mr-2 h-4 w-4" />
-              Recargar
-            </Button>
+            <div className="flex gap-2 w-full mb-4">
+              <Button 
+                onClick={reloadPermissions} 
+                variant="outline"
+                size="sm"
+                className="flex-1"
+              >
+                <RefreshCw className="mr-2 h-4 w-4" />
+                Recargar
+              </Button>
+              
+              <Button 
+                onClick={handleSavePermissions}
+                disabled={saving}
+                className="flex-1"
+              >
+                {saving ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Guardando...
+                  </>
+                ) : (
+                  <>
+                    <Save className="mr-2 h-4 w-4" />
+                    Guardar Cambios
+                  </>
+                )}
+              </Button>
+            </div>
             
-            <Button 
-              onClick={handleSavePermissions}
-              disabled={saving}
-              className="flex-1"
-            >
-              {saving ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Guardando...
-                </>
-              ) : (
-                <>
-                  <Save className="mr-2 h-4 w-4" />
-                  Guardar Cambios
-                </>
-              )}
-            </Button>
-          </div>
-          
-          <TabsContent value="roles" className="m-0 w-full">
-            <UserRolesTable users={users} />
-          </TabsContent>
-          
-          <TabsContent value="pages" className="m-0 w-full">
-            <PermissionsTable
-              title="Permisos de Páginas"
-              permissions={permissions}
-              items={availablePages}
-              type="pages"
-              onChange={handlePermissionChange}
-              roles={ROLES}
-            />
-          </TabsContent>
-          
-          <TabsContent value="actions" className="m-0 w-full">
-            <PermissionsTable
-              title="Permisos de Acciones"
-              permissions={permissions}
-              items={availableActions}
-              type="actions"
-              onChange={handlePermissionChange}
-              roles={ROLES}
-            />
-          </TabsContent>
+            <TabsContent value="roles" className="m-0 w-full">
+              <UserRolesTable users={users} />
+            </TabsContent>
+            
+            <TabsContent value="pages" className="m-0 w-full">
+              <PermissionsTable
+                title="Permisos de Páginas"
+                permissions={permissions}
+                items={availablePages}
+                type="pages"
+                onChange={handlePermissionChange}
+                roles={ROLES}
+              />
+            </TabsContent>
+            
+            <TabsContent value="actions" className="m-0 w-full">
+              <PermissionsTable
+                title="Permisos de Acciones"
+                permissions={permissions}
+                items={availableActions}
+                type="actions"
+                onChange={handlePermissionChange}
+                roles={ROLES}
+              />
+            </TabsContent>
+          </Tabs>
         </div>
       </CardContent>
     </Card>
@@ -339,6 +343,8 @@ interface UserRolesTableProps {
 }
 
 const UserRolesTable: React.FC<UserRolesTableProps> = ({ users }) => {
+  console.log("Users in UserRolesTable:", users);
+  
   if (!users || users.length === 0) {
     return (
       <Alert className="mb-6">
