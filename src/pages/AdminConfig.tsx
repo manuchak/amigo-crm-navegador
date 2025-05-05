@@ -6,19 +6,24 @@ import { Separator } from '@/components/ui/separator';
 import { useAuth } from '@/context/AuthContext';
 import UserManagementPanel from '@/components/admin/UserManagementPanel';
 import UserPermissionConfig from '@/components/user-management/UserPermissionConfig';
-import { Settings, Users, Lock } from 'lucide-react';
+import { Settings, Users, Lock, RefreshCw } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { setSpecificUserAsVerifiedOwner, setManuelAsOwner } from '@/utils/setVerifiedOwner';
+import { Button } from '@/components/ui/button';
 
 const AdminConfig = () => {
   const { currentUser, userData, refreshUserData } = useAuth();
   const [activeTab, setActiveTab] = useState<string>("users");
   const [ownerStatus, setOwnerStatus] = useState<boolean>(false);
+  const [isCheckingOwner, setIsCheckingOwner] = useState<boolean>(false);
   
   // Check and verify owner status on component mount
   useEffect(() => {
     const checkOwnerStatus = async () => {
       try {
+        setIsCheckingOwner(true);
+        
         // First check if current user is already an owner
         if (userData?.role === 'owner') {
           console.log("User is already verified as owner");
@@ -32,6 +37,8 @@ const AdminConfig = () => {
           console.error("No authenticated user found");
           return;
         }
+        
+        console.log("Current user:", authData.user.email);
         
         // Check user role from Supabase
         const { data: roleData, error: roleError } = await supabase.rpc('get_user_role', {
@@ -52,17 +59,51 @@ const AdminConfig = () => {
           toast.success("Has sido verificado como propietario del sistema");
         } else {
           console.log("❌ Current user is not owner, role:", roleData);
+          
+          // If email matches Manuel, try to set as owner
+          if (authData.user.email?.toLowerCase() === 'manuel.chacon@detectasecurity.io') {
+            console.log("Attempting to set Manuel as owner...");
+            const success = await setSpecificUserAsVerifiedOwner(authData.user.email, false);
+            if (success) {
+              console.log("Manuel has been set as owner");
+              toast.success("Tu cuenta ha sido establecida como propietario del sistema");
+              await refreshUserData();
+              setOwnerStatus(true);
+            } else {
+              console.error("Failed to set Manuel as owner");
+            }
+          }
         }
         
         // Force refresh user data to reflect any role changes
         await refreshUserData();
       } catch (error) {
         console.error("Error checking owner status:", error);
+      } finally {
+        setIsCheckingOwner(false);
       }
     };
 
     checkOwnerStatus();
   }, [userData, refreshUserData]);
+  
+  const handleForceOwnerCheck = async () => {
+    setIsCheckingOwner(true);
+    try {
+      const success = await setManuelAsOwner();
+      if (success) {
+        await refreshUserData();
+        toast.success("Permisos de propietario actualizados correctamente");
+      } else {
+        toast.error("No se pudo establecer el permiso de propietario");
+      }
+    } catch (error) {
+      console.error("Error setting owner:", error);
+      toast.error("Error al actualizar permisos de propietario");
+    } finally {
+      setIsCheckingOwner(false);
+    }
+  };
   
   // Only show admin features if user has correct role
   const isAdmin = userData?.role === 'admin' || userData?.role === 'owner' || ownerStatus;
@@ -78,10 +119,20 @@ const AdminConfig = () => {
               Tu rol actual es: {userData?.role || "no definido"}
             </CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="space-y-4">
             <p className="text-muted-foreground">
               Si crees que deberías tener acceso, por favor contacta al administrador del sistema.
             </p>
+            {userData?.email?.toLowerCase() === 'manuel.chacon@detectasecurity.io' && (
+              <Button 
+                onClick={handleForceOwnerCheck} 
+                variant="outline"
+                disabled={isCheckingOwner}
+              >
+                <RefreshCw className="h-4 w-4 mr-2" />
+                Verificar permisos de propietario
+              </Button>
+            )}
           </CardContent>
         </Card>
       </div>

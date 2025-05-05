@@ -1,13 +1,16 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Switch } from '@/components/ui/switch';
-import { Loader2, Save } from 'lucide-react';
+import { Loader2, Save, RefreshCw } from 'lucide-react';
 import { useRolePermissions } from '@/hooks/useRolePermissions';
 import { Badge } from '@/components/ui/badge';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/context/AuthContext';
+import { toast } from 'sonner';
 
 const UserPermissionConfig = () => {
   const {
@@ -21,9 +24,69 @@ const UserPermissionConfig = () => {
     handleSavePermissions,
     availablePages,
     availableActions,
+    reloadPermissions,
+    checkOwnerStatus,
+    setRetryCount
   } = useRolePermissions();
   
+  const { currentUser, userData, refreshUserData } = useAuth();
   const [activeTab, setActiveTab] = useState('pages');
+  const [verifyingOwner, setVerifyingOwner] = useState(false);
+  
+  // Verificar status de propietario al cargar y cuando cambia el usuario
+  useEffect(() => {
+    const verifyOwnerStatus = async () => {
+      try {
+        // Verificar si el usuario actual ya es propietario
+        const isCurrentOwner = await checkOwnerStatus();
+        console.log("Resultado de verificación de propietario:", isCurrentOwner);
+        
+        if (!isCurrentOwner && userData?.email === 'manuel.chacon@detectasecurity.io') {
+          console.log("Intentando establecer a Manuel Chacon como propietario...");
+          
+          // Intentar establecer al usuario como propietario
+          try {
+            const { data: authData } = await supabase.auth.getUser();
+            if (authData.user) {
+              const { error: rpcError } = await supabase.rpc('update_user_role', {
+                target_user_id: authData.user.id,
+                new_role: 'owner'
+              });
+              
+              if (rpcError) {
+                console.error('Error asignando rol de propietario:', rpcError);
+              } else {
+                console.log('Rol de propietario asignado correctamente');
+                // Recargar permisos después de actualizar el rol
+                setRetryCount(prev => prev + 1);
+                await refreshUserData();
+              }
+            }
+          } catch (err) {
+            console.error('Error en proceso de asignación de propietario:', err);
+          }
+        }
+      } catch (error) {
+        console.error("Error verificando estado de propietario:", error);
+      }
+    };
+
+    verifyOwnerStatus();
+  }, [userData, checkOwnerStatus, refreshUserData, setRetryCount]);
+  
+  const handleForceRefresh = async () => {
+    setVerifyingOwner(true);
+    try {
+      await refreshUserData();
+      reloadPermissions();
+      toast.success("Información de permisos actualizada");
+    } catch (error) {
+      console.error("Error al actualizar permisos:", error);
+      toast.error("Error al actualizar información de permisos");
+    } finally {
+      setVerifyingOwner(false);
+    }
+  };
   
   if (loading) {
     return (
@@ -33,11 +96,38 @@ const UserPermissionConfig = () => {
     );
   }
   
+  // Si no es propietario, mostrar mensaje y botón para refrescar
   if (!isOwner) {
     return (
       <Card className="bg-amber-50 border-amber-200">
-        <CardContent className="pt-6">
+        <CardContent className="pt-6 space-y-4">
           <p className="text-amber-800">Solo el propietario puede configurar permisos del sistema.</p>
+          <div className="text-sm text-amber-700">
+            <p>Estado actual:</p>
+            <ul className="list-disc pl-5 mt-2 space-y-1">
+              <li>Usuario: {userData?.email || 'No identificado'}</li>
+              <li>Rol actual: {userData?.role || 'No definido'}</li>
+              <li>Estado propietario: {isOwner ? 'Sí' : 'No'}</li>
+            </ul>
+          </div>
+          <Button 
+            onClick={handleForceRefresh} 
+            variant="outline" 
+            className="mt-4 border-amber-300"
+            disabled={verifyingOwner}
+          >
+            {verifyingOwner ? (
+              <>
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                Verificando...
+              </>
+            ) : (
+              <>
+                <RefreshCw className="h-4 w-4 mr-2" />
+                Actualizar estado
+              </>
+            )}
+          </Button>
         </CardContent>
       </Card>
     );

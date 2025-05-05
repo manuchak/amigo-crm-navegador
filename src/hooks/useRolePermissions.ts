@@ -118,31 +118,52 @@ export const useRolePermissions = () => {
   const [isOwner, setIsOwner] = useState<boolean>(false);
   const [retryCount, setRetryCount] = useState(0);
 
-  // Check if the current user is an owner
-  const checkOwnerStatus = useCallback(async () => {
+  // Check if the current user is an owner with more verbose logging
+  const checkOwnerStatus = useCallback(async (): Promise<boolean> => {
     try {
-      const { data: userData } = await supabase.auth.getUser();
-      if (!userData.user) return false;
-
-      const { data, error } = await supabase.rpc('get_user_role', {
-        user_uid: userData.user.id
-      });
-
-      if (!error && data === 'owner') {
-        console.log('✅ Usuario autentificado como propietario');
-        setIsOwner(true);
-        return true;
+      console.log("Verificando status de propietario...");
+      
+      // Get current user from Supabase
+      const { data: userData, error: userError } = await supabase.auth.getUser();
+      
+      if (userError) {
+        console.error("Error al obtener usuario actual:", userError);
+        return false;
       }
       
-      console.log('❌ Usuario no es propietario, rol actual:', data);
-      return false;
+      if (!userData.user) {
+        console.log("No se encontró un usuario autenticado");
+        return false;
+      }
+      
+      console.log("Usuario autenticado:", userData.user.email);
+      
+      // Check if user is owner through RPC function
+      const { data: roleData, error: roleError } = await supabase.rpc('get_user_role', {
+        user_uid: userData.user.id
+      });
+      
+      if (roleError) {
+        console.error("Error al verificar rol de usuario:", roleError);
+        return false;
+      }
+      
+      const ownerStatus = roleData === 'owner';
+      console.log("Resultado de verificación de rol:", roleData, "¿Es propietario?:", ownerStatus);
+      
+      // Update state with owner status
+      setIsOwner(ownerStatus);
+      
+      return ownerStatus;
     } catch (err) {
       console.error('Error checking owner status:', err);
+      
       // Fallback check from localStorage
       if (typeof window !== 'undefined') {
         try {
           const userData = JSON.parse(localStorage.getItem('current_user') || '{}');
           if (userData && userData.role === 'owner') {
+            console.log('Owner status from localStorage fallback: ✅ Yes');
             setIsOwner(true);
             return true;
           }
@@ -150,6 +171,8 @@ export const useRolePermissions = () => {
           console.error('localStorage parsing error:', e);
         }
       }
+      
+      setIsOwner(false);
       return false;
     }
   }, []);
@@ -160,23 +183,29 @@ export const useRolePermissions = () => {
     setError(null);
     
     try {
-      // Check owner status
+      console.log("Iniciando carga de permisos...");
+      
+      // Check owner status first
       const ownerStatus = await checkOwnerStatus();
+      console.log("Estado de propietario verificado:", ownerStatus);
       
       // Get permissions from database
       const { data, error } = await supabase
         .from('role_permissions')
         .select('*');
         
-      if (error) throw error;
+      if (error) {
+        console.error("Error obteniendo permisos:", error);
+        throw error;
+      }
       
       if (!data || data.length === 0) {
         // No permissions in database, use defaults
-        console.log('No permissions found in database, using defaults');
+        console.log('No se encontraron permisos en la base de datos, usando valores predeterminados');
         setPermissions(getInitialPermissions());
       } else {
         // Process permissions from database
-        console.log(`Found ${data.length} permission entries in database`);
+        console.log(`Encontrados ${data.length} permisos en la base de datos`);
         const rolePerms: Record<string, RolePermission> = {};
         
         // Initialize with default structure
@@ -222,6 +251,7 @@ export const useRolePermissions = () => {
           });
         }
         
+        console.log("Permisos procesados:", Object.keys(rolePerms).length, "roles");
         setPermissions(Object.values(rolePerms));
       }
     } catch (err: any) {
@@ -229,6 +259,7 @@ export const useRolePermissions = () => {
       setError(err.message || 'Error al cargar la configuración de permisos');
       
       // Fallback to defaults
+      console.log("Usando permisos predeterminados como fallback");
       setPermissions(getInitialPermissions());
     } finally {
       setLoading(false);
@@ -237,11 +268,18 @@ export const useRolePermissions = () => {
 
   // Save permissions to database with improved logging
   const handleSavePermissions = async () => {
+    if (!isOwner) {
+      console.error("Intento de guardar permisos sin ser propietario");
+      setError("Solo el propietario puede guardar permisos");
+      toast.error("Solo el propietario puede guardar permisos");
+      return;
+    }
+    
     setSaving(true);
     setError(null);
     
     try {
-      console.log('Saving permissions to database:', permissions);
+      console.log('Guardando permisos en la base de datos...');
       
       // Format data for database
       const permissionsToSave: any[] = [];
@@ -268,7 +306,7 @@ export const useRolePermissions = () => {
         });
       });
       
-      console.log(`Saving ${permissionsToSave.length} permission entries`);
+      console.log(`Guardando ${permissionsToSave.length} permisos`);
       
       // Delete existing permissions
       const { error: deleteError } = await supabase
@@ -276,7 +314,10 @@ export const useRolePermissions = () => {
         .delete()
         .not('id', 'is', null);
         
-      if (deleteError) throw deleteError;
+      if (deleteError) {
+        console.error("Error al eliminar permisos existentes:", deleteError);
+        throw deleteError;
+      }
       
       // Insert new permissions in batches
       const BATCH_SIZE = 50;
@@ -287,12 +328,16 @@ export const useRolePermissions = () => {
           .from('role_permissions')
           .insert(batch);
           
-        if (insertError) throw insertError;
+        if (insertError) {
+          console.error("Error al insertar lote de permisos:", insertError);
+          throw insertError;
+        }
       }
       
+      console.log("Permisos guardados correctamente");
       toast.success('Permisos guardados correctamente');
     } catch (err: any) {
-      console.error('Error saving permissions:', err);
+      console.error('Error al guardar permisos:', err);
       setError(err.message || 'Error al guardar los permisos');
       toast.error('Error al guardar los permisos');
     } finally {
@@ -302,6 +347,7 @@ export const useRolePermissions = () => {
 
   // Load permissions on mount or retry
   useEffect(() => {
+    console.log("Cargando permisos (intento #" + retryCount + ")");
     loadPermissions();
   }, [loadPermissions, retryCount]);
 
@@ -330,14 +376,14 @@ export const useRolePermissions = () => {
       // First check if user is owner - owners have all permissions
       const ownerStatus = await checkOwnerStatus();
       if (ownerStatus) {
-        console.log(`User is owner, granting ${type} permission for ${id}`);
+        console.log(`Usuario es propietario, otorgando permiso ${type} para ${id}`);
         return true;
       }
       
       // Get current user
       const { data: userData } = await supabase.auth.getUser();
       if (!userData.user) {
-        console.log('No user found, denying permission');
+        console.log('No se encontró usuario, denegando permiso');
         return false;
       }
 
@@ -347,7 +393,7 @@ export const useRolePermissions = () => {
       });
 
       if (roleError) {
-        console.error('Error getting user role:', roleError);
+        console.error('Error al obtener rol de usuario:', roleError);
         throw roleError;
       }
       
@@ -364,18 +410,24 @@ export const useRolePermissions = () => {
         .maybeSingle();
 
       if (error) {
-        console.error(`Error checking ${type} permission for ${id}:`, error);
+        console.error(`Error verificando permiso ${type} para ${id}:`, error);
         throw error;
       }
       
       const hasAccess = data?.allowed === true;
-      console.log(`Permission check for ${type}:${id} for user with role ${roleData}: ${hasAccess ? 'granted ✅' : 'denied ❌'}`);
+      console.log(`Verificación de permiso para ${type}:${id} para usuario con rol ${roleData}: ${hasAccess ? 'otorgado ✅' : 'denegado ❌'}`);
       return hasAccess;
       
     } catch (err) {
-      console.error(`Error in hasPermission (${type}:${id}):`, err);
+      console.error(`Error en hasPermission (${type}:${id}):`, err);
       return false;
     }
+  };
+  
+  // Function to force reload permissions
+  const reloadPermissions = () => {
+    console.log('Recarga manual de permisos iniciada');
+    setRetryCount(prev => prev + 1);
   };
 
   return {
@@ -386,7 +438,7 @@ export const useRolePermissions = () => {
     isOwner,
     loadPermissions,
     savePermissions: handleSavePermissions,
-    handleSavePermissions,  // Explicitly include handleSavePermissions
+    handleSavePermissions,
     handlePermissionChange,
     hasPermission,
     checkOwnerStatus,
@@ -394,6 +446,7 @@ export const useRolePermissions = () => {
     availablePages,
     availableActions,
     ROLES,
-    getRoleDisplayName
+    getRoleDisplayName,
+    reloadPermissions
   };
 };
