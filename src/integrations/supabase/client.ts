@@ -17,8 +17,14 @@ export const supabase = createClient(supabaseUrl, supabaseKey, {
 // Helper function to check if the current user has the owner role
 export const checkForOwnerRole = async (): Promise<boolean> => {
   try {
+    console.log("Checking for owner role from Supabase...");
     const { data: userData } = await supabase.auth.getUser();
-    if (!userData.user) return false;
+    if (!userData.user) {
+      console.log("No authenticated user found");
+      return false;
+    }
+    
+    console.log("Found authenticated user:", userData.user.email);
     
     const { data, error } = await supabase.rpc('get_user_role', {
       user_uid: userData.user.id
@@ -29,9 +35,25 @@ export const checkForOwnerRole = async (): Promise<boolean> => {
       return false;
     }
     
-    return data === 'owner';
+    const isOwner = data === 'owner';
+    console.log(`User role from Supabase: ${data}, is owner: ${isOwner}`);
+    return isOwner;
   } catch (error) {
     console.error('Error checking for owner role:', error);
+    
+    // Fallback to localStorage if there's an error with Supabase
+    try {
+      if (typeof window !== 'undefined') {
+        const userData = JSON.parse(localStorage.getItem('current_user') || '{}');
+        if (userData && userData.role === 'owner') {
+          console.log('Owner role verified from localStorage fallback');
+          return true;
+        }
+      }
+    } catch (localStorageError) {
+      console.error('Error checking localStorage for owner role:', localStorageError);
+    }
+    
     return false;
   }
 };

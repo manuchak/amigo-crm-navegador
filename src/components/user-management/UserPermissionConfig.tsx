@@ -14,7 +14,7 @@ import { toast } from 'sonner';
 import { setManuelAsOwner } from '@/utils/setVerifiedOwner';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { availablePages, availableActions } from './rolePermissions.constants';
-import { isUserOwner, isUserAdminOrOwner } from './rolePermissions.utils';
+import { isUserOwner, isUserAdminOrOwner, logPermissionsState } from './rolePermissions.utils';
 
 const UserPermissionConfig = () => {
   const {
@@ -48,6 +48,13 @@ const UserPermissionConfig = () => {
       console.log("User identified as owner from local storage");
     }
   }, [userData]);
+  
+  // Log permissions for debugging when they change
+  useEffect(() => {
+    if (permissions.length > 0) {
+      logPermissionsState(permissions);
+    }
+  }, [permissions]);
   
   // Verificar status de propietario al cargar y cuando cambia el usuario
   useEffect(() => {
