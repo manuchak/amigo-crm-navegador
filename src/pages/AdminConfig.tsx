@@ -13,7 +13,8 @@ import { setSpecificUserAsVerifiedOwner, setManuelAsOwner } from '@/utils/setVer
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
-const AdminConfig = () => {
+// Define AdminConfig as a regular function component instead of an arrow function
+function AdminConfig() {
   const { currentUser, userData, refreshUserData } = useAuth();
   const [activeTab, setActiveTab] = useState<string>("users");
   const [ownerStatus, setOwnerStatus] = useState<boolean>(false);
@@ -308,6 +309,6 @@ const AdminConfig = () => {
       </div>
     </div>
   );
-};
+}
 
 export default AdminConfig;
