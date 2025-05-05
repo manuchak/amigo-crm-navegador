@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -5,7 +6,7 @@ import { Separator } from '@/components/ui/separator';
 import { useAuth } from '@/context/AuthContext';
 import UserManagementPanel from '@/components/admin/UserManagementPanel';
 import UserPermissionConfig from '@/components/user-management/UserPermissionConfig';
-import { Settings, Users, Lock, RefreshCw, AlertTriangle, Database } from 'lucide-react';
+import { Settings, Users, Lock, RefreshCw, AlertTriangle, Database, ShieldCheck } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { setSpecificUserAsVerifiedOwner, setManuelAsOwner } from '@/utils/setVerifiedOwner';
@@ -313,9 +314,12 @@ function AdminConfig() {
           <TabsContent value="permissions" className="space-y-4">
             <Card>
               <CardHeader>
-                <CardTitle>Gestión de Permisos</CardTitle>
+                <CardTitle className="flex items-center">
+                  <ShieldCheck className="h-5 w-5 mr-2 text-primary" />
+                  Gestión de Permisos
+                </CardTitle>
                 <CardDescription>
-                  Configura los permisos para cada rol del sistema
+                  Configura los permisos para cada rol del sistema. Define qué páginas y acciones pueden realizar los usuarios según su rol.
                 </CardDescription>
               </CardHeader>
               <CardContent>

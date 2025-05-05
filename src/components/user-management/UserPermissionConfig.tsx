@@ -5,14 +5,15 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Switch } from '@/components/ui/switch';
-import { Loader2, Save, RefreshCw, AlertTriangle } from 'lucide-react';
-import { useRolePermissions } from '@/hooks/useRolePermissions';
+import { Loader2, Save, RefreshCw, AlertTriangle, ShieldCheck } from 'lucide-react';
+import { useRolePermissions } from './hooks/useRolePermissions';
 import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/context/AuthContext';
 import { toast } from 'sonner';
 import { setManuelAsOwner } from '@/utils/setVerifiedOwner';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { availablePages, availableActions } from './rolePermissions.constants';
 
 const UserPermissionConfig = () => {
   const {
@@ -24,8 +25,6 @@ const UserPermissionConfig = () => {
     handlePermissionChange,
     savePermissions,
     handleSavePermissions,
-    availablePages,
-    availableActions,
     reloadPermissions,
     checkOwnerStatus,
     setRetryCount
@@ -200,9 +199,16 @@ const UserPermissionConfig = () => {
             </Alert>
           )}
           
-          <p className="text-amber-800">Solo el propietario puede configurar permisos del sistema.</p>
-          <div className="text-sm text-amber-700">
-            <p>Estado actual:</p>
+          <div className="flex items-center gap-3 mb-4">
+            <ShieldCheck className="h-6 w-6 text-amber-600" />
+            <div>
+              <h3 className="text-lg font-medium text-amber-800">Acceso Restringido</h3>
+              <p className="text-sm text-amber-700">Solo el propietario puede configurar permisos del sistema.</p>
+            </div>
+          </div>
+          
+          <div className="text-sm text-amber-700 bg-white rounded-md p-4 border border-amber-200">
+            <p className="font-medium mb-2">Estado actual:</p>
             <ul className="list-disc pl-5 mt-2 space-y-1">
               <li>Usuario: {userData?.email || 'No identificado'}</li>
               <li>Rol actual: {userData?.role || 'No definido'}</li>
@@ -230,7 +236,7 @@ const UserPermissionConfig = () => {
                   </>
                 ) : (
                   <>
-                    <RefreshCw className="h-4 w-4 mr-2" />
+                    <ShieldCheck className="h-4 w-4 mr-2" />
                     Asignar permisos de propietario
                   </>
                 )}
@@ -273,10 +279,23 @@ const UserPermissionConfig = () => {
   return (
     <div className="space-y-6">
       {error && (
-        <div className="p-4 bg-red-50 text-red-600 rounded-md">
-          {error}
-        </div>
+        <Alert variant="destructive" className="mb-4">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertTitle>Error de permisos</AlertTitle>
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
       )}
+      
+      <div className="flex items-center gap-2 mb-4 p-4 bg-blue-50 rounded-lg border border-blue-100">
+        <ShieldCheck className="h-5 w-5 text-blue-600" />
+        <div>
+          <h3 className="font-medium text-blue-800">Gestión de Permisos</h3>
+          <p className="text-sm text-blue-700">
+            Aquí puedes configurar qué permisos tiene cada rol en el sistema. Puedes habilitar o deshabilitar 
+            acceso a páginas y acciones específicas.
+          </p>
+        </div>
+      </div>
       
       <div className="flex justify-between items-center">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
@@ -347,16 +366,22 @@ const PermissionsTable = ({
   );
 
   return (
-    <div className="rounded-md border">
+    <div className="rounded-md border overflow-hidden">
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
             <tr className="bg-muted/50 border-b">
-              <th className="h-10 px-4 text-left font-medium">{title}</th>
+              <th className="h-12 px-4 text-left font-medium">{title}</th>
               {activerPermissions.map((role, index) => (
-                <th key={index} className="h-10 px-2 text-center font-medium">
+                <th key={index} className="h-12 px-2 text-center font-medium">
                   <Badge 
-                    variant={role.role === 'owner' ? 'default' : role.role === 'admin' ? 'destructive' : 'outline'}
+                    variant={
+                      role.role === 'owner' 
+                        ? 'default' 
+                        : role.role === 'admin' 
+                          ? 'destructive' 
+                          : 'outline'
+                    }
                     className="font-normal"
                   >
                     {role.displayName}
@@ -377,6 +402,10 @@ const PermissionsTable = ({
                   // Owner always has all permissions and can't be changed
                   const isOwnerRole = role.role === 'owner';
                   
+                  // For manage_permissions action, only owner can have it
+                  const isManagePermissions = type === 'actions' && item.id === 'manage_permissions';
+                  const isDisabled = isOwnerRole || (isManagePermissions && role.role !== 'owner');
+                  
                   return (
                     <td key={roleIndex} className="p-2 text-center align-middle">
                       {isOwnerRole ? (
@@ -396,7 +425,7 @@ const PermissionsTable = ({
                               !!checked
                             );
                           }}
-                          disabled={isOwnerRole}
+                          disabled={isDisabled}
                         />
                       )}
                     </td>

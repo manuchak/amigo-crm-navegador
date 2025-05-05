@@ -59,6 +59,11 @@ export const getInitialPermissions = (): RolePermission[] => {
       } else {
         actions[action.id] = false;
       }
+      
+      // Special case: Only owner can manage permissions
+      if (action.id === 'manage_permissions') {
+        actions[action.id] = role === 'owner';
+      }
     });
 
     return { 
