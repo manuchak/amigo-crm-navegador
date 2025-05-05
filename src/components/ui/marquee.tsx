@@ -39,7 +39,7 @@ export function Marquee({
   if (!hasChildren) {
     return (
       <div 
-        className={cn("h-7 flex items-center", className)}
+        className={cn("h-8 flex items-center", className)}
         {...props}
       >
         <div className="text-xs text-slate-400 px-2">No hay alertas disponibles</div>
@@ -60,7 +60,7 @@ export function Marquee({
       <div
         ref={contentRef}
         className={cn(
-          "flex min-w-full gap-4 py-1 whitespace-nowrap no-scrollbar animate-marquee",
+          "flex min-w-full gap-4 whitespace-nowrap",
           direction === "left" ? "animate-scroll-left" : "animate-scroll-right"
         )}
         style={{ 

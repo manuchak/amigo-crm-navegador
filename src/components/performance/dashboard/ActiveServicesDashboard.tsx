@@ -103,7 +103,7 @@ export function ActiveServicesDashboard() {
   return (
     <div className="h-[calc(100vh-160px)]">
       {/* Twitter feed banner at the top for traffic and weather alerts */}
-      <div className="mb-3 h-11 relative">
+      <div className="mb-3 h-12 relative">
         <TwitterFeed 
           tweets={tweets} 
           isLoading={isLoading} 

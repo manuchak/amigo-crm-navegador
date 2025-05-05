@@ -15,7 +15,7 @@ interface TwitterFeedProps {
 export function TwitterFeed({ tweets, isLoading, error, direction = "left" }: TwitterFeedProps) {
   if (isLoading) {
     return (
-      <div className="bg-white rounded-lg border p-2 mb-2 shadow-sm h-11 flex items-center justify-center">
+      <div className="bg-white rounded-lg border p-2 mb-2 shadow-sm h-12 flex items-center justify-center">
         <div className="animate-pulse flex items-center gap-2">
           <div className="h-3 w-3 bg-blue-200 rounded-full"></div>
           <div className="h-3 w-32 bg-gray-200 rounded"></div>
@@ -26,7 +26,7 @@ export function TwitterFeed({ tweets, isLoading, error, direction = "left" }: Tw
 
   if (error || tweets.length === 0) {
     return (
-      <div className="bg-white rounded-lg border p-2 mb-2 shadow-sm h-11">
+      <div className="bg-white rounded-lg border p-2 mb-2 shadow-sm h-12">
         <div className="flex items-center justify-center gap-2 text-xs text-red-500">
           <AlertTriangle size={14} />
           <span>{error || "No hay actualizaciones disponibles"}</span>
@@ -36,16 +36,16 @@ export function TwitterFeed({ tweets, isLoading, error, direction = "left" }: Tw
   }
 
   return (
-    <div className="bg-white rounded-lg border p-2 mb-2 shadow-sm h-11 overflow-hidden">
-      <div className="flex items-center gap-1.5 mr-2 h-full z-10 relative bg-white pr-2">
+    <div className="bg-white rounded-lg border p-2 mb-2 shadow-sm h-12 overflow-hidden relative">
+      <div className="flex items-center gap-1.5 h-full absolute left-2 z-10 bg-white pr-3">
         <div className="bg-blue-50 p-0.5 rounded-full">
           <Route size={14} className="text-blue-500" />
         </div>
         <h3 className="text-xs font-medium whitespace-nowrap">Alertas de Ruta</h3>
       </div>
       
-      <div className="absolute top-2 left-[120px] right-2 h-7">
-        <Marquee pauseOnHover direction={direction} speed="slow" className="py-0 h-7">
+      <div className="absolute left-[120px] right-2 h-8 flex items-center">
+        <Marquee pauseOnHover direction={direction} speed="slow" className="h-8">
           {tweets.map((tweet) => {
             // Determine tweet type and styling based on content
             const isRoadBlock = tweet.text.toLowerCase().includes('bloqueo') || tweet.text.toLowerCase().includes('cierre');

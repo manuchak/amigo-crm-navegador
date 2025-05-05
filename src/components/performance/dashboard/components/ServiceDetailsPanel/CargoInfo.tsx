@@ -25,7 +25,7 @@ export function CargoInfo({ service }: CargoInfoProps) {
       <div className="grid grid-cols-2 gap-2">
         <div className="flex flex-col">
           <span className="text-xs text-slate-500">Tipo</span>
-          <span className="text-sm font-medium truncate max-w-[130px]">
+          <span className="text-sm font-medium truncate max-w-[130px]" title={service.cargoType || 'No especificado'}>
             {service.cargoType || 'No especificado'}
             {service.cargoUnits && ` (${service.cargoUnits})`}
           </span>
@@ -33,7 +33,7 @@ export function CargoInfo({ service }: CargoInfoProps) {
         
         <div className="flex flex-col">
           <span className="text-xs text-slate-500">Peso total</span>
-          <span className="text-sm font-medium truncate max-w-[130px]">
+          <span className="text-sm font-medium truncate max-w-[130px]" title={service.cargoWeight ? `${service.cargoWeight} kg` : 'No especificado'}>
             {service.cargoWeight ? `${service.cargoWeight} kg` : 'No especificado'}
           </span>
         </div>
@@ -41,7 +41,7 @@ export function CargoInfo({ service }: CargoInfoProps) {
         {service.cargoValue && (
           <div className="flex flex-col col-span-2">
             <span className="text-xs text-slate-500">Valor</span>
-            <span className="text-sm font-medium truncate">
+            <span className="text-sm font-medium truncate" title={`$${service.cargoValue.toLocaleString('es-MX')} MXN`}>
               ${service.cargoValue.toLocaleString('es-MX')} MXN
             </span>
           </div>
