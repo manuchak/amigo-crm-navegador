@@ -1,26 +1,10 @@
+
 import React, { useState, useEffect } from 'react';
 import { useRolePermissions } from './hooks/useRolePermissions';
-import { 
-  Card, 
-  CardContent, 
-  CardHeader, 
-  CardTitle, 
-  CardDescription 
-} from '@/components/ui/card';
-import { 
-  Tabs, 
-  TabsContent, 
-  TabsList, 
-  TabsTrigger 
-} from '@/components/ui/tabs';
-import { 
-  Table, 
-  TableBody, 
-  TableCell, 
-  TableHead, 
-  TableHeader, 
-  TableRow 
-} from '@/components/ui/table';
+import { getDisplayName, isUserOwner } from './rolePermissions.utils';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -28,22 +12,12 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Switch } from '@/components/ui/switch';
 import { 
-  ShieldCheck, 
-  Save, 
-  RefreshCw, 
-  Loader2, 
-  AlertTriangle, 
-  Shield, 
-  Lock, 
-  CheckCircle2, 
-  Info, 
-  Users,
-  UserCog
+  ShieldCheck, Save, RefreshCw, Loader2, AlertTriangle, 
+  Shield, Lock, CheckCircle2, Info, UserCog
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '@/context/AuthContext';
 import { checkForOwnerRole } from '@/integrations/supabase/client';
-import { isUserOwner } from './rolePermissions.utils';
 
 const UserPermissionConfig = () => {
   const { userData, refreshUserData } = useAuth();
@@ -117,19 +91,19 @@ const UserPermissionConfig = () => {
   // Loading state
   if (loading) {
     return (
-      <Card className="border shadow">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <ShieldCheck className="h-5 w-5 text-primary" />
+      <Card className="border rounded-xl shadow-sm bg-white dark:bg-slate-900">
+        <CardHeader className="space-y-1 pb-2">
+          <CardTitle className="text-xl flex items-center gap-2 font-medium">
+            <ShieldCheck className="h-5 w-5 text-blue-500" />
             <span>Gestión de Permisos</span>
           </CardTitle>
-          <CardDescription>
+          <CardDescription className="text-sm text-slate-500 dark:text-slate-400">
             Cargando configuración de permisos del sistema...
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-6">
-          <div className="flex justify-center py-4">
-            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <CardContent className="space-y-6 pt-4">
+          <div className="flex justify-center py-10">
+            <Loader2 className="h-10 w-10 animate-spin text-blue-500" />
           </div>
           
           <div className="space-y-4">
@@ -140,7 +114,7 @@ const UserPermissionConfig = () => {
           <Button 
             onClick={handleForceRefresh} 
             variant="outline" 
-            className="w-full"
+            className="w-full mt-4"
           >
             <RefreshCw className="mr-2 h-4 w-4" />
             Intentar cargar de nuevo
@@ -153,29 +127,29 @@ const UserPermissionConfig = () => {
   // Access denied state
   if (!effectiveOwnerStatus) {
     return (
-      <Card className="border shadow">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-amber-600">
+      <Card className="border rounded-xl shadow-sm bg-white dark:bg-slate-900">
+        <CardHeader className="space-y-1 pb-2">
+          <CardTitle className="text-xl flex items-center gap-2 font-medium text-amber-600">
             <Shield className="h-5 w-5 text-amber-600" />
             <span>Acceso Restringido</span>
           </CardTitle>
-          <CardDescription className="text-amber-700">
+          <CardDescription className="text-sm text-amber-700">
             Solo el propietario del sistema puede configurar los permisos.
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <Alert variant="warning" className="bg-amber-50 text-amber-800 border-amber-200">
-            <AlertTriangle className="h-4 w-4 text-amber-700" />
-            <AlertTitle className="text-amber-800">Permisos insuficientes</AlertTitle>
-            <AlertDescription className="text-amber-700">
+        <CardContent className="space-y-4 pt-4">
+          <Alert variant="warning" className="bg-amber-50 text-amber-800 border-amber-200 dark:bg-amber-900/20 dark:border-amber-700/50 dark:text-amber-300">
+            <AlertTriangle className="h-4 w-4 text-amber-700 dark:text-amber-400" />
+            <AlertTitle className="text-amber-800 dark:text-amber-300 font-medium">Permisos insuficientes</AlertTitle>
+            <AlertDescription className="text-amber-700 dark:text-amber-400 text-sm">
               Para gestionar los permisos del sistema, necesitas tener el rol de Propietario.
               Si crees que deberías tener acceso, contacta al administrador del sistema.
             </AlertDescription>
           </Alert>
           
-          <div className="p-4 bg-slate-50 rounded-md">
-            <h3 className="font-medium text-sm mb-2">Información de usuario:</h3>
-            <div className="text-sm space-y-1 text-slate-600">
+          <div className="p-4 bg-slate-50 dark:bg-slate-800/50 rounded-lg border border-slate-100 dark:border-slate-700/50">
+            <h3 className="font-medium text-sm mb-2 text-slate-700 dark:text-slate-300">Información de usuario:</h3>
+            <div className="text-sm space-y-1 text-slate-600 dark:text-slate-400">
               <p><span className="font-medium">Usuario:</span> {userData?.email || 'No autenticado'}</p>
               <p><span className="font-medium">Rol actual:</span> {userData?.role || 'No definido'}</p>
             </div>
@@ -184,7 +158,7 @@ const UserPermissionConfig = () => {
           <Button 
             onClick={handleForceRefresh} 
             variant="outline" 
-            className="w-full"
+            className="w-full mt-4"
           >
             <RefreshCw className="mr-2 h-4 w-4" />
             Verificar permisos
@@ -193,13 +167,13 @@ const UserPermissionConfig = () => {
           <div className="text-xs text-muted-foreground mt-4">
             <button 
               onClick={() => setShowDebugInfo(!showDebugInfo)} 
-              className="text-xs text-muted-foreground underline"
+              className="text-xs text-muted-foreground hover:text-blue-500 underline"
             >
               {showDebugInfo ? 'Ocultar información de depuración' : 'Mostrar información de depuración'}
             </button>
             
             {showDebugInfo && (
-              <div className="mt-2 p-3 border rounded bg-slate-50 overflow-auto text-xs">
+              <div className="mt-2 p-3 border rounded-lg bg-slate-50 dark:bg-slate-800/50 overflow-auto text-xs">
                 <p className="font-semibold mb-1">Variables de estado:</p>
                 <ul className="list-disc pl-5 space-y-1">
                   <li>isOwner (DB): {isOwner ? 'true' : 'false'}</li>
@@ -210,7 +184,7 @@ const UserPermissionConfig = () => {
                 {userData && (
                   <>
                     <p className="mt-2 font-semibold">Datos de usuario:</p>
-                    <pre className="mt-1 p-2 bg-slate-100 rounded text-xs overflow-auto">
+                    <pre className="mt-1 p-2 bg-slate-100 dark:bg-slate-800 rounded text-xs overflow-auto">
                       {JSON.stringify(userData, null, 2)}
                     </pre>
                   </>
@@ -225,114 +199,118 @@ const UserPermissionConfig = () => {
 
   // Main content - permission management
   return (
-    <Card className="border shadow">
-      <CardHeader className="pb-3">
-        <CardTitle className="flex items-center gap-2">
-          <ShieldCheck className="h-5 w-5 text-primary" />
+    <Card className="border rounded-xl shadow-sm bg-white dark:bg-slate-900">
+      <CardHeader className="space-y-1 pb-2">
+        <CardTitle className="text-xl flex items-center gap-2 font-medium">
+          <ShieldCheck className="h-5 w-5 text-blue-500" />
           <span>Gestión de Permisos</span>
         </CardTitle>
-        <CardDescription>
-          Configura los permisos para cada rol del sistema. Define qué páginas y acciones pueden realizar los usuarios según su rol.
+        <CardDescription className="text-sm text-slate-500 dark:text-slate-400">
+          Configura los permisos para cada rol del sistema.
         </CardDescription>
       </CardHeader>
       
-      <CardContent className="space-y-6">
+      <CardContent className="space-y-6 pt-4">
         {error && (
-          <Alert variant="destructive">
+          <Alert variant="destructive" className="mb-4 rounded-lg">
             <AlertTriangle className="h-4 w-4" />
             <AlertTitle>Error</AlertTitle>
             <AlertDescription>{error}</AlertDescription>
           </Alert>
         )}
         
-        <div className="bg-blue-50 rounded-lg border border-blue-100 p-4 flex items-start gap-3">
-          <Info className="h-5 w-5 text-blue-600 mt-0.5" />
+        <div className="rounded-lg border border-blue-100 bg-blue-50 dark:bg-blue-900/20 dark:border-blue-900/30 p-4 flex items-start gap-3">
+          <Info className="h-5 w-5 text-blue-600 dark:text-blue-400 mt-0.5 flex-shrink-0" />
           <div>
-            <h3 className="font-medium text-blue-800">Información sobre permisos</h3>
-            <p className="text-sm text-blue-700 mt-1">
-              Aquí puedes configurar qué permisos tiene cada rol en el sistema. Puedes habilitar o deshabilitar 
-              acceso a páginas y acciones específicas para cada rol.
+            <h3 className="font-medium text-blue-800 dark:text-blue-300">Información sobre permisos</h3>
+            <p className="text-sm text-blue-700 dark:text-blue-400 mt-1">
+              Configura qué permisos tiene cada rol en el sistema. El rol de Propietario siempre tiene todos los permisos habilitados.
             </p>
-            <div className="mt-2 text-sm text-blue-700">
-              <p><span className="font-medium">Importante:</span> El rol de Propietario siempre tiene todos los permisos habilitados y no se puede modificar.</p>
-            </div>
           </div>
         </div>
         
-        <div className="flex justify-between items-center flex-wrap gap-3">
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="grid grid-cols-3 w-full mb-6">
-              <TabsTrigger value="roles" className="flex items-center gap-1.5">
-                <UserCog className="h-3.5 w-3.5" />
-                <span>Roles y Usuarios</span>
-              </TabsTrigger>
-              <TabsTrigger value="pages" className="flex items-center gap-1.5">
-                <Lock className="h-3.5 w-3.5" />
-                <span>Acceso a Páginas</span>
-              </TabsTrigger>
-              <TabsTrigger value="actions" className="flex items-center gap-1.5">
-                <CheckCircle2 className="h-3.5 w-3.5" />
-                <span>Acceso a Acciones</span>
-              </TabsTrigger>
-            </TabsList>
+        <div className="flex justify-end gap-2 w-full mb-4">
+          <Button 
+            onClick={reloadPermissions} 
+            variant="outline"
+            size="sm"
+            className="flex items-center gap-1"
+          >
+            <RefreshCw className="h-4 w-4" />
+            Recargar
+          </Button>
           
-            <div className="flex gap-2 w-full mb-4">
-              <Button 
-                onClick={reloadPermissions} 
-                variant="outline"
-                size="sm"
-                className="flex-1"
-              >
-                <RefreshCw className="mr-2 h-4 w-4" />
-                Recargar
-              </Button>
-              
-              <Button 
-                onClick={handleSavePermissions}
-                disabled={saving}
-                className="flex-1"
-              >
-                {saving ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Guardando...
-                  </>
-                ) : (
-                  <>
-                    <Save className="mr-2 h-4 w-4" />
-                    Guardar Cambios
-                  </>
-                )}
-              </Button>
-            </div>
-            
-            <TabsContent value="roles" className="m-0 w-full">
-              <UserRolesTable users={users} />
-            </TabsContent>
-            
-            <TabsContent value="pages" className="m-0 w-full">
-              <PermissionsTable
-                title="Permisos de Páginas"
-                permissions={permissions}
-                items={availablePages}
-                type="pages"
-                onChange={handlePermissionChange}
-                roles={ROLES}
-              />
-            </TabsContent>
-            
-            <TabsContent value="actions" className="m-0 w-full">
-              <PermissionsTable
-                title="Permisos de Acciones"
-                permissions={permissions}
-                items={availableActions}
-                type="actions"
-                onChange={handlePermissionChange}
-                roles={ROLES}
-              />
-            </TabsContent>
-          </Tabs>
+          <Button 
+            onClick={handleSavePermissions}
+            disabled={saving}
+            size="sm"
+            className="flex items-center gap-1 bg-blue-500 hover:bg-blue-600"
+          >
+            {saving ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Guardando...
+              </>
+            ) : (
+              <>
+                <Save className="h-4 w-4" />
+                Guardar Cambios
+              </>
+            )}
+          </Button>
         </div>
+        
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+          <TabsList className="grid grid-cols-3 w-full mb-6 rounded-lg bg-slate-100 dark:bg-slate-800 p-1">
+            <TabsTrigger 
+              value="roles" 
+              className="data-[state=active]:bg-white dark:data-[state=active]:bg-slate-700 rounded-md flex items-center gap-1.5"
+            >
+              <UserCog className="h-3.5 w-3.5" />
+              <span>Usuarios y Roles</span>
+            </TabsTrigger>
+            <TabsTrigger 
+              value="pages" 
+              className="data-[state=active]:bg-white dark:data-[state=active]:bg-slate-700 rounded-md flex items-center gap-1.5"
+            >
+              <Lock className="h-3.5 w-3.5" />
+              <span>Acceso a Páginas</span>
+            </TabsTrigger>
+            <TabsTrigger 
+              value="actions" 
+              className="data-[state=active]:bg-white dark:data-[state=active]:bg-slate-700 rounded-md flex items-center gap-1.5"
+            >
+              <CheckCircle2 className="h-3.5 w-3.5" />
+              <span>Acceso a Acciones</span>
+            </TabsTrigger>
+          </TabsList>
+        
+          <TabsContent value="roles" className="m-0 w-full">
+            <UserRolesTable users={users} />
+          </TabsContent>
+          
+          <TabsContent value="pages" className="m-0 w-full">
+            <PermissionsTable
+              title="Permisos de Páginas"
+              permissions={permissions}
+              items={availablePages}
+              type="pages"
+              onChange={handlePermissionChange}
+              roles={ROLES}
+            />
+          </TabsContent>
+          
+          <TabsContent value="actions" className="m-0 w-full">
+            <PermissionsTable
+              title="Permisos de Acciones"
+              permissions={permissions}
+              items={availableActions}
+              type="actions"
+              onChange={handlePermissionChange}
+              roles={ROLES}
+            />
+          </TabsContent>
+        </Tabs>
       </CardContent>
     </Card>
   );
@@ -347,7 +325,7 @@ const UserRolesTable: React.FC<UserRolesTableProps> = ({ users }) => {
   
   if (!users || users.length === 0) {
     return (
-      <Alert className="mb-6">
+      <Alert className="mb-6 rounded-lg">
         <Info className="h-4 w-4" />
         <AlertTitle>No hay usuarios registrados</AlertTitle>
         <AlertDescription>
@@ -358,11 +336,11 @@ const UserRolesTable: React.FC<UserRolesTableProps> = ({ users }) => {
   }
 
   return (
-    <div className="border rounded-md overflow-hidden mb-6">
+    <div className="border rounded-lg overflow-hidden mb-6 bg-white dark:bg-slate-800/50">
       <div className="overflow-x-auto">
         <Table>
           <TableHeader>
-            <TableRow className="bg-muted/50">
+            <TableRow className="bg-slate-50 dark:bg-slate-800">
               <TableHead className="font-medium">Usuario</TableHead>
               <TableHead className="font-medium">Email</TableHead>
               <TableHead className="font-medium text-center">Rol Actual</TableHead>
@@ -370,8 +348,8 @@ const UserRolesTable: React.FC<UserRolesTableProps> = ({ users }) => {
           </TableHeader>
           <TableBody>
             {users.map((user) => (
-              <TableRow key={user.id} className="hover:bg-muted/50">
-                <TableCell>{user.displayName}</TableCell>
+              <TableRow key={user.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/70">
+                <TableCell className="font-medium">{user.displayName || 'Sin nombre'}</TableCell>
                 <TableCell>{user.email}</TableCell>
                 <TableCell className="text-center">
                   <Badge 
@@ -384,7 +362,7 @@ const UserRolesTable: React.FC<UserRolesTableProps> = ({ users }) => {
                     }
                     className="font-normal"
                   >
-                    {user.role}
+                    {getDisplayName(user.role)}
                   </Badge>
                 </TableCell>
               </TableRow>
@@ -415,7 +393,7 @@ const PermissionsTable: React.FC<PermissionsTableProps> = ({
 }) => {
   if (!permissions || permissions.length === 0) {
     return (
-      <Alert>
+      <Alert className="rounded-lg">
         <AlertTitle>No hay datos de permisos</AlertTitle>
         <AlertDescription>
           No se pudieron cargar los permisos. Intente recargar la página.
@@ -448,11 +426,11 @@ const PermissionsTable: React.FC<PermissionsTableProps> = ({
   });
 
   return (
-    <div className="border rounded-md overflow-hidden">
+    <div className="border rounded-lg overflow-hidden bg-white dark:bg-slate-800/50">
       <div className="overflow-x-auto">
         <Table>
           <TableHeader>
-            <TableRow className="bg-muted/50">
+            <TableRow className="bg-slate-50 dark:bg-slate-800">
               <TableHead className="w-[240px] font-medium">{title}</TableHead>
               {sortedActiveRoles.map((role, index) => (
                 <TableHead key={index} className="text-center min-w-[90px]">
@@ -474,7 +452,7 @@ const PermissionsTable: React.FC<PermissionsTableProps> = ({
           </TableHeader>
           <TableBody>
             {items.map((item) => (
-              <TableRow key={item.id} className="hover:bg-muted/50">
+              <TableRow key={item.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/70">
                 <TableCell className="font-medium">
                   <div>{item.name}</div>
                   <div className="text-xs text-muted-foreground">{item.description}</div>
@@ -509,7 +487,7 @@ const PermissionsTable: React.FC<PermissionsTableProps> = ({
                             );
                           }}
                           disabled={isDisabled}
-                          className={isChecked ? "data-[state=checked]:bg-primary" : ""}
+                          className={isChecked ? "data-[state=checked]:bg-blue-500" : ""}
                         />
                       )}
                     </TableCell>

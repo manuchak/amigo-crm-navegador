@@ -40,3 +40,23 @@ export const isUserAdminOrOwner = (): boolean => {
     return false;
   }
 };
+
+// Get a human-friendly display name for a role
+export const getDisplayName = (role: string): string => {
+  const displayNames: Record<string, string> = {
+    'owner': 'Propietario',
+    'admin': 'Administrador',
+    'monitoring_supervisor': 'Supervisor',
+    'monitoring': 'Monitoreo',
+    'supply_admin': 'Admin Suministros',
+    'supply': 'Suministros',
+    'bi': 'Business Intelligence',
+    'soporte': 'Soporte',
+    'atención_afiliado': 'Atención Afiliado',
+    'afiliados': 'Afiliados',
+    'unverified': 'Sin verificar',
+    'pending': 'Pendiente'
+  };
+  
+  return displayNames[role] || role;
+};
