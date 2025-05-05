@@ -1,9 +1,8 @@
-
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { availablePages, availableActions, ROLES, RolePermission } from '../rolePermissions.constants';
-import { getRoleDisplayName, getInitialPermissions, isUserOwner } from '../rolePermissions.utils';
+import { getDisplayName, getInitialPermissions, isUserOwner } from '../rolePermissions.utils';
 
 export function useRolePermissions() {
   const [permissions, setPermissions] = useState<RolePermission[]>([]);
@@ -115,7 +114,7 @@ export function useRolePermissions() {
         ROLES.forEach(role => {
           rolePerms[role] = {
             role,
-            displayName: getRoleDisplayName(role),
+            displayName: getDisplayName(role),
             pages: {},
             actions: {}
           };
@@ -296,7 +295,7 @@ export function useRolePermissions() {
     availablePages,
     availableActions,
     ROLES,
-    getRoleDisplayName,
+    getRoleDisplayName: getDisplayName, // Provide the function under the expected name for backward compatibility
     reloadPermissions
   };
 }
