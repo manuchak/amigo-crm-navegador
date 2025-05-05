@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { PerformanceFilterHeader } from "@/components/performance/PerformanceHeader";
+import { PerformanceFilterHeader } from "@/components/performance/PerformanceFilterHeader";
 import { PerformanceTabs } from "@/components/performance/PerformanceTabs";
 import { DateRangeWithComparison } from "@/components/performance/filters/AdvancedDateRangePicker";
 import { getInitialDateRange, getDefaultDatePresets } from "@/components/performance/config/datePresets";

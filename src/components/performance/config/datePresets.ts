@@ -1,6 +1,7 @@
 
-import { DateRange, DateRangePreset } from "@/components/performance/filters/AdvancedDateRangePicker";
+import { DateRangeWithComparison, DateRangePreset } from "@/components/performance/filters/AdvancedDateRangePicker";
 import { subDays, startOfMonth, endOfMonth } from "date-fns";
+import { DateRange } from "react-day-picker";
 
 // Define presets for the date range picker
 export const getDefaultDatePresets = (): DateRangePreset[] => [
