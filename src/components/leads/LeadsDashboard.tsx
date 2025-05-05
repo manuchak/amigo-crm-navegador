@@ -147,41 +147,71 @@ const LeadsDashboard = () => {
   };
 
   async function handleProgressiveBatchCall(leadIds: number[], onProgress?: (current: number, total: number) => void) {
+    const BATCH_WEBHOOK_URL = "https://hook.us2.make.com/invpt3dzdm99q4ddckvke8x1x47ic9io";
+    
     for (let i = 0; i < leadIds.length; i++) {
       const lead = leads.find(l => l.id === leadIds[i]);
       if (!lead) continue;
+      
       let phoneNumber = lead.telefono || '';
       if (!phoneNumber && lead.contacto && lead.contacto.includes('|')) {
         const parts = lead.contacto.split('|');
         phoneNumber = parts[1]?.trim();
       }
+      
       await updateLeadStatus(lead.id, "Contacto Llamado");
+      
       try {
         await incrementCallCount(lead.id);
       } catch (error) {
         console.error("Error incrementing call count:", error);
       }
-      await executeWebhook({
-        telefono: phoneNumber,
-        id: lead.id,
-        nombre: lead.nombre,
-        empresa: lead.empresa,
-        contacto: lead.contacto,
-        estado: "Contacto Llamado",
-        fechaCreacion: lead.fechaCreacion,
-        email: lead.email,
-        tieneVehiculo: lead.tieneVehiculo,
-        experienciaSeguridad: lead.experienciaSeguridad,
-        esMilitar: lead.esMilitar,
-        callCount: (lead.callCount || 0) + 1,
-        lastCallDate: new Date().toISOString(),
-        valor: lead.valor,
-        timestamp: new Date().toISOString(),
-        action: "outbound_call_batch_progressive"
-      });
+      
+      // Send to the new webhook with complete lead data
+      try {
+        const response = await fetch(BATCH_WEBHOOK_URL, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            // Complete lead data
+            lead_id: lead.id,
+            nombre: lead.nombre,
+            telefono: phoneNumber,
+            empresa: lead.empresa,
+            contacto: lead.contacto,
+            estado: "Contacto Llamado",
+            email: lead.email,
+            fechaCreacion: lead.fechaCreacion,
+            tieneVehiculo: lead.tieneVehiculo,
+            experienciaSeguridad: lead.experienciaSeguridad,
+            esMilitar: lead.esMilitar,
+            modelovehiculo: lead.modelovehiculo,
+            credencialsedena: lead.credencialsedena,
+            anovehiculo: lead.anovehiculo,
+            // Call metadata
+            callCount: (lead.callCount || 0) + 1,
+            lastCallDate: new Date().toISOString(),
+            timestamp: new Date().toISOString(),
+            action: "outbound_call_batch_progressive",
+            batch_type: "progressive",
+            batch_index: i + 1,
+            batch_total: leadIds.length
+          }),
+        });
+        
+        if (!response.ok) {
+          console.error(`Error sending to webhook: ${response.status}`);
+        }
+      } catch (error) {
+        console.error("Error sending to webhook:", error);
+      }
+      
       if (onProgress) onProgress(i + 1, leadIds.length);
       await new Promise(res => setTimeout(res, 800));
     }
+    
     await refetchLeads();
   }
 
@@ -191,7 +221,74 @@ const LeadsDashboard = () => {
       const bLead = leads.find(l => l.id === b);
       return (new Date(aLead?.lastCallDate || 0).getTime() || 0) - (new Date(bLead?.lastCallDate || 0).getTime() || 0);
     });
-    await handleProgressiveBatchCall(sortedIds, onProgress);
+    
+    const BATCH_WEBHOOK_URL = "https://hook.us2.make.com/invpt3dzdm99q4ddckvke8x1x47ic9io";
+    
+    for (let i = 0; i < sortedIds.length; i++) {
+      const lead = leads.find(l => l.id === sortedIds[i]);
+      if (!lead) continue;
+      
+      let phoneNumber = lead.telefono || '';
+      if (!phoneNumber && lead.contacto && lead.contacto.includes('|')) {
+        const parts = lead.contacto.split('|');
+        phoneNumber = parts[1]?.trim();
+      }
+      
+      await updateLeadStatus(lead.id, "Contacto Llamado");
+      
+      try {
+        await incrementCallCount(lead.id);
+      } catch (error) {
+        console.error("Error incrementing call count:", error);
+      }
+      
+      // Send to the new webhook with complete lead data
+      try {
+        const response = await fetch(BATCH_WEBHOOK_URL, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            // Complete lead data
+            lead_id: lead.id,
+            nombre: lead.nombre,
+            telefono: phoneNumber,
+            empresa: lead.empresa,
+            contacto: lead.contacto,
+            estado: "Contacto Llamado",
+            email: lead.email,
+            fechaCreacion: lead.fechaCreacion,
+            tieneVehiculo: lead.tieneVehiculo,
+            experienciaSeguridad: lead.experienciaSeguridad,
+            esMilitar: lead.esMilitar,
+            modelovehiculo: lead.modelovehiculo,
+            credencialsedena: lead.credencialsedena,
+            anovehiculo: lead.anovehiculo,
+            // Call metadata
+            callCount: (lead.callCount || 0) + 1,
+            lastCallDate: new Date().toISOString(),
+            timestamp: new Date().toISOString(),
+            action: "outbound_call_batch_predictive",
+            batch_type: "predictive",
+            batch_index: i + 1,
+            batch_total: sortedIds.length,
+            priorityScore: lead.lastCallDate ? ((new Date().getTime() - new Date(lead.lastCallDate).getTime()) / (1000 * 60 * 60 * 24)) : 100 // Days since last call as priority score
+          }),
+        });
+        
+        if (!response.ok) {
+          console.error(`Error sending to webhook: ${response.status}`);
+        }
+      } catch (error) {
+        console.error("Error sending to webhook:", error);
+      }
+      
+      if (onProgress) onProgress(i + 1, sortedIds.length);
+      await new Promise(res => setTimeout(res, 800));
+    }
+    
+    await refetchLeads();
   }
 
   return (

@@ -1,5 +1,6 @@
 
 import { supabase } from "@/integrations/supabase/client";
+import { webhookUrls } from "./webhookUrls";
 
 /**
  * Functions for initiating VAPI calls
@@ -33,7 +34,7 @@ export const webhookCalls = {
       formattedPhone = formattedPhone.replace(/\s+/g, '');
       
       // Send webhook to Make.com directly
-      const webhookUrl = "https://hook.us2.make.com/nlckmsej5cwmfe93gv4g6xvmavhilujl";
+      const webhookUrl = webhookUrls.LEADS_WEBHOOK_URL;
       
       console.log(`Sending webhook to Make.com for phone number ${formattedPhone}`);
       
@@ -66,6 +67,64 @@ export const webhookCalls = {
       };
     } catch (error: any) {
       console.error("Error initiating call via webhook:", error);
+      return {
+        success: false,
+        error: error.message || "Unknown error occurred"
+      };
+    }
+  },
+  
+  /**
+   * Initiate a batch call through the Make.com batch webhook
+   * @param leads Array of lead objects to call
+   * @param batchType 'progressive' or 'predictive'
+   * @returns Promise with the call result
+   */
+  async initiateBatchCall(leads: any[], batchType: 'progressive' | 'predictive'): Promise<{
+    success: boolean,
+    message?: string,
+    error?: string
+  }> {
+    try {
+      if (!leads || leads.length === 0) {
+        throw new Error("At least one lead is required");
+      }
+
+      console.log(`Initiating ${batchType} batch call for ${leads.length} leads`);
+      
+      // Send webhook to Make.com batch endpoint
+      const webhookUrl = webhookUrls.BATCH_WEBHOOK_URL;
+      
+      console.log(`Sending ${leads.length} leads to batch webhook`);
+      
+      const webhookResponse = await fetch(webhookUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          leads: leads,
+          batch_type: batchType,
+          timestamp: new Date().toISOString(),
+          action: `batch_call_${batchType}`,
+          total_leads: leads.length
+        })
+      });
+      
+      if (!webhookResponse.ok) {
+        const errorText = await webhookResponse.text();
+        throw new Error(`Make.com batch webhook error: ${webhookResponse.status} - ${errorText}`);
+      }
+      
+      console.log("Make.com batch webhook response:", await webhookResponse.text());
+      
+      // If success, return positive result
+      return {
+        success: true,
+        message: `Batch ${batchType} call requested successfully for ${leads.length} leads`
+      };
+    } catch (error: any) {
+      console.error("Error initiating batch call via webhook:", error);
       return {
         success: false,
         error: error.message || "Unknown error occurred"

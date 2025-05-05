@@ -1,26 +1,30 @@
 
-import { supabase } from "@/integrations/supabase/client";
-
 /**
- * Functions for handling webhook URLs
+ * Webhook URL configurations
  */
 export const webhookUrls = {
   /**
-   * Get the webhook URL for the VAPI integration
-   * @param includeApiKey Whether to include the API key in the URL (for external services)
-   * @returns The webhook URL for the VAPI integration
+   * The Make.com webhook URL for lead data
    */
-  getVapiWebhookUrl(includeApiKey: boolean = false): string {
-    // Construct the webhook URL from the Supabase project ID
-    const projectId = "beefjsdgrdeiymzxwxru";
-    const baseUrl = `https://${projectId}.supabase.co/functions/v1/vapi-webhook`;
-    
-    if (includeApiKey) {
-      // Get the anon key from the supabase client
-      const anonKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJlZWZqc2RncmRlaXltenh3eHJ1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDI5MzI1OTQsImV4cCI6MjA1ODUwODU5NH0.knvlRdFYtN2bl3t3I4O8v3dU_MWKDDuaBZkvukdU87w";
-      return `${baseUrl}?apikey=${anonKey}`;
-    }
-    
-    return baseUrl;
+  LEADS_WEBHOOK_URL: "https://hook.us2.make.com/nlckmsej5cwmfe93gv4g6xvmavhilujl",
+  
+  /**
+   * The Make.com webhook URL for batch calling leads
+   */
+  BATCH_WEBHOOK_URL: "https://hook.us2.make.com/invpt3dzdm99q4ddckvke8x1x47ic9io",
+  
+  /**
+   * Name of the webhook integration
+   */
+  WEBHOOK_NAME: "Make.com Integration",
+  
+  /**
+   * Format a URL for webhook testing
+   * @param baseUrl The base URL of the webhook
+   * @param action The action to test
+   * @returns Formatted URL
+   */
+  formatTestUrl(baseUrl: string, action: string): string {
+    return `${baseUrl}?test=true&action=${action}`;
   }
 };
