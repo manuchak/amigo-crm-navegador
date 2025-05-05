@@ -302,32 +302,33 @@ const UserPermissionConfig = () => {
               )}
             </Button>
           </div>
-        
-        <TabsContent value="roles" className="m-0">
-          <UserRolesTable users={users} />
-        </TabsContent>
-        
-        <TabsContent value="pages" className="m-0">
-          <PermissionsTable
-            title="Permisos de Páginas"
-            permissions={permissions}
-            items={availablePages}
-            type="pages"
-            onChange={handlePermissionChange}
-            roles={ROLES}
-          />
-        </TabsContent>
-        
-        <TabsContent value="actions" className="m-0">
-          <PermissionsTable
-            title="Permisos de Acciones"
-            permissions={permissions}
-            items={availableActions}
-            type="actions"
-            onChange={handlePermissionChange}
-            roles={ROLES}
-          />
-        </TabsContent>
+          
+          <TabsContent value="roles" className="m-0 w-full">
+            <UserRolesTable users={users} />
+          </TabsContent>
+          
+          <TabsContent value="pages" className="m-0 w-full">
+            <PermissionsTable
+              title="Permisos de Páginas"
+              permissions={permissions}
+              items={availablePages}
+              type="pages"
+              onChange={handlePermissionChange}
+              roles={ROLES}
+            />
+          </TabsContent>
+          
+          <TabsContent value="actions" className="m-0 w-full">
+            <PermissionsTable
+              title="Permisos de Acciones"
+              permissions={permissions}
+              items={availableActions}
+              type="actions"
+              onChange={handlePermissionChange}
+              roles={ROLES}
+            />
+          </TabsContent>
+        </div>
       </CardContent>
     </Card>
   );
