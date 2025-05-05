@@ -93,7 +93,7 @@ export function PerformanceFilterHeader({
   return (
     <>
       {showHeaderTitle && (
-        <div className="mb-2">
+        <div className="mb-6">
           {activeTab === "driverBehavior" ? (
             <DriverBehaviorHeader />
           ) : (

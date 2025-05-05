@@ -7,8 +7,6 @@ import { getInitialDateRange, getDefaultDatePresets } from "@/components/perform
 import { Button } from "@/components/ui/button";
 import { UsersRound } from "lucide-react";
 import { DriverGroupsManagement } from "@/components/performance/driver-behavior/groups/DriverGroupsManagement";
-import { DriverBehaviorHeader } from "@/components/performance/DriverBehaviorHeader";
-import { PerformanceHeader } from "@/components/performance/PerformanceHeader";
 
 export default function Performance() {
   // Initialize with the "last 30 days" preset
@@ -38,18 +36,12 @@ export default function Performance() {
   
   return (
     <div className="max-w-[2400px] w-full mx-auto space-y-6 pt-20 pb-6 px-4 md:px-6 lg:px-8 xl:px-10 2xl:px-12">
-      {/* Display appropriate header based on active tab */}
-      {activeTab === "driverBehavior" ? (
-        <DriverBehaviorHeader />
-      ) : (
-        <PerformanceHeader />
-      )}
-      
       <PerformanceFilterHeader 
         dateRange={dateRange}
         setDateRange={setDateRange}
         presets={presets}
         activeTab={activeTab}
+        showHeaderTitle={true} // This displays the page title
       />
       
       <div className="flex justify-between items-center">
@@ -61,6 +53,7 @@ export default function Performance() {
               primary: dateRange.primary,
               comparison: dateRange.comparisonType !== 'none' ? dateRange.comparison : undefined
             }}
+            onOpenGroupsManagement={handleOpenGroupsManagement}
           />
         </div>
         
