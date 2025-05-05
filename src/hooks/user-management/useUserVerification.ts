@@ -7,7 +7,7 @@ import { useCallback } from 'react';
 
 export const useUserVerification = ({ setLoading, refreshUserData }: UserManagementHookProps) => {
   // Función para verificar el email de un usuario
-  const verifyEmail = useCallback(async (uid: string) => {
+  const verifyEmail = useCallback(async (uid: string): Promise<{ success: boolean; error?: any }> => {
     setLoading(true);
     try {
       console.log(`Verificando el email para el usuario ${uid}`);
@@ -33,19 +33,21 @@ export const useUserVerification = ({ setLoading, refreshUserData }: UserManagem
       
       toast.success('Correo electrónico verificado con éxito');
       await refreshUserData();
+      return { success: true };
     } catch (error) {
       console.error('Error al verificar email:', error);
       toast.error('Error al verificar el correo electrónico');
+      return { success: false, error };
     } finally {
       setLoading(false);
     }
   }, [setLoading, refreshUserData]);
   
   // Función para establecer un usuario como propietario verificado
-  const setUserAsVerifiedOwner = useCallback(async (email: string, showNotification: boolean = true) => {
+  const setUserAsVerifiedOwner = useCallback(async (email: string, showNotification: boolean = true): Promise<{ success: boolean; error?: any }> => {
     if (!email) {
       console.error("No se proporcionó email para setUserAsVerifiedOwner");
-      return;
+      return { success: false, error: "No email provided" };
     }
 
     setLoading(true);
@@ -111,9 +113,11 @@ export const useUserVerification = ({ setLoading, refreshUserData }: UserManagem
       }
       
       await refreshUserData();
+      return { success: true };
     } catch (error: any) {
       console.error('Error al establecer el usuario como propietario verificado:', error);
       toast.error('Error al configurar el usuario como propietario verificado: ' + (error.message || 'Error desconocido'));
+      return { success: false, error };
     } finally {
       setLoading(false);
     }
