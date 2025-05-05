@@ -5,9 +5,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Separator } from '@/components/ui/separator';
 import { useAuth } from '@/context/AuthContext';
 import UserManagementPanel from '@/components/admin/UserManagementPanel';
-import { VapiConfigPanel } from '@/components/call-center/vapi-config';
-import { VapiWebhookDebugger } from '@/components/call-center/webhook-debugger';
-import { Settings, Users, Phone, Webhook } from 'lucide-react';
+import UserPermissionConfig from '@/components/user-management/UserPermissionConfig';
+import { Settings, Users, Lock } from 'lucide-react';
 
 const AdminConfig = () => {
   const { currentUser, userData } = useAuth();
@@ -47,13 +46,9 @@ const AdminConfig = () => {
               <Users className="h-4 w-4 mr-2" />
               <span>Usuarios</span>
             </TabsTrigger>
-            <TabsTrigger value="vapi" className="rounded-md text-sm">
-              <Phone className="h-4 w-4 mr-2" />
-              <span>VAPI Config</span>
-            </TabsTrigger>
-            <TabsTrigger value="webhooks" className="rounded-md text-sm">
-              <Webhook className="h-4 w-4 mr-2" />
-              <span>Webhooks</span>
+            <TabsTrigger value="permissions" className="rounded-md text-sm">
+              <Lock className="h-4 w-4 mr-2" />
+              <span>Permisos</span>
             </TabsTrigger>
             <TabsTrigger value="settings" className="rounded-md text-sm">
               <Settings className="h-4 w-4 mr-2" />
@@ -65,12 +60,18 @@ const AdminConfig = () => {
             <UserManagementPanel />
           </TabsContent>
           
-          <TabsContent value="vapi" className="space-y-4">
-            <VapiConfigPanel />
-          </TabsContent>
-          
-          <TabsContent value="webhooks" className="space-y-4">
-            <VapiWebhookDebugger />
+          <TabsContent value="permissions" className="space-y-4">
+            <Card>
+              <CardHeader>
+                <CardTitle>Gestión de Permisos</CardTitle>
+                <CardDescription>
+                  Configura los permisos para cada rol del sistema
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <UserPermissionConfig />
+              </CardContent>
+            </Card>
           </TabsContent>
           
           <TabsContent value="settings" className="space-y-4">

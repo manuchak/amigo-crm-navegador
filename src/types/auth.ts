@@ -5,12 +5,14 @@ import { User, Session } from '@supabase/supabase-js';
 export type UserRole = 
   | 'unverified' 
   | 'pending' 
-  | 'atención_afiliado' 
+  | 'soporte' 
   | 'supply' 
   | 'supply_admin' 
-  | 'afiliados' 
+  | 'bi'
+  | 'monitoring'
+  | 'monitoring_supervisor'
   | 'admin'
-  | 'owner';  // Added "owner" role to fix type errors
+  | 'owner';
 
 export interface UserData {
   uid: string;

@@ -223,8 +223,12 @@ const UserManagementPanel = () => {
                   <SelectItem value="all">Todos los roles</SelectItem>
                   <SelectItem value="owner">Propietario</SelectItem>
                   <SelectItem value="admin">Administrador</SelectItem>
-                  <SelectItem value="supply_admin">Supervisor</SelectItem>
-                  <SelectItem value="supply">Agente</SelectItem>
+                  <SelectItem value="supply_admin">Supply Admin</SelectItem>
+                  <SelectItem value="supply">Supply</SelectItem>
+                  <SelectItem value="bi">Business Intelligence</SelectItem>
+                  <SelectItem value="monitoring_supervisor">Supervisor Monitoreo</SelectItem>
+                  <SelectItem value="monitoring">Monitoreo</SelectItem>
+                  <SelectItem value="soporte">Soporte</SelectItem>
                   <SelectItem value="unverified">Sin verificar</SelectItem>
                 </SelectGroup>
               </SelectContent>
@@ -373,7 +377,7 @@ const UserCard = ({
   canEdit: boolean; 
   isCurrentUser: boolean;
 }) => {
-  const { UserAvatar, RoleBadge, EmailVerificationStatus } = require('@/components/user-management');
+  const { UserRoleBadge, UserVerificationBadge, UserAvatar } = require('@/components/admin/user-management/components');
   
   return (
     <Card className={`overflow-hidden ${isCurrentUser ? 'border-primary' : ''}`}>
@@ -393,8 +397,8 @@ const UserCard = ({
         </div>
         
         <div className="flex flex-wrap gap-2 mb-4">
-          <RoleBadge role={user.role} />
-          <EmailVerificationStatus verified={user.emailVerified} />
+          <UserRoleBadge role={user.role} />
+          <UserVerificationBadge isVerified={user.emailVerified} />
         </div>
         
         <div className="text-xs text-muted-foreground">

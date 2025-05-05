@@ -17,7 +17,7 @@ const UserPermissionConfig = () => {
     error,
     isOwner,
     handlePermissionChange,
-    savePermissions,
+    handleSavePermissions,
     availablePages,
     availableActions,
   } = useRolePermissions();
@@ -59,7 +59,7 @@ const UserPermissionConfig = () => {
         </Tabs>
         
         <Button 
-          onClick={savePermissions} 
+          onClick={handleSavePermissions} 
           disabled={saving || loading}
           className="ml-4"
         >

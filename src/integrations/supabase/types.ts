@@ -1645,13 +1645,31 @@ export type Database = {
         Args: { target_user_id: string; new_role: string }
         Returns: undefined
       }
+      user_has_permission: {
+        Args: {
+          user_uid: string
+          permission_type: string
+          permission_id: string
+        }
+        Returns: boolean
+      }
       verify_user_email: {
         Args: { target_user_id: string }
         Returns: undefined
       }
     }
     Enums: {
-      [_ in never]: never
+      app_role:
+        | "admin"
+        | "supply"
+        | "supply_admin"
+        | "soporte"
+        | "bi"
+        | "monitoring"
+        | "monitoring_supervisor"
+        | "owner"
+        | "pending"
+        | "unverified"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1766,6 +1784,19 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: [
+        "admin",
+        "supply",
+        "supply_admin",
+        "soporte",
+        "bi",
+        "monitoring",
+        "monitoring_supervisor",
+        "owner",
+        "pending",
+        "unverified",
+      ],
+    },
   },
 } as const

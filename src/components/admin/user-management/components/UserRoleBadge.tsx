@@ -1,9 +1,8 @@
 
 import React from 'react';
 import { Badge } from '@/components/ui/badge';
-import { Shield, UserCheck, UserCog, User, AlertTriangle } from 'lucide-react';
+import { Shield, UserCheck, UserCog, User, AlertTriangle, Monitor, Headset, Database } from 'lucide-react';
 import { UserRole } from '@/types/auth';
-import { getRoleDisplayName } from '@/hooks/useRolePermissions';
 
 interface UserRoleBadgeProps {
   role: UserRole;
@@ -24,10 +23,12 @@ export const UserRoleBadge: React.FC<UserRoleBadgeProps> = ({
       case 'admin':
         return 'destructive';
       case 'supply_admin':
-      case 'afiliados':
+      case 'monitoring_supervisor':
+      case 'bi':
         return 'secondary';
       case 'supply':
-      case 'atención_afiliado':
+      case 'monitoring':
+      case 'soporte':
         return 'outline';
       case 'pending':
         return 'warning';
@@ -35,6 +36,23 @@ export const UserRoleBadge: React.FC<UserRoleBadgeProps> = ({
       default:
         return 'outline';
     }
+  };
+  
+  // Function to get role display name
+  const getRoleDisplayName = (role: string) => {
+    const displayNames: Record<string, string> = {
+      'unverified': 'No verificado',
+      'pending': 'Pendiente',
+      'supply': 'Supply',
+      'supply_admin': 'Supply Admin',
+      'soporte': 'Soporte',
+      'bi': 'Business Intelligence',
+      'monitoring': 'Monitoreo',
+      'monitoring_supervisor': 'Supervisor Monitoreo',
+      'admin': 'Administrador',
+      'owner': 'Propietario'
+    };
+    return displayNames[role] || role;
   };
   
   // Function to get role icon
@@ -45,11 +63,17 @@ export const UserRoleBadge: React.FC<UserRoleBadgeProps> = ({
       case 'admin':
         return <Shield className="h-3.5 w-3.5 mr-1" />;
       case 'supply_admin':
-      case 'afiliados':
         return <UserCog className="h-3.5 w-3.5 mr-1" />;
       case 'supply':
-      case 'atención_afiliado':
         return <UserCheck className="h-3.5 w-3.5 mr-1" />;
+      case 'monitoring_supervisor':
+        return <Monitor className="h-3.5 w-3.5 mr-1" />;
+      case 'monitoring':
+        return <Monitor className="h-3.5 w-3.5 mr-1" />;
+      case 'soporte':
+        return <Headset className="h-3.5 w-3.5 mr-1" />;
+      case 'bi':
+        return <Database className="h-3.5 w-3.5 mr-1" />;
       case 'pending':
         return <AlertTriangle className="h-3.5 w-3.5 mr-1" />;
       case 'unverified':

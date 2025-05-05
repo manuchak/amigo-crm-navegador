@@ -39,8 +39,10 @@ export const availableActions: PageAccess[] = [
 export const ROLES: UserRole[] = [
   'supply', 
   'supply_admin', 
-  'atención_afiliado', 
-  'afiliados',
+  'soporte',
+  'bi',
+  'monitoring',
+  'monitoring_supervisor',
   'admin', 
   'owner'
 ];

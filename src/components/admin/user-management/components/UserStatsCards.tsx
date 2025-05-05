@@ -1,78 +1,86 @@
 
 import React from 'react';
-import { Card, CardContent } from '@/components/ui/card';
-import { Users, Shield, UserCheck, UserX, UserCog } from 'lucide-react';
+import { 
+  Users, 
+  UserCheck, 
+  UserX, 
+  Shield,
+  UserCog
+} from 'lucide-react';
+import { 
+  Card,
+  CardContent
+} from '@/components/ui/card';
 
-interface UserStats {
-  total: number;
-  verified: number;
-  unverified: number;
-  admins: number;
-  users: number;
+interface UserStatsProps {
+  stats: {
+    total: number;
+    verified: number;
+    unverified: number;
+    admins: number;
+    users: number;
+  };
 }
 
-interface UserStatsCardsProps {
-  stats: UserStats;
-}
+export const UserStatsCards: React.FC<UserStatsProps> = ({ stats }) => {
+  const cards = [
+    {
+      title: 'Total Usuarios',
+      value: stats.total,
+      change: null,
+      icon: <Users className="h-4 w-4 text-blue-600" />,
+      color: 'bg-blue-50 text-blue-600 border-blue-100'
+    },
+    {
+      title: 'Verificados',
+      value: stats.verified,
+      change: stats.total > 0 ? Math.round((stats.verified / stats.total) * 100) : 0,
+      icon: <UserCheck className="h-4 w-4 text-green-600" />,
+      color: 'bg-green-50 text-green-600 border-green-100'
+    },
+    {
+      title: 'No Verificados',
+      value: stats.unverified,
+      change: stats.total > 0 ? Math.round((stats.unverified / stats.total) * 100) : 0,
+      icon: <UserX className="h-4 w-4 text-amber-600" />,
+      color: 'bg-amber-50 text-amber-600 border-amber-100'
+    },
+    {
+      title: 'Admins',
+      value: stats.admins,
+      change: null,
+      icon: <Shield className="h-4 w-4 text-red-600" />,
+      color: 'bg-red-50 text-red-600 border-red-100'
+    },
+    {
+      title: 'Usuarios Base',
+      value: stats.users,
+      change: null,
+      icon: <UserCog className="h-4 w-4 text-purple-600" />,
+      color: 'bg-purple-50 text-purple-600 border-purple-100'
+    }
+  ];
 
-export const UserStatsCards: React.FC<UserStatsCardsProps> = ({ stats }) => {
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
-      <StatCard 
-        icon={<Users className="h-5 w-5 text-blue-500" />}
-        title="Total usuarios"
-        value={stats.total}
-        bgColor="bg-blue-50"
-      />
-      <StatCard 
-        icon={<UserCheck className="h-5 w-5 text-green-500" />}
-        title="Verificados"
-        value={stats.verified}
-        bgColor="bg-green-50"
-      />
-      <StatCard 
-        icon={<UserX className="h-5 w-5 text-amber-500" />}
-        title="Por verificar"
-        value={stats.unverified}
-        bgColor="bg-amber-50"
-      />
-      <StatCard 
-        icon={<Shield className="h-5 w-5 text-red-500" />}
-        title="Administradores"
-        value={stats.admins}
-        bgColor="bg-red-50"
-      />
-      <StatCard 
-        icon={<UserCog className="h-5 w-5 text-purple-500" />}
-        title="Usuarios"
-        value={stats.users}
-        bgColor="bg-purple-50"
-      />
+    <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-3 md:gap-4 mb-6">
+      {cards.map((card, index) => (
+        <Card key={index} className={`border ${card.color}`}>
+          <CardContent className="p-3 flex flex-col">
+            <div className="flex justify-between items-center mb-2">
+              <span className="text-xs font-medium">{card.title}</span>
+              {card.icon}
+            </div>
+
+            <div className="text-2xl font-bold">{card.value}</div>
+            
+            {card.change !== null && (
+              <div className="text-xs mt-1">
+                {card.change}% del total
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      ))}
     </div>
-  );
-};
-
-interface StatCardProps {
-  icon: React.ReactNode;
-  title: string;
-  value: number;
-  bgColor: string;
-}
-
-const StatCard: React.FC<StatCardProps> = ({ icon, title, value, bgColor }) => {
-  return (
-    <Card className="border shadow-sm">
-      <CardContent className="p-4">
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="text-sm font-medium text-muted-foreground">{title}</p>
-            <h3 className="text-2xl font-bold">{value}</h3>
-          </div>
-          <div className={`rounded-full p-2 ${bgColor}`}>
-            {icon}
-          </div>
-        </div>
-      </CardContent>
-    </Card>
   );
 };
