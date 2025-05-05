@@ -13,16 +13,19 @@ import {
 } from '@/components/user-management';
 import UserManagementHeader from './user-management/UserManagementHeader';
 import useUserManagement from './user-management/hooks/useUserManagement';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Button } from '@/components/ui/button';
 
 const UserManagementPanel = () => {
   const { getAllUsers, updateUserRole, verifyEmail, userData: currentUserData } = useAuth();
   const { 
     users, 
     loading, 
-    selectedUser, 
-    isEditDialogOpen, 
-    isConfirmationOpen, 
+    selectedUser,
+    isEditDialogOpen,
+    isConfirmationOpen,
     newRole,
+    error,
     setUsers,
     setSelectedUser, 
     setIsEditDialogOpen, 
@@ -31,17 +34,17 @@ const UserManagementPanel = () => {
     fetchUsers,
     handleRoleChange,
     handleEditClick,
-    isInitialFetchComplete
+    lastFetchedAt
   } = useUserManagement({ getAllUsers });
   
-  // Solo realizar la carga inicial una vez
+  // Only fetch data once on component mount
   useEffect(() => {
-    // Esta condición garantiza que solo se ejecute una vez al montar el componente
-    if (!isInitialFetchComplete.current) {
-      console.log('Realizando carga inicial de usuarios en UserManagementPanel');
-      fetchUsers();
+    if (!users.length && !loading) {
+      console.log('Initial fetch of users in UserManagementPanel');
+      fetchUsers(true);
     }
-  }, [fetchUsers]);
+  // The empty dependency array ensures this only runs once on mount
+  }, []);
   
   const handleUpdateRole = async () => {
     if (!selectedUser || !newRole) return;
@@ -59,9 +62,9 @@ const UserManagementPanel = () => {
       ));
       
       toast.success(`Rol actualizado a ${newRole} para ${selectedUser.displayName || selectedUser.email}`);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error updating role:', error);
-      toast.error('Error al actualizar el rol del usuario');
+      toast.error(`Error al actualizar el rol del usuario: ${error?.message || 'Error desconocido'}`);
     }
   };
   
@@ -76,33 +79,73 @@ const UserManagementPanel = () => {
       ));
       
       toast.success(`Email verificado para ${user.displayName || user.email}`);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error verifying user email:', error);
-      toast.error('Error al verificar el email del usuario');
+      toast.error(`Error al verificar el email del usuario: ${error?.message || 'Error desconocido'}`);
     }
   };
 
   const handleRefresh = () => {
     console.log('Manual refresh triggered');
-    fetchUsers();
+    fetchUsers(true);
+  };
+
+  const showDebugInfo = () => {
+    if (currentUserData?.role !== 'admin' && currentUserData?.role !== 'owner') return null;
+    
+    return (
+      <div className="text-xs text-muted-foreground mt-4 border-t pt-4">
+        <p>Información de depuración:</p>
+        <ul className="list-disc pl-5 space-y-1">
+          <li>Usuario actual: {currentUserData?.email || 'No autenticado'} (Rol: {currentUserData?.role || 'ninguno'})</li>
+          <li>Total de usuarios cargados: {users.length}</li>
+          <li>Última actualización: {lastFetchedAt ? new Date(lastFetchedAt).toLocaleString() : 'Nunca'}</li>
+        </ul>
+        {currentUserData && (
+          <>
+            <p className="mt-2 font-medium">Datos del usuario actual:</p>
+            <pre className="bg-gray-100 p-2 rounded text-xs overflow-auto mt-1">
+              {JSON.stringify(currentUserData, null, 2)}
+            </pre>
+          </>
+        )}
+      </div>
+    );
   };
 
   return (
     <Card className="border shadow-sm">
       <UserManagementHeader loading={loading} onRefresh={handleRefresh} />
       <CardContent className="pt-6">
+        {error && (
+          <Alert variant="destructive" className="mb-4">
+            <AlertTitle>Error al cargar usuarios</AlertTitle>
+            <AlertDescription>
+              {error}
+              <div className="mt-2">
+                <Button size="sm" onClick={() => fetchUsers(true)}>Reintentar</Button>
+              </div>
+            </AlertDescription>
+          </Alert>
+        )}
+        
         {loading ? (
           <div className="flex justify-center py-8">
             <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
           </div>
         ) : (
-          <UserTable 
-            users={users}
-            onEditClick={handleEditClick}
-            onVerifyUser={handleVerifyUser}
-            canEditUser={(user) => canEditUser(currentUserData, user)}
-            formatDate={(date) => date ? new Date(date).toLocaleDateString() : 'N/A'}
-          />
+          <>
+            <UserTable 
+              users={users}
+              onEditClick={handleEditClick}
+              onVerifyUser={handleVerifyUser}
+              canEditUser={(user) => canEditUser(currentUserData, user)}
+              formatDate={(date) => date ? new Date(date).toLocaleDateString() : 'N/A'}
+              currentUser={currentUserData}
+            />
+            
+            {showDebugInfo()}
+          </>
         )}
       </CardContent>
 
