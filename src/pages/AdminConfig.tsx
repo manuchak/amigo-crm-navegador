@@ -7,53 +7,62 @@ import { useAuth } from '@/context/AuthContext';
 import UserManagementPanel from '@/components/admin/UserManagementPanel';
 import UserPermissionConfig from '@/components/user-management/UserPermissionConfig';
 import { Settings, Users, Lock } from 'lucide-react';
-import { setSpecificUserAsVerifiedOwner } from '@/utils/setVerifiedOwner';
-import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
 const AdminConfig = () => {
   const { currentUser, userData, refreshUserData } = useAuth();
   const [activeTab, setActiveTab] = useState<string>("users");
   const [ownerStatus, setOwnerStatus] = useState<boolean>(false);
   
-  // Force check and set owner status on component mount
+  // Check and verify owner status on component mount
   useEffect(() => {
-    const ensureOwnerIsSet = async () => {
-      // Always try to set Manuel as owner on component mount
-      const result = await setSpecificUserAsVerifiedOwner('manuel.chacon@detectasecurity.io');
-      if (result) {
-        console.log("Manuel Chacon has been set as owner successfully");
-        
-        // Force refresh user data to reflect the new role
-        try {
-          await refreshUserData();
-          
-          // Double-check if current user is the owner
-          const { data: userData } = await supabase.auth.getUser();
-          if (userData.user) {
-            const { data: roleData } = await supabase.rpc('get_user_role', {
-              user_uid: userData.user.id
-            });
-            
-            setOwnerStatus(roleData === 'owner');
-            
-            if (roleData === 'owner') {
-              toast.success("Has sido verificado como propietario del sistema");
-              console.log("✅ Current user is owner");
-            } else {
-              console.warn("❌ Current user is not owner, role:", roleData);
-            }
-          }
-        } catch (error) {
-          console.error("Error refreshing user data after setting owner:", error);
+    const checkOwnerStatus = async () => {
+      try {
+        // First check if current user is already an owner
+        if (userData?.role === 'owner') {
+          console.log("User is already verified as owner");
+          setOwnerStatus(true);
+          return;
         }
-      } else {
-        console.error("Failed to set Manuel Chacon as owner");
+        
+        // Get current user from Supabase
+        const { data: authData } = await supabase.auth.getUser();
+        if (!authData.user) {
+          console.error("No authenticated user found");
+          return;
+        }
+        
+        // Check user role from Supabase
+        const { data: roleData, error: roleError } = await supabase.rpc('get_user_role', {
+          user_uid: authData.user.id
+        });
+        
+        if (roleError) {
+          console.error("Error getting user role:", roleError);
+          return;
+        }
+        
+        // Update owner status based on role check
+        const isOwner = roleData === 'owner';
+        setOwnerStatus(isOwner);
+        
+        if (isOwner) {
+          console.log("✅ Current user verified as owner");
+          toast.success("Has sido verificado como propietario del sistema");
+        } else {
+          console.log("❌ Current user is not owner, role:", roleData);
+        }
+        
+        // Force refresh user data to reflect any role changes
+        await refreshUserData();
+      } catch (error) {
+        console.error("Error checking owner status:", error);
       }
     };
 
-    ensureOwnerIsSet();
-  }, [refreshUserData]);
+    checkOwnerStatus();
+  }, [userData, refreshUserData]);
   
   // Only show admin features if user has correct role
   const isAdmin = userData?.role === 'admin' || userData?.role === 'owner' || ownerStatus;
