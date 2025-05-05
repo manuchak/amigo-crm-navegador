@@ -8,6 +8,13 @@ interface CargoInfoProps {
 }
 
 export function CargoInfo({ service }: CargoInfoProps) {
+  // Check if cargo information is available
+  const hasCargoInfo = service.cargoType || service.cargoWeight || service.cargoUnits;
+
+  if (!hasCargoInfo) {
+    return null;
+  }
+
   return (
     <div className="space-y-3">
       <div className="flex items-center gap-2">
@@ -17,14 +24,28 @@ export function CargoInfo({ service }: CargoInfoProps) {
       
       <div className="grid grid-cols-2 gap-2">
         <div className="flex flex-col">
-          <span className="text-xs text-slate-500">Cantidad</span>
-          <span className="text-sm font-medium">{service.cargo.count} {service.cargo.type}</span>
+          <span className="text-xs text-slate-500">Tipo</span>
+          <span className="text-sm font-medium">
+            {service.cargoType || 'No especificado'}
+            {service.cargoUnits && ` (${service.cargoUnits} unidades)`}
+          </span>
         </div>
         
         <div className="flex flex-col">
           <span className="text-xs text-slate-500">Peso total</span>
-          <span className="text-sm font-medium">{service.cargo.weight} kg</span>
+          <span className="text-sm font-medium">
+            {service.cargoWeight ? `${service.cargoWeight} kg` : 'No especificado'}
+          </span>
         </div>
+        
+        {service.cargoValue && (
+          <div className="flex flex-col col-span-2">
+            <span className="text-xs text-slate-500">Valor</span>
+            <span className="text-sm font-medium">
+              ${service.cargoValue.toLocaleString('es-MX')} MXN
+            </span>
+          </div>
+        )}
       </div>
     </div>
   );
