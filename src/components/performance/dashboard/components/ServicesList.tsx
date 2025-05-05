@@ -53,7 +53,7 @@ export function ServicesList({
               <div className="flex items-center gap-1 mt-1">
                 <User className="w-3 h-3 text-muted-foreground" />
                 <span className="text-xs text-muted-foreground truncate">
-                  {service.custodio}
+                  {service.custodioName}
                 </span>
               </div>
             </button>
