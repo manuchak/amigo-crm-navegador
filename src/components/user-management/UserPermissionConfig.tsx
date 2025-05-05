@@ -11,6 +11,7 @@ import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/context/AuthContext';
 import { toast } from 'sonner';
+import { setManuelAsOwner } from '@/utils/setVerifiedOwner';
 
 const UserPermissionConfig = () => {
   const {
@@ -32,47 +33,77 @@ const UserPermissionConfig = () => {
   const { currentUser, userData, refreshUserData } = useAuth();
   const [activeTab, setActiveTab] = useState('pages');
   const [verifyingOwner, setVerifyingOwner] = useState(false);
+  const [debugInfo, setDebugInfo] = useState<any>(null);
   
   // Verificar status de propietario al cargar y cuando cambia el usuario
   useEffect(() => {
     const verifyOwnerStatus = async () => {
       try {
+        setVerifyingOwner(true);
         // Verificar si el usuario actual ya es propietario
         const isCurrentOwner = await checkOwnerStatus();
         console.log("Resultado de verificación de propietario:", isCurrentOwner);
         
+        // Si no es propietario y el email coincide con Manuel, intentar asignar automáticamente
         if (!isCurrentOwner && userData?.email === 'manuel.chacon@detectasecurity.io') {
-          console.log("Intentando establecer a Manuel Chacon como propietario...");
+          console.log("Intentando establecer a Manuel Chacon como propietario automáticamente...");
           
-          // Intentar establecer al usuario como propietario
-          try {
-            const { data: authData } = await supabase.auth.getUser();
-            if (authData.user) {
-              const { error: rpcError } = await supabase.rpc('update_user_role', {
-                target_user_id: authData.user.id,
-                new_role: 'owner'
-              });
-              
-              if (rpcError) {
-                console.error('Error asignando rol de propietario:', rpcError);
-              } else {
-                console.log('Rol de propietario asignado correctamente');
-                // Recargar permisos después de actualizar el rol
-                setRetryCount(prev => prev + 1);
-                await refreshUserData();
-              }
-            }
-          } catch (err) {
-            console.error('Error en proceso de asignación de propietario:', err);
+          const success = await setManuelAsOwner();
+          if (success) {
+            console.log("✅ Manuel Chacon ha sido establecido como propietario exitosamente");
+            toast.success("Has sido asignado como propietario del sistema");
+            await refreshUserData();
+            setRetryCount(prev => prev + 1);
+          } else {
+            console.log("❌ No se pudo establecer a Manuel como propietario automáticamente");
+            // Recopilar información de diagnóstico
+            const { data: sessionData } = await supabase.auth.getSession();
+            const { data: roleData } = await supabase.rpc('get_user_role', {
+              user_uid: sessionData?.session?.user?.id || ''
+            });
+            
+            setDebugInfo({
+              session: sessionData?.session ? {
+                userId: sessionData.session.user.id,
+                email: sessionData.session.user.email,
+              } : null,
+              role: roleData,
+              timestamp: new Date().toISOString()
+            });
           }
         }
       } catch (error) {
         console.error("Error verificando estado de propietario:", error);
+        setDebugInfo({
+          error: String(error),
+          timestamp: new Date().toISOString()
+        });
+      } finally {
+        setVerifyingOwner(false);
       }
     };
 
     verifyOwnerStatus();
   }, [userData, checkOwnerStatus, refreshUserData, setRetryCount]);
+  
+  const handleForceAssignOwner = async () => {
+    setVerifyingOwner(true);
+    try {
+      const success = await setManuelAsOwner();
+      if (success) {
+        toast.success("Has sido asignado como propietario del sistema");
+        await refreshUserData();
+        reloadPermissions();
+      } else {
+        toast.error("No se pudo asignar el rol de propietario");
+      }
+    } catch (error) {
+      console.error("Error al asignar propietario:", error);
+      toast.error("Error al intentar asignar permisos de propietario");
+    } finally {
+      setVerifyingOwner(false);
+    }
+  };
   
   const handleForceRefresh = async () => {
     setVerifyingOwner(true);
@@ -110,24 +141,56 @@ const UserPermissionConfig = () => {
               <li>Estado propietario: {isOwner ? 'Sí' : 'No'}</li>
             </ul>
           </div>
-          <Button 
-            onClick={handleForceRefresh} 
-            variant="outline" 
-            className="mt-4 border-amber-300"
-            disabled={verifyingOwner}
-          >
-            {verifyingOwner ? (
-              <>
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                Verificando...
-              </>
-            ) : (
-              <>
-                <RefreshCw className="h-4 w-4 mr-2" />
-                Actualizar estado
-              </>
-            )}
-          </Button>
+          
+          {userData?.email === 'manuel.chacon@detectasecurity.io' && (
+            <div className="mt-4 space-y-2">
+              <Button 
+                onClick={handleForceAssignOwner} 
+                className="w-full"
+                disabled={verifyingOwner}
+              >
+                {verifyingOwner ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Asignando permisos...
+                  </>
+                ) : (
+                  <>
+                    <RefreshCw className="h-4 w-4 mr-2" />
+                    Asignar permisos de propietario
+                  </>
+                )}
+              </Button>
+              
+              <Button 
+                onClick={handleForceRefresh} 
+                variant="outline" 
+                className="w-full border-amber-300"
+                disabled={verifyingOwner}
+              >
+                {verifyingOwner ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Verificando...
+                  </>
+                ) : (
+                  <>
+                    <RefreshCw className="h-4 w-4 mr-2" />
+                    Actualizar estado
+                  </>
+                )}
+              </Button>
+            </div>
+          )}
+          
+          {debugInfo && (
+            <div className="mt-4 p-3 bg-white rounded-md border border-amber-200 text-xs font-mono">
+              <p className="font-semibold mb-1">Información de diagnóstico:</p>
+              <pre className="overflow-auto">
+                {JSON.stringify(debugInfo, null, 2)}
+              </pre>
+            </div>
+          )}
         </CardContent>
       </Card>
     );
@@ -150,7 +213,7 @@ const UserPermissionConfig = () => {
         </Tabs>
         
         <Button 
-          onClick={handleSavePermissions || savePermissions} 
+          onClick={handleSavePermissions} 
           disabled={saving || loading}
           className="ml-4"
         >

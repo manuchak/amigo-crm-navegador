@@ -129,7 +129,7 @@ const AdminConfig = () => {
                 variant="outline"
                 disabled={isCheckingOwner}
               >
-                <RefreshCw className="h-4 w-4 mr-2" />
+                <RefreshCw className={`h-4 w-4 mr-2 ${isCheckingOwner ? 'animate-spin' : ''}`} />
                 Verificar permisos de propietario
               </Button>
             )}
