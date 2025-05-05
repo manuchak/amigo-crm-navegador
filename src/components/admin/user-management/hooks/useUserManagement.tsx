@@ -1,6 +1,6 @@
 
-import { useState, useCallback, useEffect, useRef } from 'react';
-import { UserData } from '@/types/auth';
+import { useState, useEffect } from 'react';
+import { UserData, UserRole } from '@/types/auth';
 import { toast } from 'sonner';
 
 interface UseUserManagementProps {
@@ -9,87 +9,41 @@ interface UseUserManagementProps {
 
 const useUserManagement = ({ getAllUsers }: UseUserManagementProps) => {
   const [users, setUsers] = useState<UserData[]>([]);
-  const [loading, setLoading] = useState<boolean>(false);
-  const [selectedUser, setSelectedUser] = useState<UserData | null>(null);
-  const [isEditDialogOpen, setIsEditDialogOpen] = useState<boolean>(false);
-  const [isConfirmationOpen, setIsConfirmationOpen] = useState<boolean>(false);
-  const [newRole, setNewRole] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
+  const [selectedUser, setSelectedUser] = useState<UserData | null>(null);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [isConfirmationOpen, setIsConfirmationOpen] = useState(false);
+  const [newRole, setNewRole] = useState<UserRole | null>(null);
   const [lastFetchedAt, setLastFetchedAt] = useState<number | null>(null);
-  const [fetchCount, setFetchCount] = useState<number>(0);
-  const fetchInProgress = useRef<boolean>(false);
 
-  // Mejorado para ser más resiliente a errores
-  const fetchUsers = useCallback(async (forceRefresh = false): Promise<UserData[]> => {
-    // No fetch if already loading (prevent duplicate calls)
-    if (fetchInProgress.current && !forceRefresh) {
-      console.log('Already loading users, skipping additional fetch');
+  const fetchUsers = async (forceRefresh: boolean = false) => {
+    // Skip if already loading or recently fetched and not forced
+    const CACHE_TTL = 30 * 1000; // 30 seconds
+    if (
+      loading || 
+      (!forceRefresh && lastFetchedAt && Date.now() - lastFetchedAt < CACHE_TTL)
+    ) {
       return users;
     }
-    
-    // Track fetch count and indicate fetch in progress
-    setFetchCount(prev => prev + 1);
-    fetchInProgress.current = true;
-    
-    // Start loading state
+
     setLoading(true);
     setError(null);
-    
+
     try {
-      console.log('Fetching users from API...');
-      const usersData = await getAllUsers();
-      
-      if (Array.isArray(usersData)) {
-        console.log(`Successfully loaded ${usersData.length} users`);
-        
-        // Ensure we have data to display
-        if (usersData.length === 0) {
-          console.warn('API returned 0 users - this might indicate a problem');
-        }
-        
-        setUsers(usersData);
-        setLastFetchedAt(Date.now());
-        return usersData;
-      } else {
-        throw new Error('Invalid response format from getAllUsers');
-      }
-    } catch (error: any) {
-      console.error('Error fetching users:', error);
-      setError(error instanceof Error ? error : new Error(String(error)));
-      
-      // Keep showing old users if available
-      if (users.length === 0) {
-        toast.error('Error al cargar la lista de usuarios y no hay datos en caché');
-      } else {
-        toast.warning('Error al actualizar usuarios. Mostrando datos en caché.');
-      }
-      
-      return users; // Return existing users as fallback
+      const data = await getAllUsers();
+      setUsers(data);
+      setLastFetchedAt(Date.now());
+      return data;
+    } catch (err) {
+      const error = err instanceof Error ? err : new Error('Failed to fetch users');
+      setError(error);
+      toast.error('Error al cargar usuarios: ' + error.message);
+      return [];
     } finally {
       setLoading(false);
-      fetchInProgress.current = false;
     }
-  }, [getAllUsers, users]);
-
-  // Auto-refresh on mount and periodically
-  useEffect(() => {
-    // Initial load if needed
-    if (!fetchInProgress.current) {
-      console.log('Initial load triggered in useUserManagement hook');
-      fetchUsers(true).catch(err => console.error('Failed initial fetch:', err));
-    }
-    
-    // Set up timer for periodic refresh
-    const REFRESH_INTERVAL = 5 * 60 * 1000; // 5 minutes
-    const refreshTimer = setTimeout(() => {
-      if (!fetchInProgress.current) {
-        console.log('Performing background refresh of users list');
-        fetchUsers(true).catch(err => console.error('Failed background refresh:', err));
-      }
-    }, REFRESH_INTERVAL);
-    
-    return () => clearTimeout(refreshTimer);
-  }, [fetchUsers]);
+  };
 
   const handleEditClick = (user: UserData) => {
     setSelectedUser(user);
@@ -97,28 +51,31 @@ const useUserManagement = ({ getAllUsers }: UseUserManagementProps) => {
     setIsEditDialogOpen(true);
   };
 
-  const handleRoleChange = (role: string) => {
+  const handleRoleChange = (role: UserRole) => {
     setNewRole(role);
   };
+
+  useEffect(() => {
+    fetchUsers();
+  }, []);
 
   return {
     users,
     loading,
+    error,
     selectedUser,
     isEditDialogOpen,
     isConfirmationOpen,
     newRole,
-    error,
+    fetchUsers,
     setUsers,
     setSelectedUser,
     setIsEditDialogOpen,
     setIsConfirmationOpen,
     setNewRole,
-    fetchUsers,
-    handleRoleChange,
     handleEditClick,
-    lastFetchedAt,
-    fetchCount
+    handleRoleChange,
+    lastFetchedAt
   };
 };
 

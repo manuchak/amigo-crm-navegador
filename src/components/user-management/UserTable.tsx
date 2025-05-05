@@ -17,13 +17,10 @@ import {
   Shield, 
   CheckCircle2, 
   XCircle,
-  User,
-  AlertCircle,
-  AlertTriangle
+  User
 } from 'lucide-react';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { getRoleDisplayName } from '@/hooks/useRolePermissions';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 interface UserTableProps {
   users: UserData[];
@@ -42,33 +39,13 @@ const UserTable: React.FC<UserTableProps> = ({
   formatDate,
   currentUser
 }) => {
-  // Mensajes informativos según la situación
   if (users.length === 0) {
     return (
       <div className="text-center py-8">
-        <div className="flex flex-col items-center justify-center gap-2">
-          <AlertCircle className="h-10 w-10 text-amber-500" />
-          <h3 className="font-medium text-lg">No hay usuarios registrados</h3>
-          <p className="text-muted-foreground mb-4">
-            No se encontraron usuarios en el sistema o podría haber un problema con los permisos.
-          </p>
-          
-          {currentUser && (
-            <Alert className="max-w-md">
-              <AlertDescription>
-                <p>Estás conectado como: <strong>{currentUser.email}</strong></p>
-                <p>Rol: <strong>{getRoleDisplayName(currentUser.role)}</strong></p>
-                <p>Si no estás viendo los usuarios esperados, podrías no tener los permisos necesarios o puede haber un problema de conexión.</p>
-              </AlertDescription>
-            </Alert>
-          )}
-        </div>
+        <p className="text-muted-foreground">No hay usuarios registrados</p>
       </div>
     );
   }
-
-  // Comprobación de si el usuario actual está en la lista
-  const currentUserInList = currentUser ? users.some(user => user.uid === currentUser.uid) : false;
 
   // Función para obtener la variante del badge según el rol
   const getRoleBadgeVariant = (role: string) => {
@@ -93,19 +70,6 @@ const UserTable: React.FC<UserTableProps> = ({
 
   return (
     <div className="overflow-x-auto">
-      {currentUser && currentUser.uid && !currentUserInList && (
-        <Alert variant="warning" className="mb-4">
-          <AlertTriangle className="h-4 w-4" />
-          <AlertTitle>Advertencia</AlertTitle>
-          <AlertDescription>
-            <p className="text-sm">
-              Tu usuario actual <strong>({currentUser.email})</strong> no aparece en esta lista.
-              Esto podría deberse a un problema de permisos, configuración o sincronización de datos.
-            </p>
-          </AlertDescription>
-        </Alert>
-      )}
-      
       <Table>
         <TableHeader>
           <TableRow>
