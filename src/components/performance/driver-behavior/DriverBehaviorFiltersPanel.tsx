@@ -3,22 +3,25 @@ import React, { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from '@/components/ui/label';
-import { ChevronsUpDown } from "lucide-react";
+import { ChevronsUpDown, UsersRound } from "lucide-react";
 import { DriverBehaviorFilters } from '../types/driver-behavior.types';
 import { Skeleton } from '@/components/ui/skeleton';
 import { fetchClientList } from '../services/productivity/productivityService';
 import { fetchDriverGroups } from '../services/driverBehavior/driverGroupsService';
+import { Button } from '@/components/ui/button';
 
 interface DriverBehaviorFiltersPanelProps {
   onFilterChange: (filters: DriverBehaviorFilters) => void;
   activeTab?: string;
   filters?: DriverBehaviorFilters;
+  onManageGroups?: (client?: string) => void;
 }
 
 export function DriverBehaviorFiltersPanel({ 
   onFilterChange, 
   activeTab = 'resumen',
-  filters = {}
+  filters = {},
+  onManageGroups
 }: DriverBehaviorFiltersPanelProps) {
   const [selectedClient, setSelectedClient] = useState<string>(filters.selectedClient || 'all');
   const [selectedGroup, setSelectedGroup] = useState<string>(filters.selectedGroup || 'all');
@@ -85,9 +88,16 @@ export function DriverBehaviorFiltersPanel({
     });
     
   }, [selectedClient, selectedGroup, selectedGroupObject, onFilterChange]);
+
+  // Handle manage groups button click
+  const handleManageGroups = () => {
+    if (onManageGroups) {
+      onManageGroups(selectedClient !== 'all' ? selectedClient : undefined);
+    }
+  };
   
   return (
-    <div className="flex flex-col md:flex-row gap-4">
+    <div className="flex flex-col md:flex-row gap-4 items-end">
       <div className="space-y-2">
         <Label htmlFor="client-filter" className="text-sm font-medium text-gray-500">Cliente</Label>
         {isLoadingClients ? (
@@ -134,7 +144,18 @@ export function DriverBehaviorFiltersPanel({
         )}
       </div>
       
-      {activeTab === 'productividad' && (
+      {onManageGroups && (
+        <Button 
+          variant="outline" 
+          className="flex items-center gap-2 ml-auto"
+          onClick={handleManageGroups}
+        >
+          <UsersRound className="w-4 h-4" />
+          <span>Gestionar Grupos</span>
+        </Button>
+      )}
+      
+      {activeTab === 'productividad' && !onManageGroups && (
         <div className="flex items-end ml-auto">
           <div className="text-xs text-gray-500 flex items-center">
             <ChevronsUpDown className="h-4 w-4 mr-1" />

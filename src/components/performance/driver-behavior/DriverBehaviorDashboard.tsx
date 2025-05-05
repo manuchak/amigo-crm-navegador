@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { DateRange } from "react-day-picker";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -15,15 +14,23 @@ import { DriverBehaviorFilters } from '../types/driver-behavior.types';
 import { useQuery } from '@tanstack/react-query';
 import { fetchDriverBehaviorData } from '../services/driverBehavior/dataService';
 import { motion } from 'framer-motion';
+import { DriverGroupsManagement } from './groups/DriverGroupsManagement';
 
 interface DriverBehaviorDashboardProps {
   dateRange: DateRange;
   comparisonRange?: DateRange;
+  onOpenGroupsManagement?: (client?: string) => void;
 }
 
-export function DriverBehaviorDashboard({ dateRange, comparisonRange }: DriverBehaviorDashboardProps) {
+export function DriverBehaviorDashboard({ 
+  dateRange, 
+  comparisonRange,
+  onOpenGroupsManagement
+}: DriverBehaviorDashboardProps) {
   const [activeTab, setActiveTab] = useState('resumen');
   const [filters, setFilters] = useState<DriverBehaviorFilters>({});
+  const [isGroupsManagementOpen, setIsGroupsManagementOpen] = useState(false);
+  const [selectedClient, setSelectedClient] = useState<string | undefined>(undefined);
   
   // Fetch driver behavior data with filters
   const { data: driverData, isLoading: isLoadingData } = useQuery({
@@ -39,6 +46,18 @@ export function DriverBehaviorDashboard({ dateRange, comparisonRange }: DriverBe
     enabled: !!comparisonRange?.from && !!comparisonRange?.to,
   });
 
+  // Handle opening groups management dialog
+  const handleOpenGroupsManagement = (client?: string) => {
+    // If parent component provided handler, use that
+    if (onOpenGroupsManagement) {
+      onOpenGroupsManagement(client);
+    } else {
+      // Otherwise use internal state
+      setSelectedClient(client);
+      setIsGroupsManagementOpen(true);
+    }
+  };
+
   return (
     <div className="space-y-6 pb-8">
       <Card className="bg-white/90 backdrop-blur-sm rounded-xl shadow-sm border">
@@ -47,6 +66,7 @@ export function DriverBehaviorDashboard({ dateRange, comparisonRange }: DriverBe
             onFilterChange={setFilters} 
             activeTab={activeTab}
             filters={filters}
+            onManageGroups={handleOpenGroupsManagement}
           />
         </CardContent>
       </Card>
@@ -164,6 +184,15 @@ export function DriverBehaviorDashboard({ dateRange, comparisonRange }: DriverBe
           </div>
         </TabsContent>
       </Tabs>
+      
+      {/* Internal Groups Management Sheet (only used if parent doesn't provide handler) */}
+      {!onOpenGroupsManagement && (
+        <DriverGroupsManagement 
+          isOpen={isGroupsManagementOpen}
+          onClose={() => setIsGroupsManagementOpen(false)}
+          selectedClient={selectedClient}
+        />
+      )}
     </div>
   );
 }

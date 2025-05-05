@@ -13,9 +13,15 @@ interface PerformanceTabsProps {
     primary: DateRange;
     comparison?: DateRange;
   };
+  onOpenGroupsManagement?: (client?: string) => void;
 }
 
-export function PerformanceTabs({ activeTab, setActiveTab, dateRange }: PerformanceTabsProps) {
+export function PerformanceTabs({ 
+  activeTab, 
+  setActiveTab, 
+  dateRange,
+  onOpenGroupsManagement
+}: PerformanceTabsProps) {
   return (
     <Tabs 
       value={activeTab} 
@@ -51,7 +57,8 @@ export function PerformanceTabs({ activeTab, setActiveTab, dateRange }: Performa
       <TabsContent value="driverBehavior" className="mt-0 animate-fade-in duration-300">
         <DriverBehaviorDashboard 
           dateRange={dateRange.primary} 
-          comparisonRange={dateRange.comparison} 
+          comparisonRange={dateRange.comparison}
+          onOpenGroupsManagement={onOpenGroupsManagement} 
         />
       </TabsContent>
     </Tabs>
