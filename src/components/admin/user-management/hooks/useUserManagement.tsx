@@ -71,12 +71,12 @@ const useUserManagement = ({ getAllUsers }: UseUserManagementProps) => {
     }
   }, [getAllUsers, users]);
 
-  // Auto-refresh on mount
+  // Auto-refresh on mount and periodically
   useEffect(() => {
     // Initial load if needed
     if (!fetchInProgress.current) {
       console.log('Initial load triggered in useUserManagement hook');
-      fetchUsers(true);
+      fetchUsers(true).catch(err => console.error('Failed initial fetch:', err));
     }
     
     // Set up timer for periodic refresh
@@ -84,7 +84,7 @@ const useUserManagement = ({ getAllUsers }: UseUserManagementProps) => {
     const refreshTimer = setTimeout(() => {
       if (!fetchInProgress.current) {
         console.log('Performing background refresh of users list');
-        fetchUsers(true);
+        fetchUsers(true).catch(err => console.error('Failed background refresh:', err));
       }
     }, REFRESH_INTERVAL);
     

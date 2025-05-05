@@ -1,7 +1,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
-import { Loader2, RefreshCw, AlertTriangle } from 'lucide-react';
+import { Loader2, RefreshCw, AlertTriangle, Users, Search, Filter } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { UserData } from '@/types/auth';
 import { toast } from 'sonner';
@@ -15,11 +15,27 @@ import UserManagementHeader from './UserManagementHeader';
 import useUserManagement from './hooks/useUserManagement';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectLabel,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Badge } from '@/components/ui/badge';
+import { UserStatsCards } from './components/UserStatsCards';
 
 const UserManagementPanel = () => {
   const { getAllUsers, updateUserRole, verifyEmail, userData: currentUserData } = useAuth();
   const [retryCount, setRetryCount] = useState(0);
   const [fetchSuccess, setFetchSuccess] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [roleFilter, setRoleFilter] = useState('all');
+  const [verificationFilter, setVerificationFilter] = useState('all');
   
   const { 
     users, 
@@ -61,7 +77,24 @@ const UserManagementPanel = () => {
     };
     
     initialLoad();
-  }, [retryCount, fetchSuccess]);
+  }, [retryCount, fetchSuccess, fetchUsers]);
+
+  // Filtrar usuarios basado en búsqueda y filtros
+  const filteredUsers = users.filter(user => {
+    const matchesSearch = 
+      searchTerm === '' || 
+      user.email?.toLowerCase().includes(searchTerm.toLowerCase()) || 
+      user.displayName?.toLowerCase().includes(searchTerm.toLowerCase());
+    
+    const matchesRole = roleFilter === 'all' || user.role === roleFilter;
+    
+    const matchesVerification = 
+      verificationFilter === 'all' || 
+      (verificationFilter === 'verified' && user.emailVerified) ||
+      (verificationFilter === 'unverified' && !user.emailVerified);
+    
+    return matchesSearch && matchesRole && matchesVerification;
+  });
   
   const handleUpdateRole = async () => {
     if (!selectedUser || !newRole) return;
@@ -121,32 +154,18 @@ const UserManagementPanel = () => {
     setRetryCount(prev => prev + 1);
     setFetchSuccess(false);
     fetchUsers(true);
+    setSearchTerm('');
+    setRoleFilter('all');
+    setVerificationFilter('all');
   };
 
-  const showDebugInfo = () => {
-    if (currentUserData?.role !== 'admin' && currentUserData?.role !== 'owner') return null;
-    
-    return (
-      <div className="text-xs text-muted-foreground mt-4 border-t pt-4">
-        <p>Información de depuración:</p>
-        <ul className="list-disc pl-5 space-y-1">
-          <li>Usuario actual: {currentUserData?.email || 'No autenticado'} (Rol: {currentUserData?.role || 'ninguno'})</li>
-          <li>Total de usuarios cargados: {users.length}</li>
-          <li>Última actualización: {lastFetchedAt ? new Date(lastFetchedAt).toLocaleString() : 'Nunca'}</li>
-          <li>Número de intentos: {retryCount}</li>
-          <li>Estado de carga: {loading ? 'Cargando' : 'Completado'}</li>
-          <li>Fuente de datos: {fetchSuccess ? 'API' : 'Caché/Fallback'}</li>
-        </ul>
-        {currentUserData && (
-          <>
-            <p className="mt-2 font-medium">Datos del usuario actual:</p>
-            <pre className="bg-gray-100 p-2 rounded text-xs overflow-auto mt-1">
-              {JSON.stringify(currentUserData, null, 2)}
-            </pre>
-          </>
-        )}
-      </div>
-    );
+  // Cálculo de estadísticas de usuarios
+  const userStats = {
+    total: users.length,
+    verified: users.filter(user => user.emailVerified).length,
+    unverified: users.filter(user => !user.emailVerified).length,
+    admins: users.filter(user => user.role === 'admin' || user.role === 'owner').length,
+    users: users.filter(user => user.role !== 'admin' && user.role !== 'owner').length
   };
 
   return (
@@ -178,6 +197,87 @@ const UserManagementPanel = () => {
             </AlertDescription>
           </Alert>
         )}
+
+        {/* Tarjetas de estadísticas de usuario */}
+        <UserStatsCards stats={userStats} />
+        
+        {/* Controles de filtrado */}
+        <div className="flex flex-col md:flex-row gap-4 my-6">
+          <div className="relative flex-1">
+            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Buscar por nombre o email..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-9"
+            />
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <Select value={roleFilter} onValueChange={setRoleFilter}>
+              <SelectTrigger className="w-[180px]">
+                <SelectValue placeholder="Filtrar por rol" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectGroup>
+                  <SelectLabel>Roles</SelectLabel>
+                  <SelectItem value="all">Todos los roles</SelectItem>
+                  <SelectItem value="owner">Propietario</SelectItem>
+                  <SelectItem value="admin">Administrador</SelectItem>
+                  <SelectItem value="supply_admin">Supervisor</SelectItem>
+                  <SelectItem value="supply">Agente</SelectItem>
+                  <SelectItem value="unverified">Sin verificar</SelectItem>
+                </SelectGroup>
+              </SelectContent>
+            </Select>
+            
+            <Select value={verificationFilter} onValueChange={setVerificationFilter}>
+              <SelectTrigger className="w-[180px]">
+                <SelectValue placeholder="Estado verificación" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectGroup>
+                  <SelectLabel>Verificación</SelectLabel>
+                  <SelectItem value="all">Todos</SelectItem>
+                  <SelectItem value="verified">Verificados</SelectItem>
+                  <SelectItem value="unverified">No verificados</SelectItem>
+                </SelectGroup>
+              </SelectContent>
+            </Select>
+            
+            <Button variant="outline" onClick={() => {
+              setSearchTerm('');
+              setRoleFilter('all');
+              setVerificationFilter('all');
+            }}>
+              Limpiar filtros
+            </Button>
+          </div>
+        </div>
+        
+        {/* Resultados y estado de la búsqueda */}
+        {searchTerm || roleFilter !== 'all' || verificationFilter !== 'all' ? (
+          <div className="mb-4 flex items-center gap-2">
+            <h3 className="text-sm font-medium">Resultados:</h3>
+            <Badge variant="secondary" className="font-mono">
+              {filteredUsers.length} de {users.length}
+            </Badge>
+            {searchTerm && (
+              <Badge variant="outline" className="flex items-center gap-1">
+                Búsqueda: {searchTerm}
+              </Badge>
+            )}
+            {roleFilter !== 'all' && (
+              <Badge variant="outline" className="flex items-center gap-1">
+                Rol: {roleFilter}
+              </Badge>
+            )}
+            {verificationFilter !== 'all' && (
+              <Badge variant="outline" className="flex items-center gap-1">
+                {verificationFilter === 'verified' ? 'Verificados' : 'No verificados'}
+              </Badge>
+            )}
+          </div>
+        ) : null}
         
         {users.length === 0 && !loading && !error && (
           <Alert variant="warning" className="mb-4">
@@ -203,16 +303,38 @@ const UserManagementPanel = () => {
           </div>
         ) : (
           <>
-            <UserTable 
-              users={users}
-              onEditClick={handleEditClick}
-              onVerifyUser={handleVerifyUser}
-              canEditUser={(user) => canEditUser(currentUserData, user)}
-              formatDate={(date) => date ? new Date(date).toLocaleDateString() : 'N/A'}
-              currentUser={currentUserData}
-            />
-            
-            {showDebugInfo()}
+            <Tabs defaultValue="table" className="w-full">
+              <TabsList className="mb-4">
+                <TabsTrigger value="table">Vista de tabla</TabsTrigger>
+                <TabsTrigger value="cards">Vista de tarjetas</TabsTrigger>
+              </TabsList>
+              
+              <TabsContent value="table" className="pt-2">
+                <UserTable 
+                  users={filteredUsers}
+                  onEditClick={handleEditClick}
+                  onVerifyUser={handleVerifyUser}
+                  canEditUser={(user) => canEditUser(currentUserData, user)}
+                  formatDate={(date) => date ? new Date(date).toLocaleDateString() : 'N/A'}
+                  currentUser={currentUserData}
+                />
+              </TabsContent>
+              
+              <TabsContent value="cards" className="pt-2">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {filteredUsers.map(user => (
+                    <UserCard 
+                      key={user.uid} 
+                      user={user} 
+                      onEditClick={handleEditClick}
+                      onVerifyUser={handleVerifyUser}
+                      canEdit={canEditUser(currentUserData, user)}
+                      isCurrentUser={currentUserData?.uid === user.uid}
+                    />
+                  ))}
+                </div>
+              </TabsContent>
+            </Tabs>
           </>
         )}
       </CardContent>
@@ -233,6 +355,74 @@ const UserManagementPanel = () => {
         user={selectedUser}
         newRole={newRole}
       />
+    </Card>
+  );
+};
+
+// Componente de tarjeta de usuario para la vista alternativa
+const UserCard = ({ 
+  user, 
+  onEditClick, 
+  onVerifyUser, 
+  canEdit, 
+  isCurrentUser 
+}: { 
+  user: UserData; 
+  onEditClick: (user: UserData) => void; 
+  onVerifyUser: (user: UserData) => Promise<void>; 
+  canEdit: boolean; 
+  isCurrentUser: boolean;
+}) => {
+  const { UserAvatar, RoleBadge, EmailVerificationStatus } = require('@/components/user-management');
+  
+  return (
+    <Card className={`overflow-hidden ${isCurrentUser ? 'border-primary' : ''}`}>
+      <div className={`h-2 ${user.role === 'owner' ? 'bg-amber-500' : user.role === 'admin' ? 'bg-red-500' : 'bg-blue-500'}`} />
+      <CardContent className="p-4">
+        <div className="flex justify-between items-start mb-4">
+          <div className="flex items-center gap-3">
+            <UserAvatar user={user} size="lg" />
+            <div>
+              <h3 className="font-medium">{user.displayName || 'Sin nombre'}</h3>
+              <p className="text-sm text-muted-foreground">{user.email}</p>
+            </div>
+          </div>
+          {isCurrentUser && (
+            <Badge variant="outline" className="ml-auto">Tú</Badge>
+          )}
+        </div>
+        
+        <div className="flex flex-wrap gap-2 mb-4">
+          <RoleBadge role={user.role} />
+          <EmailVerificationStatus verified={user.emailVerified} />
+        </div>
+        
+        <div className="text-xs text-muted-foreground">
+          <p>Creado: {user.createdAt ? new Date(user.createdAt).toLocaleDateString() : 'N/A'}</p>
+          <p>Último acceso: {user.lastLogin ? new Date(user.lastLogin).toLocaleDateString() : 'N/A'}</p>
+        </div>
+        
+        <div className="flex justify-end gap-2 mt-4">
+          {!user.emailVerified && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => onVerifyUser(user)}
+              disabled={!canEdit}
+            >
+              Verificar email
+            </Button>
+          )}
+          <Button
+            variant="default"
+            size="sm"
+            onClick={() => onEditClick(user)}
+            disabled={!canEdit}
+          >
+            Editar rol
+          </Button>
+        </div>
+      </CardContent>
     </Card>
   );
 };
