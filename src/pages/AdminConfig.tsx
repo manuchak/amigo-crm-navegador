@@ -20,6 +20,7 @@ const AdminConfig = () => {
   const [isCheckingOwner, setIsCheckingOwner] = useState<boolean>(false);
   const [lastChecked, setLastChecked] = useState<Date | null>(null);
   const [ownerError, setOwnerError] = useState<string | null>(null);
+  const [isRunningEdgeFunction, setIsRunningEdgeFunction] = useState<boolean>(false);
   
   // Check and verify owner status function
   const checkOwnerStatus = useCallback(async () => {
@@ -95,6 +96,39 @@ const AdminConfig = () => {
     }
   }, [userData, refreshUserData]);
 
+  const setOwnerRoleViaEdgeFunction = async () => {
+    setIsRunningEdgeFunction(true);
+    setOwnerError(null);
+    
+    try {
+      // Call our edge function to directly set the owner role
+      const { data, error } = await supabase.functions.invoke('set-owner', {
+        method: 'POST',
+      });
+      
+      if (error) {
+        throw new Error(`Edge function error: ${error.message}`);
+      }
+      
+      if (!data.success) {
+        throw new Error(data.error || 'Unknown error from edge function');
+      }
+      
+      toast.success("Tu rol ha sido establecido como propietario correctamente");
+      console.log("Owner role set successfully via edge function", data);
+      
+      // Refresh user data to show the new role
+      await refreshUserData();
+      setOwnerStatus(true);
+    } catch (error: any) {
+      console.error("Failed to set owner role via edge function:", error);
+      setOwnerError(`Error asignando rol de propietario: ${error.message}`);
+      toast.error("No se pudo asignar el rol de propietario");
+    } finally {
+      setIsRunningEdgeFunction(false);
+    }
+  };
+
   // Initial owner status check
   useEffect(() => {
     const checkInitialOwnerStatus = async () => {
@@ -160,14 +194,26 @@ const AdminConfig = () => {
               Si crees que deberías tener acceso, por favor contacta al administrador del sistema.
             </p>
             {userData?.email?.toLowerCase() === 'manuel.chacon@detectasecurity.io' && (
-              <Button 
-                onClick={handleForceOwnerCheck} 
-                variant="outline"
-                disabled={isCheckingOwner}
-              >
-                <RefreshCw className={`h-4 w-4 mr-2 ${isCheckingOwner ? 'animate-spin' : ''}`} />
-                Verificar permisos de propietario
-              </Button>
+              <div className="space-y-4">
+                <Button 
+                  onClick={handleForceOwnerCheck} 
+                  variant="outline"
+                  disabled={isCheckingOwner}
+                >
+                  <RefreshCw className={`h-4 w-4 mr-2 ${isCheckingOwner ? 'animate-spin' : ''}`} />
+                  Verificar permisos de propietario
+                </Button>
+                
+                <Button
+                  onClick={setOwnerRoleViaEdgeFunction}
+                  variant="default"
+                  disabled={isRunningEdgeFunction}
+                  className="ml-0 mt-2 w-full"
+                >
+                  <RefreshCw className={`h-4 w-4 mr-2 ${isRunningEdgeFunction ? 'animate-spin' : ''}`} />
+                  Asignar rol de propietario directamente
+                </Button>
+              </div>
             )}
             
             {userData && (
