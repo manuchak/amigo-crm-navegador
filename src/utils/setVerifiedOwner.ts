@@ -2,6 +2,21 @@
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
+// Define proper type for user data returned from auth.admin.listUsers
+interface SupabaseAuthUser {
+  id: string;
+  email?: string;
+  phone?: string;
+  created_at?: string;
+  last_sign_in_at?: string;
+  // Add other properties as needed
+}
+
+interface SupabaseAuthResponse {
+  users: SupabaseAuthUser[];
+  total?: number;
+}
+
 export const setSpecificUserAsVerifiedOwner = async (email: string, showToast: boolean = false): Promise<boolean> => {
   if (!email) {
     console.error("No email provided for setSpecificUserAsVerifiedOwner");
@@ -33,11 +48,15 @@ export const setSpecificUserAsVerifiedOwner = async (email: string, showToast: b
         
         // Try to find user in auth.users directly (requires admin privileges)
         try {
-          const { data: userData, error: userError } = await supabase.auth.admin.listUsers();
+          const { data: userData, error: userError } = await supabase.auth.admin.listUsers() as { 
+            data: SupabaseAuthResponse | null; 
+            error: any 
+          };
           
           if (userError) {
             console.error('Error listing users:', userError);
           } else if (userData && userData.users) {
+            // Now TypeScript knows that users have an email property
             const foundUser = userData.users.find(u => u.email?.toLowerCase() === email.toLowerCase());
             if (foundUser) {
               userExists = true;
