@@ -44,7 +44,7 @@ export function TwitterFeed({ tweets, isLoading, error, direction = "left" }: Tw
         <h3 className="text-sm font-medium">Alertas de Ruta y Tránsito</h3>
       </div>
       
-      <Marquee pauseOnHover direction={direction} speed="normal" className="py-0">
+      <Marquee pauseOnHover direction={direction} speed="slow" className="py-0">
         {tweets.map((tweet) => {
           // Determine tweet type and styling based on content
           const isRoadBlock = tweet.text.toLowerCase().includes('bloqueo') || tweet.text.toLowerCase().includes('cierre');

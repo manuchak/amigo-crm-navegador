@@ -20,42 +20,33 @@ export function Marquee({
   ...props
 }: MarqueeProps) {
   const speedMap = {
-    slow: "25s",
-    normal: "18s",
-    fast: "12s",
+    slow: "35s",
+    normal: "25s",
+    fast: "15s",
   };
 
-  const directionMap = {
-    left: "marquee",
-    right: "marquee-reverse",
-  };
+  // Use CSS variables to control animation properties
+  const cssVars = {
+    "--duration": speedMap[speed],
+    "--gap": "1rem",
+  } as React.CSSProperties;
 
   return (
     <div
       className={cn(
-        "relative flex w-full overflow-hidden [--duration:18s] [--gap:1rem]",
+        "relative flex w-full overflow-hidden",
         pauseOnHover && "hover:[animation-play-state:paused]",
         className
       )}
-      style={{ 
-        "--duration": speedMap[speed] 
-      } as React.CSSProperties}
+      style={cssVars}
       {...props}
     >
       <div
         className={cn(
-          "flex min-w-full shrink-0 items-center justify-around gap-[--gap] py-1",
-          `animate-${directionMap[direction]} [animation-duration:var(--duration)] [animation-iteration-count:infinite] [animation-timing-function:linear]`
+          "flex w-full gap-4 py-1 overflow-x-auto whitespace-nowrap no-scrollbar",
+          direction === "left" ? "animate-scroll-left" : "animate-scroll-right"
         )}
-      >
-        {children}
-      </div>
-      <div
-        className={cn(
-          "flex min-w-full shrink-0 items-center justify-around gap-[--gap] py-1",
-          `animate-${directionMap[direction]} [animation-duration:var(--duration)] [animation-iteration-count:infinite] [animation-timing-function:linear]`
-        )}
-        aria-hidden="true"
+        style={{ animationDuration: "var(--duration)" }}
       >
         {children}
       </div>

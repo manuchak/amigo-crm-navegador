@@ -104,13 +104,13 @@ const config: Config = {
 					'0%': { opacity: '0', transform: 'scale(0.9)' },
 					'100%': { opacity: '1', transform: 'scale(1)' }
 				},
-				'marquee': {
-					from: { transform: 'translateX(0)' },
-					to: { transform: 'translateX(calc(-100% - var(--gap)))' }
+				'scroll-left': {
+					'0%': { transform: 'translateX(0)' },
+					'100%': { transform: 'translateX(-100%)' }
 				},
-				'marquee-reverse': {
-					from: { transform: 'translateX(calc(-100% - var(--gap)))' },
-					to: { transform: 'translateX(0)' }
+				'scroll-right': {
+					'0%': { transform: 'translateX(-100%)' },
+					'100%': { transform: 'translateX(0)' }
 				}
 			},
 			animation: {
@@ -120,8 +120,8 @@ const config: Config = {
 				'fade-up': 'fade-up 0.5s ease-out',
 				'slide-in': 'slide-in 0.5s ease-out',
 				'scale-in': 'scale-in 0.3s ease-out',
-				'marquee': 'marquee var(--duration) linear infinite',
-				'marquee-reverse': 'marquee-reverse var(--duration) linear infinite'
+				'scroll-left': 'scroll-left linear infinite',
+				'scroll-right': 'scroll-right linear infinite'
 			}
 		}
 	},

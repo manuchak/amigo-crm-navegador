@@ -64,10 +64,10 @@ export function useTwitterFeed(refreshInterval = 30) {
     // Setup periodic refresh
     const intervalId = setInterval(fetchTweets, refreshInterval * 1000);
     
-    // Setup direction change every 30 seconds
+    // Setup direction change every 2 minutes (reduced frequency)
     const directionIntervalId = setInterval(() => {
       setDirection(prev => prev === "left" ? "right" : "left");
-    }, 30000);
+    }, 120000); // Changed from 30 seconds to 2 minutes
     
     return () => {
       clearInterval(intervalId);

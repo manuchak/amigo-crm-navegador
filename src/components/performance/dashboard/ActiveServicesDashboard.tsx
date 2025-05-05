@@ -19,7 +19,7 @@ export function ActiveServicesDashboard() {
     return services.find(s => s.id === selectedServiceId);
   }, [selectedServiceId, services]);
   
-  // Stats for summary cards
+  // Stats for summary cards - ensure all values are positive
   const stats = useMemo(() => {
     const totalServices = services.length;
     const roadBlockCount = services.filter(s => s.roadBlockage && s.roadBlockage.active).length;
@@ -27,13 +27,17 @@ export function ActiveServicesDashboard() {
     const delayedCount = services.filter(s => s.delayRisk && s.delayRiskPercent > 50).length;
     const riskZoneCount = services.filter(s => s.inRiskZone).length;
     
+    // Calculate onTime by subtracting all risky services from total, but ensure it's never negative
+    const riskyServicesCount = roadBlockCount + weatherEventCount + delayedCount + riskZoneCount;
+    const onTime = Math.max(0, totalServices - riskyServicesCount);
+    
     return {
       total: totalServices,
       roadBlocks: roadBlockCount,
       weatherEvents: weatherEventCount,
       delayed: delayedCount,
       riskZone: riskZoneCount,
-      onTime: totalServices - delayedCount - riskZoneCount - roadBlockCount - weatherEventCount,
+      onTime: onTime,
     };
   }, [services]);
   
@@ -43,7 +47,7 @@ export function ActiveServicesDashboard() {
   }, [services, showAllServices]);
   
   // Twitter feed for traffic and weather alerts
-  const { tweets, isLoading, error, direction } = useTwitterFeed(3);
+  const { tweets, isLoading, error, direction } = useTwitterFeed(30); // Reduced frequency of updates
   
   return (
     <div className="h-[calc(100vh-160px)]">
@@ -100,7 +104,9 @@ export function ActiveServicesDashboard() {
                 <div className="h-1/2 overflow-auto">
                   <div className="mb-2 px-1 flex items-center justify-between">
                     <h3 className="text-xs font-medium text-slate-500">Servicios en riesgo</h3>
-                    <span className="text-xs text-slate-400">{stats.roadBlocks + stats.weatherEvents + stats.riskZone + stats.delayed} de {stats.total}</span>
+                    <span className="text-xs text-slate-400">
+                      {Math.min(stats.roadBlocks + stats.weatherEvents + stats.riskZone + stats.delayed, stats.total)} de {stats.total}
+                    </span>
                   </div>
                   <div className="space-y-2 p-0.5 overflow-auto">
                     {services
