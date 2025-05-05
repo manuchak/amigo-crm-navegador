@@ -1,132 +1,133 @@
 
-import { UserData, UserRole } from '@/types/auth';
+import { useState, useCallback } from 'react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { getAllUsers as localGetAllUsers } from '@/utils/auth';
+import { UserData } from '@/types/auth';
 import { UserManagementHookProps } from './types';
-import { useCallback, useRef } from 'react';
 
 export const useUserListing = ({ setLoading }: UserManagementHookProps) => {
-  // Control variables to prevent loops and handle fallbacks
-  const hasAttemptedSupabaseFetch = useRef<boolean>(false);
-  const isProcessingRequest = useRef<boolean>(false);
-  const errorCount = useRef<number>(0);
-  const MAX_ERRORS = 3;
-
+  const [lastFetchTimestamp, setLastFetchTimestamp] = useState<number | null>(null);
+  const [cachedUsers, setCachedUsers] = useState<UserData[]>([]);
+  const [fetchError, setFetchError] = useState<Error | null>(null);
+  
+  // Improved function to get all users with better error handling and caching
   const getAllUsers = useCallback(async (): Promise<UserData[]> => {
-    // Prevenir solicitudes concurrentes
-    if (isProcessingRequest.current) {
-      console.log('Request already in progress, skipping duplicate fetch');
-      return [];
+    // Use cached result if fetched in last 30 seconds
+    const CACHE_TTL = 30000; // 30 seconds in milliseconds
+    const now = Date.now();
+    
+    if (
+      lastFetchTimestamp && 
+      now - lastFetchTimestamp < CACHE_TTL && 
+      cachedUsers.length > 0 &&
+      !fetchError
+    ) {
+      console.log('Using cached users list (fetched ' + (now - lastFetchTimestamp) / 1000 + ' seconds ago)');
+      return cachedUsers;
     }
-
-    isProcessingRequest.current = true;
+    
     setLoading(true);
+    setFetchError(null);
     
     try {
-      console.log('Getting all users...');
+      console.log('Fetching users from Supabase and local storage...');
       
-      // Si los errores superan el límite, usar solo localStorage
-      if (errorCount.current >= MAX_ERRORS) {
-        console.warn('Error count exceeded threshold, using only local storage data');
-        const localUsers = localGetAllUsers();
-        return localUsers;
-      }
+      let usersData: UserData[] = [];
       
-      // Intentar obtener usuarios de Supabase si no ha fallado antes
-      if (!hasAttemptedSupabaseFetch.current) {
-        try {
-          console.log('Attempting to fetch users from Supabase...');
-          const { data: profiles, error: profilesError } = await supabase
-            .from('profiles')
-            .select('*');
-          
-          if (profilesError) {
-            console.error('Error fetching profiles from Supabase:', profilesError);
-            hasAttemptedSupabaseFetch.current = true;
-            errorCount.current += 1;
-            // Fallback to local storage
-            const localUsers = localGetAllUsers();
-            console.log('Falling back to local storage users:', localUsers.length);
-            return localUsers;
-          }
-          
-          if (profiles && profiles.length > 0) {
-            console.log('Successfully fetched profiles from Supabase:', profiles.length);
-            // Process user roles one by one to avoid failing the entire batch
-            const usersWithRoles: UserData[] = await Promise.all(
-              profiles.map(async (profile) => {
-                let role: UserRole = 'unverified';
-                let emailVerified = false;
+      // Try to get Supabase profiles
+      try {
+        const { data: profiles, error: profilesError } = await supabase
+          .from('profiles')
+          .select('*');
+        
+        if (profilesError) {
+          console.warn('Error fetching profiles from Supabase, will try local storage:', profilesError);
+          throw profilesError;
+        }
+        
+        if (profiles && profiles.length > 0) {
+          // Transform profiles to UserData format with roles
+          usersData = await Promise.all(
+            profiles.map(async (profile) => {
+              try {
+                // Get role using RPC function
+                const { data: roleData, error: roleError } = await supabase.rpc(
+                  'get_user_role', 
+                  { user_uid: profile.id }
+                );
                 
-                try {
-                  // Try to get role using RPC function with timeout
-                  const rolePromise = supabase.rpc(
-                    'get_user_role', 
-                    { user_uid: profile.id }
-                  );
-                  
-                  // Timeout after 5 seconds to prevent hanging
-                  const timeoutPromise = new Promise((_, reject) => {
-                    setTimeout(() => reject(new Error('Role fetch timeout')), 5000);
-                  });
-                  
-                  // Race between fetch and timeout
-                  const { data: roleData, error: roleError } = await Promise.race([
-                    rolePromise,
-                    timeoutPromise.then(() => {
-                      throw new Error('Role fetch timeout');
-                    })
-                  ]) as any;
-                  
-                  if (!roleError && roleData) {
-                    role = roleData as UserRole || 'unverified';
-                  }
-                  
-                  // Default email to verified to avoid unnecessary API calls
-                  emailVerified = true;
-                } catch (e) {
-                  console.warn('Error fetching role data for user:', profile.id, e);
+                if (roleError) {
+                  console.warn(`Error getting role for user ${profile.id}:`, roleError);
                 }
+                
+                // Check email verification status
+                const { data: authUser, error: userError } = await supabase.auth.admin.getUserById(profile.id);
+                
+                const emailVerified = authUser?.user?.email_confirmed_at ? true : false;
                 
                 return {
                   uid: profile.id,
                   email: profile.email || '',
                   displayName: profile.display_name || profile.email || '',
                   photoURL: profile.photo_url || undefined,
-                  role: role,
-                  emailVerified: emailVerified,
+                  role: roleData || 'unverified',
+                  emailVerified,
                   createdAt: profile.created_at ? new Date(profile.created_at) : new Date(),
                   lastLogin: profile.last_login ? new Date(profile.last_login) : new Date(),
-                } as UserData;
-              })
-            );
-            
-            // Reset error counter on success
-            errorCount.current = 0;
-            return usersWithRoles;
-          }
-        } catch (supabaseError) {
-          console.error('Critical error using Supabase for users, falling back:', supabaseError);
-          hasAttemptedSupabaseFetch.current = true;
-          errorCount.current += 1;
+                };
+              } catch (err) {
+                console.error(`Error processing user ${profile.id}:`, err);
+                return null;
+              }
+            })
+          );
+          
+          // Filter out any null results from failed processing
+          usersData = usersData.filter(Boolean) as UserData[];
+        }
+      } catch (supabaseError) {
+        console.error('Could not fetch users from Supabase, falling back to local storage:', supabaseError);
+        // Fallback to local storage on complete failure
+        try {
+          usersData = localGetAllUsers();
+        } catch (localError) {
+          console.error('Error getting users from local storage:', localError);
+          throw new Error('Failed to fetch users from both Supabase and local storage');
         }
       }
       
-      // Fallback to local storage
-      const localUsers = localGetAllUsers();
-      console.log('Using local storage users (final fallback):', localUsers);
-      return localUsers;
-    } catch (error) {
-      console.error('Unexpected error getting all users:', error);
-      errorCount.current += 1;
-      toast.error('Error al obtener la lista de usuarios');
+      // If we have no users from Supabase, try local storage
+      if (usersData.length === 0) {
+        try {
+          const localUsers = localGetAllUsers();
+          if (localUsers && localUsers.length > 0) {
+            console.log('Using local storage users as fallback, found:', localUsers.length);
+            usersData = localUsers;
+          }
+        } catch (localError) {
+          console.error('Error getting users from local storage:', localError);
+        }
+      }
+      
+      // Update cache
+      setLastFetchTimestamp(now);
+      setCachedUsers(usersData);
+      
+      return usersData;
+    } catch (error: any) {
+      console.error('Error getting all users:', error);
+      setFetchError(error);
+      toast.error('Error al cargar la lista de usuarios');
       return [];
     } finally {
       setLoading(false);
-      isProcessingRequest.current = false;
     }
-  }, [setLoading]);
+  }, [setLoading, lastFetchTimestamp, cachedUsers, fetchError]);
 
-  return { getAllUsers };
+  return { 
+    getAllUsers,
+    lastFetchTimestamp,
+    fetchError 
+  };
 };

@@ -14,9 +14,9 @@ interface AuthGuardProps {
 const AuthGuard: React.FC<AuthGuardProps> = ({ children, requiredRole }) => {
   const { currentUser, loading, refreshUserData } = useAuth();
   const location = useLocation();
-  const [accessVerified, setAccessVerified] = useState<boolean>(false);
-  const [accessDenied, setAccessDenied] = useState<boolean>(false);
+  const [verificationState, setVerificationState] = useState<'pending' | 'verified' | 'denied'>('pending');
   const [error, setError] = useState<string | null>(null);
+  const [refreshAttempts, setRefreshAttempts] = useState(0);
   
   // Get the page ID from the URL
   const pageId = location.pathname.split('/')[1] || 'dashboard';
@@ -25,10 +25,10 @@ const AuthGuard: React.FC<AuthGuardProps> = ({ children, requiredRole }) => {
   const handleRefreshSession = async () => {
     try {
       setError(null);
+      setRefreshAttempts(prev => prev + 1);
       await refreshUserData();
-      // Reset verification flags to trigger re-evaluation
-      setAccessDenied(false);
-      setAccessVerified(false);
+      // Reset verification state to trigger re-evaluation
+      setVerificationState('pending');
     } catch (error: any) {
       console.error('Error refreshing session:', error);
       setError(error.message || 'Error refreshing session');
@@ -63,34 +63,30 @@ const AuthGuard: React.FC<AuthGuardProps> = ({ children, requiredRole }) => {
   
   // Effect to check access permissions once loading is complete
   useEffect(() => {
-    // Skip verification during loading or if we've already verified access
-    if (loading) {
-      return;
-    }
-    
-    // If we've already completed verification, don't re-run
-    if (accessVerified || accessDenied) {
+    // Only process if we're still pending and not loading
+    if (verificationState !== 'pending' || loading) {
       return;
     }
     
     console.log('AuthGuard checking access: Page:', pageId, 'User:', !!currentUser, 'Role:', currentUser?.role);
     
     // Public pages are always accessible
-    if (pageId === 'auth' || pageId === 'login' || pageId === '' || pageId === 'inicio') {
-      setAccessVerified(true);
+    const publicPages = ['auth', 'login', '', 'inicio'];
+    if (publicPages.includes(pageId)) {
+      setVerificationState('verified');
       return;
     }
     
     // If no user, deny access to protected pages
     if (!currentUser) {
-      setAccessDenied(true);
+      setVerificationState('denied');
       return;
     }
     
     // Special case for admin/owner - always grant access to all pages
     if (currentUser.role === 'admin' || currentUser.role === 'owner') {
       console.log(`Admin/Owner role detected, granting full access to page: ${pageId}`);
-      setAccessVerified(true);
+      setVerificationState('verified');
       return;
     }
     
@@ -98,30 +94,27 @@ const AuthGuard: React.FC<AuthGuardProps> = ({ children, requiredRole }) => {
     const hasAccess = checkRoleAccess(currentUser.role, pageId);
     console.log(`Access decision for ${currentUser.role} to page ${pageId}: ${hasAccess ? 'Granted' : 'Denied'}`);
     
-    if (hasAccess) {
-      setAccessVerified(true);
-    } else {
-      setAccessDenied(true);
-    }
+    setVerificationState(hasAccess ? 'verified' : 'denied');
     
-  }, [currentUser, loading, pageId, accessVerified, accessDenied]);
+  }, [currentUser, loading, pageId, verificationState, refreshAttempts]);
   
   // Show loading state while checking
-  if (loading) {
+  if (loading || verificationState === 'pending') {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="flex flex-col items-center gap-2">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
           <p className="text-muted-foreground">Verificando acceso...</p>
+          {refreshAttempts > 0 && <p className="text-xs text-muted-foreground">Intentos: {refreshAttempts}</p>}
         </div>
       </div>
     );
   }
   
   // If no user, redirect to auth page (only for protected pages)
-  if (!currentUser && !accessVerified) {
-    // Do not redirect if we're already on auth, login, or home page
-    if (location.pathname === '/auth' || location.pathname === '/login' || location.pathname === '/') {
+  if (verificationState === 'denied' && !currentUser) {
+    // Don't redirect if we're already on auth or login
+    if (['auth', 'login', ''].includes(location.pathname.split('/')[1])) {
       return <>{children}</>;
     }
     console.log("Redirecting to /auth because no user is authenticated");
@@ -129,7 +122,7 @@ const AuthGuard: React.FC<AuthGuardProps> = ({ children, requiredRole }) => {
   }
   
   // If access is denied based on role
-  if (accessDenied) {
+  if (verificationState === 'denied') {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="flex flex-col items-center gap-2 max-w-md text-center p-8">

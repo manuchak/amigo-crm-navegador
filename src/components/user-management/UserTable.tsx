@@ -18,11 +18,12 @@ import {
   CheckCircle2, 
   XCircle,
   User,
-  AlertCircle
+  AlertCircle,
+  AlertTriangle
 } from 'lucide-react';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { getRoleDisplayName } from '@/hooks/useRolePermissions';
-import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 interface UserTableProps {
   users: UserData[];
@@ -41,6 +42,7 @@ const UserTable: React.FC<UserTableProps> = ({
   formatDate,
   currentUser
 }) => {
+  // Mensajes informativos según la situación
   if (users.length === 0) {
     return (
       <div className="text-center py-8">
@@ -56,7 +58,7 @@ const UserTable: React.FC<UserTableProps> = ({
               <AlertDescription>
                 <p>Estás conectado como: <strong>{currentUser.email}</strong></p>
                 <p>Rol: <strong>{getRoleDisplayName(currentUser.role)}</strong></p>
-                <p>Si no estás viendo los usuarios esperados, podrías no tener los permisos necesarios.</p>
+                <p>Si no estás viendo los usuarios esperados, podrías no tener los permisos necesarios o puede haber un problema de conexión.</p>
               </AlertDescription>
             </Alert>
           )}
@@ -65,7 +67,10 @@ const UserTable: React.FC<UserTableProps> = ({
     );
   }
 
-  // Function to get badge color based on role
+  // Comprobación de si el usuario actual está en la lista
+  const currentUserInList = currentUser ? users.some(user => user.uid === currentUser.uid) : false;
+
+  // Función para obtener la variante del badge según el rol
   const getRoleBadgeVariant = (role: string) => {
     switch (role) {
       case 'owner':
@@ -88,12 +93,14 @@ const UserTable: React.FC<UserTableProps> = ({
 
   return (
     <div className="overflow-x-auto">
-      {currentUser && currentUser.uid && users.every(user => user.uid !== currentUser.uid) && (
-        <Alert className="mb-4">
+      {currentUser && currentUser.uid && !currentUserInList && (
+        <Alert variant="warning" className="mb-4">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertTitle>Advertencia</AlertTitle>
           <AlertDescription>
             <p className="text-sm">
-              <strong>Nota:</strong> Tu usuario actual <strong>({currentUser.email})</strong> no aparece en esta lista.
-              Esto podría deberse a un problema de permisos o configuración.
+              Tu usuario actual <strong>({currentUser.email})</strong> no aparece en esta lista.
+              Esto podría deberse a un problema de permisos, configuración o sincronización de datos.
             </p>
           </AlertDescription>
         </Alert>

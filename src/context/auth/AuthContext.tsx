@@ -1,5 +1,5 @@
 
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { AuthContextProps, UserData, UserRole } from '@/types/auth';
@@ -23,7 +23,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [userData, setUserData] = useState<UserData | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [isInitializing, setIsInitializing] = useState<boolean>(true);
+  const refreshInProgress = useRef(false);
 
+  // Configurar sesión de autenticación
   useAuthSession({
     setUser,
     setSession,
@@ -32,18 +34,36 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setIsInitializing
   });
 
+  // Obtener métodos de autenticación
   const authMethods = useAuthMethods({
     setLoading,
     setUserData
   });
 
+  // Mejorar refreshUserData para evitar llamadas recursivas
+  const refreshUserData = async () => {
+    if (refreshInProgress.current) {
+      console.log('Refresh user data already in progress, skipping duplicate request');
+      return { success: true };
+    }
+
+    refreshInProgress.current = true;
+    try {
+      await authMethods.refreshUserData();
+      return { success: true };
+    } catch (error) {
+      console.error('Error refreshing user data:', error);
+      return { success: false, error };
+    } finally {
+      refreshInProgress.current = false;
+    }
+  };
+
+  // Obtener métodos de gestión de usuarios
   const userManagementMethods = useUserManagementMethods(
     setUserData, 
     setLoading, 
-    async () => {
-      await authMethods.refreshUserData();
-      return;
-    }
+    refreshUserData
   );
 
   const value: AuthContextProps = {
@@ -89,7 +109,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (data.session) {
           setSession(data.session);
           setUser(data.session.user);
-          await authMethods.refreshUserData();
+          await refreshUserData();
           return true;
         }
         return false;
@@ -98,14 +118,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return false;
       }
     },
-    refreshUserData: async () => {
-      try {
-        await authMethods.refreshUserData();
-        return { success: true };
-      } catch (error) {
-        return { success: false, error };
-      }
-    },
+    refreshUserData,
     resetPassword: authMethods.resetPassword
   };
 

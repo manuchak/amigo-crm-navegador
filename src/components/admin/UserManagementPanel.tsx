@@ -1,7 +1,7 @@
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
-import { Loader2 } from 'lucide-react';
+import { Loader2, RefreshCw } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { UserData } from '@/types/auth';
 import { toast } from 'sonner';
@@ -18,6 +18,9 @@ import { Button } from '@/components/ui/button';
 
 const UserManagementPanel = () => {
   const { getAllUsers, updateUserRole, verifyEmail, userData: currentUserData } = useAuth();
+  const [retryCount, setRetryCount] = useState(0);
+  const [autoRetry, setAutoRetry] = useState(false);
+  
   const { 
     users, 
     loading, 
@@ -37,21 +40,47 @@ const UserManagementPanel = () => {
     lastFetchedAt
   } = useUserManagement({ getAllUsers });
   
-  // Only fetch data once on component mount
+  // Automatic retry when error occurs
   useEffect(() => {
-    if (!users.length && !loading) {
-      console.log('Initial fetch of users in UserManagementPanel');
-      fetchUsers(true);
+    if (error && autoRetry && retryCount < 3) {
+      const timer = setTimeout(() => {
+        console.log(`Auto-retry attempt ${retryCount + 1}/3`);
+        setRetryCount(prev => prev + 1);
+        fetchUsers(true);
+      }, 3000);
+      
+      return () => clearTimeout(timer);
     }
-  // The empty dependency array ensures this only runs once on mount
-  }, []);
+  }, [error, autoRetry, retryCount, fetchUsers]);
+  
+  // Initial data fetch with improved error handling
+  useEffect(() => {
+    const loadInitialData = async () => {
+      if (!users.length && !loading) {
+        console.log('Initial fetch of users in UserManagementPanel');
+        
+        try {
+          await fetchUsers(true);
+        } catch (err) {
+          console.error('Failed to load users:', err);
+          // Will be handled by the component's error state
+        }
+      }
+    };
+    
+    loadInitialData();
+  }, [retryCount]); // Dependency on retryCount allows manual retries
   
   const handleUpdateRole = async () => {
     if (!selectedUser || !newRole) return;
     
     try {
       console.log(`Updating role for user ${selectedUser.uid} to ${newRole}`);
-      await updateUserRole(selectedUser.uid, newRole);
+      const result = await updateUserRole(selectedUser.uid, newRole);
+      
+      if (!result.success) {
+        throw new Error(result.error || 'Unknown error updating role');
+      }
       
       setIsEditDialogOpen(false);
       setIsConfirmationOpen(true);
@@ -71,7 +100,11 @@ const UserManagementPanel = () => {
   const handleVerifyUser = async (user: UserData) => {
     try {
       console.log(`Verifying email for user ${user.uid}`);
-      await verifyEmail(user.uid);
+      const result = await verifyEmail(user.uid);
+      
+      if (!result.success) {
+        throw new Error(result.error || 'Unknown error verifying email');
+      }
       
       // Update local state to reflect the change
       setUsers(prevUsers => prevUsers.map(u => 
@@ -87,6 +120,7 @@ const UserManagementPanel = () => {
 
   const handleRefresh = () => {
     console.log('Manual refresh triggered');
+    setRetryCount(prev => prev + 1);
     fetchUsers(true);
   };
 
@@ -100,6 +134,8 @@ const UserManagementPanel = () => {
           <li>Usuario actual: {currentUserData?.email || 'No autenticado'} (Rol: {currentUserData?.role || 'ninguno'})</li>
           <li>Total de usuarios cargados: {users.length}</li>
           <li>Última actualización: {lastFetchedAt ? new Date(lastFetchedAt).toLocaleString() : 'Nunca'}</li>
+          <li>Número de intentos: {retryCount}</li>
+          <li>Auto-retry: {autoRetry ? 'Activado' : 'Desactivado'}</li>
         </ul>
         {currentUserData && (
           <>
@@ -121,9 +157,19 @@ const UserManagementPanel = () => {
           <Alert variant="destructive" className="mb-4">
             <AlertTitle>Error al cargar usuarios</AlertTitle>
             <AlertDescription>
-              {error}
-              <div className="mt-2">
-                <Button size="sm" onClick={() => fetchUsers(true)}>Reintentar</Button>
+              <p>{error.toString()}</p>
+              <div className="mt-2 flex gap-2">
+                <Button size="sm" onClick={() => fetchUsers(true)}>
+                  <RefreshCw className="mr-2 h-4 w-4" />
+                  Reintentar
+                </Button>
+                <Button 
+                  size="sm" 
+                  variant="outline" 
+                  onClick={() => setAutoRetry(!autoRetry)}
+                >
+                  {autoRetry ? 'Desactivar auto-retry' : 'Activar auto-retry'}
+                </Button>
               </div>
             </AlertDescription>
           </Alert>
@@ -131,7 +177,11 @@ const UserManagementPanel = () => {
         
         {loading ? (
           <div className="flex justify-center py-8">
-            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+            <div className="flex flex-col items-center">
+              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground mb-4" />
+              <p className="text-sm text-muted-foreground">Cargando usuarios...</p>
+              {retryCount > 0 && <p className="text-xs text-muted-foreground">Intento #{retryCount}</p>}
+            </div>
           </div>
         ) : (
           <>
