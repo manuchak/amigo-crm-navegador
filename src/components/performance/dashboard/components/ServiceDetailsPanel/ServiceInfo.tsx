@@ -18,12 +18,12 @@ export function ServiceInfo({ service }: ServiceInfoProps) {
       <div className="grid grid-cols-2 gap-2">
         <div className="col-span-1 flex flex-col">
           <span className="text-xs text-slate-500">Custodio</span>
-          <span className="font-medium text-sm">{service.custodioName}</span>
+          <span className="font-medium text-sm truncate max-w-[130px]">{service.custodioName}</span>
         </div>
         
         <div className="col-span-1 flex flex-col">
           <span className="text-xs text-slate-500">ID Rastreo</span>
-          <span className="font-medium text-sm">#{service.trackingId}</span>
+          <span className="font-medium text-sm truncate max-w-[130px]">#{service.trackingId}</span>
         </div>
       </div>
       
@@ -32,7 +32,7 @@ export function ServiceInfo({ service }: ServiceInfoProps) {
           <MapPin className="h-3 w-3 text-slate-400" />
           <span className="text-xs text-slate-500">Origen</span>
         </div>
-        <p className="text-sm font-medium pl-4">{service.origin}</p>
+        <p className="text-sm font-medium pl-4 truncate">{service.origin}</p>
       </div>
 
       <div>
@@ -40,7 +40,7 @@ export function ServiceInfo({ service }: ServiceInfoProps) {
           <MapPin className="h-3 w-3 text-slate-400" />
           <span className="text-xs text-slate-500">Destino</span>
         </div>
-        <p className="text-sm font-medium pl-4">{service.destination}</p>
+        <p className="text-sm font-medium pl-4 truncate">{service.destination}</p>
       </div>
 
       <div>
@@ -48,7 +48,7 @@ export function ServiceInfo({ service }: ServiceInfoProps) {
           <Route className="h-3 w-3 text-slate-400" />
           <span className="text-xs text-slate-500">Ubicación Actual</span>
         </div>
-        <p className="text-sm font-medium pl-4">{service.currentLocation.address}</p>
+        <p className="text-sm font-medium pl-4 truncate">{service.currentLocation.address}</p>
       </div>
     </div>
   );

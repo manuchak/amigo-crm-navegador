@@ -35,9 +35,16 @@ export function Marquee({
   // Check if there are any children to display
   const hasChildren = React.Children.count(children) > 0;
 
-  // If no children, return null so it doesn't affect layout
+  // If no children, return a placeholder element with fixed height to prevent layout jumps
   if (!hasChildren) {
-    return null;
+    return (
+      <div 
+        className={cn("h-7 flex items-center", className)}
+        {...props}
+      >
+        <div className="text-xs text-slate-400 px-2">No hay alertas disponibles</div>
+      </div>
+    );
   }
 
   return (
@@ -53,7 +60,7 @@ export function Marquee({
       <div
         ref={contentRef}
         className={cn(
-          "flex min-w-full gap-4 py-1 animate-scroll whitespace-nowrap no-scrollbar",
+          "flex min-w-full gap-4 py-1 whitespace-nowrap no-scrollbar",
           direction === "left" ? "animate-scroll-left" : "animate-scroll-right"
         )}
         style={{ 

@@ -15,10 +15,10 @@ interface TwitterFeedProps {
 export function TwitterFeed({ tweets, isLoading, error, direction = "left" }: TwitterFeedProps) {
   if (isLoading) {
     return (
-      <div className="bg-white rounded-lg border p-3 mb-2 shadow-sm h-12 flex items-center justify-center">
+      <div className="bg-white rounded-lg border p-2 mb-2 shadow-sm h-11 flex items-center justify-center">
         <div className="animate-pulse flex items-center gap-2">
-          <div className="h-4 w-4 bg-blue-200 rounded-full"></div>
-          <div className="h-4 w-36 bg-gray-200 rounded"></div>
+          <div className="h-3 w-3 bg-blue-200 rounded-full"></div>
+          <div className="h-3 w-32 bg-gray-200 rounded"></div>
         </div>
       </div>
     );
@@ -26,9 +26,9 @@ export function TwitterFeed({ tweets, isLoading, error, direction = "left" }: Tw
 
   if (error || tweets.length === 0) {
     return (
-      <div className="bg-white rounded-lg border p-3 mb-2 shadow-sm">
-        <div className="flex items-center justify-center gap-2 text-sm text-red-500">
-          <AlertTriangle size={16} />
+      <div className="bg-white rounded-lg border p-2 mb-2 shadow-sm h-11">
+        <div className="flex items-center justify-center gap-2 text-xs text-red-500">
+          <AlertTriangle size={14} />
           <span>{error || "No hay actualizaciones disponibles"}</span>
         </div>
       </div>
@@ -36,15 +36,15 @@ export function TwitterFeed({ tweets, isLoading, error, direction = "left" }: Tw
   }
 
   return (
-    <div className="bg-white rounded-lg border p-3 mb-2 shadow-sm">
-      <div className="flex items-center gap-2 mb-2">
-        <div className="bg-blue-50 p-1 rounded-full">
-          <Route size={16} className="text-blue-500" />
+    <div className="bg-white rounded-lg border p-2 mb-2 shadow-sm h-11 overflow-hidden">
+      <div className="flex items-center gap-1.5 mr-2 float-left h-full">
+        <div className="bg-blue-50 p-0.5 rounded-full">
+          <Route size={14} className="text-blue-500" />
         </div>
-        <h3 className="text-sm font-medium">Alertas de Ruta y Tránsito</h3>
+        <h3 className="text-xs font-medium whitespace-nowrap">Alertas de Ruta</h3>
       </div>
       
-      <Marquee pauseOnHover direction={direction} speed="slow" className="py-0">
+      <Marquee pauseOnHover direction={direction} speed="slow" className="py-0 pl-0 h-7">
         {tweets.map((tweet) => {
           // Determine tweet type and styling based on content
           const isRoadBlock = tweet.text.toLowerCase().includes('bloqueo') || tweet.text.toLowerCase().includes('cierre');
@@ -52,29 +52,29 @@ export function TwitterFeed({ tweets, isLoading, error, direction = "left" }: Tw
           
           let bgColor = 'bg-blue-50/50';
           let borderColor = 'border-blue-100';
-          let icon = <MapPin size={14} className="text-blue-500" />;
+          let icon = <MapPin size={12} className="text-blue-500" />;
           
           if (isRoadBlock) {
             bgColor = 'bg-red-50/50';
             borderColor = 'border-red-100';
-            icon = <ArrowDown size={14} className="text-red-500" />;
+            icon = <ArrowDown size={12} className="text-red-500" />;
           } else if (isWeather) {
             bgColor = 'bg-amber-50/50';
             borderColor = 'border-amber-100';
-            icon = <CloudRain size={14} className="text-amber-500" />;
+            icon = <CloudRain size={12} className="text-amber-500" />;
           }
           
           return (
             <div 
               key={tweet.id}
               className={cn(
-                "flex items-center gap-3 mx-4 px-3 py-1.5 rounded-lg border min-w-max",
+                "flex items-center gap-2 mx-3 px-2 py-1 rounded-md border min-w-max",
                 bgColor,
                 borderColor
               )}
             >
               {icon}
-              <span className="text-sm font-medium text-slate-700">{tweet.text}</span>
+              <span className="text-xs font-medium text-slate-700 truncate max-w-xs">{tweet.text}</span>
               <span className="text-xs text-slate-500 whitespace-nowrap">{tweet.date}</span>
             </div>
           );

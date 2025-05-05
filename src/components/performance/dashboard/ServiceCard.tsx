@@ -1,198 +1,129 @@
 
 import React from 'react';
 import { ActiveService } from './types';
+import { AlertTriangle, ArrowDown, CloudRain, Clock, MapPin, CheckCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { Clock, AlertTriangle, CheckCircle, User, MapPin, CloudRain, ArrowDown } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 
 interface ServiceCardProps {
   service: ActiveService;
-  isSelected: boolean;
-  onClick: () => void;
+  isSelected?: boolean;
+  onClick?: () => void;
 }
 
 export function ServiceCard({ service, isSelected, onClick }: ServiceCardProps) {
-  // Determine if service is on time
+  // Determine if service has any active risk factors
+  const hasRoadBlockage = service.roadBlockage && service.roadBlockage.active;
+  const hasWeatherEvent = service.weatherEvent && service.weatherEvent.severity > 0;
+  const hasRiskZone = service.inRiskZone;
+  const hasRiskFactor = hasRoadBlockage || hasWeatherEvent || hasRiskZone;
+  
+  // Determine if service is on time, either from explicit flag or by status and delay risk
   const isOnTime = service.isOnTime !== undefined 
     ? service.isOnTime 
     : (service.status !== 'delayed' && !(service.delayRisk && service.delayRiskPercent > 50));
   
-  // Determine if there are any risks affecting this service
-  const hasWeatherRisk = service.weatherEvent && service.weatherEvent.severity > 0;
-  const hasRoadBlockage = service.roadBlockage && service.roadBlockage.active;
-  const isInRiskZone = service.inRiskZone;
+  // Generate main service info
+  const serviceId = service.id.replace('SVC-', '');
+  const progress = service.progress || 50;
+  
+  // Background color based on selection and risks
+  let bgColorClass = 'bg-white hover:bg-slate-50';
+  let borderColorClass = 'border-slate-200';
+  
+  if (isSelected) {
+    bgColorClass = 'bg-blue-50/80';
+    borderColorClass = 'border-blue-200';
+  } else if (!isOnTime) {
+    bgColorClass = 'bg-amber-50/30 hover:bg-amber-50/50';
+    borderColorClass = 'border-amber-100';
+  } else if (hasRiskFactor) {
+    bgColorClass = 'bg-red-50/20 hover:bg-red-50/30';
+    borderColorClass = 'border-red-100';
+  }
   
   return (
-    <div
+    <div 
       className={cn(
-        "border rounded-xl p-3 cursor-pointer transition-all duration-300 shadow-sm hover:shadow-md flex items-center gap-3 overflow-hidden",
-        isSelected ? "bg-slate-50 border-primary/60" : "bg-white border-slate-100 hover:border-slate-200"
+        "rounded-lg border shadow-sm p-2 cursor-pointer transition-colors",
+        bgColorClass, borderColorClass,
+        isSelected ? 'ring-1 ring-blue-300' : ''
       )}
       onClick={onClick}
     >
-      <div className="flex-shrink-0">
-        <StatusIcon service={service} />
+      <div className="flex items-start justify-between gap-1 mb-1.5">
+        <div className="flex items-center gap-1.5">
+          <div className="p-1.5 bg-primary-foreground rounded-md">
+            <span className="text-xs font-bold text-primary">{serviceId}</span>
+          </div>
+          <div className="flex flex-col max-w-[120px]">
+            <span className="text-xs font-medium truncate">{service.custodioName}</span>
+            <span className="text-[10px] text-slate-500 truncate">{service.vehicleType || 'Vehículo'}</span>
+          </div>
+        </div>
+        
+        <div className="flex items-center">
+          {isOnTime ? (
+            <Badge variant="outline" className="bg-green-50 text-green-600 border-green-100 text-[10px] px-1.5 py-0">
+              En tiempo
+            </Badge>
+          ) : (
+            <Badge variant="outline" className="bg-amber-50 text-amber-600 border-amber-100 text-[10px] px-1.5 py-0">
+              Retraso
+            </Badge>
+          )}
+        </div>
+      </div>
+
+      <div className="mb-1.5">
+        <div className="flex items-center gap-1 mb-0.5">
+          <MapPin className="h-3 w-3 text-slate-400" />
+          <span className="text-[10px] text-slate-500">Destino</span>
+        </div>
+        <p className="text-xs pl-4 truncate max-w-[210px]">{service.destination}</p>
       </div>
       
-      <div className="flex-grow min-w-0">
-        <div className="flex items-center gap-2 mb-1.5">
-          <p className="font-medium text-sm truncate">Servicio #{service.id.substring(0, 5)}</p>
-          <StatusBadge service={service} />
+      <div className="flex justify-between items-center mb-1.5">
+        <div className="flex items-center gap-1">
+          <Clock className="h-3 w-3 text-slate-400" />
+          <span className="text-[10px] text-slate-500">ETA: </span>
+          <span className={cn(
+            "text-xs font-medium",
+            !isOnTime ? "text-red-600" : ""
+          )}>
+            {service.adjustedEta || service.eta}
+          </span>
         </div>
         
-        <div className="grid grid-cols-2 gap-2 text-xs text-slate-500">
+        {hasRiskFactor && (
           <div className="flex items-center gap-1">
-            <User className="h-3 w-3" />
-            <span className="truncate">{service.custodioName}</span>
-          </div>
-          
-          <div className="flex items-center gap-1 justify-end">
-            <MapPin className="h-3 w-3" />
-            <span className="truncate">{service.destination}</span>
-          </div>
-        </div>
-        
-        {/* Display risk indicators if present */}
-        {(hasWeatherRisk || hasRoadBlockage || isInRiskZone) && (
-          <div className="mt-2 flex flex-wrap gap-1.5">
-            {hasWeatherRisk && (
-              <Badge variant="outline" className="h-5 text-[10px] py-0 bg-amber-50 text-amber-700 border-amber-200 flex items-center gap-1">
-                <CloudRain className="h-2.5 w-2.5" />
-                <span>Clima</span>
-                {service.weatherEvent?.causesDelay && <span className="ml-0.5">(retraso)</span>}
-              </Badge>
-            )}
-            
-            {hasRoadBlockage && (
-              <Badge variant="outline" className="h-5 text-[10px] py-0 bg-red-50 text-red-700 border-red-200 flex items-center gap-1">
-                <ArrowDown className="h-2.5 w-2.5" />
-                <span>Bloqueo</span>
-                {service.roadBlockage?.causesDelay && <span className="ml-0.5">(retraso)</span>}
-              </Badge>
-            )}
-            
-            {isInRiskZone && (
-              <Badge variant="outline" className="h-5 text-[10px] py-0 bg-red-50 text-red-700 border-red-200 flex items-center gap-1">
-                <AlertTriangle className="h-2.5 w-2.5" />
-                <span>Zona</span>
-              </Badge>
-            )}
-            
-            {service.delayRisk && service.delayRiskPercent > 30 && (
-              <Badge variant="outline" className="h-5 text-[10px] py-0 bg-blue-50 text-blue-700 border-blue-200 flex items-center gap-1">
-                <Clock className="h-2.5 w-2.5" />
-                <span>Retraso {service.delayRiskPercent}%</span>
-              </Badge>
-            )}
+            {hasRoadBlockage && <ArrowDown className="h-3 w-3 text-red-500" />}
+            {hasWeatherEvent && <CloudRain className="h-3 w-3 text-amber-500" />}
+            {hasRiskZone && <AlertTriangle className="h-3 w-3 text-red-500" />}
           </div>
         )}
       </div>
-    </div>
-  );
-}
-
-function StatusIcon({ service }: { service: ActiveService }) {
-  const baseClasses = "h-9 w-9 rounded-full flex items-center justify-center";
-  
-  // Determine if service is on time
-  const isOnTime = service.isOnTime !== undefined 
-    ? service.isOnTime 
-    : (service.status !== 'delayed' && !(service.delayRisk && service.delayRiskPercent > 50));
-  
-  // Show appropriate risk icon based on priority
-  if (service.roadBlockage && service.roadBlockage.active) {
-    return (
-      <div className={`${baseClasses} bg-red-50`}>
-        <div className="h-7 w-7 rounded-full bg-red-500 flex items-center justify-center">
-          <ArrowDown className="h-4 w-4 text-white" />
-        </div>
+      
+      {/* Progress bar */}
+      <div className="w-full bg-slate-100 rounded-full h-1.5 mb-1">
+        <div 
+          className={cn(
+            "h-1.5 rounded-full",
+            isOnTime ? "bg-green-500" : "bg-amber-500"
+          )} 
+          style={{ width: `${progress}%` }}
+        ></div>
       </div>
-    );
-  }
-  
-  if (service.weatherEvent && service.weatherEvent.severity > 1) {
-    return (
-      <div className={`${baseClasses} bg-amber-50`}>
-        <div className="h-7 w-7 rounded-full bg-amber-500 flex items-center justify-center">
-          <CloudRain className="h-4 w-4 text-white" />
-        </div>
-      </div>
-    );
-  }
-  
-  if (service.inRiskZone) {
-    return (
-      <div className={`${baseClasses} bg-red-50`}>
-        <div className="h-7 w-7 rounded-full bg-red-500 flex items-center justify-center">
-          <AlertTriangle className="h-4 w-4 text-white" />
-        </div>
-      </div>
-    );
-  }
-  
-  if (service.delayRisk && service.delayRiskPercent > 50) {
-    return (
-      <div className={`${baseClasses} bg-amber-50`}>
-        <div className="h-7 w-7 rounded-full bg-amber-500 flex items-center justify-center">
-          <Clock className="h-4 w-4 text-white" />
-        </div>
-      </div>
-    );
-  }
-  
-  // Default to on-time status icon
-  return (
-    <div className={`${baseClasses} bg-green-50`}>
-      <div className="h-7 w-7 rounded-full bg-green-500 flex items-center justify-center">
-        <CheckCircle className="h-4 w-4 text-white" />
+      
+      <div className="flex justify-between items-center">
+        <span className="text-[10px] text-slate-500">Progreso: {progress}%</span>
+        
+        {!isOnTime && service.estimatedDelayMinutes && (
+          <span className="text-[10px] text-red-500">
+            +{service.estimatedDelayMinutes} min
+          </span>
+        )}
       </div>
     </div>
-  );
-}
-
-function StatusBadge({ service }: { service: ActiveService }) {
-  // Determine if service is on time
-  const isOnTime = service.isOnTime !== undefined 
-    ? service.isOnTime 
-    : (service.status !== 'delayed' && !(service.delayRisk && service.delayRiskPercent > 50));
-  
-  // Display risk status badges with priority
-  if (service.roadBlockage && service.roadBlockage.active) {
-    return (
-      <Badge variant="outline" className="h-5 text-xs bg-red-50 text-red-700 border-red-200">
-        {isOnTime ? "En tiempo (Bloqueo)" : "Retraso por bloqueo"}
-      </Badge>
-    );
-  }
-  
-  if (service.weatherEvent && service.weatherEvent.severity > 1) {
-    return (
-      <Badge variant="outline" className="h-5 text-xs bg-amber-50 text-amber-700 border-amber-200">
-        {isOnTime ? "En tiempo (Clima)" : "Retraso por clima"}
-      </Badge>
-    );
-  }
-  
-  if (service.inRiskZone) {
-    return (
-      <Badge variant="outline" className="h-5 text-xs bg-red-50 text-red-700 border-red-200">
-        {isOnTime ? "En tiempo (Zona riesgo)" : "En zona de riesgo"}
-      </Badge>
-    );
-  }
-  
-  if (service.delayRisk && service.delayRiskPercent > 50) {
-    return (
-      <Badge variant="outline" className="h-5 text-xs bg-amber-50 text-amber-700 border-amber-200">
-        {isOnTime ? "En tiempo (Posible retraso)" : "Posible retraso"}
-      </Badge>
-    );
-  }
-  
-  // Default status badge
-  return (
-    <Badge variant="outline" className="h-5 text-xs bg-green-50 text-green-700 border-green-200">
-      {isOnTime ? "En tiempo" : "Con retraso"}
-    </Badge>
   );
 }

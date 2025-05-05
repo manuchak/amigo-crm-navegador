@@ -40,7 +40,7 @@ export function StatusOverview({ service }: StatusOverviewProps) {
         </div>
         <Badge 
           className={cn(
-            "text-xs font-medium",
+            "text-xs font-medium whitespace-nowrap",
             !isOnTime ? "bg-amber-500" : "bg-green-500"
           )}
         >
@@ -61,25 +61,25 @@ export function StatusOverview({ service }: StatusOverviewProps) {
       {(hasRoadBlockage || hasWeatherEvent || isInRiskZone) && (
         <div className="flex flex-wrap gap-1.5 mt-1 mb-2">
           {hasRoadBlockage && (
-            <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200 text-xs flex items-center gap-1">
-              <ArrowDown className="h-3 w-3" />
-              <span>Bloqueo</span>
-              {service.roadBlockage?.causesDelay ? " (causa retraso)" : ""}
+            <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200 text-xs flex items-center gap-1 truncate max-w-[160px]">
+              <ArrowDown className="h-3 w-3 flex-shrink-0" />
+              <span className="truncate">Bloqueo</span>
+              {service.roadBlockage?.causesDelay ? " ✓" : ""}
             </Badge>
           )}
           
           {hasWeatherEvent && (
-            <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200 text-xs flex items-center gap-1">
-              <CloudRain className="h-3 w-3" />
-              <span>Clima</span>
-              {service.weatherEvent?.causesDelay ? " (causa retraso)" : ""}
+            <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200 text-xs flex items-center gap-1 truncate max-w-[160px]">
+              <CloudRain className="h-3 w-3 flex-shrink-0" />
+              <span className="truncate">Clima</span>
+              {service.weatherEvent?.causesDelay ? " ✓" : ""}
             </Badge>
           )}
           
           {isInRiskZone && (
-            <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200 text-xs flex items-center gap-1">
-              <AlertCircle className="h-3 w-3" />
-              <span>Zona riesgo</span>
+            <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200 text-xs flex items-center gap-1 truncate max-w-[160px]">
+              <AlertCircle className="h-3 w-3 flex-shrink-0" />
+              <span className="truncate">Zona riesgo</span>
             </Badge>
           )}
         </div>
@@ -91,7 +91,7 @@ export function StatusOverview({ service }: StatusOverviewProps) {
             <Clock className="h-3 w-3 text-slate-400" />
             <span className="text-xs text-slate-500">ETA Original</span>
           </div>
-          <span className="text-sm font-medium pl-4">{service.etaOriginal}</span>
+          <span className="text-sm font-medium pl-4 truncate">{service.etaOriginal}</span>
         </div>
         
         <div className="flex flex-col">
@@ -100,7 +100,7 @@ export function StatusOverview({ service }: StatusOverviewProps) {
             <span className="text-xs text-slate-500">ETA Actual</span>
           </div>
           <span className={cn(
-            "text-sm font-medium pl-4",
+            "text-sm font-medium pl-4 truncate",
             !isOnTime ? "text-red-600" : ""
           )}>
             {service.adjustedEta || service.eta}
