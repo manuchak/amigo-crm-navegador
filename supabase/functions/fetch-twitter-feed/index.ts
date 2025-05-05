@@ -29,6 +29,16 @@ const MOCK_TWEETS = [
     id: '4',
     text: '⛅ Neblina densa reduce visibilidad en autopista Puebla-Veracruz. Conduzca con precaución.',
     date: 'Hace 5 horas'
+  },
+  {
+    id: '5',
+    text: '🚦 Servicio de abanderamiento activo en el km 78 de la carretera Mérida-Cancún por vehículo averiado.',
+    date: 'Hace 7 horas'
+  },
+  {
+    id: '6',
+    text: '🔧 Trabajo de bacheo en la autopista Guadalajara-Tepic del km 15 al 20. Reduzca velocidad en la zona.',
+    date: 'Hace 10 horas'
   }
 ];
 

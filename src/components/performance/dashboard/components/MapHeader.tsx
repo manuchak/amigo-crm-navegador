@@ -1,11 +1,21 @@
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { MapPin } from 'lucide-react';
 import { TwitterFeed } from './TwitterFeed';
 import { useTwitterFeed } from '../hooks/useTwitterFeed';
 
 export function MapHeader() {
   const { tweets, isLoading, error } = useTwitterFeed();
+  const [direction, setDirection] = useState<"left" | "right">("left");
+  
+  // Cambia la dirección cada 30 segundos para simular efecto de ticker financiero
+  useEffect(() => {
+    const intervalId = setInterval(() => {
+      setDirection(prev => prev === "left" ? "right" : "left");
+    }, 30000);
+    
+    return () => clearInterval(intervalId);
+  }, []);
 
   return (
     <>
