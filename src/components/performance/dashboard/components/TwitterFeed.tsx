@@ -1,49 +1,56 @@
 
 import React from 'react';
 import { Marquee } from '@/components/ui/marquee';
-import { MessageSquareText } from 'lucide-react';
-
-interface Tweet {
-  id: string;
-  text: string;
-  date: string;
-}
+import { Tweet } from '../hooks/useTwitterFeed';
+import { AlertCircle, Twitter } from 'lucide-react';
 
 interface TwitterFeedProps {
   tweets: Tweet[];
   isLoading: boolean;
   error?: string;
+  direction?: "left" | "right";
 }
 
-export function TwitterFeed({ tweets, isLoading, error }: TwitterFeedProps) {
+export function TwitterFeed({ tweets, isLoading, error, direction = "left" }: TwitterFeedProps) {
   if (isLoading) {
     return (
-      <div className="bg-white/90 backdrop-blur-sm border border-border/40 rounded-md px-3 py-2 flex items-center mb-2">
-        <MessageSquareText className="h-4 w-4 mr-2 text-blue-400" />
-        <div className="text-xs">Cargando actualizaciones de CAPUFE...</div>
+      <div className="bg-white rounded-lg border p-3 mb-2 shadow-sm h-12 flex items-center justify-center">
+        <div className="animate-pulse flex items-center gap-2">
+          <div className="h-4 w-4 bg-blue-200 rounded-full"></div>
+          <div className="h-4 w-36 bg-gray-200 rounded"></div>
+        </div>
       </div>
     );
   }
 
   if (error || tweets.length === 0) {
     return (
-      <div className="bg-white/90 backdrop-blur-sm border border-border/40 rounded-md px-3 py-2 flex items-center mb-2">
-        <MessageSquareText className="h-4 w-4 mr-2 text-blue-400" />
-        <div className="text-xs">
-          {error || "No hay actualizaciones recientes de CAPUFE"}
+      <div className="bg-white rounded-lg border p-3 mb-2 shadow-sm">
+        <div className="flex items-center justify-center gap-2 text-sm text-red-500">
+          <AlertCircle size={16} />
+          <span>{error || "No hay actualizaciones disponibles"}</span>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="bg-white/90 backdrop-blur-sm border border-border/40 rounded-md px-3 py-0 mb-2 overflow-hidden">
-      <Marquee speed="normal" pauseOnHover direction="left">
+    <div className="bg-white rounded-lg border p-3 mb-2 shadow-sm">
+      <div className="flex items-center gap-2 mb-2">
+        <div className="bg-blue-50 p-1 rounded-full">
+          <Twitter size={16} className="text-blue-500" />
+        </div>
+        <h3 className="text-sm font-medium">Actualizaciones CAPUFE</h3>
+      </div>
+      
+      <Marquee pauseOnHover direction={direction} speed="normal" className="py-0">
         {tweets.map((tweet) => (
-          <div key={tweet.id} className="flex items-center mr-8">
-            <MessageSquareText className="h-3 w-3 mr-2 shrink-0 text-blue-400" />
-            <span className="text-xs">{tweet.text}</span>
-            <span className="text-[10px] text-muted-foreground ml-2 shrink-0">{tweet.date}</span>
+          <div 
+            key={tweet.id}
+            className="flex items-center gap-3 mx-4 px-3 py-1.5 rounded-lg bg-blue-50/50 border border-blue-100 min-w-max"
+          >
+            <span className="text-sm font-medium text-slate-700">{tweet.text}</span>
+            <span className="text-xs text-slate-500 whitespace-nowrap">{tweet.date}</span>
           </div>
         ))}
       </Marquee>

@@ -4,6 +4,7 @@ import { ActiveServicesMap } from './map';
 import { ActiveService } from './types';
 import { mockActiveServices } from './mockActiveServices';
 import { StatsCards, ServicesList, MapHeader, ServiceDetailsPanel } from './components';
+import { ServiceCard } from './ServiceCard';
 
 export function ActiveServicesDashboard() {
   const [selectedServiceId, setSelectedServiceId] = useState<string | undefined>();
@@ -37,7 +38,7 @@ export function ActiveServicesDashboard() {
   
   return (
     <div className="h-[calc(100vh-160px)]">
-      <div className="grid grid-cols-12 gap-2 h-full">
+      <div className="grid grid-cols-12 gap-3 h-full">
         {/* Left sidebar with active service cards - optimized width */}
         <div className="col-span-3 lg:col-span-2 flex flex-col h-full overflow-hidden">
           <StatsCards 
@@ -61,9 +62,9 @@ export function ActiveServicesDashboard() {
         <div className="col-span-9 lg:col-span-10 flex flex-col h-full overflow-hidden">
           <MapHeader />
           
-          <div className="grid grid-cols-12 gap-2 flex-grow h-[calc(100%-50px)] overflow-hidden">
+          <div className="grid grid-cols-12 gap-3 flex-grow h-[calc(100%-50px)] overflow-hidden">
             {/* Map container - expanded width for better visualization */}
-            <div className="col-span-9 h-full">
+            <div className="col-span-8 h-full">
               <ActiveServicesMap 
                 services={services} 
                 selectedServiceId={selectedServiceId} 
@@ -72,8 +73,27 @@ export function ActiveServicesDashboard() {
             </div>
             
             {/* Service details - optimized width */}
-            <div className="col-span-3 h-full overflow-hidden">
-              <ServiceDetailsPanel selectedService={selectedService} />
+            <div className="col-span-4 h-full overflow-hidden">
+              <div className="flex flex-col h-full gap-3">
+                {/* Display service cards in vertical layout for better visibility */}
+                <div className="h-1/2 overflow-auto">
+                  <div className="space-y-2 p-0.5">
+                    {services.slice(0, 3).map(service => (
+                      <ServiceCard
+                        key={service.id}
+                        service={service}
+                        isSelected={service.id === selectedServiceId}
+                        onClick={() => setSelectedServiceId(service.id)}
+                      />
+                    ))}
+                  </div>
+                </div>
+                
+                {/* Service details panel */}
+                <div className="h-1/2 overflow-hidden">
+                  <ServiceDetailsPanel selectedService={selectedService} />
+                </div>
+              </div>
             </div>
           </div>
         </div>

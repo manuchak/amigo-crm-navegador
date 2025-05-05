@@ -1,7 +1,6 @@
-
 import type { Config } from "tailwindcss";
 
-export default {
+const config: Config = {
 	darkMode: ["class"],
 	content: [
 		"./pages/**/*.{ts,tsx}",
@@ -106,12 +105,12 @@ export default {
 					'100%': { opacity: '1', transform: 'scale(1)' }
 				},
 				'marquee': {
-					'0%': { transform: 'translateX(0)' },
-					'100%': { transform: 'translateX(calc(-100% - var(--gap)))' }
+					from: { transform: 'translateX(0)' },
+					to: { transform: 'translateX(calc(-100% - var(--gap)))' }
 				},
 				'marquee-reverse': {
-					'0%': { transform: 'translateX(calc(-100% - var(--gap)))' },
-					'100%': { transform: 'translateX(0)' }
+					from: { transform: 'translateX(calc(-100% - var(--gap)))' },
+					to: { transform: 'translateX(0)' }
 				}
 			},
 			animation: {
@@ -127,4 +126,6 @@ export default {
 		}
 	},
 	plugins: [require("tailwindcss-animate")],
-} satisfies Config;
+};
+
+export default config;

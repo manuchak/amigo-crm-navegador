@@ -20,9 +20,9 @@ export function Marquee({
   ...props
 }: MarqueeProps) {
   const speedMap = {
-    slow: "20s",
-    normal: "15s",
-    fast: "10s",
+    slow: "25s",
+    normal: "18s",
+    fast: "12s",
   };
 
   const directionMap = {
@@ -33,7 +33,7 @@ export function Marquee({
   return (
     <div
       className={cn(
-        "relative flex w-full overflow-hidden [--duration:15s] [--gap:1rem]",
+        "relative flex w-full overflow-hidden [--duration:18s] [--gap:1rem]",
         pauseOnHover && "hover:[animation-play-state:paused]",
         className
       )}
@@ -44,7 +44,7 @@ export function Marquee({
     >
       <div
         className={cn(
-          "flex min-w-full shrink-0 items-center justify-around gap-[--gap] py-2",
+          "flex min-w-full shrink-0 items-center justify-around gap-[--gap] py-1",
           `animate-${directionMap[direction]} [animation-duration:var(--duration)] [animation-iteration-count:infinite] [animation-timing-function:linear]`
         )}
       >
@@ -52,7 +52,7 @@ export function Marquee({
       </div>
       <div
         className={cn(
-          "flex min-w-full shrink-0 items-center justify-around gap-[--gap] py-2",
+          "flex min-w-full shrink-0 items-center justify-around gap-[--gap] py-1",
           `animate-${directionMap[direction]} [animation-duration:var(--duration)] [animation-iteration-count:infinite] [animation-timing-function:linear]`
         )}
         aria-hidden="true"

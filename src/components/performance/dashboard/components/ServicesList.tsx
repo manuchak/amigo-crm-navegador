@@ -3,7 +3,7 @@ import React from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { ChevronDown, ChevronUp, User } from 'lucide-react';
+import { ChevronDown, ChevronUp, User, Clock, AlertTriangle, Check } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { ActiveService } from '../types';
 
@@ -26,35 +26,41 @@ export function ServicesList({
 }: ServicesListProps) {
   return (
     <div className="flex-grow overflow-hidden flex flex-col mt-2">
-      <div className="flex items-center justify-between mb-1 px-1">
-        <h3 className="text-xs font-medium">Servicios Activos</h3>
-        <Badge variant="secondary" className="text-xs">{services.length}</Badge>
+      <div className="flex items-center justify-between mb-2 px-1">
+        <h3 className="text-sm font-medium text-slate-800">Servicios Activos</h3>
+        <Badge variant="secondary" className="text-xs font-medium bg-slate-100 text-slate-700">{services.length}</Badge>
       </div>
       
-      <div className="flex-grow overflow-auto rounded-lg border bg-white mb-1">
+      <div className="flex-grow overflow-auto rounded-lg border bg-white mb-2 shadow-sm">
         <div className="divide-y">
           {displayedServices.map((service) => (
             <button
               key={service.id}
               onClick={() => setSelectedServiceId(service.id)}
               className={cn(
-                "w-full text-left p-1.5 transition-colors flex flex-col",
+                "w-full text-left p-3 transition-colors flex items-center gap-3",
                 service.id === selectedServiceId
-                  ? "bg-primary/5 border-l-2 border-l-primary"
-                  : "hover:bg-muted/30"
+                  ? "bg-slate-50 border-l-2 border-l-primary"
+                  : "hover:bg-slate-50 border-l-2 border-l-transparent"
               )}
             >
-              <div className="flex items-center justify-between">
-                <span className="font-medium text-xs truncate">
-                  Servicio #{service.id.substring(0, 5)}
-                </span>
-                {getRiskBadge(service)}
-              </div>
-              <div className="flex items-center gap-1 mt-1">
-                <User className="w-3 h-3 text-muted-foreground" />
-                <span className="text-xs text-muted-foreground truncate">
-                  {service.custodioName}
-                </span>
+              <StatusIcon service={service} />
+              
+              <div className="flex-grow min-w-0">
+                <div className="flex items-center justify-between mb-1">
+                  <span className="font-medium text-sm truncate">
+                    Servicio #{service.id.substring(0, 5)}
+                  </span>
+                  <span className="text-xs text-slate-500 whitespace-nowrap">
+                    {service.eta}
+                  </span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <User className="w-3 h-3 text-slate-400" />
+                  <span className="text-xs text-slate-500 truncate">
+                    {service.custodioName}
+                  </span>
+                </div>
               </div>
             </button>
           ))}
@@ -63,19 +69,19 @@ export function ServicesList({
       
       {services.length > 4 && (
         <Button
-          variant="ghost"
+          variant="outline"
           size="sm"
-          className="w-full text-xs border mt-1"
+          className="w-full text-xs border shadow-sm"
           onClick={() => setShowAllServices(!showAllServices)}
         >
           {showAllServices ? (
             <>
-              <ChevronUp className="w-3 h-3 mr-1" />
+              <ChevronUp className="w-3.5 h-3.5 mr-1" />
               Mostrar menos
             </>
           ) : (
             <>
-              <ChevronDown className="w-3 h-3 mr-1" />
+              <ChevronDown className="w-3.5 h-3.5 mr-1" />
               Mostrar todos ({services.length})
             </>
           )}
@@ -85,14 +91,35 @@ export function ServicesList({
   );
 }
 
-function getRiskBadge(service: ActiveService) {
+function StatusIcon({ service }: { service: ActiveService }) {
+  const baseClasses = "h-8 w-8 rounded-full flex items-center justify-center flex-shrink-0";
+  
   if (service.inRiskZone) {
-    return <Badge variant="destructive" className="text-[10px]">Zona riesgo</Badge>;
+    return (
+      <div className={`${baseClasses} bg-red-50`}>
+        <div className="h-6 w-6 rounded-full bg-red-500 flex items-center justify-center">
+          <AlertTriangle className="h-3 w-3 text-white" />
+        </div>
+      </div>
+    );
   }
   
   if (service.delayRisk && service.delayRiskPercent > 50) {
-    return <Badge variant="warning" className="text-[10px]">Posible retraso</Badge>;
+    return (
+      <div className={`${baseClasses} bg-amber-50`}>
+        <div className="h-6 w-6 rounded-full bg-amber-500 flex items-center justify-center">
+          <Clock className="h-3 w-3 text-white" />
+        </div>
+      </div>
+    );
   }
   
-  return <Badge variant="success" className="text-[10px]">En tiempo</Badge>;
+  return (
+    <div className={`${baseClasses} bg-green-50`}>
+      <div className="h-6 w-6 rounded-full bg-green-500 flex items-center justify-center">
+        <Check className="h-3 w-3 text-white" />
+      </div>
+    </div>
+  );
 }
+
