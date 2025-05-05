@@ -1,24 +1,57 @@
 
 import React from 'react';
-import { Badge } from '@/components/ui/badge';
+import { AlertTriangle, Check, Clock, CloudRain, ArrowDown } from 'lucide-react';
 
 export function MapLegend() {
   return (
-    <div className="absolute bottom-4 left-4 bg-white/90 backdrop-blur-sm p-2.5 rounded-lg shadow-md border border-border/50">
-      <div className="text-xs font-medium mb-1.5 text-muted-foreground">Leyenda</div>
-      <div className="flex flex-col space-y-1.5">
-        <Badge className="bg-green-500 flex items-center gap-1.5 shadow-sm py-1">
-          <div className="w-2 h-2 rounded-full bg-white/90" />
-          <span>En tiempo</span>
-        </Badge>
-        <Badge className="bg-amber-500 flex items-center gap-1.5 shadow-sm py-1">
-          <div className="w-2 h-2 rounded-full bg-white/90" />
+    <div className="absolute right-2 bottom-12 z-10 bg-white/90 backdrop-blur-sm p-2 rounded-lg shadow-md border text-xs">
+      <div className="font-medium mb-1.5 text-sm">Leyenda</div>
+      
+      <div className="space-y-2">
+        <div className="flex items-center gap-1.5">
+          <div className="h-4 w-4 rounded-full bg-green-500 flex items-center justify-center">
+            <Check className="h-2.5 w-2.5 text-white" />
+          </div>
+          <span>Servicio en tiempo</span>
+        </div>
+        
+        <div className="flex items-center gap-1.5">
+          <div className="h-4 w-4 rounded-full bg-amber-500 flex items-center justify-center">
+            <Clock className="h-2.5 w-2.5 text-white" />
+          </div>
           <span>Riesgo de retraso</span>
-        </Badge>
-        <Badge className="bg-red-500 flex items-center gap-1.5 shadow-sm py-1">
-          <div className="w-2 h-2 rounded-full bg-white/90" />
+        </div>
+        
+        <div className="flex items-center gap-1.5">
+          <div className="h-4 w-4 rounded-full bg-amber-500 flex items-center justify-center">
+            <CloudRain className="h-2.5 w-2.5 text-white" />
+          </div>
+          <span>Alerta climática</span>
+        </div>
+        
+        <div className="flex items-center gap-1.5">
+          <div className="h-4 w-4 rounded-full bg-red-500 flex items-center justify-center">
+            <ArrowDown className="h-2.5 w-2.5 text-white" />
+          </div>
+          <span>Bloqueo vial</span>
+        </div>
+        
+        <div className="flex items-center gap-1.5">
+          <div className="h-4 w-4 rounded-full bg-red-500 flex items-center justify-center">
+            <AlertTriangle className="h-2.5 w-2.5 text-white" />
+          </div>
           <span>Zona de riesgo</span>
-        </Badge>
+        </div>
+        
+        <div className="flex items-center gap-1.5">
+          <div className="h-3 w-3 rounded-sm bg-red-200/70 border border-red-400"></div>
+          <span>Área de alto riesgo</span>
+        </div>
+        
+        <div className="flex items-center gap-1.5">
+          <div className="h-0.5 w-4 bg-green-500"></div>
+          <span>Ruta activa</span>
+        </div>
       </div>
     </div>
   );

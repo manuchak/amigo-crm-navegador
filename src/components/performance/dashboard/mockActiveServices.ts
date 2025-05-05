@@ -1,234 +1,260 @@
 
-import { ActiveService } from './types';
+import { ActiveService } from "./types";
 
-// Define mock services with routes in the Puebla, Tlaxcala, Veracruz, Arco Norte regions
 export const mockActiveServices: ActiveService[] = [
   {
-    id: "S001",
-    trackingId: "TRACK-7645",
-    custodioName: "Carlos Mendoza",
-    destination: "Terminal de Autobuses, Puebla",
-    destinationCoordinates: [-98.2063, 19.0414],
-    origin: "CDMX Centro de Distribución",
-    originCoordinates: [-99.1332, 19.4326],
+    id: "SVC-001",
+    custodioName: "Carlos Méndez",
+    vehicleType: "Camión 3.5T",
+    status: "in-transit",
+    origin: "CDMX - Centro de Distribución",
+    destination: "Puebla - Tienda Central",
+    originCoordinates: [-99.1332, 19.4326], // CDMX
+    destinationCoordinates: [-98.2063, 19.0414], // Puebla
+    eta: "14:45",
+    etaOriginal: "14:30",
+    adjustedEta: "15:20",
+    estimatedDelayMinutes: 50,
     currentLocation: {
-      coordinates: [-98.3967, 19.0762],
-      address: "Autopista México-Puebla Km 98"
+      coordinates: [-98.7623, 19.2134],
+      address: "Autopista México-Puebla km 85",
+      timestamp: "12:30"
     },
-    eta: "14:30",
-    etaOriginal: "14:25",
-    status: "in_transit",
+    trackingId: "TRK12345",
+    inRiskZone: false,
+    delayRisk: true,
+    delayRiskPercent: 85,
+    cargoType: "Electrónicos",
+    cargoValue: 120000,
+    cargoWeight: 1500,
+    cargoUnits: 120,
+    progress: 65,
+    weatherEvent: {
+      type: "Lluvia intensa",
+      severity: 2,
+      location: "Tramo San Martín-Puebla",
+      estimatedDelay: "30-45 minutos"
+    },
+    roadBlockage: null
+  },
+  {
+    id: "SVC-002",
+    custodioName: "Miguel Ángel Pérez",
+    vehicleType: "Van de carga",
+    status: "in-transit",
+    origin: "Veracruz - Puerto",
+    destination: "Xalapa - Centro",
+    originCoordinates: [-96.1342, 19.1738], // Veracruz
+    destinationCoordinates: [-96.9102, 19.5438], // Xalapa
+    eta: "13:15",
+    etaOriginal: "13:00",
+    currentLocation: {
+      coordinates: [-96.4534, 19.3087],
+      address: "Carretera Federal Veracruz-Xalapa km 35",
+      timestamp: "12:15"
+    },
+    trackingId: "TRK12346",
+    inRiskZone: true,
     delayRisk: false,
     delayRiskPercent: 0,
-    inRiskZone: false,
-    cargo: {
-      type: "paquetes",
-      weight: 350,
-      count: 24
-    },
-    routeCoordinates: [
-      [-99.1332, 19.4326],
-      [-98.9456, 19.3287],
-      [-98.7631, 19.2019],
-      [-98.5423, 19.1243],
-      [-98.3967, 19.0762],
-      [-98.2063, 19.0414]
-    ]
+    cargoType: "Textiles",
+    cargoValue: 80000,
+    cargoWeight: 900,
+    cargoUnits: 45,
+    progress: 50,
+    roadBlockage: {
+      active: false,
+      location: "",
+      reason: "",
+      estimatedDelay: ""
+    }
   },
   {
-    id: "S002",
-    trackingId: "TRACK-8921",
-    custodioName: "Miguel Ángel Flores",
-    destination: "Centro de Distribución Tlaxcala",
-    destinationCoordinates: [-98.2370, 19.3139],
-    origin: "CDMX Norte",
-    originCoordinates: [-99.1673, 19.4978],
-    currentLocation: {
-      coordinates: [-98.4560, 19.2803],
-      address: "Carretera Federal Puebla-Tlaxcala Km 25"
-    },
-    eta: "16:15",
-    etaOriginal: "15:45",
-    status: "delayed",
-    delayRisk: true,
-    delayRiskPercent: 78,
-    inRiskZone: false,
-    cargo: {
-      type: "contenedores",
-      weight: 1200,
-      count: 3
-    },
-    routeCoordinates: [
-      [-99.1673, 19.4978],
-      [-98.9230, 19.3490],
-      [-98.7631, 19.3100],
-      [-98.5982, 19.2950],
-      [-98.4560, 19.2803],
-      [-98.2370, 19.3139]
-    ]
-  },
-  {
-    id: "S003",
-    trackingId: "TRACK-6432",
-    custodioName: "Alberto Guerra",
-    destination: "Puerto de Veracruz",
-    destinationCoordinates: [-96.1342, 19.1738],
-    origin: "Puebla Centro Logístico",
-    originCoordinates: [-98.1936, 19.0413],
-    currentLocation: {
-      coordinates: [-96.9240, 19.2810],
-      address: "Carretera Puebla-Veracruz Km 180"
-    },
-    eta: "18:50",
-    etaOriginal: "18:30",
-    status: "in_transit",
-    delayRisk: true,
-    delayRiskPercent: 45,
-    inRiskZone: false,
-    cargo: {
-      type: "pallets",
-      weight: 2800,
-      count: 12
-    },
-    routeCoordinates: [
-      [-98.1936, 19.0413],
-      [-97.8230, 19.0590],
-      [-97.5120, 19.1020],
-      [-97.2340, 19.1530],
-      [-96.9240, 19.2810],
-      [-96.1342, 19.1738]
-    ]
-  },
-  {
-    id: "S004",
-    trackingId: "TRACK-5577",
-    custodioName: "Juan Carlos Méndez",
-    destination: "Centro Logístico Tlaxcala Sur",
-    destinationCoordinates: [-98.2370, 19.2939],
-    origin: "CDMX Este",
-    originCoordinates: [-99.0437, 19.4051],
+    id: "SVC-003",
+    custodioName: "Ana Laura Gutiérrez",
+    vehicleType: "Tractocamión",
+    status: "in-transit",
+    origin: "Tlaxcala - Centro Logístico",
+    destination: "CDMX - Central de Abastos",
+    originCoordinates: [-98.2370, 19.3139], // Tlaxcala
+    destinationCoordinates: [-99.0959, 19.3708], // Central de Abastos
+    eta: "15:30",
+    etaOriginal: "14:00",
+    adjustedEta: "16:15",
+    estimatedDelayMinutes: 135,
     currentLocation: {
       coordinates: [-98.5823, 19.5633],
-      address: "Arco Norte Km 56"
+      address: "Autopista Arco Norte km 42",
+      timestamp: "12:20"
     },
-    eta: "15:20",
-    etaOriginal: "14:45",
-    status: "delayed",
-    delayRisk: false,
-    delayRiskPercent: 0,
-    inRiskZone: true,
-    cargo: {
-      type: "cajas",
-      weight: 890,
-      count: 65
-    },
-    routeCoordinates: [
-      [-99.0437, 19.4051],
-      [-98.9230, 19.5120],
-      [-98.7631, 19.5430],
-      [-98.5823, 19.5633],
-      [-98.4120, 19.4890],
-      [-98.2370, 19.2939]
-    ]
-  },
-  {
-    id: "S005",
-    trackingId: "TRACK-3398",
-    custodioName: "Roberto Sánchez",
-    destination: "Terminal Logística Puebla",
-    destinationCoordinates: [-98.2123, 19.0514],
-    origin: "CDMX Sur",
-    originCoordinates: [-99.1363, 19.2594],
-    currentLocation: {
-      coordinates: [-99.0045, 19.7128],
-      address: "Arco Norte Km 23"
-    },
-    eta: "13:40",
-    etaOriginal: "13:15",
-    status: "delayed",
+    trackingId: "TRK12347",
+    inRiskZone: false,
     delayRisk: true,
-    delayRiskPercent: 55,
+    delayRiskPercent: 95,
+    cargoType: "Alimentos",
+    cargoValue: 250000,
+    cargoWeight: 12000,
+    cargoUnits: 500,
+    progress: 30,
+    roadBlockage: {
+      active: true,
+      location: "Autopista Arco Norte km 50",
+      reason: "Accidente múltiple",
+      estimatedDelay: "1-2 horas"
+    }
+  },
+  {
+    id: "SVC-004",
+    custodioName: "Roberto Sánchez",
+    vehicleType: "Camión tipo Torton",
+    status: "in-transit",
+    origin: "Querétaro - Parque Industrial",
+    destination: "CDMX - Centro",
+    originCoordinates: [-100.3899, 20.5888], // Querétaro
+    destinationCoordinates: [-99.1332, 19.4326], // CDMX
+    eta: "16:45",
+    etaOriginal: "16:30",
+    currentLocation: {
+      coordinates: [-99.7535, 19.8123],
+      address: "Autopista México-Querétaro km 120",
+      timestamp: "12:25"
+    },
+    trackingId: "TRK12348",
+    inRiskZone: false,
+    delayRisk: false,
+    delayRiskPercent: 15,
+    cargoType: "Automotriz",
+    cargoValue: 450000,
+    cargoWeight: 8000,
+    cargoUnits: 35,
+    progress: 40
+  },
+  {
+    id: "SVC-005",
+    custodioName: "Francisco Ramírez",
+    vehicleType: "Van de reparto",
+    status: "in-transit",
+    origin: "CDMX - Bodega Sur",
+    destination: "Toluca - Centro Distribución",
+    originCoordinates: [-99.1553, 19.3643], // CDMX Sur
+    destinationCoordinates: [-99.6567, 19.2826], // Toluca
+    eta: "13:00",
+    etaOriginal: "13:00",
+    currentLocation: {
+      coordinates: [-99.4523, 19.3284],
+      address: "Carr. México-Toluca km 28",
+      timestamp: "12:15"
+    },
+    trackingId: "TRK12349",
+    inRiskZone: false,
+    delayRisk: false,
+    delayRiskPercent: 5,
+    cargoType: "Medicamentos",
+    cargoValue: 300000,
+    cargoWeight: 600,
+    cargoUnits: 75,
+    progress: 70
+  },
+  {
+    id: "SVC-006",
+    custodioName: "Javier Morales",
+    vehicleType: "Camión 3.5T",
+    status: "in-transit",
+    origin: "Puebla - Fábrica Textil",
+    destination: "Tlaxcala - Centro",
+    originCoordinates: [-98.2063, 19.0414], // Puebla
+    destinationCoordinates: [-98.2370, 19.3139], // Tlaxcala
+    eta: "12:40",
+    etaOriginal: "12:15",
+    adjustedEta: "13:10",
+    estimatedDelayMinutes: 55,
+    currentLocation: {
+      coordinates: [-98.2315, 19.1874],
+      address: "Carretera Puebla-Tlaxcala km 22",
+      timestamp: "12:05"
+    },
+    trackingId: "TRK12350",
+    inRiskZone: false,
+    delayRisk: true,
+    delayRiskPercent: 60,
+    cargoType: "Textiles",
+    cargoValue: 150000,
+    cargoWeight: 1200,
+    cargoUnits: 80,
+    progress: 55,
+    weatherEvent: {
+      type: "Neblina densa",
+      severity: 1,
+      location: "Carretera Puebla-Tlaxcala",
+      estimatedDelay: "15-25 minutos"
+    }
+  },
+  {
+    id: "SVC-007",
+    custodioName: "Gabriela Torres",
+    vehicleType: "Tractocamión",
+    status: "in-transit",
+    origin: "Veracruz - Puerto",
+    destination: "CDMX - Centro Logístico",
+    originCoordinates: [-96.1342, 19.1738], // Veracruz
+    destinationCoordinates: [-99.1332, 19.4326], // CDMX
+    eta: "18:15",
+    etaOriginal: "17:30",
+    adjustedEta: "19:00",
+    estimatedDelayMinutes: 90,
+    currentLocation: {
+      coordinates: [-97.1343, 19.2896],
+      address: "Carretera Federal Veracruz-Puebla km 95",
+      timestamp: "12:30"
+    },
+    trackingId: "TRK12351",
     inRiskZone: true,
-    cargo: {
-      type: "tarimas",
-      weight: 1640,
-      count: 18
-    },
-    routeCoordinates: [
-      [-99.1363, 19.2594],
-      [-99.0890, 19.4120],
-      [-99.0550, 19.6320],
-      [-99.0045, 19.7128],
-      [-98.7230, 19.5890],
-      [-98.4560, 19.3420],
-      [-98.2123, 19.0514]
-    ]
+    delayRisk: true,
+    delayRiskPercent: 75,
+    cargoType: "Contenedores",
+    cargoValue: 580000,
+    cargoWeight: 15000,
+    cargoUnits: 3,
+    progress: 25,
+    weatherEvent: {
+      type: "Tormenta eléctrica",
+      severity: 3,
+      location: "Orizaba-Puebla",
+      estimatedDelay: "45-60 minutos"
+    }
   },
   {
-    id: "S006",
-    trackingId: "TRACK-2211",
-    custodioName: "Felipe Guzmán",
-    destination: "Centro Comercial Angelópolis, Puebla",
-    destinationCoordinates: [-98.2528, 19.0292],
-    origin: "CDMX Oeste",
-    originCoordinates: [-99.2203, 19.3521],
+    id: "SVC-008",
+    custodioName: "Eduardo Vega",
+    vehicleType: "Van de carga",
+    status: "delayed",
+    origin: "CDMX - Aeropuerto",
+    destination: "Cuernavaca - Centro Comercial",
+    originCoordinates: [-99.0865, 19.4363], // CDMX Aeropuerto
+    destinationCoordinates: [-99.2212, 18.9217], // Cuernavaca
+    eta: "14:00",
+    etaOriginal: "12:45",
+    adjustedEta: "14:20",
+    estimatedDelayMinutes: 95,
     currentLocation: {
-      coordinates: [-98.8456, 19.1523],
-      address: "Autopista México-Puebla Km 65"
+      coordinates: [-99.1675, 19.0946],
+      address: "Autopista México-Cuernavaca km 48",
+      timestamp: "12:20"
     },
-    eta: "12:10",
-    etaOriginal: "12:10",
-    status: "on_time",
-    delayRisk: false,
-    delayRiskPercent: 0,
+    trackingId: "TRK12352",
     inRiskZone: false,
-    cargo: {
-      type: "paquetes",
-      weight: 540,
-      count: 42
-    },
-    routeCoordinates: [
-      [-99.2203, 19.3521],
-      [-99.0437, 19.3120],
-      [-98.9456, 19.2560],
-      [-98.8456, 19.1523],
-      [-98.6320, 19.0890],
-      [-98.4120, 19.0590],
-      [-98.2528, 19.0292]
-    ]
-  },
-  {
-    id: "S007",
-    trackingId: "TRACK-9015",
-    custodioName: "Raúl Torres",
-    destination: "Centro de Distribución Veracruz",
-    destinationCoordinates: [-96.1542, 19.1638],
-    origin: "Puebla Centro",
-    originCoordinates: [-98.1936, 19.0413],
-    currentLocation: {
-      coordinates: [-97.1340, 19.1827],
-      address: "Carretera Federal Puebla-Veracruz Km 122"
-    },
-    eta: "17:40",
-    etaOriginal: "17:40",
-    status: "on_time",
-    delayRisk: false,
-    delayRiskPercent: 0,
-    inRiskZone: false,
-    cargo: {
-      type: "contenedores",
-      weight: 2200,
-      count: 4
-    },
-    routeCoordinates: [
-      [-98.1936, 19.0413],
-      [-97.9120, 19.0720],
-      [-97.6230, 19.1120],
-      [-97.3450, 19.1520],
-      [-97.1340, 19.1827],
-      [-96.7230, 19.1735],
-      [-96.4120, 19.1690],
-      [-96.1542, 19.1638]
-    ]
+    delayRisk: true,
+    delayRiskPercent: 100,
+    cargoType: "Electrónicos",
+    cargoValue: 210000,
+    cargoWeight: 800,
+    cargoUnits: 40,
+    progress: 75,
+    roadBlockage: {
+      active: true,
+      location: "Autopista México-Cuernavaca km 52",
+      reason: "Manifestación",
+      estimatedDelay: "1-1.5 horas"
+    }
   }
 ];

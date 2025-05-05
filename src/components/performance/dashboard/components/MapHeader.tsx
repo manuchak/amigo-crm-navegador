@@ -1,38 +1,57 @@
 
-import React, { useState, useEffect } from 'react';
-import { MapPin } from 'lucide-react';
-import { TwitterFeed } from './TwitterFeed';
-import { useTwitterFeed } from '../hooks/useTwitterFeed';
+import React from 'react';
+import { Card } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Clock, AlertTriangle, CloudRain, ArrowDown } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 export function MapHeader() {
-  const { tweets, isLoading, error } = useTwitterFeed();
-  const [direction, setDirection] = useState<"left" | "right">("left");
-  
-  // Cambia la dirección cada 30 segundos para simular efecto de ticker financiero
-  useEffect(() => {
-    const intervalId = setInterval(() => {
-      setDirection(prev => prev === "left" ? "right" : "left");
-    }, 30000);
-    
-    return () => clearInterval(intervalId);
-  }, []);
+  // These could be calculated from actual data in a real implementation
+  const stats = {
+    totalIncidents: 5,
+    roadblocks: 2,
+    weatherEvents: 1,
+    highRiskAreas: 2
+  };
 
+  // Current time
+  const currentTime = new Date().toLocaleTimeString('es-MX', { 
+    hour: '2-digit', 
+    minute: '2-digit',
+    hour12: true 
+  });
+  
   return (
-    <>
-      <TwitterFeed tweets={tweets} isLoading={isLoading} error={error} />
-      
-      <div className="flex justify-between items-center bg-white rounded-lg border p-3 mb-2 shadow-sm">
-        <div>
-          <h3 className="text-sm font-medium">Servicios activos en ruta</h3>
-          <p className="text-xs text-muted-foreground">
-            Rutas en tiempo real basadas en carreteras
-          </p>
-        </div>
-        <div className="flex items-center gap-1.5 text-xs text-muted-foreground bg-slate-50 px-2 py-1 rounded">
-          <MapPin className="h-3 w-3" />
-          <span>Actualizado hace 5 mins</span>
+    <div className="flex items-center justify-between mb-3 px-0.5">
+      <div className="flex items-center">
+        <div className="flex items-center text-xs font-medium text-slate-500">
+          <Clock className="h-3 w-3 mr-1" />
+          <span>Actualizado: {currentTime}</span>
         </div>
       </div>
-    </>
+      
+      <div className="flex items-center gap-1.5">
+        <Badge variant="outline" className="text-xs bg-white flex items-center gap-1.5">
+          <div className="flex gap-0.5">
+            <ArrowDown className="h-3 w-3 text-red-500" />
+            <span className="text-slate-600">{stats.roadblocks}</span>
+          </div>
+          
+          <div className="flex gap-0.5">
+            <CloudRain className="h-3 w-3 text-amber-500" />
+            <span className="text-slate-600">{stats.weatherEvents}</span>
+          </div>
+          
+          <div className="flex gap-0.5">
+            <AlertTriangle className="h-3 w-3 text-red-500" />
+            <span className="text-slate-600">{stats.highRiskAreas}</span>
+          </div>
+          
+          <span className="text-xs text-slate-700">
+            {stats.totalIncidents} incidentes activos
+          </span>
+        </Badge>
+      </div>
+    </div>
   );
 }

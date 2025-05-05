@@ -1,26 +1,41 @@
-
 export interface ActiveService {
   id: string;
-  trackingId: string;
   custodioName: string;
-  destination: string;
-  destinationCoordinates: [number, number];
+  vehicleType?: string;
+  status: 'in-transit' | 'delayed' | 'completed';
   origin: string;
-  originCoordinates: [number, number];
+  destination: string;
+  originCoordinates?: [number, number];
+  destinationCoordinates?: [number, number];
+  routeCoordinates?: [number, number][];
+  eta: string;
+  etaOriginal: string;
+  adjustedEta?: string;
+  estimatedDelayMinutes?: number;
   currentLocation: {
     coordinates: [number, number];
     address: string;
+    timestamp: string;
   };
-  eta: string; // Estimated time of arrival
-  etaOriginal: string; // Original ETA for comparison
-  status: 'in_transit' | 'on_time' | 'delayed' | 'completed';
+  trackingId: string;
+  inRiskZone: boolean;
   delayRisk: boolean;
   delayRiskPercent: number;
-  inRiskZone: boolean;
-  cargo: {
+  cargoType?: string;
+  cargoValue?: number;
+  cargoWeight?: number;
+  cargoUnits?: number;
+  progress?: number;
+  weatherEvent?: {
     type: string;
-    weight: number;
-    count: number;
+    severity: number; // 0-3
+    location: string;
+    estimatedDelay: string;
   };
-  routeCoordinates?: [number, number][]; // Array of coordinates representing the route
+  roadBlockage?: {
+    active: boolean;
+    location: string;
+    reason: string;
+    estimatedDelay: string;
+  };
 }
