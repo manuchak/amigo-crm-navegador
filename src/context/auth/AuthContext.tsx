@@ -67,11 +67,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  // Obtener métodos de gestión de usuarios
+  // Obtener métodos de gestión de usuarios - Fix: Ensure typecast to Promise<void> matches
   const userManagementMethods = useUserManagementMethods(
     setUserData, 
     setLoading, 
-    refreshUserDataWrapper
+    refreshUserDataWrapper as unknown as () => Promise<void>
   );
 
   const value: AuthContextProps = {

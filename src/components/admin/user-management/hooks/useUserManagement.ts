@@ -23,11 +23,11 @@ const useUserManagement = ({ getAllUsers }: UseUserManagementProps) => {
   const MAX_FETCH_ERRORS = 3;
   const lastFetchedAt = useRef<Date | null>(null);
 
-  const fetchUsers = useCallback(async (forceRefresh = false) => {
+  const fetchUsers = useCallback(async (forceRefresh = false): Promise<UserData[]> => {
     // Skip if already fetching
     if (isProcessingFetch.current && !forceRefresh) {
       console.log('Fetch already in progress, skipping');
-      return;
+      return users; // Return current users as fallback
     }
     
     // Reset error state
@@ -50,10 +50,11 @@ const useUserManagement = ({ getAllUsers }: UseUserManagementProps) => {
         fetchErrorCount.current = 0;
         isInitialFetchComplete.current = true;
         lastFetchedAt.current = new Date();
+        return usersData;
       } else {
         console.warn('getAllUsers returned invalid data format');
         setError('La función de obtención de usuarios devolvió un formato inválido');
-        setUsers([]);
+        return [];
       }
     } catch (error: any) {
       console.error('Error fetching users:', error);
@@ -68,12 +69,12 @@ const useUserManagement = ({ getAllUsers }: UseUserManagementProps) => {
         toast.error('Error al cargar los usuarios. Por favor, intente más tarde.');
       }
       
-      setUsers([]);
+      return users; // Return current users as fallback
     } finally {
       setLoading(false);
       isProcessingFetch.current = false;
     }
-  }, [getAllUsers]);
+  }, [getAllUsers, users]);
 
   // Initial fetch of users
   useEffect(() => {

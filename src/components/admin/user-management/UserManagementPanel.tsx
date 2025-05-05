@@ -47,7 +47,8 @@ const UserManagementPanel = () => {
       if (!fetchSuccess) {
         try {
           const fetchedUsers = await fetchUsers(true);
-          if (fetchedUsers && fetchedUsers.length > 0) {
+          // Fixed: Check if fetchedUsers is defined and has items
+          if (fetchedUsers && Array.isArray(fetchedUsers) && fetchedUsers.length > 0) {
             console.log(`Successfully loaded ${fetchedUsers.length} users`);
             setFetchSuccess(true);
           } else {

@@ -25,7 +25,7 @@ export const useUserManagementMethods = (
   const { getAllUsers } = useUserListing(props);
 
   // Envolver getAllUsers con manejo de errores y prevención de solicitudes duplicadas
-  const safeGetAllUsers = useCallback(async () => {
+  const safeGetAllUsers = useCallback(async (): Promise<UserData[]> => {
     // Prevenir solicitudes concurrentes
     if (requestInProgress.current) {
       console.log('Request already in progress, skipping duplicate getAllUsers');
