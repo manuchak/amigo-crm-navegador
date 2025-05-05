@@ -7,7 +7,7 @@ import { UserManagementHookProps } from './types';
 
 export const useRoleManagement = ({ setLoading, refreshUserData }: UserManagementHookProps) => {
   const updateUserRole = async (uid: string, role: UserRole): Promise<{ success: boolean; error?: any }> => {
-    setLoading(true);
+    setLoading(uid);
     try {
       // Try to use the Supabase RPC function first
       try {
@@ -37,7 +37,7 @@ export const useRoleManagement = ({ setLoading, refreshUserData }: UserManagemen
       toast.error('Error al actualizar el rol de usuario: ' + error.message);
       return { success: false, error };
     } finally {
-      setLoading(false);
+      setLoading(null);
     }
   };
 

@@ -34,7 +34,7 @@ export const useUserListing = ({ setLoading }: UserManagementHookProps) => {
       return cachedUsers;
     }
     
-    setLoading(true);
+    setLoading('fetch-users');
     setFetchError(null);
     fetchInProgress.current = true;
     
@@ -142,7 +142,7 @@ export const useUserListing = ({ setLoading }: UserManagementHookProps) => {
       // Return cached users if available as fallback
       return cachedUsers.length > 0 ? cachedUsers : [];
     } finally {
-      setLoading(false);
+      setLoading(null);
       fetchInProgress.current = false;
     }
   }, [setLoading, lastFetchTimestamp, cachedUsers, fetchError]);

@@ -4,17 +4,24 @@ import { useRoleManagement } from './useRoleManagement';
 import { useUserVerification } from './useUserVerification';
 import { useUserListing } from './useUserListing';
 import { UserData } from '@/types/auth';
-import { useCallback, useRef } from 'react';
+import { useCallback, useRef, useState } from 'react';
 
 export const useUserManagementMethods = (
   setUserData: React.Dispatch<React.SetStateAction<UserData | null>>,
   setLoading: React.Dispatch<React.SetStateAction<boolean>>,
   refreshUserData: () => Promise<void>
 ): UserManagementMethods => {
+  const [loadingId, setLoadingId] = useState<string | null>(null);
   const requestInProgress = useRef(false);
   
+  // Adapter function to convert from boolean loading state to string/null loading state
+  const handleSetLoading = (id: string | null) => {
+    setLoadingId(id);
+    setLoading(!!id); // Convert to boolean for backward compatibility
+  };
+  
   const props: UserManagementHookProps = {
-    setLoading,
+    setLoading: handleSetLoading,
     refreshUserData
   };
 
