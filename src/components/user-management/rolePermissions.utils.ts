@@ -8,10 +8,14 @@ export const getDisplayName = (role: UserRole): string => {
     'pending': 'Pendiente',
     'supply': 'Supply',
     'supply_admin': 'Supply Admin',
+    'soporte': 'Soporte',
     'atención_afiliado': 'Atención al Afiliado',
     'afiliados': 'Afiliados',
     'admin': 'Administrador',
-    'owner': 'Propietario'
+    'owner': 'Propietario',
+    'bi': 'Business Intelligence',
+    'monitoring': 'Monitoreo',
+    'monitoring_supervisor': 'Supervisor Monitoreo'
   };
   return displayNames[role] || role;
 };

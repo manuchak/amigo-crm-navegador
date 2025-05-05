@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -45,8 +44,12 @@ export const availableActions: Permission[] = [
 export const ROLES: UserRole[] = [
   'supply', 
   'supply_admin', 
-  'atención_afiliado', 
+  'soporte',
+  'atención_afiliado',
   'afiliados',
+  'bi',
+  'monitoring',
+  'monitoring_supervisor',
   'admin', 
   'owner',
   'pending',
@@ -60,8 +63,12 @@ export const getRoleDisplayName = (role: UserRole): string => {
     'pending': 'Pendiente',
     'supply': 'Supply',
     'supply_admin': 'Supply Admin',
+    'soporte': 'Soporte',
     'atención_afiliado': 'Atención al Afiliado',
     'afiliados': 'Afiliados',
+    'bi': 'Business Intelligence',
+    'monitoring': 'Monitoreo',
+    'monitoring_supervisor': 'Supervisor Monitoreo',
     'admin': 'Administrador',
     'owner': 'Propietario'
   };
@@ -228,7 +235,7 @@ export const useRolePermissions = () => {
   }, [checkOwnerStatus]);
 
   // Save permissions to database with improved logging
-  const savePermissions = async () => {
+  const handleSavePermissions = async () => {
     setSaving(true);
     setError(null);
     
@@ -377,7 +384,8 @@ export const useRolePermissions = () => {
     error,
     isOwner,
     loadPermissions,
-    savePermissions,
+    savePermissions: handleSavePermissions,
+    handleSavePermissions,
     handlePermissionChange,
     hasPermission,
     checkOwnerStatus,

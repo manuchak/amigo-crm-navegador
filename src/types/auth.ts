@@ -1,4 +1,3 @@
-
 import { User, Session } from '@supabase/supabase-js';
 
 // User roles in the system
@@ -12,7 +11,9 @@ export type UserRole =
   | 'monitoring'
   | 'monitoring_supervisor'
   | 'admin'
-  | 'owner';
+  | 'owner'
+  | 'afiliados'
+  | 'atención_afiliado';
 
 export interface UserData {
   uid: string;

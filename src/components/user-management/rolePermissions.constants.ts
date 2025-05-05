@@ -1,4 +1,3 @@
-
 import { UserRole } from '@/types/auth';
 
 export interface PageAccess {
@@ -44,5 +43,9 @@ export const ROLES: UserRole[] = [
   'monitoring',
   'monitoring_supervisor',
   'admin', 
-  'owner'
+  'owner',
+  'afiliados',
+  'atención_afiliado',
+  'pending',
+  'unverified'
 ];
