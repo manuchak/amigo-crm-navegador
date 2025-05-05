@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Package } from 'lucide-react';
-import { ActiveService } from '../../types';
+import { ActiveService } from '../../../dashboard/types';
 
 interface CargoInfoProps {
   service: ActiveService;
