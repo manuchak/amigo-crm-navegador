@@ -33,7 +33,8 @@ export const mockActiveServices: ActiveService[] = [
       type: "Lluvia intensa",
       severity: 2,
       location: "Tramo San Martín-Puebla",
-      estimatedDelay: "30-45 minutos"
+      estimatedDelay: "30-45 minutos",
+      causesDelay: true
     },
     roadBlockage: null
   },
@@ -66,7 +67,8 @@ export const mockActiveServices: ActiveService[] = [
       active: false,
       location: "",
       reason: "",
-      estimatedDelay: ""
+      estimatedDelay: "",
+      causesDelay: false
     }
   },
   {
@@ -100,7 +102,8 @@ export const mockActiveServices: ActiveService[] = [
       active: true,
       location: "Autopista Arco Norte km 50",
       reason: "Accidente múltiple",
-      estimatedDelay: "1-2 horas"
+      estimatedDelay: "1-2 horas",
+      causesDelay: true
     }
   },
   {
@@ -154,7 +157,8 @@ export const mockActiveServices: ActiveService[] = [
     cargoValue: 300000,
     cargoWeight: 600,
     cargoUnits: 75,
-    progress: 70
+    progress: 70,
+    isOnTime: true
   },
   {
     id: "SVC-006",
@@ -187,8 +191,10 @@ export const mockActiveServices: ActiveService[] = [
       type: "Neblina densa",
       severity: 1,
       location: "Carretera Puebla-Tlaxcala",
-      estimatedDelay: "15-25 minutos"
-    }
+      estimatedDelay: "15-25 minutos",
+      causesDelay: false
+    },
+    isOnTime: true
   },
   {
     id: "SVC-007",
@@ -221,8 +227,10 @@ export const mockActiveServices: ActiveService[] = [
       type: "Tormenta eléctrica",
       severity: 3,
       location: "Orizaba-Puebla",
-      estimatedDelay: "45-60 minutos"
-    }
+      estimatedDelay: "45-60 minutos",
+      causesDelay: true
+    },
+    isOnTime: false
   },
   {
     id: "SVC-008",
@@ -255,8 +263,10 @@ export const mockActiveServices: ActiveService[] = [
       active: true,
       location: "Autopista México-Cuernavaca km 52",
       reason: "Manifestación",
-      estimatedDelay: "1-1.5 horas"
-    }
+      estimatedDelay: "1-1.5 horas",
+      causesDelay: true
+    },
+    isOnTime: false
   },
   // Additional "on time" services with no risks
   {
@@ -283,7 +293,8 @@ export const mockActiveServices: ActiveService[] = [
     cargoValue: 175000,
     cargoWeight: 450,
     cargoUnits: 25,
-    progress: 50
+    progress: 50,
+    isOnTime: true
   },
   {
     id: "SVC-010",
@@ -309,7 +320,8 @@ export const mockActiveServices: ActiveService[] = [
     cargoValue: 220000,
     cargoWeight: 1200,
     cargoUnits: 90,
-    progress: 35
+    progress: 35,
+    isOnTime: true
   },
   {
     id: "SVC-011",
@@ -335,7 +347,8 @@ export const mockActiveServices: ActiveService[] = [
     cargoValue: 130000,
     cargoWeight: 850,
     cargoUnits: 35,
-    progress: 60
+    progress: 60,
+    isOnTime: true
   },
   {
     id: "SVC-012",
@@ -361,6 +374,7 @@ export const mockActiveServices: ActiveService[] = [
     cargoValue: 195000,
     cargoWeight: 600,
     cargoUnits: 50,
-    progress: 30
+    progress: 30,
+    isOnTime: true
   }
 ];
