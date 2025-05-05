@@ -13,18 +13,19 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Switch } from '@/components/ui/switch';
 import { 
   ShieldCheck, Save, RefreshCw, Loader2, AlertTriangle, 
-  Shield, Lock, CheckCircle2, Info, UserCog
+  Shield, Lock, CheckCircle2, Info, UserCog, Check
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '@/context/AuthContext';
 import { checkForOwnerRole } from '@/integrations/supabase/client';
-import { UserVerificationBadge } from '../admin/user-management/components/UserVerificationBadge';
+import { useUserVerification } from '@/hooks/user-management/useUserVerification';
 
 const UserPermissionConfig = () => {
   const { userData, refreshUserData } = useAuth();
   const [activeTab, setActiveTab] = useState('roles');
   const [isVerifyingOwner, setIsVerifyingOwner] = useState(false);
   const [showDebugInfo, setShowDebugInfo] = useState(false);
+  const [loadingVerify, setLoadingVerify] = useState<string | null>(null);
   
   const {
     permissions,
@@ -40,6 +41,14 @@ const UserPermissionConfig = () => {
     availableActions,
     ROLES
   } = useRolePermissions();
+
+  const { verifyEmail, setUserAsVerifiedOwner } = useUserVerification({
+    setLoading: setLoadingVerify, 
+    refreshUserData: () => {
+      refreshUserData();
+      reloadPermissions();
+    }
+  });
 
   // Log users when component mounts or users change
   useEffect(() => {
@@ -86,6 +95,24 @@ const UserPermissionConfig = () => {
     } catch (error) {
       console.error('Error updating permission data:', error);
       toast.error('Error al actualizar información de permisos');
+    }
+  };
+
+  const handleVerifyUser = async (userId: string, email: string) => {
+    setLoadingVerify(userId);
+    try {
+      const result = await verifyEmail(userId);
+      if (result.success) {
+        toast.success(`Usuario ${email} verificado correctamente`);
+        reloadPermissions(); // Refresh the data to show updated verification status
+      } else {
+        toast.error(`Error al verificar el usuario: ${result.error || 'Error desconocido'}`);
+      }
+    } catch (error) {
+      console.error('Error verifying user:', error);
+      toast.error('Error al verificar usuario');
+    } finally {
+      setLoadingVerify(null);
     }
   };
   
@@ -287,7 +314,11 @@ const UserPermissionConfig = () => {
           </TabsList>
         
           <TabsContent value="roles" className="m-0 w-full">
-            <UserRolesTable users={users} />
+            <UserRolesTable 
+              users={users} 
+              onVerifyUser={handleVerifyUser}
+              loadingVerify={loadingVerify}
+            />
           </TabsContent>
           
           <TabsContent value="pages" className="m-0 w-full">
@@ -319,30 +350,12 @@ const UserPermissionConfig = () => {
 
 interface UserRolesTableProps {
   users: any[];
+  onVerifyUser: (userId: string, email: string) => Promise<void>;
+  loadingVerify: string | null;
 }
 
-const UserRolesTable: React.FC<UserRolesTableProps> = ({ users }) => {
+const UserRolesTable: React.FC<UserRolesTableProps> = ({ users, onVerifyUser, loadingVerify }) => {
   console.log("Users in UserRolesTable:", users);
-  
-  const { verifyEmail } = useAuth();
-  const [verifyingUser, setVerifyingUser] = useState<string | null>(null);
-  
-  const handleVerifyUser = async (userId: string) => {
-    setVerifyingUser(userId);
-    try {
-      const result = await verifyEmail(userId);
-      if (result.success) {
-        toast.success("Usuario verificado correctamente");
-      } else {
-        toast.error("Error al verificar usuario: " + (result.error || "Error desconocido"));
-      }
-    } catch (err) {
-      console.error("Error verifying user:", err);
-      toast.error("Error al verificar usuario");
-    } finally {
-      setVerifyingUser(null);
-    }
-  };
   
   if (!users || users.length === 0) {
     return (
@@ -372,8 +385,15 @@ const UserRolesTable: React.FC<UserRolesTableProps> = ({ users }) => {
           <TableBody>
             {users.map((user) => (
               <TableRow key={user.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/70">
-                <TableCell className="font-medium">{user.displayName || 'Sin nombre'}</TableCell>
-                <TableCell>{user.email}</TableCell>
+                <TableCell className="font-medium">
+                  <div className="flex items-center gap-2">
+                    <div className="h-8 w-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-600 text-xs font-medium">
+                      {user.displayName?.charAt(0)?.toUpperCase() || user.email?.charAt(0)?.toUpperCase() || '?'}
+                    </div>
+                    <span>{user.displayName || 'Sin nombre'}</span>
+                  </div>
+                </TableCell>
+                <TableCell className="text-slate-600">{user.email}</TableCell>
                 <TableCell className="text-center">
                   <Badge 
                     variant={
@@ -389,25 +409,35 @@ const UserRolesTable: React.FC<UserRolesTableProps> = ({ users }) => {
                   </Badge>
                 </TableCell>
                 <TableCell className="text-center">
-                  <UserVerificationBadge isVerified={user.emailVerified} />
+                  {user.emailVerified ? (
+                    <Badge variant="success" className="bg-emerald-100 text-emerald-700 border-emerald-200">
+                      <Check className="h-3 w-3 mr-1" />
+                      Verificado
+                    </Badge>
+                  ) : (
+                    <Badge variant="outline" className="text-amber-600 border-amber-200 bg-amber-50">
+                      <AlertTriangle className="h-3 w-3 mr-1" />
+                      No verificado
+                    </Badge>
+                  )}
                 </TableCell>
                 <TableCell className="text-center">
                   {!user.emailVerified && (
                     <Button 
                       variant="outline" 
                       size="sm" 
-                      onClick={() => handleVerifyUser(user.uid)}
-                      disabled={verifyingUser === user.uid}
-                      className="bg-white hover:bg-slate-50 border-slate-200 text-slate-700"
+                      onClick={() => onVerifyUser(user.uid, user.email)}
+                      disabled={loadingVerify === user.uid}
+                      className="bg-white hover:bg-slate-50 border-slate-200 text-slate-700 text-xs rounded-full px-3 py-1 h-7"
                     >
-                      {verifyingUser === user.uid ? (
+                      {loadingVerify === user.uid ? (
                         <>
-                          <Loader2 className="mr-2 h-3 w-3 animate-spin" />
+                          <Loader2 className="mr-1 h-3 w-3 animate-spin" />
                           Verificando...
                         </>
                       ) : (
                         <>
-                          <CheckCircle2 className="mr-2 h-3 w-3" />
+                          <CheckCircle2 className="mr-1 h-3 w-3" />
                           Verificar
                         </>
                       )}
