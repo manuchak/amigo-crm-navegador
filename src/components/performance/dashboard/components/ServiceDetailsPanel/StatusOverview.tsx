@@ -11,27 +11,24 @@ interface StatusOverviewProps {
 
 export function StatusOverview({ service }: StatusOverviewProps) {
   return (
-    <div className="rounded-xl bg-slate-50/70 p-4 mb-5 border border-slate-100">
-      <div className="flex items-center justify-between mb-4">
-        <div>
-          <p className="text-sm text-slate-500 mb-1">Estado del servicio</p>
-          <div className="flex items-center gap-2">
-            <div className={cn(
-              "w-3 h-3 rounded-full",
-              service.inRiskZone ? "bg-red-500" : 
-              service.delayRisk && service.delayRiskPercent > 50 ? "bg-amber-500" : 
-              "bg-green-500"
-            )} />
-            <span className="font-semibold">
-              {service.inRiskZone ? "Zona de riesgo" : 
-               service.delayRisk && service.delayRiskPercent > 50 ? "Posible retraso" : 
-               "En tiempo"}
-            </span>
-          </div>
+    <div className="space-y-3">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <div className={cn(
+            "w-2 h-2 rounded-full",
+            service.inRiskZone ? "bg-red-500" : 
+            service.delayRisk && service.delayRiskPercent > 50 ? "bg-amber-500" : 
+            "bg-green-500"
+          )} />
+          <span className="text-sm font-medium">
+            {service.inRiskZone ? "Zona de riesgo" : 
+             service.delayRisk && service.delayRiskPercent > 50 ? "Posible retraso" : 
+             "En tiempo"}
+          </span>
         </div>
         <Badge 
           className={cn(
-            "uppercase text-xs font-bold",
+            "text-xs font-medium",
             service.inRiskZone ? "bg-red-500" :
             service.delayRisk && service.delayRiskPercent > 50 ? "bg-amber-500" :
             "bg-green-500"
@@ -44,22 +41,25 @@ export function StatusOverview({ service }: StatusOverviewProps) {
       </div>
       
       <div className="grid grid-cols-2 gap-4">
-        <div className="bg-white p-3 rounded-lg shadow-sm">
-          <p className="text-xs text-slate-500">ETA Original</p>
-          <p className="font-bold mt-1 flex items-center">
-            <Clock className="h-3.5 w-3.5 mr-1.5 text-slate-400" />
-            {service.etaOriginal}
-          </p>
+        <div className="flex flex-col">
+          <div className="flex items-center gap-1">
+            <Clock className="h-3 w-3 text-slate-400" />
+            <span className="text-xs text-slate-500">ETA Original</span>
+          </div>
+          <span className="text-sm font-medium pl-4">{service.etaOriginal}</span>
         </div>
-        <div className="bg-white p-3 rounded-lg shadow-sm">
-          <p className="text-xs text-slate-500">ETA Actual</p>
-          <p className={cn(
-            "font-bold mt-1 flex items-center",
+        
+        <div className="flex flex-col">
+          <div className="flex items-center gap-1">
+            <Clock className="h-3 w-3 text-slate-400" />
+            <span className="text-xs text-slate-500">ETA Actual</span>
+          </div>
+          <span className={cn(
+            "text-sm font-medium pl-4",
             service.delayRisk && service.delayRiskPercent > 50 ? "text-amber-600" : ""
           )}>
-            <Clock className="h-3.5 w-3.5 mr-1.5 text-slate-400" />
             {service.eta}
-          </p>
+          </span>
         </div>
       </div>
     </div>

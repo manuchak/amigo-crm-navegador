@@ -9,40 +9,46 @@ interface ServiceInfoProps {
 
 export function ServiceInfo({ service }: ServiceInfoProps) {
   return (
-    <div className="bg-white rounded-xl border border-slate-100 p-4 mb-5 shadow-sm">
-      <div className="flex items-center gap-2 mb-3">
-        <div className="w-8 h-8 rounded-full bg-blue-50 flex items-center justify-center">
-          <Truck className="h-4 w-4 text-blue-500" />
-        </div>
-        <h3 className="font-semibold">Información del Servicio</h3>
+    <div className="space-y-3">
+      <div className="flex items-center gap-2">
+        <Truck className="h-5 w-5 text-blue-500" />
+        <h3 className="text-base font-medium text-slate-800">Información del Servicio</h3>
       </div>
-      <div className="grid grid-cols-2 gap-3 text-sm">
-        <div className="bg-slate-50 p-3 rounded-lg">
-          <p className="text-xs text-slate-500">Custodio</p>
-          <p className="mt-1 font-medium">{service.custodioName}</p>
+
+      <div className="grid grid-cols-2 gap-2">
+        <div className="col-span-1 flex flex-col">
+          <span className="text-xs text-slate-500">Custodio</span>
+          <span className="font-medium text-sm">{service.custodioName}</span>
         </div>
-        <div className="bg-slate-50 p-3 rounded-lg">
-          <p className="text-xs text-slate-500">ID Rastreo</p>
-          <p className="mt-1 font-medium">#{service.trackingId}</p>
+        
+        <div className="col-span-1 flex flex-col">
+          <span className="text-xs text-slate-500">ID Rastreo</span>
+          <span className="font-medium text-sm">#{service.trackingId}</span>
         </div>
-        <div className="col-span-2 bg-slate-50 p-3 rounded-lg">
-          <p className="text-xs text-slate-500 flex items-center gap-1">
-            <MapPin className="h-3 w-3" /> Origen
-          </p>
-          <p className="mt-1 font-medium">{service.origin}</p>
+      </div>
+      
+      <div>
+        <div className="flex items-center gap-1 mb-1">
+          <MapPin className="h-3 w-3 text-slate-400" />
+          <span className="text-xs text-slate-500">Origen</span>
         </div>
-        <div className="col-span-2 bg-slate-50 p-3 rounded-lg">
-          <p className="text-xs text-slate-500 flex items-center gap-1">
-            <MapPin className="h-3 w-3" /> Destino
-          </p>
-          <p className="mt-1 font-medium">{service.destination}</p>
+        <p className="text-sm font-medium pl-4">{service.origin}</p>
+      </div>
+
+      <div>
+        <div className="flex items-center gap-1 mb-1">
+          <MapPin className="h-3 w-3 text-slate-400" />
+          <span className="text-xs text-slate-500">Destino</span>
         </div>
-        <div className="col-span-2 bg-slate-50 p-3 rounded-lg">
-          <p className="text-xs text-slate-500 flex items-center gap-1">
-            <Route className="h-3 w-3" /> Ubicación Actual
-          </p>
-          <p className="mt-1 font-medium">{service.currentLocation.address}</p>
+        <p className="text-sm font-medium pl-4">{service.destination}</p>
+      </div>
+
+      <div>
+        <div className="flex items-center gap-1 mb-1">
+          <Route className="h-3 w-3 text-slate-400" />
+          <span className="text-xs text-slate-500">Ubicación Actual</span>
         </div>
+        <p className="text-sm font-medium pl-4">{service.currentLocation.address}</p>
       </div>
     </div>
   );

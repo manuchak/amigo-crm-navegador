@@ -22,15 +22,17 @@ export function ServiceDetailsPanel({ selectedService }: ServiceDetailsPanelProp
 
   return (
     <div className="bg-white rounded-lg shadow-sm border h-full overflow-auto">
-      <div className="p-2">
-        <h3 className="text-sm font-semibold mb-2 truncate">
+      <div className="p-3">
+        <h3 className="text-lg font-medium px-1 pb-3 border-b mb-3">
           Detalles del Servicio #{selectedService.id}
         </h3>
         
-        <ServiceInfo service={selectedService} />
-        <StatusOverview service={selectedService} />
-        <CargoInfo service={selectedService} />
-        <RiskIndicators service={selectedService} />
+        <div className="space-y-4">
+          <ServiceInfo service={selectedService} />
+          <StatusOverview service={selectedService} />
+          <CargoInfo service={selectedService} />
+          <RiskIndicators service={selectedService} />
+        </div>
       </div>
     </div>
   );
