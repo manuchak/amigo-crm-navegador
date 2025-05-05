@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -104,7 +105,9 @@ export function useRolePermissions() {
       if (!data || data.length === 0) {
         // No permissions in database, use defaults
         console.log('No se encontraron permisos en la base de datos, usando valores predeterminados');
-        setPermissions(getInitialPermissions());
+        const defaultPermissions = getInitialPermissions();
+        console.log('Permisos predeterminados:', defaultPermissions);
+        setPermissions(defaultPermissions);
       } else {
         // Process permissions from database
         console.log(`Encontrados ${data.length} permisos en la base de datos`);
@@ -162,7 +165,9 @@ export function useRolePermissions() {
       
       // Fallback to defaults
       console.log("Usando permisos predeterminados como fallback");
-      setPermissions(getInitialPermissions());
+      const defaultPermissions = getInitialPermissions();
+      console.log('Permisos predeterminados (fallback):', defaultPermissions);
+      setPermissions(defaultPermissions);
     } finally {
       setLoading(false);
     }

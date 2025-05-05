@@ -191,12 +191,18 @@ const UserPermissionConfig = () => {
   
   // Force user to be treated as owner if they have that role in local storage
   const effectiveOwnerStatus = isOwner || localOwnerStatus;
+  console.log("Estado efectivo de propietario:", effectiveOwnerStatus, 
+    "DB Owner:", isOwner, "Local Owner:", localOwnerStatus);
   
   if (loading) {
     return (
-      <div className="flex justify-center items-center p-8">
+      <div className="flex flex-col justify-center items-center p-8 space-y-4">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
         <span className="ml-2">Cargando configuración de permisos...</span>
+        <Button onClick={handleForceRefresh} variant="outline" size="sm">
+          <RefreshCw className="h-4 w-4 mr-2" />
+          Intentar cargar de nuevo
+        </Button>
       </div>
     );
   }
@@ -292,6 +298,11 @@ const UserPermissionConfig = () => {
     );
   }
   
+  // Registrar los permisos y roles disponibles para diagnóstico
+  console.log("Permisos cargados:", permissions);
+  console.log("Páginas disponibles:", availablePages);
+  console.log("Acciones disponibles:", availableActions);
+  
   return (
     <div className="space-y-6">
       {error && (
@@ -340,6 +351,16 @@ const UserPermissionConfig = () => {
         </Button>
       </div>
       
+      <Button 
+        onClick={handleForceRefresh} 
+        variant="outline" 
+        size="sm" 
+        className="mb-4"
+      >
+        <RefreshCw className="h-4 w-4 mr-2" />
+        Recargar permisos
+      </Button>
+      
       <TabsContent value="pages" className="m-0">
         <PermissionsTable
           title="Permisos de Páginas"
@@ -376,6 +397,18 @@ const PermissionsTable = ({
   type: 'pages' | 'actions';
   onChange: (roleIndex: number, type: 'pages' | 'actions', id: string, checked: boolean) => void;
 }) => {
+  if (!permissions || permissions.length === 0) {
+    return (
+      <Alert className="mb-4">
+        <AlertTriangle className="h-4 w-4" />
+        <AlertTitle>No hay datos de permisos</AlertTitle>
+        <AlertDescription>
+          No se pudieron cargar los permisos. Intente recargar la página.
+        </AlertDescription>
+      </Alert>
+    );
+  }
+
   // Filter out unverified and pending roles
   const activerPermissions = permissions.filter(
     p => !['unverified', 'pending'].includes(p.role)
