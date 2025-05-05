@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
@@ -7,10 +7,16 @@ import { useAuth } from '@/context/AuthContext';
 import UserManagementPanel from '@/components/admin/UserManagementPanel';
 import UserPermissionConfig from '@/components/user-management/UserPermissionConfig';
 import { Settings, Users, Lock } from 'lucide-react';
+import { setSpecificUserAsVerifiedOwner } from '@/utils/setVerifiedOwner';
 
 const AdminConfig = () => {
   const { currentUser, userData } = useAuth();
   const [activeTab, setActiveTab] = useState<string>("users");
+  
+  // Ensure Manuel Chacon is set as owner on component mount
+  useEffect(() => {
+    setSpecificUserAsVerifiedOwner('manuel.chacon@detectasecurity.io');
+  }, []);
   
   // Only show admin features if user has correct role
   const isAdmin = userData?.role === 'admin' || userData?.role === 'owner';

@@ -1,15 +1,5 @@
 
-import { UserData, UserRole } from '@/types/auth';
-
-export interface UserManagementMethods {
-  updateUserRole: (uid: string, role: UserRole) => Promise<{ success: boolean; error?: any }>;
-  getAllUsers: () => Promise<UserData[]>;
-  verifyEmail: (uid: string) => Promise<{ success: boolean; error?: any }>;
-  setUserAsVerifiedOwner: (email: string, showNotification?: boolean) => Promise<{ success: boolean; error?: any }>;
-}
-
 export interface UserManagementHookProps {
-  setUserData: React.Dispatch<React.SetStateAction<UserData | null>>;
   setLoading: React.Dispatch<React.SetStateAction<boolean>>;
   refreshUserData: () => Promise<void>;
 }
