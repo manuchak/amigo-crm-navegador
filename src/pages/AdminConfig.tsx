@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -6,7 +5,7 @@ import { Separator } from '@/components/ui/separator';
 import { useAuth } from '@/context/AuthContext';
 import UserManagementPanel from '@/components/admin/UserManagementPanel';
 import UserPermissionConfig from '@/components/user-management/UserPermissionConfig';
-import { Settings, Users, Lock, RefreshCw, AlertTriangle } from 'lucide-react';
+import { Settings, Users, Lock, RefreshCw, AlertTriangle, Database } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { setSpecificUserAsVerifiedOwner, setManuelAsOwner } from '@/utils/setVerifiedOwner';
@@ -22,6 +21,7 @@ function AdminConfig() {
   const [lastChecked, setLastChecked] = useState<Date | null>(null);
   const [ownerError, setOwnerError] = useState<string | null>(null);
   const [isRunningEdgeFunction, setIsRunningEdgeFunction] = useState<boolean>(false);
+  const [directDbSuccess, setDirectDbSuccess] = useState<boolean>(false);
   
   // Check and verify owner status function
   const checkOwnerStatus = useCallback(async () => {
@@ -117,6 +117,7 @@ function AdminConfig() {
       
       toast.success("Tu rol ha sido establecido como propietario correctamente");
       console.log("Owner role set successfully via edge function", data);
+      setDirectDbSuccess(true);
       
       // Refresh user data to show the new role
       await refreshUserData();
@@ -125,6 +126,41 @@ function AdminConfig() {
       console.error("Failed to set owner role via edge function:", error);
       setOwnerError(`Error asignando rol de propietario: ${error.message}`);
       toast.error("No se pudo asignar el rol de propietario");
+    } finally {
+      setIsRunningEdgeFunction(false);
+    }
+  };
+
+  const setOwnerRoleViaDirectUpsert = async () => {
+    setIsRunningEdgeFunction(true);
+    setOwnerError(null);
+    
+    try {
+      // Call our edge function but with a special flag to use direct database operations
+      const { data, error } = await supabase.functions.invoke('set-owner', {
+        method: 'POST',
+        body: { useDirectDbOperation: true }
+      });
+      
+      if (error) {
+        throw new Error(`Edge function error: ${error.message}`);
+      }
+      
+      if (!data.success) {
+        throw new Error(data.error || 'Unknown error from edge function');
+      }
+      
+      toast.success("Tu rol ha sido establecido como propietario mediante operación directa en DB");
+      console.log("Owner role set successfully via direct database operation", data);
+      setDirectDbSuccess(true);
+      
+      // Refresh user data to show the new role
+      await refreshUserData();
+      setOwnerStatus(true);
+    } catch (error: any) {
+      console.error("Failed to set owner role via direct database operation:", error);
+      setOwnerError(`Error asignando rol de propietario: ${error.message}`);
+      toast.error("No se pudo asignar el rol de propietario mediante operación directa");
     } finally {
       setIsRunningEdgeFunction(false);
     }
@@ -213,6 +249,16 @@ function AdminConfig() {
                 >
                   <RefreshCw className={`h-4 w-4 mr-2 ${isRunningEdgeFunction ? 'animate-spin' : ''}`} />
                   Asignar rol de propietario directamente
+                </Button>
+                
+                <Button
+                  onClick={setOwnerRoleViaDirectUpsert}
+                  variant="default"
+                  disabled={isRunningEdgeFunction || directDbSuccess}
+                  className="ml-0 mt-2 w-full bg-amber-600 hover:bg-amber-700"
+                >
+                  <Database className={`h-4 w-4 mr-2 ${isRunningEdgeFunction ? 'animate-spin' : ''}`} />
+                  Forzar cambio de rol en base de datos
                 </Button>
               </div>
             )}
