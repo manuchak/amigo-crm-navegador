@@ -1,5 +1,5 @@
 
 project_id = "beefjsdgrdeiymzxwxru"
 
-[functions.fetch-fuel-prices]
+[functions.fetch-twitter-feed]
 verify_jwt = false
