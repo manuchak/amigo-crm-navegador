@@ -2,195 +2,249 @@
 import { useCallback } from 'react';
 import mapboxgl from 'mapbox-gl';
 import { ActiveService } from '../../types';
+import { toast } from 'sonner';
 
 export function useRouteDisplay(
   map: React.MutableRefObject<mapboxgl.Map | null>,
   mapLoaded: boolean
 ) {
-  const updateRouteDisplay = useCallback(async (services: ActiveService[], selectedServiceId?: string) => {
-    if (!map.current || !mapLoaded || !selectedServiceId) return;
-    
-    try {
-      const service = services.find(s => s.id === selectedServiceId);
-      
-      // Only proceed if we have a valid service with route coordinates
-      if (service?.currentLocation?.coordinates) {
-        // Center map on the selected service with smooth animation
-        map.current.flyTo({
-          center: service.currentLocation.coordinates,
-          zoom: 12,
-          essential: true,
-          speed: 0.8,
-          curve: 1
+  const updateRouteDisplay = useCallback(
+    (services: ActiveService[], selectedServiceId?: string) => {
+      if (!map.current || !mapLoaded) return;
+
+      try {
+        // Remove existing route layers and sources
+        if (map.current.getSource('route')) {
+          map.current.removeLayer('route-line');
+          map.current.removeLayer('route-casing');
+          
+          // Remove incident markers if they exist
+          if (map.current.getLayer('weather-incidents')) {
+            map.current.removeLayer('weather-incidents');
+          }
+          if (map.current.getLayer('road-blocks')) {
+            map.current.removeLayer('road-blocks');
+          }
+          
+          map.current.removeSource('route');
+          map.current.removeSource('incidents');
+        }
+
+        // If no service is selected, don't add any route
+        if (!selectedServiceId) return;
+
+        // Find the selected service
+        const selectedService = services.find((s) => s.id === selectedServiceId);
+        if (!selectedService) return;
+
+        // Create route data
+        const routeData = {
+          type: 'Feature',
+          properties: {},
+          geometry: {
+            type: 'LineString',
+            coordinates: [
+              selectedService.originCoordinates,
+              selectedService.currentLocation.coordinates,
+              selectedService.destinationCoordinates,
+            ],
+          },
+        };
+
+        // Add the route source
+        map.current.addSource('route', {
+          type: 'geojson',
+          data: routeData as any,
         });
+
+        // Add route line casing (wider line underneath for border effect)
+        map.current.addLayer({
+          id: 'route-casing',
+          type: 'line',
+          source: 'route',
+          layout: {
+            'line-join': 'round',
+            'line-cap': 'round',
+          },
+          paint: {
+            'line-color': '#ffffff',
+            'line-width': 6,
+            'line-opacity': 0.9,
+          },
+        });
+
+        // Determine line color based on service status
+        let lineColor = '#34d399'; // Green for on-time
         
-        // If origin and destination coordinates are available, fetch routing data
-        if (service.originCoordinates && service.destinationCoordinates) {
-          // Clear previous route if it exists
-          if (map.current.getLayer('route')) {
-            map.current.removeLayer('route');
-          }
-          if (map.current.getLayer('route-arrows')) {
-            map.current.removeLayer('route-arrows');
-          }
-          if (map.current.getSource('route')) {
-            map.current.removeSource('route');
-          }
+        if (selectedService.roadBlockage && selectedService.roadBlockage.active) {
+          lineColor = '#ef4444'; // Red for blockages
+        } else if (selectedService.weatherEvent && selectedService.weatherEvent.severity > 0) {
+          lineColor = '#f59e0b'; // Amber for weather
+        } else if (selectedService.inRiskZone) {
+          lineColor = '#ef4444'; // Red for risk zone
+        } else if (selectedService.delayRisk && selectedService.delayRiskPercent > 50) {
+          lineColor = '#f59e0b'; // Amber for delay risk
+        }
+
+        // Add the main route line
+        map.current.addLayer({
+          id: 'route-line',
+          type: 'line',
+          source: 'route',
+          layout: {
+            'line-join': 'round',
+            'line-cap': 'round',
+          },
+          paint: {
+            'line-color': lineColor,
+            'line-width': 4,
+            'line-dasharray': [0, 2, 4], // Create a dashed line effect
+          },
+        });
+
+        // Create incidents on the route if they exist
+        const incidents = [];
+        
+        // Add weather incident if it exists
+        if (selectedService.weatherEvent && selectedService.weatherEvent.severity > 0) {
+          // Position the weather incident halfway between origin and current location
+          const weatherIncidentPos = [
+            (selectedService.originCoordinates[0] + selectedService.currentLocation.coordinates[0]) / 2,
+            (selectedService.originCoordinates[1] + selectedService.currentLocation.coordinates[1]) / 2,
+          ];
           
-          // Use Mapbox Directions API to get the actual road-based route
-          const originPoint = service.originCoordinates;
-          const destinationPoint = service.destinationCoordinates;
-          const url = `https://api.mapbox.com/directions/v5/mapbox/driving/${originPoint[0]},${originPoint[1]};${destinationPoint[0]},${destinationPoint[1]}?steps=true&geometries=geojson&overview=full&access_token=${mapboxgl.accessToken}`;
+          incidents.push({
+            type: 'Feature',
+            geometry: {
+              type: 'Point',
+              coordinates: weatherIncidentPos,
+            },
+            properties: {
+              type: 'weather',
+              severity: selectedService.weatherEvent.severity,
+              description: selectedService.weatherEvent.type,
+              location: selectedService.weatherEvent.location,
+            },
+          });
+        }
+        
+        // Add road blockage if it exists
+        if (selectedService.roadBlockage && selectedService.roadBlockage.active) {
+          // Position the road blockage incident halfway between current location and destination
+          const blockagePos = [
+            (selectedService.currentLocation.coordinates[0] + selectedService.destinationCoordinates[0]) / 2,
+            (selectedService.currentLocation.coordinates[1] + selectedService.destinationCoordinates[1]) / 2,
+          ];
           
-          const response = await fetch(url);
-          const data = await response.json();
+          incidents.push({
+            type: 'Feature',
+            geometry: {
+              type: 'Point',
+              coordinates: blockagePos,
+            },
+            properties: {
+              type: 'roadblock',
+              description: selectedService.roadBlockage.reason,
+              location: selectedService.roadBlockage.location,
+            },
+          });
+        }
+        
+        // If we have any incidents, add them to the map
+        if (incidents.length > 0) {
+          // Add the incidents source
+          map.current.addSource('incidents', {
+            type: 'geojson',
+            data: {
+              type: 'FeatureCollection',
+              features: incidents,
+            },
+          });
           
-          if (data.routes && data.routes.length > 0) {
-            const route = data.routes[0];
-            const routeGeometry = route.geometry;
-            
-            // Add the route source and layer
-            map.current.addSource('route', {
-              type: 'geojson',
-              data: {
-                type: 'Feature',
-                properties: {},
-                geometry: routeGeometry
-              }
-            });
-            
-            // Add route line layer
+          // Add weather incidents layer
+          if (incidents.some(i => i.properties.type === 'weather')) {
             map.current.addLayer({
-              id: 'route',
-              type: 'line',
-              source: 'route',
-              layout: {
-                'line-join': 'round',
-                'line-cap': 'round'
-              },
+              id: 'weather-incidents',
+              type: 'circle',
+              source: 'incidents',
+              filter: ['==', 'type', 'weather'],
               paint: {
-                'line-color': '#16a34a',
-                'line-width': 4,
-                'line-opacity': 0.8,
-                'line-dasharray': [0.2, 1]
-              }
+                'circle-radius': 15,
+                'circle-color': '#f59e0b',
+                'circle-opacity': 0.7,
+                'circle-stroke-width': 2,
+                'circle-stroke-color': '#ffffff',
+              },
             });
             
-            // Add direction arrows on the route
+            // Add a cloud icon (we'd ideally use Lucide but this is a simpler approach)
             map.current.addLayer({
-              id: 'route-arrows',
+              id: 'weather-symbols',
               type: 'symbol',
-              source: 'route',
+              source: 'incidents',
+              filter: ['==', 'type', 'weather'],
               layout: {
-                'symbol-placement': 'line',
-                'symbol-spacing': 100,
-                'icon-image': 'arrow',
-                'icon-size': 0.5,
-                'icon-rotate': 90,
-                'icon-rotation-alignment': 'map',
-                'icon-allow-overlap': true,
-                'icon-ignore-placement': true
-              }
+                'text-field': '☁️',
+                'text-size': 14,
+                'text-allow-overlap': true,
+              },
+            });
+          }
+          
+          // Add road blockage layer
+          if (incidents.some(i => i.properties.type === 'roadblock')) {
+            map.current.addLayer({
+              id: 'road-blocks',
+              type: 'circle',
+              source: 'incidents',
+              filter: ['==', 'type', 'roadblock'],
+              paint: {
+                'circle-radius': 15,
+                'circle-color': '#ef4444',
+                'circle-opacity': 0.7,
+                'circle-stroke-width': 2,
+                'circle-stroke-color': '#ffffff',
+              },
             });
             
-            // Fit bounds to show the entire route with padding
-            const bounds = new mapboxgl.LngLatBounds();
-            routeGeometry.coordinates.forEach((coord: [number, number]) => bounds.extend(coord as mapboxgl.LngLatLike));
-            map.current.fitBounds(bounds, { padding: 100, maxZoom: 13 });
-          } else {
-            console.warn('No route found in the response');
-            // Fallback to drawing a line if the API doesn't return a route
-            drawFallbackRoute(map.current, service);
+            // Add an X icon for blockages
+            map.current.addLayer({
+              id: 'roadblock-symbols',
+              type: 'symbol',
+              source: 'incidents',
+              filter: ['==', 'type', 'roadblock'],
+              layout: {
+                'text-field': '❌',
+                'text-size': 12,
+                'text-allow-overlap': true,
+              },
+            });
           }
-        } else if (service.routeCoordinates && service.routeCoordinates.length > 1) {
-          // Fallback to using stored route coordinates if available
-          drawFallbackRoute(map.current, service);
         }
+
+        // Fly to the route with some padding
+        const coordinates = [
+          selectedService.originCoordinates,
+          selectedService.currentLocation.coordinates,
+          selectedService.destinationCoordinates,
+        ];
+
+        const bounds = new mapboxgl.LngLatBounds();
+        coordinates.forEach((coord) => bounds.extend(coord as mapboxgl.LngLatLike));
+
+        map.current.fitBounds(bounds, {
+          padding: { top: 50, bottom: 50, left: 50, right: 50 },
+          maxZoom: 10,
+        });
+      } catch (error) {
+        console.error('Error displaying route:', error);
+        toast.error('Error al mostrar ruta', {
+          description: 'No se pudo visualizar la ruta seleccionada.',
+        });
       }
-    } catch (error) {
-      console.error('Error updating route:', error);
-      // Attempt to draw fallback route if there's an error with the Directions API
-      const service = services.find(s => s.id === selectedServiceId);
-      if (service && map.current) {
-        drawFallbackRoute(map.current, service);
-      }
-    }
-  }, [map, mapLoaded]);
-  
-  // Helper function to draw a fallback route using just the coordinates we have
-  const drawFallbackRoute = (mapInstance: mapboxgl.Map, service: ActiveService) => {
-    // Use the stored route coordinates or create a simple route from origin to destination
-    const routeCoords = service.routeCoordinates || [
-      service.originCoordinates || [],
-      service.currentLocation.coordinates,
-      service.destinationCoordinates || []
-    ].filter(coord => coord.length === 2);
-    
-    if (routeCoords.length < 2) return;
-    
-    // Remove existing route layers if they exist
-    if (mapInstance.getLayer('route')) {
-      mapInstance.removeLayer('route');
-    }
-    if (mapInstance.getLayer('route-arrows')) {
-      mapInstance.removeLayer('route-arrows');
-    }
-    if (mapInstance.getSource('route')) {
-      mapInstance.removeSource('route');
-    }
-    
-    // Add the fallback route source
-    mapInstance.addSource('route', {
-      type: 'geojson',
-      data: {
-        type: 'Feature',
-        properties: {},
-        geometry: {
-          type: 'LineString',
-          coordinates: routeCoords
-        }
-      }
-    });
-    
-    // Add fallback route line layer
-    mapInstance.addLayer({
-      id: 'route',
-      type: 'line',
-      source: 'route',
-      layout: {
-        'line-join': 'round',
-        'line-cap': 'round'
-      },
-      paint: {
-        'line-color': '#16a34a',
-        'line-width': 4,
-        'line-opacity': 0.8,
-        'line-dasharray': [0.2, 1]
-      }
-    });
-    
-    // Add direction arrows on the route
-    mapInstance.addLayer({
-      id: 'route-arrows',
-      type: 'symbol',
-      source: 'route',
-      layout: {
-        'symbol-placement': 'line',
-        'symbol-spacing': 100,
-        'icon-image': 'arrow',
-        'icon-size': 0.5,
-        'icon-rotate': 90,
-        'icon-rotation-alignment': 'map',
-        'icon-allow-overlap': true,
-        'icon-ignore-placement': true
-      }
-    });
-    
-    // Fit bounds to show the entire route
-    const bounds = new mapboxgl.LngLatBounds();
-    routeCoords.forEach(coord => bounds.extend(coord as mapboxgl.LngLatLike));
-    mapInstance.fitBounds(bounds, { padding: 100, maxZoom: 13 });
-  };
-  
+    },
+    [map, mapLoaded]
+  );
+
   return { updateRouteDisplay };
 }

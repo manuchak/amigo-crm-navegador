@@ -31,6 +31,14 @@ export function Marquee({
     "--gap": "1rem",
   } as React.CSSProperties;
 
+  // Check if there are any children to display
+  const hasChildren = React.Children.count(children) > 0;
+
+  // If no children, return a minimal height container that won't cause layout shifts
+  if (!hasChildren) {
+    return null;
+  }
+
   return (
     <div
       className={cn(
@@ -43,11 +51,13 @@ export function Marquee({
     >
       <div
         className={cn(
-          "flex w-full gap-4 py-1 overflow-x-auto whitespace-nowrap no-scrollbar",
+          "flex min-w-full gap-4 py-1 animate-scroll whitespace-nowrap no-scrollbar",
           direction === "left" ? "animate-scroll-left" : "animate-scroll-right"
         )}
         style={{ animationDuration: "var(--duration)" }}
       >
+        {children}
+        {/* Duplicate children for a seamless loop */}
         {children}
       </div>
     </div>

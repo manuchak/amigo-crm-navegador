@@ -129,6 +129,7 @@ export const mockActiveServices: ActiveService[] = [
     cargoUnits: 35,
     progress: 40
   },
+  // Adding several "on time" services
   {
     id: "SVC-005",
     custodioName: "Francisco Ramírez",
@@ -256,5 +257,110 @@ export const mockActiveServices: ActiveService[] = [
       reason: "Manifestación",
       estimatedDelay: "1-1.5 horas"
     }
+  },
+  // Additional "on time" services with no risks
+  {
+    id: "SVC-009",
+    custodioName: "Luisa Ramírez",
+    vehicleType: "Van de reparto",
+    status: "in-transit",
+    origin: "CDMX - Almacén Central",
+    destination: "Texcoco - Centro Comercial",
+    originCoordinates: [-99.1553, 19.3843], 
+    destinationCoordinates: [-98.8831, 19.5076],
+    eta: "14:15",
+    etaOriginal: "14:15",
+    currentLocation: {
+      coordinates: [-99.0214, 19.4261],
+      address: "Carretera México-Texcoco km 15",
+      timestamp: "12:25"
+    },
+    trackingId: "TRK12353",
+    inRiskZone: false,
+    delayRisk: false,
+    delayRiskPercent: 0,
+    cargoType: "Electrónicos",
+    cargoValue: 175000,
+    cargoWeight: 450,
+    cargoUnits: 25,
+    progress: 50
+  },
+  {
+    id: "SVC-010",
+    custodioName: "Fernando Ortiz",
+    vehicleType: "Camión ligero",
+    status: "in-transit",
+    origin: "Pachuca - Centro Logístico",
+    destination: "CDMX - Tienda Norte",
+    originCoordinates: [-98.7561, 20.1169],
+    destinationCoordinates: [-99.1361, 19.4751],
+    eta: "15:30",
+    etaOriginal: "15:30",
+    currentLocation: {
+      coordinates: [-98.9463, 19.7953],
+      address: "Autopista México-Pachuca km 28",
+      timestamp: "12:15"
+    },
+    trackingId: "TRK12354",
+    inRiskZone: false,
+    delayRisk: false,
+    delayRiskPercent: 0,
+    cargoType: "Productos de consumo",
+    cargoValue: 220000,
+    cargoWeight: 1200,
+    cargoUnits: 90,
+    progress: 35
+  },
+  {
+    id: "SVC-011",
+    custodioName: "Isabel Méndez",
+    vehicleType: "Camioneta de reparto",
+    status: "in-transit",
+    origin: "Toluca - Fábrica",
+    destination: "CDMX - Centro de Distribución",
+    originCoordinates: [-99.6567, 19.2826],
+    destinationCoordinates: [-99.1332, 19.4326],
+    eta: "13:45",
+    etaOriginal: "13:45",
+    currentLocation: {
+      coordinates: [-99.4033, 19.3622],
+      address: "Carretera México-Toluca km 42",
+      timestamp: "12:20"
+    },
+    trackingId: "TRK12355",
+    inRiskZone: false,
+    delayRisk: false,
+    delayRiskPercent: 0,
+    cargoType: "Mercancía general",
+    cargoValue: 130000,
+    cargoWeight: 850,
+    cargoUnits: 35,
+    progress: 60
+  },
+  {
+    id: "SVC-012",
+    custodioName: "Ricardo Flores",
+    vehicleType: "Van de carga",
+    status: "in-transit",
+    origin: "CDMX - Centro",
+    destination: "Cuernavaca - Plaza Comercial",
+    originCoordinates: [-99.1332, 19.4326],
+    destinationCoordinates: [-99.2212, 18.9217],
+    eta: "16:00",
+    etaOriginal: "16:00",
+    currentLocation: {
+      coordinates: [-99.1809, 19.2176],
+      address: "Autopista México-Cuernavaca km 25",
+      timestamp: "12:30"
+    },
+    trackingId: "TRK12356",
+    inRiskZone: false,
+    delayRisk: false,
+    delayRiskPercent: 0,
+    cargoType: "Productos retail",
+    cargoValue: 195000,
+    cargoWeight: 600,
+    cargoUnits: 50,
+    progress: 30
   }
 ];

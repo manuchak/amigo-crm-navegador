@@ -27,7 +27,7 @@ export function ActiveServicesDashboard() {
     const delayedCount = services.filter(s => s.delayRisk && s.delayRiskPercent > 50).length;
     const riskZoneCount = services.filter(s => s.inRiskZone).length;
     
-    // Calculate onTime by subtracting all risky services from total, but ensure it's never negative
+    // Calculate onTime by subtracting all risky services from total, ensuring non-negative
     const riskyServicesCount = roadBlockCount + weatherEventCount + delayedCount + riskZoneCount;
     const onTime = Math.max(0, totalServices - riskyServicesCount);
     

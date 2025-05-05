@@ -1,90 +1,111 @@
 
 import React from 'react';
 import { Card } from '@/components/ui/card';
-import { Check, Clock, AlertTriangle, CloudRain, ArrowDown } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { CheckCircle, Clock, AlertCircle, ArrowDown, CloudRain } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 interface StatsCardsProps {
   total: number;
   onTime: number;
   delayed: number;
   riskZone: number;
-  roadBlocks?: number;
-  weatherEvents?: number;
+  roadBlocks: number;
+  weatherEvents: number;
 }
 
-export function StatsCards({ total, onTime, delayed, riskZone, roadBlocks = 0, weatherEvents = 0 }: StatsCardsProps) {
+export function StatsCards({ 
+  total, 
+  onTime, 
+  delayed, 
+  riskZone,
+  roadBlocks,
+  weatherEvents
+}: StatsCardsProps) {
+  // Ensure all values are non-negative
+  const safeOnTime = Math.max(0, onTime);
+  const safeDelayed = Math.max(0, delayed);
+  const safeRiskZone = Math.max(0, riskZone);
+  const safeRoadBlocks = Math.max(0, roadBlocks);
+  const safeWeatherEvents = Math.max(0, weatherEvents);
+  
   return (
-    <div className="grid grid-cols-1 gap-2 mb-3">
-      <Card className="p-2 border shadow-sm">
-        <div className="flex items-center justify-between">
-          <span className="text-xs font-medium text-slate-500">Total</span>
-          <span className="text-base font-semibold">{total}</span>
+    <div className="grid grid-cols-1 gap-2">
+      <Card className="bg-white border p-3 mb-1 shadow-sm">
+        <div className="text-center">
+          <div className="text-sm font-medium text-slate-500 mb-0.5">Total</div>
+          <div className="text-2xl font-bold">{total}</div>
         </div>
       </Card>
       
       <div className="grid grid-cols-2 gap-2">
-        <Card className="p-2 border shadow-sm bg-green-50">
-          <div className="flex items-center gap-1.5">
-            <div className="h-6 w-6 rounded-full bg-green-100 flex items-center justify-center">
-              <Check className="h-3.5 w-3.5 text-green-600" />
+        <Card className={cn(
+          "border p-2 shadow-sm",
+          "bg-green-50"
+        )}>
+          <div className="flex flex-col items-center">
+            <div className="flex items-center justify-center mb-1">
+              <CheckCircle className="h-4 w-4 text-green-500 mr-1" />
+              <div className="text-xs font-medium text-slate-700">En tiempo</div>
             </div>
-            <div className="flex flex-col">
-              <span className="text-xs font-medium text-green-700">En Tiempo</span>
-              <span className="text-base font-semibold text-green-800">{onTime}</span>
-            </div>
+            <div className="text-xl font-bold text-green-700">{safeOnTime}</div>
           </div>
         </Card>
         
-        <Card className="p-2 border shadow-sm bg-amber-50">
-          <div className="flex items-center gap-1.5">
-            <div className="h-6 w-6 rounded-full bg-amber-100 flex items-center justify-center">
-              <Clock className="h-3.5 w-3.5 text-amber-600" />
+        <Card className={cn(
+          "border p-2 shadow-sm",
+          "bg-amber-50"
+        )}>
+          <div className="flex flex-col items-center">
+            <div className="flex items-center justify-center mb-1">
+              <Clock className="h-4 w-4 text-amber-500 mr-1" />
+              <div className="text-xs font-medium text-slate-700">Retrasos</div>
             </div>
-            <div className="flex flex-col">
-              <span className="text-xs font-medium text-amber-700">Retrasos</span>
-              <span className="text-base font-semibold text-amber-800">{delayed}</span>
-            </div>
+            <div className="text-xl font-bold text-amber-700">{safeDelayed}</div>
           </div>
         </Card>
       </div>
       
-      <div className="grid grid-cols-2 gap-2">
-        <Card className="p-2 border shadow-sm bg-amber-50">
-          <div className="flex items-center gap-1.5">
-            <div className="h-6 w-6 rounded-full bg-amber-100 flex items-center justify-center">
-              <CloudRain className="h-3.5 w-3.5 text-amber-600" />
+      <div className="grid grid-cols-3 gap-2">
+        <Card className={cn(
+          "border p-2 shadow-sm",
+          "bg-red-50"
+        )}>
+          <div className="flex flex-col items-center">
+            <div className="flex items-center justify-center mb-1">
+              <AlertCircle className="h-3.5 w-3.5 text-red-500 mr-1" />
+              <div className="text-xs font-medium text-slate-700">Zonas</div>
             </div>
-            <div className="flex flex-col">
-              <span className="text-xs font-medium text-amber-700">Clima</span>
-              <span className="text-base font-semibold text-amber-800">{weatherEvents}</span>
-            </div>
+            <div className="text-lg font-bold text-red-700">{safeRiskZone}</div>
           </div>
         </Card>
         
-        <Card className="p-2 border shadow-sm bg-red-50">
-          <div className="flex items-center gap-1.5">
-            <div className="h-6 w-6 rounded-full bg-red-100 flex items-center justify-center">
-              <ArrowDown className="h-3.5 w-3.5 text-red-600" />
+        <Card className={cn(
+          "border p-2 shadow-sm",
+          "bg-red-50"
+        )}>
+          <div className="flex flex-col items-center">
+            <div className="flex items-center justify-center mb-1">
+              <ArrowDown className="h-3.5 w-3.5 text-red-500 mr-1" />
+              <div className="text-xs font-medium text-slate-700">Bloqueos</div>
             </div>
-            <div className="flex flex-col">
-              <span className="text-xs font-medium text-red-700">Bloqueos</span>
-              <span className="text-base font-semibold text-red-800">{roadBlocks}</span>
+            <div className="text-lg font-bold text-red-700">{safeRoadBlocks}</div>
+          </div>
+        </Card>
+        
+        <Card className={cn(
+          "border p-2 shadow-sm",
+          "bg-amber-50"
+        )}>
+          <div className="flex flex-col items-center">
+            <div className="flex items-center justify-center mb-1">
+              <CloudRain className="h-3.5 w-3.5 text-amber-500 mr-1" />
+              <div className="text-xs font-medium text-slate-700">Clima</div>
             </div>
+            <div className="text-lg font-bold text-amber-700">{safeWeatherEvents}</div>
           </div>
         </Card>
       </div>
-      
-      <Card className="p-2 border shadow-sm bg-red-50">
-        <div className="flex items-center gap-1.5">
-          <div className="h-6 w-6 rounded-full bg-red-100 flex items-center justify-center">
-            <AlertTriangle className="h-3.5 w-3.5 text-red-600" />
-          </div>
-          <div className="flex flex-col">
-            <span className="text-xs font-medium text-red-700">Zonas de Riesgo</span>
-            <span className="text-base font-semibold text-red-800">{riskZone}</span>
-          </div>
-        </div>
-      </Card>
     </div>
   );
 }
