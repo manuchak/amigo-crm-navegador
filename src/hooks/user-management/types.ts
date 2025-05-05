@@ -9,6 +9,6 @@ export interface UserManagementMethods {
 }
 
 export interface UserManagementHookProps {
-  setLoading: React.Dispatch<React.SetStateAction<boolean>>;
+  setLoading: (id: string | null) => void;
   refreshUserData: () => Promise<void>;
 }

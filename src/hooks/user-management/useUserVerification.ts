@@ -7,7 +7,7 @@ import { UserManagementHookProps } from './types';
 
 export const useUserVerification = ({ setLoading, refreshUserData }: UserManagementHookProps) => {
   const verifyEmail = async (uid: string): Promise<{ success: boolean; error?: any }> => {
-    setLoading(true);
+    setLoading(uid);
     try {
       console.log(`Verifying email for user ${uid}`);
       // Try to use the Supabase RPC function first
@@ -51,7 +51,7 @@ export const useUserVerification = ({ setLoading, refreshUserData }: UserManagem
       toast.error('Error al verificar el correo electrónico');
       return { success: false, error };
     } finally {
-      setLoading(false);
+      setLoading(null);
     }
   };
   
@@ -61,7 +61,7 @@ export const useUserVerification = ({ setLoading, refreshUserData }: UserManagem
       return { success: false, error: "No email provided" };
     }
 
-    setLoading(true);
+    setLoading(email);
     try {
       console.log(`Attempting to set user ${email} as verified owner`);
       
@@ -150,7 +150,7 @@ export const useUserVerification = ({ setLoading, refreshUserData }: UserManagem
       toast.error('Error al configurar el usuario como propietario verificado: ' + (error.message || 'Error desconocido'));
       return { success: false, error };
     } finally {
-      setLoading(false);
+      setLoading(null);
     }
   };
 
