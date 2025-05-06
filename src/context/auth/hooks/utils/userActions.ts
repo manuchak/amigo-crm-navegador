@@ -1,13 +1,19 @@
 
 import { supabase } from '@/integrations/supabase/client';
 
-export const updateLastLogin = async (userId: string) => {
+export async function updateLastLogin(userId: string) {
   try {
-    await supabase
+    const { error } = await supabase
       .from('profiles')
-      .update({ last_login: new Date().toISOString() })
+      .update({
+        last_login: new Date().toISOString(),
+      })
       .eq('id', userId);
-  } catch (error) {
-    console.error('Error updating last login:', error);
+    
+    if (error) {
+      console.error('Error updating last login:', error);
+    }
+  } catch (err) {
+    console.error('Exception updating last login:', err);
   }
-};
+}

@@ -1,84 +1,46 @@
 
 import { User } from '@supabase/supabase-js';
-import { supabase } from '@/integrations/supabase/client';
 import { UserData } from '@/types/auth';
+import { supabase } from '@/integrations/supabase/client';
 
-/**
- * Maps a Supabase User object to our application's UserData format
- */
-export const mapUserData = async (user: User): Promise<UserData> => {
+export async function mapUserData(user: User): Promise<UserData> {
+  console.log('Mapping user data for:', user.email);
+  
   try {
-    if (!user) {
-      throw new Error('No user data provided to mapper');
-    }
-    
-    console.log('Mapping user data for:', user.email);
-    
     // Get profile data from profiles table
-    const { data: profileData, error: profileError } = await supabase
+    const { data: profile } = await supabase
       .from('profiles')
       .select('*')
       .eq('id', user.id)
-      .maybeSingle();
+      .single();
     
-    if (profileError) {
-      console.error('Error fetching profile data:', profileError);
-    }
-    
-    // Get user role
-    const { data: roleData, error: roleError } = await supabase
+    // Get user role from RPC function
+    const { data: role } = await supabase
       .rpc('get_user_role', { user_uid: user.id });
     
-    if (roleError) {
-      console.error('Error fetching user role:', roleError);
-    }
-    
-    // Update last login timestamp in profile
-    try {
-      await supabase
-        .from('profiles')
-        .update({ last_login: new Date().toISOString() })
-        .eq('id', user.id);
-    } catch (updateError) {
-      console.error('Error updating last login time:', updateError);
-    }
-    
-    // Construct and return the UserData object
+    // Create UserData object
     return {
       uid: user.id,
       email: user.email || '',
-      displayName: profileData?.display_name || user.email || '',
-      photoURL: profileData?.photo_url || null,
-      role: roleData as any || 'unverified',
+      displayName: profile?.display_name || user.email || '',
+      photoURL: profile?.photo_url || null,
+      role: role as any || 'unverified',
       emailVerified: user.email_confirmed_at ? true : false,
-      createdAt: profileData?.created_at ? new Date(profileData.created_at) : new Date(),
-      lastLogin: profileData?.last_login ? new Date(profileData.last_login) : new Date(),
+      createdAt: profile?.created_at ? new Date(profile.created_at) : new Date(),
+      lastLogin: profile?.last_login ? new Date(profile.last_login) : new Date(),
     };
   } catch (error) {
-    console.error('Error in userDataMapper:', error);
-    // Provide a minimal fallback object to prevent crashes
+    console.error('Error mapping user data:', error);
+    
+    // Return minimal user data if profile fetch fails
     return {
       uid: user.id,
       email: user.email || '',
       displayName: user.email || '',
       role: 'unverified',
-      emailVerified: false,
+      emailVerified: user.email_confirmed_at ? true : false,
       createdAt: new Date(),
-      lastLogin: new Date()
+      lastLogin: new Date(),
     };
   }
-};
-
-/**
- * Updates the last login timestamp for a user
- */
-export const updateLastLogin = async (userId: string): Promise<void> => {
-  try {
-    await supabase
-      .from('profiles')
-      .update({ last_login: new Date().toISOString() })
-      .eq('id', userId);
-  } catch (error) {
-    console.error('Error updating last login time:', error);
-  }
-};
+}
