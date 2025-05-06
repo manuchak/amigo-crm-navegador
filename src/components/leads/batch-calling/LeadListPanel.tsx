@@ -1,5 +1,5 @@
 
-import React from "react";
+import React, { useRef, useEffect } from "react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
@@ -16,6 +16,16 @@ const LeadListPanel: React.FC<LeadListPanelProps> = ({
   selectAllVisible,
   isLeadCalificado
 }) => {
+  // Create a ref to handle the indeterminate state
+  const checkboxRef = useRef<HTMLButtonElement>(null);
+  
+  // Update the indeterminate state when allSelected or someSelected changes
+  useEffect(() => {
+    if (checkboxRef.current) {
+      checkboxRef.current.indeterminate = someSelected && !allSelected;
+    }
+  }, [someSelected, allSelected]);
+
   return (
     <div className="mb-4">
       <div className="flex items-center justify-between mb-2">
@@ -27,8 +37,8 @@ const LeadListPanel: React.FC<LeadListPanelProps> = ({
           <div className="flex items-center space-x-2">
             <Checkbox
               id="select-all"
+              ref={checkboxRef}
               checked={allSelected}
-              indeterminate={someSelected}
               onCheckedChange={handleSelectAll}
             />
             <label htmlFor="select-all" className="text-sm cursor-pointer">
