@@ -35,8 +35,8 @@ export interface AuthContextProps {
   session: Session | null;
   loading: boolean;
   isInitializing: boolean; // Added to track initial load state
-  signIn: (email: string, password: string) => Promise<{ user: User | null; error: any }>;
-  signUp: (email: string, password: string, displayName: string) => Promise<{ user: User | null; error: any }>;
+  signIn: (email: string, password: string) => Promise<{ user: UserData | null; error: any }>;
+  signUp: (email: string, password: string, displayName: string) => Promise<{ user: UserData | null; error: any }>;
   signOut: () => Promise<void>;
   updateUserRole: (userId: string, role: UserRole) => Promise<{ success: boolean; error?: any }>;
   getAllUsers: () => Promise<UserData[]>;

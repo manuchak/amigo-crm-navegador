@@ -9,7 +9,7 @@ export const useAuthentication = (
   setLoading: React.Dispatch<React.SetStateAction<boolean>>
 ) => {
   // Sign in functionality
-  const signIn = async (email: string, password: string) => {
+  const signIn = async (email: string, password: string): Promise<UserData | null> => {
     setLoading(true);
     try {
       const userData = loginUser(email, password);
@@ -40,7 +40,7 @@ export const useAuthentication = (
   };
 
   // Sign up functionality
-  const signUp = async (email: string, password: string, displayName: string) => {
+  const signUp = async (email: string, password: string, displayName: string): Promise<UserData | null> => {
     setLoading(true);
     try {
       // Create user - using simplified local storage approach
