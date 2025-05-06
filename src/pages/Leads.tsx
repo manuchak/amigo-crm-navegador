@@ -5,7 +5,9 @@ import LeadsDashboard from '@/components/leads/LeadsDashboard';
 import { LeadsProvider } from '@/context/LeadsContext';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useNavigate, useLocation } from 'react-router-dom';
-import ProspectsPage from './Prospects';
+import ProspectsPage from '@/components/leads/ProspectsPage';
+import QualifiedLeadsApproval from '@/components/leads/QualifiedLeadsApproval';
+import { LeadsCrmDashboard } from '@/components/leads/LeadsCrmDashboard';
 
 const Leads: React.FC = () => {
   const navigate = useNavigate();
@@ -17,6 +19,10 @@ const Leads: React.FC = () => {
     setActiveTab(value);
     if (value === 'prospects') {
       navigate('/leads/prospects');
+    } else if (value === 'validation') {
+      navigate('/leads/validation');
+    } else if (value === 'crm') {
+      navigate('/leads/crm');
     } else {
       navigate('/leads');
     }
@@ -26,6 +32,10 @@ const Leads: React.FC = () => {
   React.useEffect(() => {
     if (location.pathname.includes('/leads/prospects')) {
       setActiveTab('prospects');
+    } else if (location.pathname.includes('/leads/validation')) {
+      setActiveTab('validation');
+    } else if (location.pathname.includes('/leads/crm')) {
+      setActiveTab('crm');
     } else {
       setActiveTab('dashboard');
     }
@@ -57,15 +67,17 @@ const Leads: React.FC = () => {
         
         <TabsContent value="validation" className="mt-0">
           <div className="bg-white rounded-lg p-6 shadow-sm">
-            <h2 className="text-xl font-semibold mb-4">Validación de Leads</h2>
-            <p className="text-muted-foreground">Módulo de validación de leads.</p>
+            <LeadsProvider>
+              <QualifiedLeadsApproval />
+            </LeadsProvider>
           </div>
         </TabsContent>
         
         <TabsContent value="crm" className="mt-0">
           <div className="bg-white rounded-lg p-6 shadow-sm">
-            <h2 className="text-xl font-semibold mb-4">CRM de Leads</h2>
-            <p className="text-muted-foreground">Gestión de relaciones con leads calificados.</p>
+            <LeadsProvider>
+              <LeadsCrmDashboard />
+            </LeadsProvider>
           </div>
         </TabsContent>
       </Tabs>

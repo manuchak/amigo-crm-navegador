@@ -105,6 +105,14 @@ const AppRoutes = () => {
         element={<ProtectedRoute><Leads /></ProtectedRoute>} 
       />
       <Route 
+        path="/leads/validation" 
+        element={<ProtectedRoute><Leads /></ProtectedRoute>} 
+      />
+      <Route 
+        path="/leads/crm" 
+        element={<ProtectedRoute><Leads /></ProtectedRoute>} 
+      />
+      <Route 
         path="/requerimientos" 
         element={<ProtectedRoute><Requerimientos /></ProtectedRoute>} 
       />
