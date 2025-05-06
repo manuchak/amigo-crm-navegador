@@ -9,7 +9,7 @@ import { DriverRiskAssessment } from './DriverRiskAssessment';
 import { CO2EmissionsCard } from './CO2EmissionsCard';
 import { TopDriversPanel } from './TopDriversPanel';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
-import { DriverBehaviorFilters } from '../types/driver-behavior.types';
+import { DriverBehaviorFilters, DriverBehaviorData, DriverScore, DriverPerformance } from '../types/driver-behavior.types';
 import { ProductivityDashboard } from './productivity/ProductivityDashboard';
 import { useQuery } from '@tanstack/react-query';
 import { fetchDriverBehaviorData } from '../services/driverBehavior/dataService';

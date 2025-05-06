@@ -1,7 +1,7 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Metric } from '@/components/ui/metric';
-import { AlertTriangle, ShieldAlert, ShieldCheck, User, Users } from 'lucide-react';
+import { AlertTriangle, ShieldAlert, ShieldCheck } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
 import { DriverRiskAssessmentProps, RiskAssessment } from '../types/driver-behavior.types';

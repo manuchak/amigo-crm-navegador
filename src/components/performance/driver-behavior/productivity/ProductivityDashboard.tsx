@@ -1,6 +1,7 @@
+
 import React, { useState, useEffect } from 'react';
 import { DateRange } from 'react-day-picker';
-import { DriverBehaviorFilters, ProductivityParametersTableProps, ProductivityParametersDialogProps } from '../../types/driver-behavior.types';
+import { DriverBehaviorFilters } from '../../types/driver-behavior.types';
 import { ProductivityMetricsCards } from './ProductivityMetricsCards';
 import { ProductivityEfficiencyCards } from './ProductivityEfficiencyCards';
 import { DriverRatingTable } from './DriverRatingTable';
@@ -112,7 +113,7 @@ export function ProductivityDashboard({
               filters={filters}
             />
             <ProductivityParametersTable 
-              client={selectedClient}
+              client={selectedClient || ''}
               group={filters.selectedGroup !== 'all' ? filters.selectedGroup : undefined}
               onEditParameters={() => setIsParametersDialogOpen(true)}
             />
@@ -128,7 +129,7 @@ export function ProductivityDashboard({
           <ProductivityParametersDialog 
             isOpen={isParametersDialogOpen}
             onClose={() => setIsParametersDialogOpen(false)}
-            client={selectedClient}
+            client={selectedClient || ''}
             group={filters.selectedGroup !== 'all' ? filters.selectedGroup : undefined}
           />
         </div>
