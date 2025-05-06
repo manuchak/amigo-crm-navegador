@@ -2,18 +2,19 @@ import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Award, TrendingDown, Gauge } from "lucide-react";
 import { Skeleton } from '@/components/ui/skeleton';
-import { DriverPerformance, DriverScore, TopDriversPanelProps } from '../types/driver-behavior.types';
+import { DriverPerformance, DriverScore, DriverBehaviorFilters } from '../types/driver-behavior.types';
 import { getScoreColorClass } from '../utils/scoreCalculator';
 import { Avatar } from '@/components/ui/avatar';
+import { DateRange } from 'react-day-picker';
 
-interface TopDriversPanelProps {
+interface PanelProps {
   data?: DriverPerformance;
   isLoading: boolean;
-  dateRange: string;
-  filters: any;
+  dateRange: DateRange;
+  filters: DriverBehaviorFilters;
 }
 
-export function TopDriversPanel({ data, isLoading, dateRange, filters }: TopDriversPanelProps) {
+export function TopDriversPanel({ data, isLoading, dateRange, filters }: PanelProps) {
   if (isLoading) {
     return (
       <Card className="border shadow-sm overflow-hidden">

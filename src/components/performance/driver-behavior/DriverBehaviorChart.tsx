@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { DateRange } from "react-day-picker";
-import { DriverScore, DriverBehaviorChartProps } from "../types/driver-behavior.types";
+import { DriverScore, DriverBehaviorFilters } from "../types/driver-behavior.types";
 import { Skeleton } from "@/components/ui/skeleton";
 import { 
   BarChart, 
@@ -16,14 +16,14 @@ import {
 } from "recharts";
 import { calculateScoreCategory } from "../utils/scoreCalculator";
 
-interface DriverBehaviorChartProps {
+interface ChartProps {
   data?: DriverScore[] | null;
   isLoading: boolean;
   dateRange: DateRange;
-  filters: any; // Assuming filters is of any type
+  filters: DriverBehaviorFilters;
 }
 
-export function DriverBehaviorChart({ data, isLoading, dateRange, filters }: DriverBehaviorChartProps) {
+export function DriverBehaviorChart({ data, isLoading, dateRange, filters }: ChartProps) {
   // Process data for the chart
   const chartData = useMemo(() => {
     if (!data || !Array.isArray(data) || data.length === 0) return [];

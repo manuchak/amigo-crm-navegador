@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import {
   Table,
@@ -26,19 +25,27 @@ import { ProductivityParameter } from '../../types/productivity.types';
 import { deleteProductivityParameter, updateAllFuelPrices } from '../../services/productivity/productivityService';
 import { toast } from 'sonner';
 
-interface ProductivityParametersTableProps {
-  parameters: ProductivityParameter[];
-  clients: string[];
-  driverGroups: string[];
-  isLoading: boolean;
-  onRefresh: () => void;
+export interface ProductivityParametersTableProps {
+  parameters?: ProductivityParameter[];
+  client: string;
+  group?: string;
+  clients?: string[];
+  driverGroups?: string[];
+  isLoading?: boolean;
+  onRefresh?: () => void;
+  onEditParameters: () => void;
   selectedClient?: string;
 }
 
 export function ProductivityParametersTable({
-  parameters,
-  isLoading,
-  onRefresh,
+  parameters = [],
+  client,
+  group,
+  clients = [],
+  driverGroups = [],
+  isLoading = false,
+  onRefresh = () => {},
+  onEditParameters,
   selectedClient
 }: ProductivityParametersTableProps) {
   const [searchTerm, setSearchTerm] = useState('');
@@ -49,8 +56,8 @@ export function ProductivityParametersTable({
     let filtered = parameters;
     
     // Apply client filter if specified in props
-    if (selectedClient) {
-      filtered = filtered.filter(param => param.client === selectedClient);
+    if (client) {
+      filtered = filtered.filter(param => param.client === client);
     }
     
     // Apply search filter
@@ -62,7 +69,7 @@ export function ProductivityParametersTable({
     }
     
     return filtered;
-  }, [parameters, searchTerm, selectedClient]);
+  }, [parameters, searchTerm, client]);
   
   // Handle delete confirmation
   const confirmDelete = async () => {

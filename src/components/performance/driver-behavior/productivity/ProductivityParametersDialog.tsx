@@ -10,20 +10,22 @@ import {
   ProductivityMetricsFields 
 } from './components';
 
-interface ProductivityParametersDialogProps {
-  open: boolean;
+export interface ProductivityParametersDialogProps {
+  isOpen: boolean;
   onClose: () => void;
   onSaved?: () => void;
-  selectedClient?: string;
+  client: string;
+  group?: string;
   availableGroups?: string[];
   clientList?: string[];
 }
 
 export function ProductivityParametersDialog({ 
-  open, 
+  isOpen, 
   onClose, 
   onSaved,
-  selectedClient,
+  client,
+  group,
   availableGroups = [],
   clientList = []
 }: ProductivityParametersDialogProps) {
@@ -35,7 +37,7 @@ export function ProductivityParametersDialog({
     onSubmit,
     fetchLatestFuelPrice
   } = useProductivityParameters({
-    selectedClient,
+    selectedClient: client,
     onSaved,
     onClose
   });
@@ -45,7 +47,7 @@ export function ProductivityParametersDialog({
   const currentClient = form.watch('client');
   
   return (
-    <Dialog open={open} onOpenChange={onClose}>
+    <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-[550px] p-6 bg-white">
         <DialogHeader className="mb-4">
           <DialogTitle className="text-center text-xl font-semibold">
