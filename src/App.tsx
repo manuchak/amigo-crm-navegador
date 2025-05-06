@@ -3,7 +3,11 @@ import React, { useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { Toaster } from 'sonner';
 import { AuthProvider, useAuth } from '@/context/auth/AuthContext';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import './App.css';
+
+// Create a client
+const queryClient = new QueryClient();
 
 // Import all components directly to avoid dynamic import issues
 import Login from './pages/Login';
@@ -135,12 +139,14 @@ const AppRoutes = () => {
 function App() {
   console.log('App rendering');
   return (
-    <AuthProvider>
-      <Router>
-        <AppRoutes />
-        <Toaster />
-      </Router>
-    </AuthProvider>
+    <QueryClientProvider client={queryClient}>
+      <AuthProvider>
+        <Router>
+          <AppRoutes />
+          <Toaster />
+        </Router>
+      </AuthProvider>
+    </QueryClientProvider>
   );
 }
 
