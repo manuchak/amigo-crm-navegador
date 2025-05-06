@@ -27,17 +27,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     const initAuth = async () => {
       try {
+        console.log('Initializing auth context...');
         // Check for existing user session in localStorage
         const storedUser = getCurrentUser();
         if (storedUser) {
           console.log('User found in local storage:', storedUser);
           setUserData(storedUser);
+        } else {
+          console.log('No user found in local storage');
         }
       } catch (error) {
         console.error('Error initializing auth:', error);
       } finally {
         setLoading(false);
         setIsInitializing(false);
+        console.log('Auth initialization complete');
       }
     };
     

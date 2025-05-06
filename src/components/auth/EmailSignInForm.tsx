@@ -21,7 +21,7 @@ const EmailSignInForm: React.FC<{ onSuccess?: () => void; onForgotPassword?: () 
   onSuccess,
   onForgotPassword 
 }) => {
-  const { signIn, loading: authLoading } = useAuth();
+  const { signIn } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
   
   const form = useForm<FormData>({
@@ -37,11 +37,19 @@ const EmailSignInForm: React.FC<{ onSuccess?: () => void; onForgotPassword?: () 
     
     setIsSubmitting(true);
     try {
-      const userData = await signIn(data.email, data.password);
+      console.log("Attempting sign in with:", data.email);
+      const result = await signIn(data.email, data.password);
       
-      if (userData) {
+      if (result.error) {
+        throw result.error;
+      }
+      
+      if (result.user) {
+        console.log("Sign in successful:", result.user);
         toast.success('¡Inicio de sesión exitoso!');
         if (onSuccess) onSuccess();
+      } else {
+        throw new Error("No se pudo iniciar sesión");
       }
     } catch (error: any) {
       console.error("Login error:", error);
@@ -50,9 +58,6 @@ const EmailSignInForm: React.FC<{ onSuccess?: () => void; onForgotPassword?: () 
       setIsSubmitting(false);
     }
   };
-
-  // Combine the component loading state with the auth loading state
-  const isLoading = authLoading || isSubmitting;
 
   return (
     <Form {...form}>
@@ -70,7 +75,7 @@ const EmailSignInForm: React.FC<{ onSuccess?: () => void; onForgotPassword?: () 
                     {...field}
                     placeholder="tucorreo@ejemplo.com"
                     className="pl-10"
-                    disabled={isLoading}
+                    disabled={isSubmitting}
                   />
                 </div>
               </FormControl>
@@ -93,7 +98,7 @@ const EmailSignInForm: React.FC<{ onSuccess?: () => void; onForgotPassword?: () 
                     type="password"
                     placeholder="••••••••"
                     className="pl-10"
-                    disabled={isLoading}
+                    disabled={isSubmitting}
                   />
                 </div>
               </FormControl>
@@ -109,15 +114,15 @@ const EmailSignInForm: React.FC<{ onSuccess?: () => void; onForgotPassword?: () 
               variant="link" 
               onClick={onForgotPassword}
               className="p-0 h-auto"
-              disabled={isLoading}
+              disabled={isSubmitting}
             >
               ¿Olvidaste tu contraseña?
             </Button>
           </div>
         )}
         
-        <Button type="submit" className="w-full" disabled={isLoading}>
-          {isLoading ? (
+        <Button type="submit" className="w-full" disabled={isSubmitting}>
+          {isSubmitting ? (
             <>
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
               Iniciando sesión...

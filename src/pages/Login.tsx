@@ -11,20 +11,21 @@ import { useAuth } from '@/context/AuthContext';
 import { Shield, Loader2 } from 'lucide-react';
 
 const Login = () => {
-  const { currentUser, loading } = useAuth();
+  const { currentUser, loading, isInitializing } = useAuth();
   const [authTab, setAuthTab] = useState('signin');
   const [showForgotPassword, setShowForgotPassword] = useState(false);
   const navigate = useNavigate();
   
+  console.log('Login page rendered, auth state:', { currentUser, loading, isInitializing });
+  
   useEffect(() => {
-    console.log("Login page rendered, checking user:", currentUser);
-    if (currentUser) {
+    if (currentUser && !loading && !isInitializing) {
       console.log("User is already logged in, redirecting to dashboard");
       navigate('/dashboard');
     }
-  }, [currentUser, navigate]);
+  }, [currentUser, loading, isInitializing, navigate]);
   
-  if (loading) {
+  if (isInitializing || loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="text-center">

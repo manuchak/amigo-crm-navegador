@@ -1,30 +1,50 @@
 
-import { UserData } from '@/types/auth';
 import { StoredUser, USERS_STORAGE_KEY, CURRENT_USER_KEY } from './types';
+import { UserData } from '@/types/auth';
 
+// Get users from localStorage
 export const getUsers = (): StoredUser[] => {
-  const usersJson = localStorage.getItem(USERS_STORAGE_KEY);
-  return usersJson ? JSON.parse(usersJson) : [];
-};
-
-export const saveUsers = (users: StoredUser[]): void => {
-  localStorage.setItem(USERS_STORAGE_KEY, JSON.stringify(users));
-};
-
-export const findUserByEmail = (email: string): StoredUser | undefined => {
-  const users = getUsers();
-  return users.find(user => user.email.toLowerCase() === email.toLowerCase());
-};
-
-export const getCurrentUser = (): UserData | null => {
-  const userJson = localStorage.getItem(CURRENT_USER_KEY);
-  return userJson ? JSON.parse(userJson) : null;
-};
-
-export const setCurrentUser = (user: UserData | null): void => {
-  if (user) {
-    localStorage.setItem(CURRENT_USER_KEY, JSON.stringify(user));
-  } else {
-    localStorage.removeItem(CURRENT_USER_KEY);
+  try {
+    const usersJson = localStorage.getItem(USERS_STORAGE_KEY);
+    return usersJson ? JSON.parse(usersJson) : [];
+  } catch (error) {
+    console.error('Error retrieving users:', error);
+    return [];
   }
+};
+
+// Save users to localStorage
+export const saveUsers = (users: StoredUser[]): void => {
+  try {
+    localStorage.setItem(USERS_STORAGE_KEY, JSON.stringify(users));
+  } catch (error) {
+    console.error('Error saving users:', error);
+  }
+};
+
+// Get current user from localStorage
+export const getCurrentUser = (): UserData | null => {
+  try {
+    const userJson = localStorage.getItem(CURRENT_USER_KEY);
+    return userJson ? JSON.parse(userJson) : null;
+  } catch (error) {
+    console.error('Error retrieving current user:', error);
+    return null;
+  }
+};
+
+// Set current user in localStorage
+export const setCurrentUser = (user: UserData): void => {
+  try {
+    localStorage.setItem(CURRENT_USER_KEY, JSON.stringify(user));
+  } catch (error) {
+    console.error('Error saving current user:', error);
+  }
+};
+
+// Find user by email
+export const findUserByEmail = (email: string): StoredUser | null => {
+  const users = getUsers();
+  const user = users.find(u => u.email.toLowerCase() === email.toLowerCase());
+  return user || null;
 };
