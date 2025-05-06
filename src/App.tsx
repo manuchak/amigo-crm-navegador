@@ -1,4 +1,3 @@
-
 import React, { useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { Toaster } from 'sonner';
@@ -18,6 +17,7 @@ import Support from './pages/Support';
 import ResetPassword from './pages/ResetPassword';
 import VerifyConfirmation from './pages/VerifyConfirmation';
 import Index from './pages/Index';
+import Prospects from './pages/Prospects';
 
 // Protected route component
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -97,6 +97,10 @@ const AppRoutes = () => {
       />
       <Route 
         path="/leads" 
+        element={<ProtectedRoute><Leads /></ProtectedRoute>} 
+      />
+      <Route 
+        path="/leads/prospects" 
         element={<ProtectedRoute><Leads /></ProtectedRoute>} 
       />
       <Route 

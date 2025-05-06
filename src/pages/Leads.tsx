@@ -1,35 +1,74 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import PageLayout from '@/components/layout/PageLayout';
 import LeadsDashboard from '@/components/leads/LeadsDashboard';
 import { LeadsProvider } from '@/context/LeadsContext';
-import { Card, CardContent } from '@/components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { useNavigate, useLocation } from 'react-router-dom';
+import ProspectsPage from './Prospects';
 
 const Leads: React.FC = () => {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const [activeTab, setActiveTab] = useState<string>('dashboard');
+  
+  // Handle tab changes
+  const handleTabChange = (value: string) => {
+    setActiveTab(value);
+    if (value === 'prospects') {
+      navigate('/leads/prospects');
+    } else {
+      navigate('/leads');
+    }
+  };
+  
+  // Set active tab based on current URL
+  React.useEffect(() => {
+    if (location.pathname.includes('/leads/prospects')) {
+      setActiveTab('prospects');
+    } else {
+      setActiveTab('dashboard');
+    }
+  }, [location.pathname]);
+
   return (
     <PageLayout title="Leads">
-      <div className="space-y-6">
-        {/* Workflow visual */}
-        <Card className="border shadow-sm bg-white">
-          <CardContent className="pt-6 pb-4">
-            <h3 className="font-medium text-slate-700 mb-3">Flujo de proceso de Leads</h3>
-            <div className="w-full overflow-auto">
-              <img 
-                src="/leads-workflow.svg" 
-                alt="Flujo de proceso de leads" 
-                className="w-full max-w-3xl mx-auto" 
-              />
-            </div>
-          </CardContent>
-        </Card>
+      <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
+        <TabsList className="mb-6">
+          <TabsTrigger value="dashboard" className="text-sm">Dashboard de Leads</TabsTrigger>
+          <TabsTrigger value="prospects" className="text-sm">Prospectos</TabsTrigger>
+          <TabsTrigger value="validation" className="text-sm">Validación</TabsTrigger>
+          <TabsTrigger value="crm" className="text-sm">CRM</TabsTrigger>
+        </TabsList>
         
-        {/* Contenido principal */}
-        <div className="bg-white rounded-lg p-6 shadow-sm">
-          <LeadsProvider>
-            <LeadsDashboard />
-          </LeadsProvider>
-        </div>
-      </div>
+        <TabsContent value="dashboard" className="mt-0">
+          <div className="bg-white rounded-lg p-6 shadow-sm">
+            <LeadsProvider>
+              <LeadsDashboard />
+            </LeadsProvider>
+          </div>
+        </TabsContent>
+        
+        <TabsContent value="prospects" className="mt-0">
+          <div className="bg-white rounded-lg p-6 shadow-sm">
+            <ProspectsPage />
+          </div>
+        </TabsContent>
+        
+        <TabsContent value="validation" className="mt-0">
+          <div className="bg-white rounded-lg p-6 shadow-sm">
+            <h2 className="text-xl font-semibold mb-4">Validación de Leads</h2>
+            <p className="text-muted-foreground">Módulo de validación de leads.</p>
+          </div>
+        </TabsContent>
+        
+        <TabsContent value="crm" className="mt-0">
+          <div className="bg-white rounded-lg p-6 shadow-sm">
+            <h2 className="text-xl font-semibold mb-4">CRM de Leads</h2>
+            <p className="text-muted-foreground">Gestión de relaciones con leads calificados.</p>
+          </div>
+        </TabsContent>
+      </Tabs>
     </PageLayout>
   );
 };
