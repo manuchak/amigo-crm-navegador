@@ -20,7 +20,7 @@ export const useUserManagement = (
   const refreshUserData = async () => {
     setLoading(true);
     try {
-      const userData = getCurrentUser();
+      const userData = await getCurrentUser();
       if (userData) {
         setUserData(userData);
       }
@@ -101,7 +101,7 @@ export const useUserManagement = (
   const setUserAsVerifiedOwner = async (email: string) => {
     setLoading(true);
     try {
-      const user = findUserByEmail(email);
+      const user = await findUserByEmail(email);
       if (!user) {
         toast.error(`Usuario con email ${email} no encontrado`);
         return { success: false, error: 'User not found' };

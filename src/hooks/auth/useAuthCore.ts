@@ -1,7 +1,6 @@
 
 import { UserData } from '@/types/auth';
 import { toast } from 'sonner';
-import { getCurrentUser } from '@/utils/auth';
 
 export const useAuthCore = (
   setUserData: React.Dispatch<React.SetStateAction<UserData | null>>,
@@ -10,7 +9,7 @@ export const useAuthCore = (
   // Function to refresh user data
   const refreshUserData = async () => {
     try {
-      const userData = getCurrentUser();
+      const userData = await getCurrentUser();
       if (userData) {
         setUserData(userData);
       }

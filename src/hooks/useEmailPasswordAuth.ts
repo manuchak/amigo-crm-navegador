@@ -19,7 +19,7 @@ export const useEmailPasswordAuth = (
       console.log('Attempting to create user with email:', email);
       
       // Create user account in local storage
-      const userData = createUser(email, password, displayName);
+      const userData = await createUser(email, password, displayName);
       
       setUserData(userData);
       
@@ -48,7 +48,7 @@ export const useEmailPasswordAuth = (
   const signIn = async (email: string, password: string) => {
     setIsLoading(true);
     try {
-      const userData = loginUser(email, password);
+      const userData = await loginUser(email, password);
       setUserData(userData);
       
       toast.success('Sesión iniciada con éxito');
@@ -76,7 +76,7 @@ export const useEmailPasswordAuth = (
   const resetPassword = async (email: string) => {
     setIsLoading(true);
     try {
-      resetPasswordLocal(email);
+      await resetPasswordLocal(email);
       toast.success('Se ha enviado un correo para restablecer la contraseña');
     } catch (error: any) {
       console.error('Error sending password reset email:', error);

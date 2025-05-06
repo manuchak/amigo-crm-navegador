@@ -14,13 +14,13 @@ export const useAuthentication = (
       console.log('Attempting to sign in with email:', email);
       
       // First check if this user exists
-      const userExists = findUserByEmail(email);
+      const userExists = await findUserByEmail(email);
       if (!userExists) {
         console.error('User not found:', email);
         throw new Error('auth/user-not-found');
       }
       
-      const userData = loginUser(email, password);
+      const userData = await loginUser(email, password);
       setUserData(userData);
       
       // Log successful login
@@ -43,12 +43,12 @@ export const useAuthentication = (
       console.log('Attempting to create user with email:', email);
       
       // Check if user already exists before trying to create
-      const existingUser = findUserByEmail(email);
+      const existingUser = await findUserByEmail(email);
       if (existingUser) {
         throw new Error('auth/email-already-in-use');
       }
       
-      const userData = createUser(email, password, displayName);
+      const userData = await createUser(email, password, displayName);
       setUserData(userData);
       
       // Log successful registration

@@ -26,14 +26,15 @@ export const updateUserRole = (uid: string, role: UserRole): void => {
   console.log('Updated user data:', JSON.stringify(updatedUsers.find(u => u.uid === uid)));
   
   // If this is the current user, update current user data too
-  const currentUser = getCurrentUser();
-  if (currentUser && currentUser.uid === uid) {
-    console.log('Updating current user role as well');
-    setCurrentUser({
-      ...currentUser,
-      role
-    });
-  }
+  getCurrentUser().then(currentUser => {
+    if (currentUser && currentUser.uid === uid) {
+      console.log('Updating current user role as well');
+      setCurrentUser({
+        ...currentUser,
+        role
+      });
+    }
+  });
 };
 
 export const verifyUserEmail = (uid: string): void => {
@@ -55,14 +56,15 @@ export const verifyUserEmail = (uid: string): void => {
   saveUsers(updatedUsers);
   console.log('Users saved after email verification');
   
-  const currentUser = getCurrentUser();
-  if (currentUser && currentUser.uid === uid) {
-    setCurrentUser({
-      ...currentUser,
-      emailVerified: true,
-      role: currentUser.role === 'unverified' ? 'pending' : currentUser.role
-    });
-  }
+  getCurrentUser().then(currentUser => {
+    if (currentUser && currentUser.uid === uid) {
+      setCurrentUser({
+        ...currentUser,
+        emailVerified: true,
+        role: currentUser.role === 'unverified' ? 'pending' : currentUser.role
+      });
+    }
+  });
 };
 
 export const setAsVerifiedOwner = (uid: string): void => {
@@ -80,14 +82,15 @@ export const setAsVerifiedOwner = (uid: string): void => {
   
   saveUsers(updatedUsers);
   
-  const currentUser = getCurrentUser();
-  if (currentUser && currentUser.uid === uid) {
-    setCurrentUser({
-      ...currentUser,
-      emailVerified: true,
-      role: 'owner'
-    });
-  }
+  getCurrentUser().then(currentUser => {
+    if (currentUser && currentUser.uid === uid) {
+      setCurrentUser({
+        ...currentUser,
+        emailVerified: true,
+        role: 'owner'
+      });
+    }
+  });
 };
 
 export const getAllUsers = (): UserData[] => {

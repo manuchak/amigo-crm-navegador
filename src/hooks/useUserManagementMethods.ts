@@ -1,16 +1,9 @@
 
+import { UserData, UserRole } from '@/types/auth';
 import { toast } from 'sonner';
-import { UserRole, UserData } from '@/types/auth';
-import { SPECIAL_USERS } from './auth/constants';
-import {
-  createUser,
-  findUserByEmail,
-  updateUserRole,
-  getAllUsers,
-  verifyUserEmail,
-  setAsVerifiedOwner
-} from '@/utils/auth';
 import { supabase } from '@/integrations/supabase/client';
+import { createUser, findUserByEmail, updateUserRole, getAllUsers } from '@/utils/auth';
+import { verifyUserEmail, setAsVerifiedOwner } from '@/utils/auth/roleManagement';
 
 export const useUserManagementMethods = (
   setUserData: React.Dispatch<React.SetStateAction<UserData | null>>,
@@ -184,7 +177,7 @@ export const useUserManagementMethods = (
       
       // If not found in Supabase, check local storage
       if (!userUid) {
-        const user = findUserByEmail(email);
+        const user = await findUserByEmail(email);
         
         if (user && user.uid) {
           userUid = user.uid;
@@ -217,7 +210,7 @@ export const useUserManagementMethods = (
         console.log(`User ${email} not found, creating new user`);
         
         // Create a new user with default password
-        const userData = createUser(email, 'Custodios2024', `Admin ${email.split('@')[0]}`);
+        const userData = await createUser(email, 'Custodios2024', `Admin ${email.split('@')[0]}`);
         
         if (userData && userData.uid) {
           // Set as verified owner
@@ -249,3 +242,5 @@ export const useUserManagementMethods = (
     setUserAsVerifiedOwner: setUserAsVerifiedOwnerMethod
   };
 };
+
+export * from './types';

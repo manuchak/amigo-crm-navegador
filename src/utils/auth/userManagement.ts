@@ -32,18 +32,22 @@ const ensureDefaultUsers = async () => {
       }
 
       if (authUser?.user) {
-        // Marcar el email como verificado (requiere función RPC con security definer)
-        await supabase.rpc('verify_user_email', {
-          target_user_id: authUser.user.id
-        });
+        try {
+          // Marcar el email como verificado (requiere función RPC con security definer)
+          await supabase.rpc('verify_user_email', {
+            target_user_id: authUser.user.id
+          });
 
-        // Asignar rol de owner (requiere función RPC con security definer)
-        await supabase.rpc('update_user_role', {
-          target_user_id: authUser.user.id,
-          new_role: 'owner'
-        });
-        
-        console.log("Usuario por defecto creado con éxito:", authUser.user.email);
+          // Asignar rol de owner (requiere función RPC con security definer)
+          await supabase.rpc('update_user_role', {
+            target_user_id: authUser.user.id,
+            new_role: 'owner'
+          });
+          
+          console.log("Usuario por defecto creado con éxito:", authUser.user.email);
+        } catch (error) {
+          console.error("Error configurando permisos del usuario por defecto:", error);
+        }
       }
     } else {
       console.log("Usuario por defecto ya existe:", existingUser.email);
