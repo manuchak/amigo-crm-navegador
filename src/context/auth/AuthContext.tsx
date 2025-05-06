@@ -29,7 +29,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       try {
         console.log('Initializing auth context...');
         // Check for existing user session in localStorage
-        const storedUser = getCurrentUser();
+        const storedUser = await getCurrentUser();
         if (storedUser) {
           console.log('User found in local storage:', storedUser);
           setUserData(storedUser);
@@ -96,7 +96,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     },
     refreshUserData: async () => {
       try {
-        const userData = getCurrentUser();
+        const userData = await getCurrentUser();
         if (userData) {
           setUserData(userData);
           return { success: true };

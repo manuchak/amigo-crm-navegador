@@ -1,15 +1,15 @@
-
 import { UserData, UserRole } from '@/types/auth';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { createUser, findUserByEmail, updateUserRole, getAllUsers } from '@/utils/auth';
 import { verifyUserEmail, setAsVerifiedOwner } from '@/utils/auth/roleManagement';
+import { UserManagementHookProps, UserManagementMethods } from '@/hooks/user-management/types';
 
 export const useUserManagementMethods = (
   setUserData: React.Dispatch<React.SetStateAction<UserData | null>>,
   setLoading: React.Dispatch<React.SetStateAction<boolean>>,
   refreshUserData: () => Promise<void>
-) => {
+): UserManagementMethods => {
   // User management functions
   const updateUserRoleMethod = async (uid: string, role: UserRole) => {
     setLoading(true);
@@ -38,9 +38,11 @@ export const useUserManagementMethods = (
       
       toast.success('Rol de usuario actualizado con éxito');
       await refreshUserData();
+      return { success: true };
     } catch (error: any) {
       console.error('Error updating user role:', error);
       toast.error('Error al actualizar el rol de usuario: ' + error.message);
+      return { success: false, error };
     } finally {
       setLoading(false);
     }
@@ -139,9 +141,11 @@ export const useUserManagementMethods = (
       
       toast.success('Correo electrónico verificado con éxito');
       await refreshUserData();
+      return { success: true };
     } catch (error) {
       console.error('Error verifying email:', error);
       toast.error('Error al verificar el correo electrónico');
+      return { success: false, error };
     } finally {
       setLoading(false);
     }
@@ -150,7 +154,7 @@ export const useUserManagementMethods = (
   const setUserAsVerifiedOwnerMethod = async (email: string, showNotification: boolean = true) => {
     if (!email) {
       console.error("No email provided for setUserAsVerifiedOwner");
-      return;
+      return { success: false, error: new Error("No email provided") };
     }
 
     setLoading(true);
@@ -227,9 +231,11 @@ export const useUserManagementMethods = (
       }
       
       await refreshUserData();
+      return { success: true };
     } catch (error: any) {
       console.error('Error setting user as verified owner:', error);
       toast.error('Error al configurar el usuario como propietario verificado: ' + (error.message || 'Error desconocido'));
+      return { success: false, error };
     } finally {
       setLoading(false);
     }
@@ -243,4 +249,5 @@ export const useUserManagementMethods = (
   };
 };
 
-export * from './types';
+// Import from the user-management directory instead of local file
+export * from '@/hooks/user-management/types';

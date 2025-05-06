@@ -1,6 +1,7 @@
 
 import { UserData } from '@/types/auth';
 import { toast } from 'sonner';
+import { getCurrentUser } from '@/utils/auth';
 
 export const useAuthCore = (
   setUserData: React.Dispatch<React.SetStateAction<UserData | null>>,
