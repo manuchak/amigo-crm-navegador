@@ -91,6 +91,9 @@ export function DriverBehaviorFiltersPanel({
 
   // Handle manage groups button click
   const handleManageGroups = () => {
+    console.log('handleManageGroups called with client:', selectedClient);
+    console.log('onManageGroups function exists:', !!onManageGroups);
+    
     if (onManageGroups) {
       onManageGroups(selectedClient !== 'all' ? selectedClient : undefined);
     }

@@ -1,20 +1,16 @@
+
 import React, { useState, useEffect } from 'react';
-import { DateRange } from "react-day-picker";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Card, CardContent } from "@/components/ui/card";
-import { ProductivityDashboard } from './productivity/ProductivityDashboard';
-import { DriverBehaviorFiltersPanel } from './DriverBehaviorFiltersPanel';
-import { DriverBehaviorMetricsCards } from './DriverBehaviorMetricsCards';
+import { DateRange } from 'react-day-picker';
 import { DriverBehaviorChart } from './DriverBehaviorChart';
+import { DriverBehaviorMetricsCards } from './DriverBehaviorMetricsCards';
 import { DriverBehaviorTable } from './DriverBehaviorTable';
+import { DriverBehaviorFiltersPanel } from './DriverBehaviorFiltersPanel';
 import { DriverRiskAssessment } from './DriverRiskAssessment';
-import { TopDriversPanel } from './TopDriversPanel';
 import { CO2EmissionsCard } from './CO2EmissionsCard';
+import { TopDriversPanel } from './TopDriversPanel';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { DriverBehaviorFilters } from '../types/driver-behavior.types';
-import { useQuery } from '@tanstack/react-query';
-import { fetchDriverBehaviorData } from '../services/driverBehavior/dataService';
-import { motion } from 'framer-motion';
-import { DriverGroupsManagement } from './groups/DriverGroupsManagement';
+import { ProductivityDashboard } from './productivity/ProductivityDashboard';
 
 interface DriverBehaviorDashboardProps {
   dateRange: DateRange;
@@ -23,176 +19,101 @@ interface DriverBehaviorDashboardProps {
 }
 
 export function DriverBehaviorDashboard({ 
-  dateRange, 
+  dateRange,
   comparisonRange,
   onOpenGroupsManagement
 }: DriverBehaviorDashboardProps) {
   const [activeTab, setActiveTab] = useState('resumen');
   const [filters, setFilters] = useState<DriverBehaviorFilters>({});
-  const [isGroupsManagementOpen, setIsGroupsManagementOpen] = useState(false);
-  const [selectedClient, setSelectedClient] = useState<string | undefined>(undefined);
   
-  // Fetch driver behavior data with filters
-  const { data: driverData, isLoading: isLoadingData } = useQuery({
-    queryKey: ['driver-behavior-data', dateRange, filters],
-    queryFn: () => fetchDriverBehaviorData(dateRange, filters),
-    enabled: !!dateRange.from && !!dateRange.to,
-  });
-
-  // Fetch comparison data when needed
-  const { data: comparisonData, isLoading: isLoadingComparison } = useQuery({
-    queryKey: ['driver-behavior-comparison', comparisonRange, filters],
-    queryFn: () => comparisonRange ? fetchDriverBehaviorData(comparisonRange, filters) : null,
-    enabled: !!comparisonRange?.from && !!comparisonRange?.to,
-  });
-
-  // Handle opening groups management dialog
-  const handleOpenGroupsManagement = (client?: string) => {
-    // If parent component provided handler, use that
-    if (onOpenGroupsManagement) {
-      onOpenGroupsManagement(client);
-    } else {
-      // Otherwise use internal state
-      setSelectedClient(client);
-      setIsGroupsManagementOpen(true);
-    }
+  // Manejar cambios en los filtros
+  const handleFilterChange = (newFilters: DriverBehaviorFilters) => {
+    setFilters(newFilters);
   };
+  
+  // Log para depuración
+  useEffect(() => {
+    console.log('DriverBehaviorDashboard render', { 
+      dateRange, 
+      comparisonRange,
+      onOpenGroupsManagement: !!onOpenGroupsManagement,
+      filters 
+    });
+  }, [dateRange, comparisonRange, onOpenGroupsManagement, filters]);
 
   return (
-    <div className="space-y-6 pb-8">
-      <Card className="bg-white/90 backdrop-blur-sm rounded-xl shadow-sm border">
-        <CardContent className="p-5">
-          <DriverBehaviorFiltersPanel 
-            onFilterChange={setFilters} 
-            activeTab={activeTab}
-            filters={filters}
-            onManageGroups={handleOpenGroupsManagement}
-          />
-        </CardContent>
-      </Card>
+    <div className="space-y-6">
+      {/* Filtros para comportamiento de conducción */}
+      <DriverBehaviorFiltersPanel 
+        onFilterChange={handleFilterChange} 
+        activeTab={activeTab}
+        filters={filters}
+        onManageGroups={onOpenGroupsManagement}
+      />
       
-      <Tabs 
-        value={activeTab} 
-        onValueChange={setActiveTab}
-        className="space-y-6"
-      >
-        <div className="flex justify-center">
-          <TabsList className="bg-white/90 backdrop-blur-sm border shadow-sm rounded-xl p-1.5">
-            <TabsTrigger 
-              value="resumen" 
-              className="data-[state=active]:bg-white data-[state=active]:shadow-sm rounded-lg px-5 py-2.5 text-sm"
-            >
-              Resumen
-            </TabsTrigger>
-            <TabsTrigger 
-              value="riesgo" 
-              className="data-[state=active]:bg-white data-[state=active]:shadow-sm rounded-lg px-5 py-2.5 text-sm"
-            >
-              Riesgo y Conductores
-            </TabsTrigger>
-            <TabsTrigger 
-              value="productividad" 
-              className="data-[state=active]:bg-white data-[state=active]:shadow-sm rounded-lg px-5 py-2.5 text-sm"
-            >
-              Productividad
-            </TabsTrigger>
-            <TabsTrigger 
-              value="detalles" 
-              className="data-[state=active]:bg-white data-[state=active]:shadow-sm rounded-lg px-5 py-2.5 text-sm"
-            >
-              Detalles
-            </TabsTrigger>
-          </TabsList>
-        </div>
+      {/* Tabs para las diferentes vistas de comportamiento de conducción */}
+      <Tabs value={activeTab} onValueChange={setActiveTab}>
+        <TabsList className="mb-4 bg-background/70 border shadow-sm rounded-xl p-1.5">
+          <TabsTrigger value="resumen" className="data-[state=active]:bg-white data-[state=active]:shadow-sm rounded-lg px-5 py-2">
+            Resumen
+          </TabsTrigger>
+          <TabsTrigger value="productividad" className="data-[state=active]:bg-white data-[state=active]:shadow-sm rounded-lg px-5 py-2">
+            Productividad
+          </TabsTrigger>
+          <TabsTrigger value="riesgo" className="data-[state=active]:bg-white data-[state=active]:shadow-sm rounded-lg px-5 py-2">
+            Evaluación de Riesgo
+          </TabsTrigger>
+        </TabsList>
         
-        <TabsContent value="resumen" className="mt-0 space-y-8 animate-fade-in duration-300">
-          <motion.div 
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.3 }}
-          >
-            <DriverBehaviorMetricsCards 
-              data={driverData} 
-              comparisonData={comparisonData} 
-              isLoading={isLoadingData} 
-            />
-          </motion.div>
+        <TabsContent value="resumen" className="space-y-6">
+          <DriverBehaviorMetricsCards 
+            dateRange={dateRange}
+            comparisonRange={comparisonRange}
+            filters={filters}
+          />
           
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            <motion.div 
-              className="col-span-1 lg:col-span-2"
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.4, delay: 0.1 }}
-            >
-              <Card className="bg-white/90 backdrop-blur-sm shadow-sm border rounded-xl">
-                <CardContent className="p-6">
-                  <DriverBehaviorChart 
-                    data={driverData?.driverScores} 
-                    isLoading={isLoadingData} 
-                    dateRange={dateRange} 
-                  />
-                </CardContent>
-              </Card>
-            </motion.div>
-            
-            <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.4, delay: 0.2 }}
-            >
-              <Card className="bg-white/90 backdrop-blur-sm shadow-sm border rounded-xl">
-                <CardContent className="p-6">
-                  <CO2EmissionsCard 
-                    data={driverData} 
-                    isLoading={isLoadingData} 
-                  />
-                </CardContent>
-              </Card>
-            </motion.div>
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="lg:col-span-2">
+              <DriverBehaviorChart 
+                dateRange={dateRange}
+                filters={filters}
+              />
+            </div>
+            <CO2EmissionsCard 
+              dateRange={dateRange}
+              filters={filters}
+            />
           </div>
           
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.3 }}
-          >
-            <DriverBehaviorTable dateRange={dateRange} filters={filters} />
-          </motion.div>
-        </TabsContent>
-        
-        <TabsContent value="riesgo" className="mt-0 animate-fade-in duration-300">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            <DriverRiskAssessment 
-              riskData={driverData?.riskAssessment} 
-              isLoading={isLoadingData} 
-            />
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="lg:col-span-2">
+              <DriverBehaviorTable 
+                dateRange={dateRange}
+                filters={filters}
+              />
+            </div>
             <TopDriversPanel 
-              data={driverData?.driverPerformance} 
-              isLoading={isLoadingData} 
+              dateRange={dateRange}
+              filters={filters}
             />
           </div>
         </TabsContent>
         
-        <TabsContent value="productividad" className="mt-0 animate-fade-in duration-300">
-          <ProductivityDashboard dateRange={dateRange} filters={filters} />
+        <TabsContent value="productividad" className="space-y-6">
+          <ProductivityDashboard 
+            dateRange={dateRange} 
+            filters={filters} 
+            onOpenGroupsManagement={onOpenGroupsManagement}
+          />
         </TabsContent>
         
-        <TabsContent value="detalles" className="mt-0 animate-fade-in duration-300">
-          <div className="p-8 text-center text-gray-500">
-            Detalles detallados próximamente
-          </div>
+        <TabsContent value="riesgo" className="space-y-6">
+          <DriverRiskAssessment 
+            dateRange={dateRange}
+            filters={filters}
+          />
         </TabsContent>
       </Tabs>
-      
-      {/* Internal Groups Management Sheet (only used if parent doesn't provide handler) */}
-      {!onOpenGroupsManagement && (
-        <DriverGroupsManagement 
-          isOpen={isGroupsManagementOpen}
-          onClose={() => setIsGroupsManagementOpen(false)}
-          selectedClient={selectedClient}
-        />
-      )}
     </div>
   );
 }

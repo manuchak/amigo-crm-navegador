@@ -5,6 +5,7 @@ import { PerformanceTabs } from '@/components/performance/PerformanceTabs';
 import { PerformanceHeader } from '@/components/performance/PerformanceHeader';
 import { DateRange } from 'react-day-picker';
 import { addDays, subDays } from 'date-fns';
+import { DriverGroupsManagement } from '@/components/performance/driver-behavior/groups/DriverGroupsManagement';
 
 const Performance: React.FC = () => {
   // Estado para la pestaña activa
@@ -27,6 +28,7 @@ const Performance: React.FC = () => {
 
   // Manejador para abrir el panel de gestión de grupos
   const handleOpenGroupsManagement = (client?: string) => {
+    console.log('Opening groups management with client:', client);
     setSelectedClient(client);
     setIsGroupsManagementOpen(true);
   };
@@ -53,6 +55,13 @@ const Performance: React.FC = () => {
           />
         </div>
       </div>
+
+      {/* Panel de gestión de grupos */}
+      <DriverGroupsManagement 
+        isOpen={isGroupsManagementOpen}
+        onClose={() => setIsGroupsManagementOpen(false)}
+        selectedClient={selectedClient}
+      />
     </PageLayout>
   );
 };
