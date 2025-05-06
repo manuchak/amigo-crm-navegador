@@ -16,13 +16,19 @@ const LeadListPanel: React.FC<LeadListPanelProps> = ({
   selectAllVisible,
   isLeadCalificado
 }) => {
-  // Create a ref to handle the indeterminate state
+  // Create a ref for the checkbox element
   const checkboxRef = useRef<HTMLButtonElement>(null);
   
-  // Update the indeterminate state when allSelected or someSelected changes
+  // Use effect to handle the visual indeterminate state through DOM API
   useEffect(() => {
+    // Access the indeterminate state through the DOM element
     if (checkboxRef.current) {
-      checkboxRef.current.indeterminate = someSelected && !allSelected;
+      // Use dataset to track the indeterminate state since we can't set it directly
+      if (someSelected && !allSelected) {
+        checkboxRef.current.dataset.state = "indeterminate";
+      } else {
+        checkboxRef.current.dataset.state = allSelected ? "checked" : "unchecked";
+      }
     }
   }, [someSelected, allSelected]);
 
@@ -40,6 +46,7 @@ const LeadListPanel: React.FC<LeadListPanelProps> = ({
               ref={checkboxRef}
               checked={allSelected}
               onCheckedChange={handleSelectAll}
+              className={someSelected && !allSelected ? "data-[state=indeterminate]:bg-primary/50" : ""}
             />
             <label htmlFor="select-all" className="text-sm cursor-pointer">
               Seleccionar todos
