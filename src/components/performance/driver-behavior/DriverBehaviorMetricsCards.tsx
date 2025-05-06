@@ -1,10 +1,9 @@
-
 import React from 'react';
 import { 
   Card, 
   CardContent 
 } from "@/components/ui/card";
-import { DriverBehaviorData } from "../types/driver-behavior.types";
+import { DriverBehaviorData, DriverBehaviorMetricsCardsProps } from "../types/driver-behavior.types";
 import { AlertTriangle, Award, Gauge, TrendingDown } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { motion } from "framer-motion";
@@ -60,16 +59,13 @@ function MetricCard({
   );
 }
 
-interface DriverBehaviorMetricsCardsProps {
-  data?: DriverBehaviorData | null;
-  comparisonData?: DriverBehaviorData | null;
-  isLoading: boolean;
-}
-
 export function DriverBehaviorMetricsCards({ 
   data, 
   comparisonData,
-  isLoading 
+  isLoading,
+  dateRange,
+  comparisonRange,
+  filters
 }: DriverBehaviorMetricsCardsProps) {
   // Ensure we're working with valid data from driver_behavior_scores
   const driverScores = data?.driverScores || [];

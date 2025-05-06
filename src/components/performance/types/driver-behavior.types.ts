@@ -77,6 +77,21 @@ export interface DriverRiskAssessmentProps {
   isLoading?: boolean;
 }
 
+// Props for productivity parameters table
+export interface ProductivityParametersTableProps {
+  client: string;
+  group?: string;
+  onEditParameters: () => void;
+}
+
+// Props for productivity parameters dialog
+export interface ProductivityParametersDialogProps {
+  isOpen: boolean;
+  onClose: () => void;
+  client: string;
+  group?: string;
+}
+
 // Date range with comparison period
 export interface DateRangeWithComparison {
   primary: DateRange;
@@ -178,19 +193,4 @@ export interface NewProductivityParameter {
   fuel_cost_per_liter: number;
   expected_fuel_efficiency: number;
   description?: string;
-}
-
-// Props for productivity parameters table
-export interface ProductivityParametersTableProps {
-  client: string;
-  group?: string;
-  onEditParameters: () => void;
-}
-
-// Props for productivity parameters dialog
-export interface ProductivityParametersDialogProps {
-  isOpen: boolean;
-  onClose: () => void;
-  client: string;
-  group?: string;
 }

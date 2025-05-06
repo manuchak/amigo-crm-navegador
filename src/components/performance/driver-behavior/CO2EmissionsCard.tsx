@@ -1,18 +1,12 @@
-
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Cloud } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
-import { DriverBehaviorData } from '../types/driver-behavior.types';
+import { DriverBehaviorData, CO2EmissionsCardProps } from '../types/driver-behavior.types';
 import { Progress } from '@/components/ui/progress';
 import { motion } from 'framer-motion';
 
-interface CO2EmissionsCardProps {
-  data?: DriverBehaviorData | null;
-  isLoading: boolean;
-}
-
-export function CO2EmissionsCard({ data, isLoading }: CO2EmissionsCardProps) {
+export function CO2EmissionsCard({ data, isLoading, dateRange, filters }: CO2EmissionsCardProps) {
   if (isLoading) {
     return (
       <Card className="border shadow-md h-full">

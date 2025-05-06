@@ -1,7 +1,6 @@
-
 import React, { useState, useEffect } from 'react';
 import { DateRange } from 'react-day-picker';
-import { DriverBehaviorFilters } from '../../types/driver-behavior.types';
+import { DriverBehaviorFilters, ProductivityParametersTableProps, ProductivityParametersDialogProps } from '../../types/driver-behavior.types';
 import { ProductivityMetricsCards } from './ProductivityMetricsCards';
 import { ProductivityEfficiencyCards } from './ProductivityEfficiencyCards';
 import { DriverRatingTable } from './DriverRatingTable';
