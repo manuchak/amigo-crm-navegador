@@ -16,28 +16,13 @@ export const NavLinks: React.FC = () => {
     if (currentUser && userData) {
       items.push({ name: 'Dashboard', path: '/dashboard' });
       
-      // Admin y Owner tienen acceso a todo
-      if (['admin', 'owner'].includes(userData.role)) {
-        items.push({ name: 'Performance', path: '/performance' });
-        items.push({ name: 'Servicios Activos', path: '/active-services' });
-        items.push({ name: 'Leads', path: '/leads' });
-        items.push({ name: 'Requerimientos', path: '/requerimientos' });
-        items.push({ name: 'Instalación GPS', path: '/instalacion-gps' });
-        items.push({ name: 'Soporte', path: '/support' });
-      } else {
-        // Para otros roles, añadir según sus permisos específicos
-        if (['atención_afiliado', 'supply', 'supply_admin', 'afiliados'].includes(userData.role)) {
-          items.push({ name: 'Leads', path: '/leads' });
-        }
-        
-        if (['supply', 'supply_admin'].includes(userData.role)) {
-          items.push({ name: 'Requerimientos', path: '/requerimientos' });
-        }
-        
-        if (['atención_afiliado'].includes(userData.role)) {
-          items.push({ name: 'Soporte', path: '/support' });
-        }
-      }
+      // Mostrar todos los enlaces disponibles para cualquier usuario autenticado
+      items.push({ name: 'Performance', path: '/performance' });
+      items.push({ name: 'Servicios Activos', path: '/active-services' });
+      items.push({ name: 'Leads', path: '/leads' });
+      items.push({ name: 'Requerimientos', path: '/requerimientos' });
+      items.push({ name: 'Instalación GPS', path: '/instalacion-gps' });
+      items.push({ name: 'Soporte', path: '/support' });
     }
     
     return items;

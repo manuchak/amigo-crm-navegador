@@ -34,33 +34,7 @@ const AuthGuard: React.FC<AuthGuardProps> = ({ children, requiredRole }) => {
       setError(error.message || 'Error refreshing session');
     }
   };
-  
-  // Function to determine if a role has access to a specific page
-  const checkRoleAccess = (role: UserRole, page: string): boolean => {
-    console.log(`Checking role access: ${role} for page: ${page}`);
-    
-    // Admin and owner always have access to all pages
-    if (role === 'admin' || role === 'owner') {
-      return true;
-    }
-    
-    // Define page access for non-admin roles
-    switch (role) {
-      case 'afiliados':
-        return ['dashboard', 'leads', 'prospects'].includes(page);
-      case 'supply':
-      case 'supply_admin':
-        return ['dashboard', 'leads', 'validation', 'requerimientos'].includes(page);
-      case 'atención_afiliado':
-        return ['dashboard', 'support'].includes(page);
-      case 'pending':
-      case 'unverified':
-        return ['dashboard'].includes(page);
-      default:
-        return false;
-    }
-  };
-  
+
   // Effect to check access permissions once loading is complete
   useEffect(() => {
     // Only process if we're still pending and not loading
@@ -83,18 +57,8 @@ const AuthGuard: React.FC<AuthGuardProps> = ({ children, requiredRole }) => {
       return;
     }
     
-    // Special case for admin/owner - always grant access to all pages
-    if (currentUser.role === 'admin' || currentUser.role === 'owner') {
-      console.log(`Admin/Owner role detected, granting full access to page: ${pageId}`);
-      setVerificationState('verified');
-      return;
-    }
-    
-    // Check role-based access for other roles
-    const hasAccess = checkRoleAccess(currentUser.role, pageId);
-    console.log(`Access decision for ${currentUser.role} to page ${pageId}: ${hasAccess ? 'Granted' : 'Denied'}`);
-    
-    setVerificationState(hasAccess ? 'verified' : 'denied');
+    // If user is authenticated, grant access to all pages
+    setVerificationState('verified');
     
   }, [currentUser, loading, pageId, verificationState, refreshAttempts]);
   
