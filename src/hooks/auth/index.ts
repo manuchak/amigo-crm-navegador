@@ -10,7 +10,7 @@ export const useAuthMethods = (
 ) => {
   const { refreshUserData, signOut } = useAuthCore(setUserData, setLoading);
   const { signIn, signUp } = useAuthentication(setUserData, setLoading);
-  const { resetPassword } = usePasswordManagement(setUserData, setLoading);
+  const { resetPassword } = usePasswordManagement();
   
   return {
     refreshUserData,

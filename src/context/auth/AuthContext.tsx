@@ -1,12 +1,11 @@
 
-import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
-import { User, Session } from '@supabase/supabase-js';
-import { supabase } from '@/integrations/supabase/client';
-import { AuthContextProps, UserData, UserRole } from '@/types/auth';
-import { useAuthSession } from './hooks/useAuthSession';
-import { useAuthMethods } from './hooks/useAuthMethods';
-import { useUserManagementMethods } from '@/hooks/user-management';
+import React, { createContext, useContext, useState, useEffect } from 'react';
+import { toast } from 'sonner';
+import { AuthContextProps, UserData } from '@/types/auth';
+import { getCurrentUser, signOut } from '@/utils/auth';
+import { useAuthMethods } from '@/hooks/auth';
 
+// Create a context with a default undefined value
 const AuthContext = createContext<AuthContextProps | undefined>(undefined);
 
 export const useAuth = () => {
@@ -18,119 +17,97 @@ export const useAuth = () => {
 };
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [user, setUser] = useState<User | null>(null);
-  const [session, setSession] = useState<Session | null>(null);
   const [userData, setUserData] = useState<UserData | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [isInitializing, setIsInitializing] = useState<boolean>(true);
-  const refreshInProgress = useRef(false);
+  
+  const authMethods = useAuthMethods(setUserData, setLoading);
+  
+  // Initialize the auth state
+  useEffect(() => {
+    const initAuth = async () => {
+      try {
+        // Check for existing user session in localStorage
+        const storedUser = getCurrentUser();
+        if (storedUser) {
+          console.log('User found in local storage:', storedUser);
+          setUserData(storedUser);
+        }
+      } catch (error) {
+        console.error('Error initializing auth:', error);
+      } finally {
+        setLoading(false);
+        setIsInitializing(false);
+      }
+    };
+    
+    initAuth();
+  }, []);
 
-  // Configurar sesión de autenticación
-  useAuthSession({
-    setUser,
-    setSession,
-    setUserData,
-    setLoading,
-    setIsInitializing
-  });
-
-  // Obtener métodos de autenticación
-  const authMethods = useAuthMethods({
-    setLoading,
-    setUserData
-  });
-
-  // Mejorar refreshUserData para evitar llamadas recursivas y retornar el tipo correcto
-  const refreshUserData = async (): Promise<void> => {
-    if (refreshInProgress.current) {
-      console.log('Refresh user data already in progress, skipping duplicate request');
-      return;
-    }
-
-    refreshInProgress.current = true;
-    try {
-      await authMethods.refreshUserData();
-    } catch (error) {
-      console.error('Error refreshing user data:', error);
-    } finally {
-      refreshInProgress.current = false;
-    }
-  };
-
-  // Obtener métodos de gestión de usuarios con wrapper de refreshUserData
-  const refreshUserDataWrapper = async (): Promise<{ success: boolean; error?: any }> => {
-    try {
-      await refreshUserData();
-      return { success: true };
-    } catch (error) {
-      return { success: false, error };
-    }
-  };
-
-  // Obtener métodos de gestión de usuarios - Fix: Ensure typecast to Promise<void> matches
-  const userManagementMethods = useUserManagementMethods(
-    setUserData, 
-    setLoading, 
-    refreshUserDataWrapper as unknown as () => Promise<void>
-  );
-
-  const value: AuthContextProps = {
-    user,
+  // Create the context value with all the authentication methods
+  const contextValue: AuthContextProps = {
+    user: null, // Keep this for compatibility, but we'll use userData/currentUser
     currentUser: userData,
     userData,
-    session,
+    session: null, // Keep this for compatibility
     loading,
     isInitializing,
-    signIn: async (email: string, password: string) => {
+    signIn: async (email, password) => {
       try {
-        setLoading(true);
-        const userData = await authMethods.signIn(email, password);
+        const user = await authMethods.signIn(email, password);
         return { user: user || null, error: null };
       } catch (error) {
         return { user: null, error };
-      } finally {
-        setLoading(false);
       }
     },
-    signUp: async (email: string, password: string, displayName: string) => {
+    signUp: async (email, password, displayName) => {
       try {
-        setLoading(true);
-        const userData = await authMethods.signUp(email, password, displayName);
+        const user = await authMethods.signUp(email, password, displayName);
         return { user: user || null, error: null };
       } catch (error) {
         return { user: null, error };
-      } finally {
-        setLoading(false);
       }
     },
-    signOut: authMethods.signOut,
-    updateUserRole: async (userId: string, role: UserRole) => {
-      return await userManagementMethods.updateUserRole(userId, role);
+    signOut: async () => {
+      try {
+        await signOut();
+        setUserData(null);
+        toast.success('Sesión cerrada con éxito');
+      } catch (error) {
+        console.error('Error signing out:', error);
+        toast.error('Error al cerrar sesión');
+      }
     },
-    getAllUsers: userManagementMethods.getAllUsers,
-    verifyEmail: async (userId: string) => {
-      return await userManagementMethods.verifyEmail(userId);
+    updateUserRole: async (userId, role) => {
+      return { success: false, error: new Error('Not implemented in local auth') };
+    },
+    getAllUsers: async () => {
+      return [];
+    },
+    verifyEmail: async (userId) => {
+      return { success: false, error: new Error('Not implemented in local auth') };
     },
     refreshSession: async () => {
+      return false;
+    },
+    refreshUserData: async () => {
       try {
-        const { data } = await supabase.auth.refreshSession();
-        if (data.session) {
-          setSession(data.session);
-          setUser(data.session.user);
-          await refreshUserData();
-          return true;
+        const userData = getCurrentUser();
+        if (userData) {
+          setUserData(userData);
+          return { success: true };
         }
-        return false;
+        return { success: false, error: new Error('No user data found') };
       } catch (error) {
-        console.error("Error refreshing session:", error);
-        return false;
+        return { success: false, error };
       }
     },
-    refreshUserData: refreshUserDataWrapper,
-    resetPassword: authMethods.resetPassword
+    resetPassword: async (email) => {
+      await authMethods.resetPassword(email);
+    }
   };
 
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+  return <AuthContext.Provider value={contextValue}>{children}</AuthContext.Provider>;
 };
 
 export default AuthProvider;

@@ -17,6 +17,7 @@ const Login = () => {
   const navigate = useNavigate();
   
   useEffect(() => {
+    console.log("Login page rendered, checking user:", currentUser);
     if (currentUser) {
       console.log("User is already logged in, redirecting to dashboard");
       navigate('/dashboard');
@@ -33,8 +34,6 @@ const Login = () => {
       </div>
     );
   }
-  
-  if (currentUser) return null;
   
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
