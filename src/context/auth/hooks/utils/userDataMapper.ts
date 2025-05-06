@@ -1,43 +1,56 @@
 
+import { UserData, UserRole } from '@/types/auth';
 import { User } from '@supabase/supabase-js';
-import { UserData } from '@/types/auth';
 import { supabase } from '@/integrations/supabase/client';
+import { updateLastLogin } from './userActions';
 
+/**
+ * Maps a Supabase User to our UserData format
+ */
 export async function mapUserData(user: User): Promise<UserData> {
-  console.log('Mapping user data for:', user.email);
-  
   try {
-    // Get profile data from profiles table
-    const { data: profile } = await supabase
+    // Get profile data
+    const { data: profileData, error: profileError } = await supabase
       .from('profiles')
       .select('*')
       .eq('id', user.id)
       .single();
     
-    // Get user role from RPC function
-    const { data: role } = await supabase
+    if (profileError) {
+      console.error('Error getting profile data:', profileError);
+    }
+    
+    // Get user role
+    const { data: roleData, error: roleError } = await supabase
       .rpc('get_user_role', { user_uid: user.id });
     
-    // Create UserData object
+    if (roleError) {
+      console.error('Error getting user role:', roleError);
+    }
+    
+    // Update last login timestamp
+    await updateLastLogin(user.id);
+    
+    // Return mapped user data
     return {
       uid: user.id,
       email: user.email || '',
-      displayName: profile?.display_name || user.email || '',
-      photoURL: profile?.photo_url || null,
-      role: role as any || 'unverified',
+      displayName: profileData?.display_name || user.email || '',
+      photoURL: profileData?.photo_url || undefined,
+      role: (roleData as UserRole) || 'unverified',
       emailVerified: user.email_confirmed_at ? true : false,
-      createdAt: profile?.created_at ? new Date(profile.created_at) : new Date(),
-      lastLogin: profile?.last_login ? new Date(profile.last_login) : new Date(),
+      createdAt: profileData?.created_at ? new Date(profileData.created_at) : new Date(),
+      lastLogin: profileData?.last_login ? new Date(profileData.last_login) : new Date(),
     };
   } catch (error) {
     console.error('Error mapping user data:', error);
     
-    // Return minimal user data if profile fetch fails
+    // Return basic user data if mapping fails
     return {
       uid: user.id,
       email: user.email || '',
       displayName: user.email || '',
-      role: 'unverified',
+      role: 'unverified' as UserRole,
       emailVerified: user.email_confirmed_at ? true : false,
       createdAt: new Date(),
       lastLogin: new Date(),
