@@ -16,7 +16,8 @@ const Login = () => {
   const navigate = useNavigate();
   
   useEffect(() => {
-    console.log('Login component mounted', { currentUser, loading });
+    // Log authentication state for debugging
+    console.log('Login component state:', { currentUser, loading });
     
     // Only redirect if we have a user and we're not loading
     if (currentUser && !loading) {
@@ -35,16 +36,22 @@ const Login = () => {
   };
   
   const handleLoginSuccess = () => {
-    console.log('Login successful, will redirect in useEffect hook');
+    console.log('Login success triggered in Login component');
+    // No need to navigate here as the useEffect will handle it when currentUser is updated
   };
   
-  // Render a simple loading state
+  // Render a simple loading state with timeout safety
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="text-center">
           <Loader2 className="h-8 w-8 animate-spin mx-auto text-primary mb-4" />
           <p className="text-muted-foreground">Verificando sesión...</p>
+          <p className="text-xs text-muted-foreground mt-2">
+            Si esto tarda demasiado, puedes <button 
+            onClick={() => window.location.reload()}
+            className="underline text-primary">recargar la página</button>
+          </p>
         </div>
       </div>
     );

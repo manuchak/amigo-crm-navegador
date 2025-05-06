@@ -3,7 +3,7 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import { toast } from 'sonner';
 import { AuthContextProps, UserData, UserRole } from '@/types/auth';
 import { supabase } from '@/integrations/supabase/client';
-import { User } from '@supabase/supabase-js';
+import { User, Session } from '@supabase/supabase-js';
 import { mapUserData } from './hooks/utils/userDataMapper';
 
 // Create a context with a default undefined value
@@ -22,50 +22,101 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [loading, setLoading] = useState<boolean>(true);
   const [isInitializing, setIsInitializing] = useState<boolean>(true);
   const [supabaseUser, setSupabaseUser] = useState<User | null>(null);
+  const [session, setSession] = useState<Session | null>(null);
   
   // Listen for authentication state changes
   useEffect(() => {
-    console.log('Setting up authentication listeners...');
+    console.log('Setting up authentication listeners and checking existing session...');
+    let mounted = true;
     
-    // 1. First set up the listener for state changes
+    // Set up the auth state listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        console.log('Auth event:', event);
+      (event, newSession) => {
+        console.log('Auth state change event:', event);
         
-        if (session?.user) {
-          setSupabaseUser(session.user);
-          
-          try {
-            // Get profile data
-            const mappedUserData = await mapUserData(session.user);
-            setUserData(mappedUserData);
-            console.log('Authenticated user loaded:', mappedUserData);
-          } catch (error) {
-            console.error('Error getting profile data:', error);
-            setUserData(null);
-          }
+        if (!mounted) return;
+        
+        // Update session immediately to avoid race conditions
+        setSession(newSession);
+        setSupabaseUser(newSession?.user || null);
+        
+        if (newSession?.user) {
+          // Use setTimeout to avoid potential deadlocks
+          setTimeout(async () => {
+            if (!mounted) return;
+            
+            try {
+              // Get profile data
+              const mappedUserData = await mapUserData(newSession.user);
+              if (mounted) {
+                setUserData(mappedUserData);
+                console.log('Authenticated user loaded:', mappedUserData);
+              }
+            } catch (error) {
+              console.error('Error getting profile data:', error);
+              if (mounted) setUserData(null);
+            } finally {
+              if (mounted) {
+                setLoading(false);
+                setIsInitializing(false);
+              }
+            }
+          }, 0);
         } else {
-          console.log('No active user session');
-          setSupabaseUser(null);
-          setUserData(null);
+          if (mounted) {
+            console.log('No active session in auth state change');
+            setUserData(null);
+            setLoading(false);
+            setIsInitializing(false);
+          }
         }
-        
-        setLoading(false);
       }
     );
 
-    // 2. Check if there's an active session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      console.log('Existing session:', session ? 'Yes' : 'No');
-      
-      if (!session) {
-        setLoading(false);
-        setIsInitializing(false);
+    // THEN check for an existing session
+    const checkSession = async () => {
+      try {
+        const { data, error } = await supabase.auth.getSession();
+        
+        if (error) {
+          console.error('Error getting session:', error);
+          if (mounted) {
+            setLoading(false);
+            setIsInitializing(false);
+          }
+          return;
+        }
+        
+        if (data.session) {
+          console.log('Existing session found:', data.session.user.email);
+          if (mounted) {
+            setSession(data.session);
+            setSupabaseUser(data.session.user);
+          }
+          
+          // User data will be updated by the auth state listener
+        } else {
+          console.log('No existing session');
+          if (mounted) {
+            setLoading(false);
+            setIsInitializing(false);
+          }
+        }
+      } catch (err) {
+        console.error('Unexpected error checking session:', err);
+        if (mounted) {
+          setLoading(false);
+          setIsInitializing(false);
+        }
       }
-      // The listener will handle updating the user state
-    });
+    };
+
+    // Run session check
+    checkSession();
 
     return () => {
+      console.log('Cleaning up auth listeners');
+      mounted = false;
       subscription.unsubscribe();
     };
   }, []);
@@ -83,24 +134,24 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       if (error) {
         console.error("Login error:", error);
-        throw error;
+        return { user: null, error };
       }
       
       if (!data.user) {
-        throw new Error("Could not sign in");
+        return { user: null, error: new Error("Could not sign in") };
       }
 
       // Map Supabase User to our UserData format
       const mappedUser = await mapUserData(data.user);
       
       console.log("Login successful:", data.user.email);
-      toast.success('Session started successfully');
       return { user: mappedUser, error: null };
     } catch (error: any) {
       console.error("Error signing in:", error);
       return { user: null, error };
     } finally {
-      setLoading(false);
+      // Don't set loading false here - the auth state listener will do it
+      // This prevents race conditions
     }
   };
 
@@ -123,7 +174,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       if (error) {
         console.error("Registration error:", error);
-        throw error;
+        return { user: null, error };
       }
       
       // Map Supabase User to our UserData format if available
@@ -144,14 +195,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const signOut = async () => {
     try {
+      setLoading(true);
       console.log("Signing out...");
       await supabase.auth.signOut();
-      setUserData(null);
-      setSupabaseUser(null);
+      
+      // No need to reset state here as the auth state listener will do it
       toast.success('Session ended successfully');
+      return true;
     } catch (error) {
       console.error('Error signing out:', error);
       toast.error('Error signing out');
+      return false;
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -189,7 +245,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     user: supabaseUser, // Native Supabase user
     currentUser: userData, // Our UserData format
     userData,
-    session: null,
+    session,
     loading,
     isInitializing,
     signIn,

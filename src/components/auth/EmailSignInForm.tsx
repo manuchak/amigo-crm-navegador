@@ -44,34 +44,37 @@ const EmailSignInForm: React.FC<EmailSignInFormProps> = ({
     try {
       console.log("Attempting to login with:", data.email);
       
-      const result = await signIn(data.email, data.password);
+      const { user, error } = await signIn(data.email, data.password);
       
-      if (result.error) {
-        console.error("Login error:", result.error);
+      if (error) {
+        console.error("Login error:", error);
         
         // Extract error message based on error code
-        let errorMessage = 'Error logging in';
-        if (result.error.message?.includes('Invalid login credentials')) {
-          errorMessage = 'Incorrect email or password';
-        } else if (result.error.message?.includes('Email not confirmed')) {
-          errorMessage = 'Email not verified';
-        } else if (result.error.message?.includes('User not found')) {
-          errorMessage = 'User not found';
+        let errorMessage = 'Error al iniciar sesión';
+        if (error.message?.includes('Invalid login credentials')) {
+          errorMessage = 'Email o contraseña incorrectos';
+        } else if (error.message?.includes('Email not confirmed')) {
+          errorMessage = 'Email no verificado';
+        } else if (error.message?.includes('User not found')) {
+          errorMessage = 'Usuario no encontrado';
         }
         
         throw new Error(errorMessage);
       }
       
-      if (!result.user) {
-        throw new Error("Could not log in");
+      if (!user) {
+        throw new Error("No se pudo iniciar sesión");
       }
       
-      toast.success('Login successful!');
-      if (onSuccess) onSuccess();
+      toast.success('Sesión iniciada con éxito');
+      if (onSuccess) {
+        console.log("Login successful, calling onSuccess callback");
+        onSuccess();
+      }
       
     } catch (error: any) {
-      console.error("Login error:", error);
-      toast.error(error?.message || "Error logging in");
+      console.error("Login submission error:", error);
+      toast.error(error?.message || "Error al iniciar sesión");
     } finally {
       setIsSubmitting(false);
     }

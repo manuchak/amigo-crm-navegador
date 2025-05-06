@@ -20,6 +20,13 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) =
   const navigate = useNavigate();
   
   useEffect(() => {
+    // Add debug logging
+    console.log('ProtectedRoute check:', { 
+      authenticated: !!currentUser, 
+      loading, 
+      path: location.pathname 
+    });
+    
     if (!loading && !currentUser) {
       console.log('No authenticated user, redirecting to login');
       navigate('/login', { state: { from: location }, replace: true });
@@ -46,7 +53,11 @@ const AppRoutes = () => {
   
   // Log for debugging
   useEffect(() => {
-    console.log('App Routes rendering with:', { currentUser, loading, pathname: location.pathname });
+    console.log('App Routes rendering with:', { 
+      authenticated: !!currentUser, 
+      loading, 
+      pathname: location.pathname 
+    });
   }, [currentUser, loading, location.pathname]);
   
   return (
