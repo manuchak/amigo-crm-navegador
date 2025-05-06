@@ -12,7 +12,7 @@ const Auth = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { currentUser, loading } = useAuth();
-  const [activeTab, setActiveTab] = useState<string>('login');
+  const [activeTab, setActiveTab] = useState('login');
   
   // Get return URL from location state
   const from = (location.state as { from?: { pathname: string } })?.from?.pathname || '/dashboard';

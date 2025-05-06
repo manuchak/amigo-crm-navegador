@@ -6,8 +6,8 @@ import { AuthProvider } from '@/context/AuthContext';
 import './App.css';
 
 // Import core components directly (no lazy loading for crucial components)
-import Auth from './pages/Auth';
 import Login from './pages/Login';
+import Auth from './pages/Auth';
 
 // Use lazy loading for other pages
 const Dashboard = lazy(() => import('./pages/Dashboard'));
@@ -22,6 +22,7 @@ const PageLoader = () => (
 );
 
 function App() {
+  console.log('App rendering');
   return (
     <AuthProvider>
       <Router>

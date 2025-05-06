@@ -12,22 +12,20 @@ import { Shield, Loader2 } from 'lucide-react';
 
 const Login = () => {
   const { currentUser, loading } = useAuth();
-  const [authTab, setAuthTab] = useState<string>('signin');
+  const [authTab, setAuthTab] = useState('signin');
   const [showForgotPassword, setShowForgotPassword] = useState(false);
   const navigate = useNavigate();
   
   useEffect(() => {
-    // Redirect if already logged in
     if (currentUser) {
       console.log("User is already logged in, redirecting to dashboard");
       navigate('/dashboard');
     }
   }, [currentUser, navigate]);
   
-  // If we're still loading, show a loading indicator
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-r from-gray-50 to-gray-100">
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="text-center">
           <Loader2 className="h-8 w-8 animate-spin mx-auto text-primary mb-4" />
           <p className="text-muted-foreground">Verificando sesión...</p>
@@ -36,11 +34,10 @@ const Login = () => {
     );
   }
   
-  // If we already determined user is logged in above, don't render the login page
   if (currentUser) return null;
   
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-r from-gray-50 to-gray-100 p-4">
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
       <Card className="w-full max-w-md shadow-lg">
         <CardHeader className="space-y-1 flex flex-col items-center">
           <div className="w-12 h-12 bg-primary rounded-full flex items-center justify-center mb-4">
