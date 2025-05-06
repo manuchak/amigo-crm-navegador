@@ -2,7 +2,7 @@
 import React from 'react';
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { DateRangeWithComparison, DateRangePreset } from "./filters/AdvancedDateRangePicker";
+import { DateRange } from "react-day-picker";
 import { toast } from 'sonner';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -12,6 +12,18 @@ import { ServiceImport } from './filters/ServiceImport';
 import { PerformanceDateFilter } from './PerformanceDateFilter';
 import { DriverBehaviorHeader } from './DriverBehaviorHeader';
 import { PerformanceHeader } from './PerformanceHeader';
+
+// Define la interfaz para DateRangeWithComparison
+interface DateRangeWithComparison {
+  primary: DateRange;
+  comparison?: DateRange;
+  comparisonType?: string;
+}
+
+interface DateRangePreset {
+  label: string;
+  value: string;
+}
 
 interface PerformanceFilterHeaderProps {
   dateRange: DateRangeWithComparison;
@@ -97,7 +109,13 @@ export function PerformanceFilterHeader({
           {activeTab === "driverBehavior" ? (
             <DriverBehaviorHeader />
           ) : (
-            <PerformanceHeader />
+            <PerformanceHeader 
+              dateRange={dateRange.primary}
+              comparisonRange={dateRange.comparison}
+              onDateChange={(primary, comparison) => {
+                setDateRange({ ...dateRange, primary, comparison });
+              }}
+            />
           )}
         </div>
       )}
@@ -105,9 +123,12 @@ export function PerformanceFilterHeader({
       <Card className="border shadow-sm bg-white/90 backdrop-blur-sm p-4 rounded-xl">
         <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <PerformanceDateFilter 
-            dateRange={dateRange} 
-            setDateRange={handleDateRangeChange}
-            presets={presets}
+            dateRange={dateRange.primary} 
+            comparisonRange={dateRange.comparison}
+            onDateChange={(primary, comparison) => {
+              handleDateRangeChange({ ...dateRange, primary, comparison });
+            }}
+            showComparison={!!dateRange.comparison}
           />
           
           <div className="flex items-center gap-2">
