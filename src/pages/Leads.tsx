@@ -43,44 +43,40 @@ const Leads: React.FC = () => {
 
   return (
     <PageLayout title="Leads">
-      <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
-        <TabsList className="mb-6">
-          <TabsTrigger value="dashboard" className="text-sm">Dashboard de Leads</TabsTrigger>
-          <TabsTrigger value="prospects" className="text-sm">Prospectos</TabsTrigger>
-          <TabsTrigger value="validation" className="text-sm">Validación</TabsTrigger>
-          <TabsTrigger value="crm" className="text-sm">CRM</TabsTrigger>
-        </TabsList>
-        
-        <TabsContent value="dashboard" className="mt-0">
-          <div className="bg-white rounded-lg p-6 shadow-sm">
-            <LeadsProvider>
+      <LeadsProvider>
+        <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
+          <TabsList className="mb-6">
+            <TabsTrigger value="dashboard" className="text-sm">Dashboard de Leads</TabsTrigger>
+            <TabsTrigger value="prospects" className="text-sm">Prospectos</TabsTrigger>
+            <TabsTrigger value="validation" className="text-sm">Validación</TabsTrigger>
+            <TabsTrigger value="crm" className="text-sm">CRM</TabsTrigger>
+          </TabsList>
+          
+          <TabsContent value="dashboard" className="mt-0">
+            <div className="bg-white rounded-lg p-6 shadow-sm">
               <LeadsDashboard />
-            </LeadsProvider>
-          </div>
-        </TabsContent>
-        
-        <TabsContent value="prospects" className="mt-0">
-          <div className="bg-white rounded-lg p-6 shadow-sm">
-            <ProspectsPage />
-          </div>
-        </TabsContent>
-        
-        <TabsContent value="validation" className="mt-0">
-          <div className="bg-white rounded-lg p-6 shadow-sm">
-            <LeadsProvider>
+            </div>
+          </TabsContent>
+          
+          <TabsContent value="prospects" className="mt-0">
+            <div className="bg-white rounded-lg p-6 shadow-sm">
+              <ProspectsPage />
+            </div>
+          </TabsContent>
+          
+          <TabsContent value="validation" className="mt-0">
+            <div className="bg-white rounded-lg p-6 shadow-sm">
               <QualifiedLeadsApproval />
-            </LeadsProvider>
-          </div>
-        </TabsContent>
-        
-        <TabsContent value="crm" className="mt-0">
-          <div className="bg-white rounded-lg p-6 shadow-sm">
-            <LeadsProvider>
+            </div>
+          </TabsContent>
+          
+          <TabsContent value="crm" className="mt-0">
+            <div className="bg-white rounded-lg p-6 shadow-sm">
               <LeadsCrmDashboard />
-            </LeadsProvider>
-          </div>
-        </TabsContent>
-      </Tabs>
+            </div>
+          </TabsContent>
+        </Tabs>
+      </LeadsProvider>
     </PageLayout>
   );
 };
