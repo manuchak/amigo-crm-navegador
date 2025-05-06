@@ -11,7 +11,7 @@ import Login from './pages/Login';
 
 // Use lazy loading for other pages
 const Dashboard = lazy(() => import('./pages/Dashboard'));
-const UserManagement = lazy(() => import('./pages/admin/UserManagement'));
+const UserManagement = lazy(() => import('./pages/UserManagement'));
 const Support = lazy(() => import('./pages/Support'));
 
 // Loading fallback
