@@ -11,6 +11,8 @@ import { TopDriversPanel } from './TopDriversPanel';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { DriverBehaviorFilters } from '../types/driver-behavior.types';
 import { ProductivityDashboard } from './productivity/ProductivityDashboard';
+import { useQuery } from '@tanstack/react-query';
+import { fetchDriverBehaviorData } from '../services/driverBehavior/dataService';
 
 interface DriverBehaviorDashboardProps {
   dateRange: DateRange;
@@ -26,24 +28,40 @@ export function DriverBehaviorDashboard({
   const [activeTab, setActiveTab] = useState('resumen');
   const [filters, setFilters] = useState<DriverBehaviorFilters>({});
   
-  // Manejar cambios en los filtros
+  // Fetch data for the current date range and filters
+  const { data, isLoading } = useQuery({
+    queryKey: ['driver-behavior-data', dateRange, filters],
+    queryFn: () => fetchDriverBehaviorData(dateRange, filters),
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  });
+  
+  // Fetch comparison data if a comparison range is provided
+  const { data: comparisonData } = useQuery({
+    queryKey: ['driver-behavior-comparison', comparisonRange, filters],
+    queryFn: () => comparisonRange ? fetchDriverBehaviorData(comparisonRange, filters) : null,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    enabled: !!comparisonRange?.from && !!comparisonRange?.to,
+  });
+  
+  // Handle filter changes
   const handleFilterChange = (newFilters: DriverBehaviorFilters) => {
     setFilters(newFilters);
   };
   
-  // Log para depuración
+  // Debug log
   useEffect(() => {
     console.log('DriverBehaviorDashboard render', { 
       dateRange, 
       comparisonRange,
       onOpenGroupsManagement: !!onOpenGroupsManagement,
-      filters 
+      filters,
+      dataLoaded: !!data 
     });
-  }, [dateRange, comparisonRange, onOpenGroupsManagement, filters]);
+  }, [dateRange, comparisonRange, onOpenGroupsManagement, filters, data]);
 
   return (
     <div className="space-y-6">
-      {/* Filtros para comportamiento de conducción */}
+      {/* Filters for driver behavior */}
       <DriverBehaviorFiltersPanel 
         onFilterChange={handleFilterChange} 
         activeTab={activeTab}
@@ -51,7 +69,7 @@ export function DriverBehaviorDashboard({
         onManageGroups={onOpenGroupsManagement}
       />
       
-      {/* Tabs para las diferentes vistas de comportamiento de conducción */}
+      {/* Tabs for different driver behavior views */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList className="mb-4 bg-background/70 border shadow-sm rounded-xl p-1.5">
           <TabsTrigger value="resumen" className="data-[state=active]:bg-white data-[state=active]:shadow-sm rounded-lg px-5 py-2">
@@ -70,6 +88,9 @@ export function DriverBehaviorDashboard({
             dateRange={dateRange}
             comparisonRange={comparisonRange}
             filters={filters}
+            data={data}
+            comparisonData={comparisonData}
+            isLoading={isLoading}
           />
           
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -77,11 +98,15 @@ export function DriverBehaviorDashboard({
               <DriverBehaviorChart 
                 dateRange={dateRange}
                 filters={filters}
+                data={data?.driverScores}
+                isLoading={isLoading}
               />
             </div>
             <CO2EmissionsCard 
               dateRange={dateRange}
               filters={filters}
+              data={data}
+              isLoading={isLoading}
             />
           </div>
           
@@ -95,6 +120,8 @@ export function DriverBehaviorDashboard({
             <TopDriversPanel 
               dateRange={dateRange}
               filters={filters}
+              data={data?.driverPerformance}
+              isLoading={isLoading}
             />
           </div>
         </TabsContent>
@@ -111,6 +138,8 @@ export function DriverBehaviorDashboard({
           <DriverRiskAssessment 
             dateRange={dateRange}
             filters={filters}
+            riskData={data?.riskAssessment}
+            isLoading={isLoading}
           />
         </TabsContent>
       </Tabs>

@@ -157,12 +157,13 @@ export interface ScoreCalculationResult {
 
 // Productivity parameters
 export interface ProductivityParameter {
-  id: string;
+  id: string | number;
   client: string;
-  group?: string;
-  parameter_name: string;
-  parameter_value: number;
-  parameter_unit: string;
+  driver_group?: string | null;
+  expected_daily_distance: number;
+  expected_daily_time_minutes: number;
+  fuel_cost_per_liter: number;
+  expected_fuel_efficiency: number;
   created_at?: string;
   updated_at?: string;
   description?: string;
@@ -171,10 +172,11 @@ export interface ProductivityParameter {
 // New productivity parameter
 export interface NewProductivityParameter {
   client: string;
-  group?: string;
-  parameter_name: string;
-  parameter_value: number;
-  parameter_unit: string;
+  driver_group?: string | null;
+  expected_daily_distance: number;
+  expected_daily_time_minutes: number;
+  fuel_cost_per_liter: number;
+  expected_fuel_efficiency: number;
   description?: string;
 }
 

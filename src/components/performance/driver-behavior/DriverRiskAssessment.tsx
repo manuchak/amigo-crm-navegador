@@ -3,14 +3,17 @@ import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { AlertTriangle, CheckCircle, Clock, AlertCircle, AlertOctagon } from "lucide-react";
 import { Skeleton } from '@/components/ui/skeleton';
-import { RiskAssessment } from '../types/driver-behavior.types';
+import { RiskAssessment, DriverBehaviorFilters } from '../types/driver-behavior.types';
+import { DateRange } from 'react-day-picker';
 
 interface DriverRiskAssessmentProps {
+  dateRange: DateRange;
+  filters: DriverBehaviorFilters;
   riskData?: RiskAssessment;
   isLoading: boolean;
 }
 
-export function DriverRiskAssessment({ riskData, isLoading }: DriverRiskAssessmentProps) {
+export function DriverRiskAssessment({ dateRange, filters, riskData, isLoading }: DriverRiskAssessmentProps) {
   if (isLoading) {
     return (
       <Card className="border-0 shadow-md">
@@ -58,7 +61,7 @@ export function DriverRiskAssessment({ riskData, isLoading }: DriverRiskAssessme
     switch (riskData.level) {
       case 'low':
         return <CheckCircle className="h-12 w-12 text-green-600" />;
-      case 'medium': // Changed from 'moderate' to 'medium'
+      case 'medium':
         return <Clock className="h-12 w-12 text-amber-500" />;
       case 'high':
         return <AlertCircle className="h-12 w-12 text-orange-500" />;
@@ -72,7 +75,7 @@ export function DriverRiskAssessment({ riskData, isLoading }: DriverRiskAssessme
   const getRiskColor = () => {
     switch (riskData.level) {
       case 'low': return 'bg-green-50 border-green-100 text-green-800';
-      case 'medium': return 'bg-amber-50 border-amber-100 text-amber-800'; // Changed from 'moderate' to 'medium'
+      case 'medium': return 'bg-amber-50 border-amber-100 text-amber-800';
       case 'high': return 'bg-orange-50 border-orange-100 text-orange-800';
       case 'critical': return 'bg-red-50 border-red-100 text-red-800';
       default: return 'bg-gray-50 border-gray-100 text-gray-800';
@@ -82,7 +85,7 @@ export function DriverRiskAssessment({ riskData, isLoading }: DriverRiskAssessme
   const getRiskTitle = () => {
     switch (riskData.level) {
       case 'low': return 'Riesgo Bajo';
-      case 'medium': return 'Riesgo Moderado'; // Changed from 'moderate' to 'medium' but kept the display text as 'Moderado'
+      case 'medium': return 'Riesgo Moderado';
       case 'high': return 'Riesgo Alto';
       case 'critical': return 'Riesgo Crítico';
       default: return 'Riesgo Indeterminado';
@@ -113,7 +116,7 @@ export function DriverRiskAssessment({ riskData, isLoading }: DriverRiskAssessme
               <div
                 className={`h-2.5 rounded-full ${
                   riskData.level === 'low' ? 'bg-green-500' :
-                  riskData.level === 'medium' ? 'bg-amber-500' : // Changed from 'moderate' to 'medium'
+                  riskData.level === 'medium' ? 'bg-amber-500' :
                   riskData.level === 'high' ? 'bg-orange-500' :
                   'bg-red-500'
                 }`}

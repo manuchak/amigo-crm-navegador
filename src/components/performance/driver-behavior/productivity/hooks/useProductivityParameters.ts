@@ -6,7 +6,7 @@ import { useQuery } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { fetchDriverGroups } from '../../../services/driverBehavior/driverGroupsService';
 import { fetchCurrentFuelPrices, saveProductivityParameter } from '../../../services/productivity/productivityService';
-import { NewProductivityParameter } from '../../../types/productivity.types';
+import { NewProductivityParameter } from '../../../types/driver-behavior.types';
 import { productivityFormSchema, ProductivityFormValues, defaultFormValues } from '../components/ProductivityFormSchema';
 
 interface UseProductivityParametersProps {
