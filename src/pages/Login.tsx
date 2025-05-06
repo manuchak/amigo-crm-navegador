@@ -5,24 +5,23 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import EmailSignInForm from '@/components/auth/EmailSignInForm';
 import EmailSignUpForm from '@/components/auth/EmailSignUpForm';
-import ForgotPasswordForm from '@/components/auth/ForgotPasswordForm';
 import { useAuth } from '@/context/AuthContext';
 import { Shield, Loader2 } from 'lucide-react';
 
 const Login = () => {
-  const { currentUser, loading, isInitializing } = useAuth();
+  const { currentUser, loading } = useAuth();
   const [authTab, setAuthTab] = useState('signin');
   const [showForgotPassword, setShowForgotPassword] = useState(false);
   const navigate = useNavigate();
   
   useEffect(() => {
-    if (currentUser && !loading && !isInitializing) {
+    if (currentUser && !loading) {
       navigate('/dashboard');
     }
-  }, [currentUser, loading, isInitializing, navigate]);
+  }, [currentUser, loading, navigate]);
   
-  // Render a fallback loading state
-  if (isInitializing || loading) {
+  // Render a simple loading state
+  if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="text-center">
@@ -42,36 +41,28 @@ const Login = () => {
           </div>
           <CardTitle className="text-2xl font-bold text-center">CustodiosCRM</CardTitle>
           <CardDescription className="text-center">
-            {showForgotPassword 
-              ? 'Ingresa tu correo para recuperar tu contraseña'
-              : 'Inicia sesión o regístrate para acceder al sistema'}
+            Inicia sesión o regístrate para acceder al sistema
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          {showForgotPassword ? (
-            <ForgotPasswordForm onCancel={() => setShowForgotPassword(false)} />
-          ) : (
-            <>
-              <Tabs value={authTab} onValueChange={setAuthTab} className="w-full">
-                <TabsList className="grid w-full grid-cols-2 mb-4">
-                  <TabsTrigger value="signin">Ingresar</TabsTrigger>
-                  <TabsTrigger value="signup">Registrarse</TabsTrigger>
-                </TabsList>
-                <TabsContent value="signin">
-                  <EmailSignInForm 
-                    onForgotPassword={() => setShowForgotPassword(true)}
-                  />
-                </TabsContent>
-                <TabsContent value="signup">
-                  <EmailSignUpForm />
-                </TabsContent>
-              </Tabs>
-              
-              <div className="text-center text-sm mt-6 text-muted-foreground">
-                Al iniciar sesión, aceptas nuestros términos y condiciones de servicio.
-              </div>
-            </>
-          )}
+          <Tabs value={authTab} onValueChange={setAuthTab} className="w-full">
+            <TabsList className="grid w-full grid-cols-2 mb-4">
+              <TabsTrigger value="signin">Ingresar</TabsTrigger>
+              <TabsTrigger value="signup">Registrarse</TabsTrigger>
+            </TabsList>
+            <TabsContent value="signin">
+              <EmailSignInForm 
+                onForgotPassword={() => setShowForgotPassword(true)}
+              />
+            </TabsContent>
+            <TabsContent value="signup">
+              <EmailSignUpForm />
+            </TabsContent>
+          </Tabs>
+          
+          <div className="text-center text-sm mt-6 text-muted-foreground">
+            Al iniciar sesión, aceptas nuestros términos y condiciones de servicio.
+          </div>
         </CardContent>
       </Card>
     </div>

@@ -3,7 +3,8 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import { toast } from 'sonner';
 import { AuthContextProps, UserData } from '@/types/auth';
 import { getCurrentUser, signOut } from '@/utils/auth';
-import { useAuthMethods } from '@/hooks/auth';
+import { useAuthentication } from '@/hooks/auth/useAuthentication';
+import { usePasswordManagement } from '@/hooks/auth/usePasswordManagement';
 
 // Create context with a default undefined value
 const AuthContext = createContext<AuthContextProps | undefined>(undefined);
@@ -21,22 +22,28 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [loading, setLoading] = useState<boolean>(true);
   const [isInitializing, setIsInitializing] = useState<boolean>(true);
   
-  const authMethods = useAuthMethods(setUserData, setLoading);
+  const { signIn, signUp } = useAuthentication(setUserData, setLoading);
+  const { resetPassword } = usePasswordManagement();
   
   // Initialize the auth state
   useEffect(() => {
     const initAuth = async () => {
       try {
+        console.log('Initializing auth context...');
         // Check for existing user session in localStorage
         const storedUser = getCurrentUser();
         if (storedUser) {
+          console.log('User found in local storage:', storedUser);
           setUserData(storedUser);
+        } else {
+          console.log('No user found in local storage');
         }
       } catch (error) {
         console.error('Error initializing auth:', error);
       } finally {
         setLoading(false);
         setIsInitializing(false);
+        console.log('Auth initialization complete');
       }
     };
     
@@ -53,7 +60,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     isInitializing,
     signIn: async (email, password) => {
       try {
-        const user = await authMethods.signIn(email, password);
+        const user = await signIn(email, password);
         return { user, error: null };
       } catch (error) {
         return { user: null, error };
@@ -61,7 +68,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     },
     signUp: async (email, password, displayName) => {
       try {
-        const user = await authMethods.signUp(email, password, displayName);
+        const user = await signUp(email, password, displayName);
         return { user, error: null };
       } catch (error) {
         return { user: null, error };
@@ -103,7 +110,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     },
     resetPassword: async (email) => {
       try {
-        await authMethods.resetPassword(email);
+        await resetPassword(email);
         return { success: true };
       } catch (error) {
         return { success: false, error };

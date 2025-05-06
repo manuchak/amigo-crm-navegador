@@ -7,7 +7,6 @@ import './App.css';
 
 // Import core components directly (no lazy loading for crucial components)
 import Login from './pages/Login';
-import Auth from './pages/Auth';
 
 // Use lazy loading for other pages
 const Dashboard = lazy(() => import('./pages/Dashboard'));
@@ -30,7 +29,6 @@ function App() {
           <Routes>
             {/* Auth Routes */}
             <Route path="/login" element={<Login />} />
-            <Route path="/auth" element={<Auth />} />
             
             {/* App Routes - Add your other routes here */}
             <Route path="/dashboard" element={<Dashboard />} />

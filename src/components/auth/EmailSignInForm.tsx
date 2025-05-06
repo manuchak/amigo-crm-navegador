@@ -12,12 +12,17 @@ import { toast } from 'sonner';
 
 const formSchema = z.object({
   email: z.string().email('Correo electrónico inválido'),
-  password: z.string().min(6, 'La contraseña debe tener al menos 6 caracteres'),
+  password: z.string().min(1, 'La contraseña es requerida'),
 });
 
 type FormData = z.infer<typeof formSchema>;
 
-const EmailSignInForm: React.FC<{ onSuccess?: () => void; onForgotPassword?: () => void }> = ({ 
+interface EmailSignInFormProps {
+  onSuccess?: () => void;
+  onForgotPassword?: () => void;
+}
+
+const EmailSignInForm: React.FC<EmailSignInFormProps> = ({ 
   onSuccess,
   onForgotPassword 
 }) => {
@@ -37,6 +42,7 @@ const EmailSignInForm: React.FC<{ onSuccess?: () => void; onForgotPassword?: () 
     
     setIsSubmitting(true);
     try {
+      console.log("Attempting to sign in with:", data.email);
       const result = await signIn(data.email, data.password);
       
       if (result.error) {
@@ -74,6 +80,7 @@ const EmailSignInForm: React.FC<{ onSuccess?: () => void; onForgotPassword?: () 
                     placeholder="tucorreo@ejemplo.com"
                     className="pl-10"
                     disabled={isSubmitting}
+                    type="email"
                   />
                 </div>
               </FormControl>
