@@ -7,7 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useNavigate, useLocation } from 'react-router-dom';
 import ProspectsPage from '@/components/leads/ProspectsPage';
 import QualifiedLeadsApproval from '@/components/leads/QualifiedLeadsApproval';
-import { LeadsCrmDashboard } from '@/components/leads/LeadsCrmDashboard';
+import LeadsCrmDashboard from '@/components/leads/LeadsCrmDashboard';
 
 const Leads: React.FC = () => {
   const navigate = useNavigate();

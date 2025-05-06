@@ -1,9 +1,10 @@
 
 import React from "react";
-import { Checkbox } from "@/components/ui/checkbox";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { LeadListPanelProps } from "./types";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
+import { LeadListPanelProps } from "./types";
+import { Check, X } from "lucide-react";
 
 const LeadListPanel: React.FC<LeadListPanelProps> = ({
   filteredLeads,
@@ -16,67 +17,75 @@ const LeadListPanel: React.FC<LeadListPanelProps> = ({
   isLeadCalificado
 }) => {
   return (
-    <div className="space-y-2 py-2">
-      <div className="font-medium text-sm flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          {selectAllVisible && (
+    <div className="mb-4">
+      <div className="flex items-center justify-between mb-2">
+        <span className="text-sm text-slate-600 font-medium">
+          {filteredLeads.length} custodios encontrados
+        </span>
+        
+        {selectAllVisible && (
+          <div className="flex items-center space-x-2">
             <Checkbox
               id="select-all"
-              className="mr-2"
               checked={allSelected}
-              ref={(ref) => {
-                // We need to cast this to HTMLInputElement because indeterminate is a property of input elements, not button elements
-                if (ref) {
-                  (ref as unknown as HTMLInputElement).indeterminate = someSelected && !allSelected;
-                }
-              }}
+              indeterminate={someSelected}
               onCheckedChange={handleSelectAll}
             />
-          )}
-          <span>Custodios disponibles ({filteredLeads.length})</span>
-        </div>
-        {selectedLeads.length > 0 && (
-          <Badge variant="secondary" className="ml-2">
-            {selectedLeads.length} seleccionados
-          </Badge>
+            <label htmlFor="select-all" className="text-sm cursor-pointer">
+              Seleccionar todos
+            </label>
+          </div>
         )}
       </div>
-
-      <ScrollArea className="h-[180px] border rounded-md p-2">
+      
+      <ScrollArea className="h-[200px] border rounded-md p-2">
         {filteredLeads.length > 0 ? (
           <div className="space-y-2">
-            {filteredLeads.map((lead) => (
+            {filteredLeads.map(lead => (
               <div
                 key={lead.id}
-                className={`flex items-center py-1.5 px-2 rounded-md ${
-                  selectedLeads.includes(lead.id)
-                    ? "bg-primary/5"
-                    : "hover:bg-muted"
-                }`}
+                className="flex items-center justify-between border-b pb-2 last:border-0"
               >
-                <Checkbox
-                  id={`lead-${lead.id}`}
-                  className="mr-2"
-                  checked={selectedLeads.includes(lead.id)}
-                  onCheckedChange={() => handleSelectLead(lead.id)}
-                />
-                <label
-                  htmlFor={`lead-${lead.id}`}
-                  className="flex-1 cursor-pointer text-sm flex items-center justify-between"
-                >
-                  <span className="truncate">{lead.nombre}</span>
-                  {isLeadCalificado(lead) && (
-                    <Badge variant="outline" className="ml-2 bg-green-50 text-green-700 border-green-200 text-xs">
-                      Calificado
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id={`lead-${lead.id}`}
+                    checked={selectedLeads.includes(lead.id)}
+                    onCheckedChange={() => handleSelectLead(lead.id)}
+                  />
+                  <div>
+                    <label
+                      htmlFor={`lead-${lead.id}`}
+                      className="font-medium text-sm cursor-pointer"
+                    >
+                      {lead.nombre}
+                    </label>
+                    <div className="text-xs text-slate-500">
+                      {lead.telefono || (lead.contacto && lead.contacto.includes('|') 
+                        ? lead.contacto.split('|')[1]?.trim() 
+                        : 'Sin teléfono')}
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="flex items-center">
+                  {isLeadCalificado(lead) ? (
+                    <Badge variant="outline" className="flex items-center space-x-1 bg-green-50 text-green-700 border-green-200">
+                      <Check className="h-3 w-3" />
+                      <span>Calificado</span>
+                    </Badge>
+                  ) : (
+                    <Badge variant="outline" className="flex items-center space-x-1 bg-slate-50 text-slate-700">
+                      <X className="h-3 w-3" />
+                      <span>No calificado</span>
                     </Badge>
                   )}
-                </label>
+                </div>
               </div>
             ))}
           </div>
         ) : (
-          <div className="flex items-center justify-center h-full text-sm text-muted-foreground">
-            No hay custodios que coincidan con los filtros
+          <div className="h-full flex items-center justify-center text-slate-500 text-sm">
+            No se encontraron custodios con los filtros aplicados
           </div>
         )}
       </ScrollArea>

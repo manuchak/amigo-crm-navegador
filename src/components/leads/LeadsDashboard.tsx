@@ -19,6 +19,7 @@ import LeadCreationForm from './LeadCreationForm';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { CallBatchDialog } from './batch-calling';
+import { processBatchCalls } from '@/hooks/lead-call-logs/batch-calls';
 
 const LeadsDashboard = () => {
   const { leads, updateLeadStatus, refetchLeads } = useLeads();
