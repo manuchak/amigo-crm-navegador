@@ -1,198 +1,149 @@
 
-import React from 'react';
-import { DateRange } from "react-day-picker";
-import { useQuery } from "@tanstack/react-query";
-import { motion } from "framer-motion";
-import { Settings } from "lucide-react";
+import React, { useState, useEffect } from 'react';
+import { DateRange } from 'react-day-picker';
 import { DriverBehaviorFilters } from '../../types/driver-behavior.types';
-import { fetchProductivityParameters, fetchDriverGroups, fetchClientList } from '../../services/productivity/productivityService';
 import { ProductivityMetricsCards } from './ProductivityMetricsCards';
 import { ProductivityEfficiencyCards } from './ProductivityEfficiencyCards';
 import { DriverRatingTable } from './DriverRatingTable';
-import { GroupProductivityCard } from './GroupProductivityCard';
 import { ProductivityAnalysisTable } from './ProductivityAnalysisTable';
 import { ProductivityParametersDialog } from './ProductivityParametersDialog';
 import { ProductivityParametersTable } from './ProductivityParametersTable';
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Button } from '@/components/ui/button';
+import { GroupProductivityCard } from './GroupProductivityCard';
+import { Users } from 'lucide-react';
 
-interface ProductivityDashboardProps {
+// Interface for the component props
+export interface ProductivityDashboardProps {
   dateRange: DateRange;
-  filters?: DriverBehaviorFilters;
+  filters: DriverBehaviorFilters;
+  onOpenGroupsManagement?: (client?: string) => void;
 }
 
-export function ProductivityDashboard({ dateRange, filters = {} }: ProductivityDashboardProps) {
-  const [showParameters, setShowParameters] = React.useState(false);
-  const [activeTab, setActiveTab] = React.useState('overview');
+export function ProductivityDashboard({ 
+  dateRange, 
+  filters,
+  onOpenGroupsManagement
+}: ProductivityDashboardProps) {
+  const [isParametersDialogOpen, setIsParametersDialogOpen] = useState(false);
   
-  // Fetch parameters to pass to components
-  const { data: parameters, isLoading: isLoadingParameters, refetch: refetchParameters } = useQuery({
-    queryKey: ['productivity-parameters', filters?.selectedClient],
-    queryFn: () => fetchProductivityParameters(filters?.selectedClient),
-  });
+  // Log for debugging
+  useEffect(() => {
+    console.log("ProductivityDashboard render:", {
+      dateRange,
+      filters,
+      onOpenGroupsManagement: !!onOpenGroupsManagement
+    });
+  }, [dateRange, filters, onOpenGroupsManagement]);
 
-  // Fetch client list explicitly for the parameters dialog
-  const { data: clients = [] } = useQuery({
-    queryKey: ['productivity-clients-list'],
-    queryFn: fetchClientList,
-  });
-
-  // Fetch driver groups for the selected client
-  const { data: driverGroups = [] } = useQuery({
-    queryKey: ['productivity-driver-groups', filters?.selectedClient],
-    queryFn: () => fetchDriverGroups(filters?.selectedClient),
-    enabled: !!filters?.selectedClient,
-  });
+  // Get the selected client from filters
+  const selectedClient = filters.selectedClient !== 'all' ? filters.selectedClient : undefined;
   
-  const handleRefreshParameters = () => {
-    refetchParameters();
-  };
-  
-  // Get group names for the select dropdown - properly handling different data formats
-  const groupNames = React.useMemo(() => {
-    if (!Array.isArray(driverGroups) || driverGroups.length === 0) {
-      return [];
+  // Handler for opening the group management panel
+  const handleManageGroups = () => {
+    console.log("Opening groups management from ProductivityDashboard");
+    if (onOpenGroupsManagement) {
+      onOpenGroupsManagement(selectedClient);
     }
-
-    return driverGroups.map(group => {
-      if (typeof group === 'string') {
-        return group;
-      }
-      if (group && typeof group === 'object' && 'name' in group) {
-        return (group as { name: string }).name;
-      }
-      return '';
-    }).filter(Boolean);
-  }, [driverGroups]);
+  };
 
   return (
-    <div className="space-y-8">
-      {/* Header with title and client info */}
-      <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4">
+    <div className="space-y-6">
+      {/* Header with client and group info */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h2 className="text-2xl font-semibold text-gray-900">Análisis de Productividad</h2>
-          {filters?.selectedClient && (
-            <div className="mt-1 flex items-center">
-              <Badge variant="outline" className="bg-white">
-                Cliente: {filters.selectedClient}
-              </Badge>
-            </div>
+          <h3 className="text-lg font-semibold">Análisis de Productividad</h3>
+          <p className="text-sm text-muted-foreground">
+            {selectedClient 
+              ? `Cliente: ${selectedClient}${filters.selectedGroup && filters.selectedGroup !== 'all' ? ` / Grupo: ${filters.selectedGroup}` : ''}`
+              : 'Seleccione un cliente para ver análisis detallado'}
+          </p>
+        </div>
+        
+        <div className="flex gap-2">
+          {selectedClient && (
+            <>
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={handleManageGroups}
+                className="flex items-center gap-2"
+              >
+                <Users className="h-4 w-4" />
+                <span>Gestionar Grupos</span>
+              </Button>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={() => setIsParametersDialogOpen(true)}
+              >
+                Parámetros
+              </Button>
+            </>
           )}
         </div>
-        <Button 
-          onClick={() => setShowParameters(true)}
-          className="flex items-center gap-2 bg-white hover:bg-gray-50 text-gray-700 border shadow-sm"
-        >
-          <Settings className="h-4 w-4" />
-          <span>Configurar Parámetros</span>
-        </Button>
       </div>
+      
+      {/* Main content */}
+      {selectedClient ? (
+        <div className="space-y-6">
+          {/* Metrics summary cards */}
+          <ProductivityMetricsCards 
+            dateRange={dateRange}
+            filters={filters}
+          />
 
-      {/* Tabs for different views */}
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <TabsList className="bg-white shadow-sm border rounded-lg">
-          <TabsTrigger value="overview">Resumen</TabsTrigger>
-          <TabsTrigger value="drivers">Conductores</TabsTrigger>
-          <TabsTrigger value="groups">Grupos</TabsTrigger>
-          <TabsTrigger value="parameters">Parámetros</TabsTrigger>
-        </TabsList>
-        
-        {/* Overview Tab */}
-        <TabsContent value="overview" className="space-y-8 animate-fade-in">
-          {/* Main Summary Metrics Cards */}
-          <motion.div 
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.4 }}
-          >
-            <ProductivityMetricsCards 
-              dateRange={dateRange}
-              filters={filters}
-            />
-          </motion.div>
-
-          {/* Efficiency Cards */}
-          <motion.div 
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.4, delay: 0.1 }}
-          >
-            <ProductivityEfficiencyCards 
-              dateRange={dateRange}
-              filters={filters}
-            />
-          </motion.div>
-          
-          {/* Analysis Section */}
-          <motion.div 
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.4, delay: 0.2 }}
-          >
-            <ProductivityAnalysisTable 
-              dateRange={dateRange}
-              filters={filters}
-            />
-          </motion.div>
-        </TabsContent>
-        
-        {/* Drivers Tab */}
-        <TabsContent value="drivers" className="space-y-8 animate-fade-in">
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.4 }}
-          >
-            <DriverRatingTable 
-              dateRange={dateRange}
-              filters={filters}
-            />
-          </motion.div>
-        </TabsContent>
-        
-        {/* Groups Tab */}
-        <TabsContent value="groups" className="space-y-8 animate-fade-in">
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.4 }}
-          >
+          {/* Efficiency cards */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="lg:col-span-2">
+              <ProductivityEfficiencyCards 
+                dateRange={dateRange}
+                filters={filters}
+              />
+            </div>
             <GroupProductivityCard 
               dateRange={dateRange}
               filters={filters}
             />
-          </motion.div>
-        </TabsContent>
-        
-        {/* Parameters Tab */}
-        <TabsContent value="parameters" className="space-y-8 animate-fade-in">
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.4 }}
-          >
-            <ProductivityParametersTable 
-              parameters={parameters || []}
-              clients={clients}
-              driverGroups={groupNames}
-              isLoading={isLoadingParameters}
-              onRefresh={handleRefreshParameters}
-              selectedClient={filters?.selectedClient}
+          </div>
+          
+          {/* Tables */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <DriverRatingTable 
+              dateRange={dateRange}
+              filters={filters}
             />
-          </motion.div>
-        </TabsContent>
-      </Tabs>
-      
-      {/* Parameters Dialog */}
-      <ProductivityParametersDialog 
-        open={showParameters}
-        onClose={() => setShowParameters(false)}
-        onSaved={handleRefreshParameters}
-        selectedClient={filters?.selectedClient}
-        availableGroups={groupNames}
-        clientList={clients}
-      />
+            <ProductivityParametersTable 
+              client={selectedClient}
+              group={filters.selectedGroup !== 'all' ? filters.selectedGroup : undefined}
+              onEditParameters={() => setIsParametersDialogOpen(true)}
+            />
+          </div>
+          
+          {/* Full width analysis table */}
+          <ProductivityAnalysisTable 
+            dateRange={dateRange}
+            filters={filters}
+          />
+          
+          {/* Parameters dialog */}
+          <ProductivityParametersDialog 
+            isOpen={isParametersDialogOpen}
+            onClose={() => setIsParametersDialogOpen(false)}
+            client={selectedClient}
+            group={filters.selectedGroup !== 'all' ? filters.selectedGroup : undefined}
+          />
+        </div>
+      ) : (
+        <div className="bg-muted/30 rounded-lg p-8 text-center">
+          <div className="mx-auto w-12 h-12 rounded-full bg-muted/50 flex items-center justify-center mb-4">
+            <Users className="h-6 w-6 text-muted-foreground" />
+          </div>
+          <h3 className="text-lg font-medium">Seleccione un cliente</h3>
+          <p className="text-muted-foreground mt-2 max-w-md mx-auto">
+            Para ver el análisis de productividad, seleccione un cliente usando los filtros en la parte superior.
+          </p>
+        </div>
+      )}
     </div>
   );
 }

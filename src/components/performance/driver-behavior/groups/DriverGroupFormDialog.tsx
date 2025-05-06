@@ -54,22 +54,38 @@ interface DriverGroupFormDialogProps {
   onClose: () => void;
   group?: DriverGroupDetails;
   onSuccess?: () => void;
+  preSelectedClient?: string; // New prop for pre-selected client
 }
 
-export function DriverGroupFormDialog({ isOpen, onClose, group, onSuccess }: DriverGroupFormDialogProps) {
+export function DriverGroupFormDialog({ 
+  isOpen, 
+  onClose, 
+  group, 
+  onSuccess,
+  preSelectedClient 
+}: DriverGroupFormDialogProps) {
   const isEditing = !!group;
-  const [selectedClient, setSelectedClient] = useState<string>(group?.client || '');
+  // Initialize selectedClient with preSelectedClient if provided or group.client if editing, otherwise empty string
+  const [selectedClient, setSelectedClient] = useState<string>(
+    group?.client || preSelectedClient || ''
+  );
   const [selectedDrivers, setSelectedDrivers] = useState<DriverForGroup[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [showDriversList, setShowDriversList] = useState(false);
+  const [driversFetched, setDriversFetched] = useState(false);
 
-  // Form definition
+  console.log("Initial selectedClient:", selectedClient);
+  console.log("Group passed to dialog:", group);
+  console.log("Pre-selected client:", preSelectedClient);
+
+  // Form definition with default values
   const form = useForm<DriverGroupFormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       name: group?.name || '',
-      client: group?.client || '',
+      // Initialize client with preSelectedClient or group.client or empty string
+      client: group?.client || preSelectedClient || '',
       description: group?.description || '',
       driver_ids: group?.driver_ids || []
     }
@@ -83,7 +99,13 @@ export function DriverGroupFormDialog({ isOpen, onClose, group, onSuccess }: Dri
   });
   
   // Fetch drivers for selected client
-  const { data: drivers = [], isLoading: isLoadingDrivers, error: driversError, refetch: refetchDrivers } = useQuery({
+  const { 
+    data: drivers = [], 
+    isLoading: isLoadingDrivers, 
+    error: driversError, 
+    refetch: refetchDrivers,
+    isFetched
+  } = useQuery({
     queryKey: ['drivers-for-group', selectedClient],
     queryFn: () => fetchDriversByClient(selectedClient),
     enabled: !!selectedClient && selectedClient !== 'all',
@@ -91,9 +113,23 @@ export function DriverGroupFormDialog({ isOpen, onClose, group, onSuccess }: Dri
     retry: 2,
   });
 
+  // When the dialog opens and we have a preSelectedClient or group.client, set the client value in the form
+  useEffect(() => {
+    if (isOpen) {
+      const clientToUse = group?.client || preSelectedClient;
+      if (clientToUse) {
+        console.log("Setting form client value to:", clientToUse);
+        form.setValue('client', clientToUse, { shouldValidate: true });
+        setSelectedClient(clientToUse);
+      }
+    }
+  }, [isOpen, group, preSelectedClient, form]);
+
   console.log("Selected client:", selectedClient);
   console.log("Fetched drivers:", drivers);
   console.log("Selected drivers:", selectedDrivers);
+  console.log("Drivers fetched status:", isFetched);
+  console.log("Form values:", form.getValues());
   
   // If there's an error fetching drivers, show a toast
   useEffect(() => {

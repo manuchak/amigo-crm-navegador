@@ -60,6 +60,9 @@ export function DriverGroupsManagement({
   const [selectedGroup, setSelectedGroup] = useState<DriverGroupDetails | undefined>(undefined);
   const [groupToDelete, setGroupToDelete] = useState<DriverGroupDetails | null>(null);
   
+  // Log the selected client value for debugging
+  console.log("DriverGroupsManagement - selectedClient:", selectedClient);
+  
   // Fetch driver groups
   const { data: groups = [], isLoading } = useQuery({
     queryKey: ['driver-groups', selectedClient],
@@ -82,6 +85,7 @@ export function DriverGroupsManagement({
 
   // Handle editing a group
   const handleEditGroup = (group: DriverGroupDetails) => {
+    console.log("Editing group:", group);
     setSelectedGroup(group);
     setIsFormOpen(true);
   };
@@ -243,6 +247,7 @@ export function DriverGroupsManagement({
         onClose={() => setIsFormOpen(false)}
         group={selectedGroup}
         onSuccess={handleFormSuccess}
+        preSelectedClient={selectedClient} // Pass the selected client to the form
       />
       
       {/* Delete Confirmation Dialog */}
