@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { useAuth } from '@/context/AuthContext'; // Use our local AuthContext
+import { useAuth } from '@/context/AuthContext';
 import { Loader2, Shield } from 'lucide-react';
 import EmailSignInForm from '@/components/auth/EmailSignInForm';
 import EmailSignUpForm from '@/components/auth/EmailSignUpForm';
@@ -11,7 +11,7 @@ import EmailSignUpForm from '@/components/auth/EmailSignUpForm';
 const Auth = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { currentUser, loading } = useAuth(); // Use our local AuthContext
+  const { currentUser, loading } = useAuth();
   const [activeTab, setActiveTab] = useState<string>('login');
   
   // Get return URL from location state

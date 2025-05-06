@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { Navigate, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Separator } from '@/components/ui/separator';
@@ -19,6 +19,7 @@ const Login = () => {
   useEffect(() => {
     // Redirect if already logged in
     if (currentUser) {
+      console.log("User is already logged in, redirecting to dashboard");
       navigate('/dashboard');
     }
   }, [currentUser, navigate]);

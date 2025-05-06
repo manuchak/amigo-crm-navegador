@@ -1,147 +1,49 @@
 
-import React from 'react';
-import { BrowserRouter as Router, Route, Routes, Navigate } from 'react-router-dom';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { Toaster } from 'sonner';
-import { AuthProvider } from '@/context'; 
-import { LeadsProvider } from '@/context/LeadsContext';
-import AuthGuard from '@/components/auth/AuthGuard';
-import Navbar from '@/components/Navbar';
+import React, { Suspense, lazy } from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { Toaster } from '@/components/ui/toaster';
+import { AuthProvider } from '@/context/AuthContext';
 import './App.css';
 
-// Create a React Query client
-const queryClient = new QueryClient();
-
-// Import all pages directly to avoid dynamic import issues
-import Index from './pages/Index';
-import Dashboard from './pages/Dashboard'; 
-import UserManagement from './pages/UserManagement';
-import InstalacionGPS from './pages/InstalacionGPS';
-import InstalacionesAgendadas from './pages/InstalacionesAgendadas';
-import InstalacionGPSInstallers from './pages/InstalacionGPSInstallers';
-import InstaladorRegistro from './pages/InstaladorRegistro';
-import Performance from './pages/Performance';
-import Leads from './pages/Leads';
+// Import core components directly (no lazy loading for crucial components)
 import Auth from './pages/Auth';
 import Login from './pages/Login';
-import Prospects from './pages/Prospects';
-import Support from './pages/Support';
-import CallCenter from './pages/CallCenter';
-import Settings from './pages/Settings';
-import Requerimientos from './pages/Requerimientos';
-import AdminConfig from './pages/AdminConfig';
-import ActiveServices from './pages/ActiveServices';
+
+// Use lazy loading for other pages
+const Dashboard = lazy(() => import('./pages/Dashboard'));
+const UserManagement = lazy(() => import('./pages/admin/UserManagement'));
+const Support = lazy(() => import('./pages/Support'));
+
+// Loading fallback
+const PageLoader = () => (
+  <div className="min-h-screen flex items-center justify-center">
+    <div className="animate-spin h-10 w-10 border-4 border-primary border-t-transparent rounded-full"></div>
+  </div>
+);
 
 function App() {
   return (
-    <QueryClientProvider client={queryClient}>
-      <AuthProvider>
-        <LeadsProvider>
-          <Router>
-            <Navbar />
-            <div className="app-container">
-              <Routes>
-                <Route path="/auth" element={<Auth />} />
-                <Route path="/login" element={<Login />} />
-                
-                {/* Add the route for the Index/Inicio page */}
-                <Route path="/inicio" element={<Index />} />
-                <Route path="/" element={<Index />} />
-                
-                {/* Protected routes */}
-                <Route path="/dashboard" element={
-                  <AuthGuard>
-                    <Dashboard />
-                  </AuthGuard>
-                } />
-                <Route path="/leads" element={
-                  <AuthGuard>
-                    <Leads />
-                  </AuthGuard>
-                } />
-                <Route path="/prospects" element={
-                  <AuthGuard>
-                    <Prospects />
-                  </AuthGuard>
-                } />
-                {/* Remove the Validation route that no longer exists */}
-                <Route path="/support" element={
-                  <AuthGuard>
-                    <Support />
-                  </AuthGuard>
-                } />
-                <Route path="/call-center" element={
-                  <AuthGuard>
-                    <CallCenter />
-                  </AuthGuard>
-                } />
-                <Route path="/settings" element={
-                  <AuthGuard>
-                    <Settings />
-                  </AuthGuard>
-                } />
-                <Route path="/user-management" element={
-                  <AuthGuard>
-                    <UserManagement />
-                  </AuthGuard>
-                } />
-                
-                {/* GPS Installation routes - Using static imports */}
-                <Route path="/instalacion-gps" element={
-                  <AuthGuard>
-                    <InstalacionGPS />
-                  </AuthGuard>
-                } />
-                <Route path="/instalacion-gps/agendadas" element={
-                  <AuthGuard>
-                    <InstalacionesAgendadas />
-                  </AuthGuard>
-                } />
-                <Route path="/instalacion-gps/instaladores" element={
-                  <AuthGuard>
-                    <InstalacionGPSInstallers />
-                  </AuthGuard>
-                } />
-                <Route path="/instalacion-gps/registro-instalador" element={
-                  <AuthGuard>
-                    <InstaladorRegistro />
-                  </AuthGuard>
-                } />
-                
-                {/* Performance route */}
-                <Route path="/performance" element={
-                  <AuthGuard>
-                    <Performance />
-                  </AuthGuard>
-                } />
-                
-                {/* Active Services route */}
-                <Route path="/active-services" element={
-                  <AuthGuard>
-                    <ActiveServices />
-                  </AuthGuard>
-                } />
-                
-                <Route path="/requerimientos" element={
-                  <AuthGuard>
-                    <Requerimientos />
-                  </AuthGuard>
-                } />
-                <Route path="/admin-config" element={
-                  <AuthGuard>
-                    <AdminConfig />
-                  </AuthGuard>
-                } />
-                
-                {/* Default redirect */}
-                <Route path="*" element={<Navigate to="/" replace />} />
-              </Routes>
-            </div>
-            <Toaster position="top-right" richColors closeButton />
-          </Router>
-        </LeadsProvider>
-      </AuthProvider>
-    </QueryClientProvider>
+    <AuthProvider>
+      <Router>
+        <Suspense fallback={<PageLoader />}>
+          <Routes>
+            {/* Auth Routes */}
+            <Route path="/login" element={<Login />} />
+            <Route path="/auth" element={<Auth />} />
+            
+            {/* App Routes - Add your other routes here */}
+            <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/user-management" element={<UserManagement />} />
+            <Route path="/support" element={<Support />} />
+            
+            {/* Default redirect */}
+            <Route path="/" element={<Navigate to="/login" replace />} />
+            <Route path="*" element={<Navigate to="/login" replace />} />
+          </Routes>
+        </Suspense>
+        <Toaster />
+      </Router>
+    </AuthProvider>
   );
 }
 
