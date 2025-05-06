@@ -66,15 +66,15 @@ export const UserStatsCards: React.FC<UserStatsProps> = ({ stats }) => {
       {cards.map((card, index) => (
         <Card key={index} className={`border ${card.color}`}>
           <CardContent className="p-3 flex flex-col">
-            <div className="flex justify-between items-center mb-2">
-              <span className="text-xs font-medium">{card.title}</span>
+            <div className="flex justify-between items-center mb-1">
+              <span className="text-[11px] font-medium">{card.title}</span>
               {card.icon}
             </div>
 
-            <div className="text-2xl font-bold">{card.value}</div>
+            <div className="text-xl font-bold">{card.value}</div>
             
             {card.change !== null && (
-              <div className="text-xs mt-1">
+              <div className="text-[10px] mt-1">
                 {card.change}% del total
               </div>
             )}

@@ -370,7 +370,7 @@ export function DriverGroupsManagement({ isOpen, onClose, selectedClient }: Driv
                   <span className="text-sm font-medium">
                     Grupos{' '}
                     {filteredGroups.length > 0 && (
-                      <Badge variant="secondary" className="ml-1">
+                      <Badge variant="secondary" className="ml-1 text-xs px-1.5 py-0">
                         {filteredGroups.length}
                       </Badge>
                     )}
@@ -381,7 +381,7 @@ export function DriverGroupsManagement({ isOpen, onClose, selectedClient }: Driv
                     variant="ghost"
                     className="h-7 px-2 text-primary hover:text-primary hover:bg-primary/10"
                   >
-                    <Plus className="h-4 w-4 mr-1" />
+                    <Plus className="h-3.5 w-3.5 mr-1" />
                     <span className="text-xs">Nuevo</span>
                   </Button>
                 </div>
@@ -403,9 +403,9 @@ export function DriverGroupsManagement({ isOpen, onClose, selectedClient }: Driv
                             onClick={handleNewGroup} 
                             size="sm" 
                             variant="outline" 
-                            className="mt-4"
+                            className="mt-4 text-xs"
                           >
-                            <Plus className="h-4 w-4 mr-1" />
+                            <Plus className="h-3.5 w-3.5 mr-1" />
                             <span>Crear grupo</span>
                           </Button>
                         </>
@@ -428,28 +428,28 @@ export function DriverGroupsManagement({ isOpen, onClose, selectedClient }: Driv
                           >
                             <div className="flex justify-between items-center">
                               <h4 className="font-medium text-gray-800 truncate text-sm">{group.name}</h4>
-                              <ChevronRight className="h-4 w-4 text-gray-400" />
+                              <ChevronRight className="h-4 w-4 text-gray-400 flex-shrink-0" />
                             </div>
                             
                             <div className="flex items-center gap-1 mt-1">
-                              <Users className="h-3.5 w-3.5 text-gray-500" />
+                              <Users className="h-3 w-3 text-gray-500 flex-shrink-0" />
                               <span className="text-xs text-gray-500">{stats.total} conductores</span>
                             </div>
                             
                             {stats.total > 0 && (
-                              <div className="flex items-center gap-1.5 mt-1.5">
+                              <div className="flex flex-wrap items-center gap-1 mt-1.5">
                                 {stats.highPerforming > 0 && (
-                                  <Badge variant="outline" className="bg-green-50 text-green-700 text-[10px] h-5 border-green-200">
+                                  <Badge variant="outline" className="bg-green-50 text-green-700 text-[9px] h-4 px-1 border-green-200 font-normal">
                                     {stats.highPerforming} alto
                                   </Badge>
                                 )}
                                 {stats.midPerforming > 0 && (
-                                  <Badge variant="outline" className="bg-amber-50 text-amber-700 text-[10px] h-5 border-amber-200">
+                                  <Badge variant="outline" className="bg-amber-50 text-amber-700 text-[9px] h-4 px-1 border-amber-200 font-normal">
                                     {stats.midPerforming} medio
                                   </Badge>
                                 )}
                                 {stats.lowPerforming > 0 && (
-                                  <Badge variant="outline" className="bg-red-50 text-red-700 text-[10px] h-5 border-red-200">
+                                  <Badge variant="outline" className="bg-red-50 text-red-700 text-[9px] h-4 px-1 border-red-200 font-normal">
                                     {stats.lowPerforming} bajo
                                   </Badge>
                                 )}
@@ -470,18 +470,18 @@ export function DriverGroupsManagement({ isOpen, onClose, selectedClient }: Driv
                 <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col overflow-hidden">
                   <div className="px-4 py-2 border-b flex items-center justify-between bg-white">
                     <TabsList className="bg-muted">
-                      <TabsTrigger value="groups" className="data-[state=active]:bg-background text-sm py-1.5">
+                      <TabsTrigger value="groups" className="data-[state=active]:bg-background text-xs py-1.5">
                         Vista General
                       </TabsTrigger>
-                      <TabsTrigger value="edit" className="data-[state=active]:bg-background text-sm py-1.5">
+                      <TabsTrigger value="edit" className="data-[state=active]:bg-background text-xs py-1.5">
                         {formState.isEditing ? 'Editar Grupo' : 'Nuevo Grupo'}
                       </TabsTrigger>
                     </TabsList>
                     
                     {activeTab === 'groups' && (
-                      <Button onClick={handleNewGroup} size="sm" className="h-8">
+                      <Button onClick={handleNewGroup} size="sm" className="h-8 text-xs">
                         <Plus className="h-3.5 w-3.5 mr-1" />
-                        <span className="text-sm">Nuevo Grupo</span>
+                        <span>Nuevo Grupo</span>
                       </Button>
                     )}
                   </div>
@@ -496,8 +496,8 @@ export function DriverGroupsManagement({ isOpen, onClose, selectedClient }: Driv
                           <p className="text-sm text-gray-500 mb-4">
                             Crea grupos para organizar a los conductores y analizar su rendimiento colectivamente.
                           </p>
-                          <Button onClick={handleNewGroup} size="sm">
-                            <Plus className="h-4 w-4 mr-1" />
+                          <Button onClick={handleNewGroup} size="sm" className="text-xs">
+                            <Plus className="h-3.5 w-3.5 mr-1" />
                             Crear primer grupo
                           </Button>
                         </div>
@@ -515,7 +515,7 @@ export function DriverGroupsManagement({ isOpen, onClose, selectedClient }: Driv
                             >
                               <div className="bg-gray-50 border-b p-3 flex justify-between items-center">
                                 <h3 className="font-medium text-sm truncate">{group.name}</h3>
-                                <Badge className="bg-primary/10 text-primary hover:bg-primary/20 border-0">
+                                <Badge className="bg-primary/10 text-primary hover:bg-primary/20 border-0 text-xs px-1.5 py-0">
                                   {stats.total} conductores
                                 </Badge>
                               </div>
@@ -531,7 +531,7 @@ export function DriverGroupsManagement({ isOpen, onClose, selectedClient }: Driv
                                 {stats.total > 0 && (
                                   <>
                                     <div className="flex items-center justify-between text-xs text-gray-500 mb-1">
-                                      <span>Rendimiento</span>
+                                      <span className="text-[11px]">Rendimiento</span>
                                       <span className="text-[10px] text-gray-400">Actualizado: {new Date(group.updated_at || '').toLocaleDateString()}</span>
                                     </div>
                                     <div className="h-2 flex rounded-full overflow-hidden mb-2 bg-gray-100">
@@ -561,21 +561,21 @@ export function DriverGroupsManagement({ isOpen, onClose, selectedClient }: Driv
                                       )}
                                     </div>
                                     
-                                    <div className="grid grid-cols-2 gap-2 text-xs">
+                                    <div className="grid grid-cols-2 gap-y-0.5 gap-x-2 text-[10px]">
                                       <div className="flex items-center gap-1">
-                                        <div className="w-2 h-2 rounded-full bg-green-500" />
+                                        <div className="w-2 h-2 rounded-full bg-green-500 flex-shrink-0" />
                                         <span>Alto: {stats.highPerforming}</span>
                                       </div>
                                       <div className="flex items-center gap-1">
-                                        <div className="w-2 h-2 rounded-full bg-amber-500" />
+                                        <div className="w-2 h-2 rounded-full bg-amber-500 flex-shrink-0" />
                                         <span>Medio: {stats.midPerforming}</span>
                                       </div>
                                       <div className="flex items-center gap-1">
-                                        <div className="w-2 h-2 rounded-full bg-red-500" />
+                                        <div className="w-2 h-2 rounded-full bg-red-500 flex-shrink-0" />
                                         <span>Bajo: {stats.lowPerforming}</span>
                                       </div>
                                       <div className="flex items-center gap-1">
-                                        <div className="w-2 h-2 rounded-full bg-gray-300" />
+                                        <div className="w-2 h-2 rounded-full bg-gray-300 flex-shrink-0" />
                                         <span>Sin score: {stats.noScore}</span>
                                       </div>
                                     </div>
@@ -597,7 +597,7 @@ export function DriverGroupsManagement({ isOpen, onClose, selectedClient }: Driv
                           {/* Column 1: Group Information */}
                           <div>
                             <div className="bg-white p-4 rounded-md border mb-4">
-                              <h3 className="text-sm font-medium mb-3 text-gray-700">Información del Grupo</h3>
+                              <h3 className="text-xs font-medium mb-3 text-gray-700">Información del Grupo</h3>
                               
                               <div className="space-y-3">
                                 <div>
@@ -630,7 +630,7 @@ export function DriverGroupsManagement({ isOpen, onClose, selectedClient }: Driv
                                     value={formState.description}
                                     onChange={(e) => setFormState(prev => ({ ...prev, description: e.target.value }))}
                                     placeholder="Descripción opcional del grupo"
-                                    className="resize-none text-sm"
+                                    className="resize-none text-xs"
                                     rows={3}
                                   />
                                 </div>
@@ -640,8 +640,8 @@ export function DriverGroupsManagement({ isOpen, onClose, selectedClient }: Driv
                             {/* Stats for selected drivers */}
                             <div className="bg-white p-4 rounded-md border">
                               <div className="flex items-center justify-between mb-3">
-                                <h3 className="text-sm font-medium text-gray-700">Conductores Seleccionados</h3>
-                                <Badge variant="outline" className="font-normal text-xs">
+                                <h3 className="text-xs font-medium text-gray-700">Conductores Seleccionados</h3>
+                                <Badge variant="outline" className="font-normal text-[10px] px-1.5 py-0">
                                   {formState.driver_ids.length} seleccionados
                                 </Badge>
                               </div>
@@ -679,21 +679,21 @@ export function DriverGroupsManagement({ isOpen, onClose, selectedClient }: Driv
                                           )}
                                         </div>
 
-                                        <div className="grid grid-cols-2 gap-y-1.5 gap-x-2 text-xs">
-                                          <div className="flex items-center gap-1.5">
-                                            <div className="w-2 h-2 rounded-full bg-green-500" />
+                                        <div className="grid grid-cols-2 gap-y-1 gap-x-2 text-[10px]">
+                                          <div className="flex items-center gap-1">
+                                            <div className="w-2 h-2 rounded-full bg-green-500 flex-shrink-0" />
                                             <span>Alto: {stats.highPerforming}</span>
                                           </div>
-                                          <div className="flex items-center gap-1.5">
-                                            <div className="w-2 h-2 rounded-full bg-amber-500" />
+                                          <div className="flex items-center gap-1">
+                                            <div className="w-2 h-2 rounded-full bg-amber-500 flex-shrink-0" />
                                             <span>Medio: {stats.midPerforming}</span>
                                           </div>
-                                          <div className="flex items-center gap-1.5">
-                                            <div className="w-2 h-2 rounded-full bg-red-500" />
+                                          <div className="flex items-center gap-1">
+                                            <div className="w-2 h-2 rounded-full bg-red-500 flex-shrink-0" />
                                             <span>Bajo: {stats.lowPerforming}</span>
                                           </div>
-                                          <div className="flex items-center gap-1.5">
-                                            <div className="w-2 h-2 rounded-full bg-gray-300" />
+                                          <div className="flex items-center gap-1">
+                                            <div className="w-2 h-2 rounded-full bg-gray-300 flex-shrink-0" />
                                             <span>Sin score: {stats.noScore}</span>
                                           </div>
                                         </div>
@@ -703,7 +703,7 @@ export function DriverGroupsManagement({ isOpen, onClose, selectedClient }: Driv
                                 </>
                               ) : (
                                 <div className="text-center py-3 border border-dashed rounded-md">
-                                  <User className="h-8 w-8 text-gray-300 mx-auto mb-1.5" />
+                                  <User className="h-6 w-6 text-gray-300 mx-auto mb-1.5" />
                                   <p className="text-xs text-gray-500">
                                     No hay conductores seleccionados
                                   </p>
@@ -716,14 +716,14 @@ export function DriverGroupsManagement({ isOpen, onClose, selectedClient }: Driv
                           <div className="col-span-2">
                             <div className="bg-white rounded-md border flex flex-col h-full overflow-hidden">
                               <div className="p-4 border-b">
-                                <h3 className="text-sm font-medium mb-3 text-gray-700">Seleccionar Conductores</h3>
+                                <h3 className="text-xs font-medium mb-3 text-gray-700">Seleccionar Conductores</h3>
                                 
                                 <div className="space-y-2.5">
                                   <div className="relative">
-                                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-3.5 w-3.5 text-gray-400" />
                                     <Input
                                       placeholder="Buscar conductores..."
-                                      className="pl-9 h-9 text-sm"
+                                      className="pl-8 h-8 text-xs"
                                       value={driverSearchTerm}
                                       onChange={(e) => setDriverSearchTerm(e.target.value)}
                                     />
@@ -734,7 +734,7 @@ export function DriverGroupsManagement({ isOpen, onClose, selectedClient }: Driv
                                       type="button"
                                       size="sm"
                                       variant={driversView === 'all' ? 'default' : 'outline'}
-                                      className="flex-1 h-8 text-xs"
+                                      className="flex-1 h-7 text-xs py-0"
                                       onClick={() => setDriversView('all')}
                                     >
                                       Todos
@@ -743,7 +743,7 @@ export function DriverGroupsManagement({ isOpen, onClose, selectedClient }: Driv
                                       type="button"
                                       size="sm"
                                       variant={driversView === 'selected' ? 'default' : 'outline'}
-                                      className="flex-1 h-8 text-xs"
+                                      className="flex-1 h-7 text-xs py-0"
                                       onClick={() => setDriversView('selected')}
                                     >
                                       Seleccionados
@@ -752,7 +752,7 @@ export function DriverGroupsManagement({ isOpen, onClose, selectedClient }: Driv
                                       type="button"
                                       size="sm"
                                       variant={driversView === 'available' ? 'default' : 'outline'}
-                                      className="flex-1 h-8 text-xs"
+                                      className="flex-1 h-7 text-xs py-0"
                                       onClick={() => setDriversView('available')}
                                     >
                                       Disponibles
@@ -761,7 +761,7 @@ export function DriverGroupsManagement({ isOpen, onClose, selectedClient }: Driv
                                   
                                   {/* Actions bar */}
                                   <div className="flex justify-between items-center py-2 px-1 text-sm">
-                                    <span className="text-xs text-gray-500">
+                                    <span className="text-[10px] text-gray-500">
                                       {filteredDrivers.length} conductores
                                     </span>
                                     <div className="flex gap-2">
@@ -771,9 +771,9 @@ export function DriverGroupsManagement({ isOpen, onClose, selectedClient }: Driv
                                         variant="outline"
                                         disabled={filteredDrivers.length === 0 || driversView === 'selected'}
                                         onClick={handleAddAllDrivers}
-                                        className="h-7 text-xs"
+                                        className="h-6 text-[10px] py-0"
                                       >
-                                        <UserPlus className="h-3.5 w-3.5 mr-1" />
+                                        <UserPlus className="h-3 w-3 mr-1" />
                                         Agregar todos
                                       </Button>
                                       <Button
@@ -782,9 +782,9 @@ export function DriverGroupsManagement({ isOpen, onClose, selectedClient }: Driv
                                         variant="outline"
                                         disabled={filteredDrivers.length === 0 || driversView === 'available'}
                                         onClick={handleRemoveAllDrivers}
-                                        className="h-7 text-xs"
+                                        className="h-6 text-[10px] py-0"
                                       >
-                                        <UserMinus className="h-3.5 w-3.5 mr-1" />
+                                        <UserMinus className="h-3 w-3 mr-1" />
                                         Remover todos
                                       </Button>
                                     </div>
@@ -803,19 +803,19 @@ export function DriverGroupsManagement({ isOpen, onClose, selectedClient }: Driv
                                   <div className="flex flex-col items-center justify-center p-8 text-center">
                                     <User className="h-8 w-8 text-gray-300 mb-2" />
                                     {driverSearchTerm ? (
-                                      <p className="text-sm text-gray-500">
+                                      <p className="text-xs text-gray-500">
                                         No se encontraron conductores con ese término de búsqueda
                                       </p>
                                     ) : driversView === 'selected' ? (
-                                      <p className="text-sm text-gray-500">
+                                      <p className="text-xs text-gray-500">
                                         No hay conductores seleccionados
                                       </p>
                                     ) : driversView === 'available' ? (
-                                      <p className="text-sm text-gray-500">
+                                      <p className="text-xs text-gray-500">
                                         No hay conductores disponibles
                                       </p>
                                     ) : (
-                                      <p className="text-sm text-gray-500">
+                                      <p className="text-xs text-gray-500">
                                         No se encontraron conductores para este cliente
                                       </p>
                                     )}
@@ -834,17 +834,17 @@ export function DriverGroupsManagement({ isOpen, onClose, selectedClient }: Driv
                                             id={`driver-${driver.id}`}
                                             checked={isSelected}
                                             onCheckedChange={() => toggleDriverSelection(driver.id)}
-                                            className="mr-2 h-4 w-4"
+                                            className="mr-2 h-3 w-3"
                                           />
                                           <label
                                             htmlFor={`driver-${driver.id}`}
-                                            className="flex items-center justify-between w-full text-sm cursor-pointer"
+                                            className="flex items-center justify-between w-full text-xs cursor-pointer"
                                           >
-                                            <span className="flex-1 truncate text-xs">{driver.name}</span>
+                                            <span className="flex-1 truncate text-[11px]">{driver.name}</span>
                                             {driver.score !== undefined && (
                                               <span 
                                                 className={`
-                                                  ml-2 text-[10px] font-medium px-1.5 py-0.5 rounded-full
+                                                  ml-2 text-[9px] font-medium px-1.5 py-0 rounded-full
                                                   ${driver.score >= 8 ? 'bg-green-100 text-green-800' : 
                                                     driver.score >= 6 ? 'bg-amber-100 text-amber-800' : 
                                                     'bg-red-100 text-red-800'}
@@ -873,9 +873,9 @@ export function DriverGroupsManagement({ isOpen, onClose, selectedClient }: Driv
                               type="button" 
                               variant="outline"
                               onClick={() => setIsConfirmDeleteOpen(true)}
-                              className="flex items-center gap-1 text-red-600 border-red-200 hover:bg-red-50 hover:text-red-700 h-9"
+                              className="flex items-center gap-1 text-red-600 border-red-200 hover:bg-red-50 hover:text-red-700 h-8 text-xs"
                             >
-                              <Trash2 className="h-4 w-4" />
+                              <Trash2 className="h-3.5 w-3.5" />
                               <span>Eliminar</span>
                             </Button>
                           )}
@@ -888,15 +888,15 @@ export function DriverGroupsManagement({ isOpen, onClose, selectedClient }: Driv
                               resetForm();
                               setActiveTab('groups');
                             }}
-                            className="h-9"
+                            className="h-8 text-xs"
                           >
                             Cancelar
                           </Button>
                           <Button 
                             type="submit"
-                            className="flex items-center gap-1 h-9"
+                            className="flex items-center gap-1 h-8 text-xs"
                           >
-                            <Save className="h-4 w-4" />
+                            <Save className="h-3.5 w-3.5" />
                             <span>Guardar</span>
                           </Button>
                         </div>
@@ -910,7 +910,7 @@ export function DriverGroupsManagement({ isOpen, onClose, selectedClient }: Driv
                     <Users className="h-10 w-10 text-gray-300" />
                   </div>
                   <h3 className="text-base font-medium">Seleccione un Cliente</h3>
-                  <p className="text-sm text-gray-500 mt-2 max-w-md">
+                  <p className="text-xs text-gray-500 mt-2 max-w-md">
                     Para gestionar grupos de conductores, primero seleccione un cliente de la lista desplegable.
                   </p>
                 </div>
@@ -929,7 +929,7 @@ export function DriverGroupsManagement({ isOpen, onClose, selectedClient }: Driv
                 </div>
                 <div>
                   <h3 className="text-base font-medium text-gray-900">Confirmar eliminación</h3>
-                  <p className="mt-1 text-sm text-gray-500">
+                  <p className="mt-1 text-xs text-gray-500">
                     ¿Está seguro que desea eliminar el grupo "{selectedGroup?.name}"? Esta acción no se puede deshacer.
                   </p>
                 </div>
@@ -940,6 +940,7 @@ export function DriverGroupsManagement({ isOpen, onClose, selectedClient }: Driv
                   variant="outline" 
                   size="sm"
                   onClick={() => setIsConfirmDeleteOpen(false)}
+                  className="text-xs"
                 >
                   Cancelar
                 </Button>
@@ -948,6 +949,7 @@ export function DriverGroupsManagement({ isOpen, onClose, selectedClient }: Driv
                   variant="destructive" 
                   size="sm"
                   onClick={handleDeleteGroup}
+                  className="text-xs"
                 >
                   Eliminar
                 </Button>
@@ -959,3 +961,4 @@ export function DriverGroupsManagement({ isOpen, onClose, selectedClient }: Driv
     </Dialog>
   );
 }
+
