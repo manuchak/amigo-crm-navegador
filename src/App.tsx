@@ -1,7 +1,7 @@
 
 import React, { Suspense, lazy } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { Toaster } from '@/components/ui/toaster';
+import { Toaster } from 'sonner';
 import { AuthProvider } from '@/context/AuthContext';
 import './App.css';
 
