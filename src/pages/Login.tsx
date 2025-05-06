@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import EmailSignInForm from '@/components/auth/EmailSignInForm';
@@ -14,17 +14,21 @@ const Login = () => {
   const [authTab, setAuthTab] = useState('signin');
   const [showForgotPassword, setShowForgotPassword] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
+  
+  // Get return URL from location state
+  const from = ((location.state as any)?.from?.pathname) || '/dashboard';
   
   useEffect(() => {
     // Log authentication state for debugging
-    console.log('Login component state:', { currentUser, loading });
+    console.log('Login component state:', { currentUser, loading, from });
     
     // Only redirect if we have a user and we're not loading
     if (currentUser && !loading) {
-      console.log('User authenticated, redirecting to dashboard', currentUser);
-      navigate('/dashboard', { replace: true });
+      console.log('User authenticated, redirecting to:', from);
+      navigate(from, { replace: true });
     }
-  }, [currentUser, loading, navigate]);
+  }, [currentUser, loading, navigate, from]);
   
   // Handle forgot password view
   const handleForgotPassword = () => {

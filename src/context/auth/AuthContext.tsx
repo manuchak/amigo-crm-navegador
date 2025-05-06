@@ -193,7 +193,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  // Fix the signOut function to return Promise<void> instead of Promise<boolean>
   const signOut = async (): Promise<void> => {
     try {
       setLoading(true);
@@ -202,11 +201,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       // No need to reset state here as the auth state listener will do it
       toast.success('Session ended successfully');
-      // Don't return a boolean value
     } catch (error) {
       console.error('Error signing out:', error);
       toast.error('Error signing out');
-      // Don't return a boolean value
     } finally {
       setLoading(false);
     }

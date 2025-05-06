@@ -37,7 +37,7 @@ export interface AuthContextProps {
   isInitializing: boolean;
   signIn: (email: string, password: string) => Promise<{ user: UserData | null; error: any }>;
   signUp: (email: string, password: string, displayName: string) => Promise<{ user: UserData | null; error: any }>;
-  signOut: () => Promise<void>; // Changed from Promise<boolean> to Promise<void>
+  signOut: () => Promise<void>;
   updateUserRole: (userId: string, role: UserRole) => Promise<{ success: boolean; error?: any }>;
   getAllUsers: () => Promise<UserData[]>;
   verifyEmail: (userId: string) => Promise<{ success: boolean; error?: any }>;

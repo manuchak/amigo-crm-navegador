@@ -66,12 +66,35 @@ const AppRoutes = () => {
       <Route path="/login" element={
         currentUser && !loading ? <Navigate to="/dashboard" replace /> : <Login />
       } />
+      <Route path="/auth" element={
+        currentUser && !loading ? <Navigate to="/dashboard" replace /> : <Login />
+      } />
       <Route path="/reset-password" element={<ResetPassword />} />
       <Route path="/verify-confirmation" element={<VerifyConfirmation />} />
       
       {/* Protected Routes */}
       <Route 
         path="/dashboard" 
+        element={<ProtectedRoute><Dashboard /></ProtectedRoute>} 
+      />
+      <Route 
+        path="/performance" 
+        element={<ProtectedRoute><Dashboard /></ProtectedRoute>} 
+      />
+      <Route 
+        path="/active-services" 
+        element={<ProtectedRoute><Dashboard /></ProtectedRoute>} 
+      />
+      <Route 
+        path="/leads" 
+        element={<ProtectedRoute><Dashboard /></ProtectedRoute>} 
+      />
+      <Route 
+        path="/requerimientos" 
+        element={<ProtectedRoute><Dashboard /></ProtectedRoute>} 
+      />
+      <Route 
+        path="/instalacion-gps" 
         element={<ProtectedRoute><Dashboard /></ProtectedRoute>} 
       />
       <Route 
