@@ -50,10 +50,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // Create the context value with all the authentication methods
   const contextValue: AuthContextProps = {
-    user: null, // Keep this for compatibility
+    user: null,
     currentUser: userData,
     userData,
-    session: null, // Keep this for compatibility
+    session: null,
     loading,
     isInitializing,
     signIn: async (email, password) => {
@@ -107,7 +107,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       }
     },
     resetPassword: async (email) => {
-      await authMethods.resetPassword(email);
+      try {
+        await authMethods.resetPassword(email);
+        return { success: true };
+      } catch (error) {
+        return { success: false, error };
+      }
     }
   };
 

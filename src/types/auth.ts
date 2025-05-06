@@ -30,11 +30,11 @@ export interface UserData {
 // This interface is implemented in the AuthContext
 export interface AuthContextProps {
   user: User | null;
-  currentUser: UserData | null; // Added to match component usage
+  currentUser: UserData | null; 
   userData: UserData | null;
   session: Session | null;
   loading: boolean;
-  isInitializing: boolean; // Added to track initial load state
+  isInitializing: boolean;
   signIn: (email: string, password: string) => Promise<{ user: UserData | null; error: any }>;
   signUp: (email: string, password: string, displayName: string) => Promise<{ user: UserData | null; error: any }>;
   signOut: () => Promise<void>;
@@ -43,5 +43,5 @@ export interface AuthContextProps {
   verifyEmail: (userId: string) => Promise<{ success: boolean; error?: any }>;
   refreshSession: () => Promise<boolean>;
   refreshUserData: () => Promise<{ success: boolean; error?: any }>;
-  resetPassword: (email: string) => Promise<void>;
+  resetPassword: (email: string) => Promise<{ success?: boolean; error?: any }>;
 }
