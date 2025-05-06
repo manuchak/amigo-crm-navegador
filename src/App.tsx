@@ -5,13 +5,11 @@ import { Toaster } from 'sonner';
 import { AuthProvider } from '@/context/AuthContext';
 import './App.css';
 
-// Import core components directly (no lazy loading for crucial components)
+// Import all components directly to avoid dynamic import issues
 import Login from './pages/Login';
-
-// Use lazy loading for other pages
-const Dashboard = lazy(() => import('./pages/Dashboard'));
-const UserManagement = lazy(() => import('./pages/UserManagement'));
-const Support = lazy(() => import('./pages/Support'));
+import Dashboard from './pages/Dashboard';
+import UserManagement from './pages/UserManagement';
+import Support from './pages/Support';
 
 // Loading fallback
 const PageLoader = () => (
@@ -25,21 +23,31 @@ function App() {
   return (
     <AuthProvider>
       <Router>
-        <Suspense fallback={<PageLoader />}>
-          <Routes>
-            {/* Auth Routes */}
-            <Route path="/login" element={<Login />} />
-            
-            {/* App Routes - Add your other routes here */}
-            <Route path="/dashboard" element={<Dashboard />} />
-            <Route path="/user-management" element={<UserManagement />} />
-            <Route path="/support" element={<Support />} />
-            
-            {/* Default redirect */}
-            <Route path="/" element={<Navigate to="/login" replace />} />
-            <Route path="*" element={<Navigate to="/login" replace />} />
-          </Routes>
-        </Suspense>
+        <Routes>
+          {/* Auth Routes */}
+          <Route path="/login" element={<Login />} />
+          
+          {/* App Routes - Add your other routes here */}
+          <Route path="/dashboard" element={
+            <Suspense fallback={<PageLoader />}>
+              <Dashboard />
+            </Suspense>
+          } />
+          <Route path="/user-management" element={
+            <Suspense fallback={<PageLoader />}>
+              <UserManagement />
+            </Suspense>
+          } />
+          <Route path="/support" element={
+            <Suspense fallback={<PageLoader />}>
+              <Support />
+            </Suspense>
+          } />
+          
+          {/* Default redirect */}
+          <Route path="/" element={<Navigate to="/login" replace />} />
+          <Route path="*" element={<Navigate to="/login" replace />} />
+        </Routes>
         <Toaster />
       </Router>
     </AuthProvider>

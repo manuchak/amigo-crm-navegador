@@ -7,6 +7,7 @@ import EmailSignInForm from '@/components/auth/EmailSignInForm';
 import EmailSignUpForm from '@/components/auth/EmailSignUpForm';
 import { useAuth } from '@/context/AuthContext';
 import { Shield, Loader2 } from 'lucide-react';
+import ForgotPasswordForm from '@/components/auth/ForgotPasswordForm';
 
 const Login = () => {
   const { currentUser, loading } = useAuth();
@@ -15,10 +16,20 @@ const Login = () => {
   const navigate = useNavigate();
   
   useEffect(() => {
+    console.log('Login component mounted', { currentUser, loading });
     if (currentUser && !loading) {
       navigate('/dashboard');
     }
   }, [currentUser, loading, navigate]);
+  
+  // Handle forgot password view
+  const handleForgotPassword = () => {
+    setShowForgotPassword(true);
+  };
+  
+  const handleBackToLogin = () => {
+    setShowForgotPassword(false);
+  };
   
   // Render a simple loading state
   if (loading) {
@@ -28,6 +39,28 @@ const Login = () => {
           <Loader2 className="h-8 w-8 animate-spin mx-auto text-primary mb-4" />
           <p className="text-muted-foreground">Verificando sesión...</p>
         </div>
+      </div>
+    );
+  }
+  
+  // Render forgot password form
+  if (showForgotPassword) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
+        <Card className="w-full max-w-md shadow-lg">
+          <CardHeader className="space-y-1 flex flex-col items-center">
+            <div className="w-12 h-12 bg-primary rounded-full flex items-center justify-center mb-4">
+              <Shield className="h-6 w-6 text-white" />
+            </div>
+            <CardTitle className="text-2xl font-bold text-center">Restablecer contraseña</CardTitle>
+            <CardDescription className="text-center">
+              Ingresa tu correo electrónico para recibir instrucciones
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <ForgotPasswordForm onBack={handleBackToLogin} />
+          </CardContent>
+        </Card>
       </div>
     );
   }
@@ -52,7 +85,7 @@ const Login = () => {
             </TabsList>
             <TabsContent value="signin">
               <EmailSignInForm 
-                onForgotPassword={() => setShowForgotPassword(true)}
+                onForgotPassword={handleForgotPassword}
               />
             </TabsContent>
             <TabsContent value="signup">

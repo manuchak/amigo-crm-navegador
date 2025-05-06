@@ -3,20 +3,25 @@ import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Loader2, Mail } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { Mail, ArrowLeft, Loader2 } from 'lucide-react';
+import { useAuth } from '@/context/AuthContext';
 import { toast } from 'sonner';
-import { useAuthMethods } from '@/hooks/auth';
 
 const formSchema = z.object({
-  email: z.string().email('Correo electrónico inválido'),
+  email: z.string().email('Correo electrónico inválido')
 });
 
 type FormData = z.infer<typeof formSchema>;
 
-const ForgotPasswordForm: React.FC<{ onCancel?: () => void }> = ({ onCancel }) => {
+interface ForgotPasswordFormProps {
+  onBack: () => void;
+}
+
+const ForgotPasswordForm: React.FC<ForgotPasswordFormProps> = ({ onBack }) => {
+  const { resetPassword } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
   
   const form = useForm<FormData>({
@@ -31,21 +36,21 @@ const ForgotPasswordForm: React.FC<{ onCancel?: () => void }> = ({ onCancel }) =
     
     setIsSubmitting(true);
     try {
-      // Using local password reset function
-      console.log(`Password reset requested for ${data.email}. In a real app, an email would be sent.`);
-      toast.success('Si tu cuenta existe, recibirás un correo con instrucciones para restablecer tu contraseña');
-      
-      // Clear the form
-      form.reset();
+      const result = await resetPassword(data.email);
+      if (result.success) {
+        toast.success('Se ha enviado un correo con instrucciones para restablecer tu contraseña');
+        form.reset();
+      } else if (result.error) {
+        throw result.error;
+      }
     } catch (error: any) {
-      console.error('Error sending password reset email:', error);
-      // Don't show specific errors for security reasons
-      toast.success('Si tu cuenta existe, recibirás un correo con instrucciones para restablecer tu contraseña');
+      console.error("Password reset error:", error);
+      toast.error(error?.message || "Error al enviar el correo de recuperación");
     } finally {
       setIsSubmitting(false);
     }
   };
-  
+
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
@@ -63,6 +68,7 @@ const ForgotPasswordForm: React.FC<{ onCancel?: () => void }> = ({ onCancel }) =
                     placeholder="tucorreo@ejemplo.com"
                     className="pl-10"
                     disabled={isSubmitting}
+                    type="email"
                   />
                 </div>
               </FormControl>
@@ -71,32 +77,28 @@ const ForgotPasswordForm: React.FC<{ onCancel?: () => void }> = ({ onCancel }) =
           )}
         />
         
-        <div className="flex space-x-2">
-          <Button 
-            type="submit" 
-            className="flex-1"
-            disabled={isSubmitting}
-          >
+        <div className="flex flex-col gap-2">
+          <Button type="submit" className="w-full" disabled={isSubmitting}>
             {isSubmitting ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 Enviando...
               </>
             ) : (
-              'Recuperar contraseña'
+              'Enviar instrucciones'
             )}
           </Button>
           
-          {onCancel && (
-            <Button 
-              type="button" 
-              variant="outline" 
-              onClick={onCancel} 
-              disabled={isSubmitting}
-            >
-              Cancelar
-            </Button>
-          )}
+          <Button 
+            type="button" 
+            variant="ghost" 
+            className="w-full"
+            onClick={onBack}
+            disabled={isSubmitting}
+          >
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            Volver al inicio de sesión
+          </Button>
         </div>
       </form>
     </Form>
