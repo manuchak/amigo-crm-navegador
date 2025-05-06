@@ -5,10 +5,9 @@ import {
   updateUserRole, 
   verifyUserEmail, 
   setAsVerifiedOwner, 
-  getAllUsers, 
-  findUserByEmail 
+  getAllUsers
 } from './roleManagement';
-import { getUsers, saveUsers, getCurrentUser, setCurrentUser } from './storage';
+import { getUsers, saveUsers, getCurrentUser, setCurrentUser, findUserByEmail } from './storage';
 
 // Re-export all functions for use throughout the app
 export {
