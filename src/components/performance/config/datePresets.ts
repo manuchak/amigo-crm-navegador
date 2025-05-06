@@ -1,61 +1,56 @@
 
-import { DateRangeWithComparison, DateRangePreset } from "@/components/performance/filters/AdvancedDateRangePicker";
-import { subDays, startOfMonth, endOfMonth } from "date-fns";
-import { DateRange } from "react-day-picker";
+import { subDays, startOfMonth, endOfMonth, startOfYear, endOfYear } from 'date-fns';
 
-// Define presets for the date range picker
-export const getDefaultDatePresets = (): DateRangePreset[] => [
-  { 
-    label: "Este mes", 
-    value: "thisMonth",
-    getDateRange: () => {
-      const now = new Date();
-      return {
-        from: startOfMonth(now),
-        to: endOfMonth(now)
-      };
-    }
+// Fecha actual
+const today = new Date();
+
+export const datePresets = [
+  {
+    label: 'Hoy',
+    value: 'today',
+    from: today,
+    to: today
   },
-  { 
-    label: "Mes anterior", 
-    value: "lastMonth",
-    getDateRange: () => {
-      const now = new Date();
-      const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1);
-      return {
-        from: startOfMonth(lastMonth),
-        to: endOfMonth(lastMonth)
-      };
-    }
+  {
+    label: 'Ayer',
+    value: 'yesterday',
+    from: subDays(today, 1),
+    to: subDays(today, 1)
   },
-  { 
-    label: "Últimos 30 días", 
-    value: "last30days",
-    getDateRange: () => {
-      return {
-        from: subDays(new Date(), 29),
-        to: new Date()
-      };
-    }
+  {
+    label: 'Últimos 7 días',
+    value: 'last7days',
+    from: subDays(today, 6),
+    to: today
   },
-  { 
-    label: "Últimos 90 días", 
-    value: "last90days",
-    getDateRange: () => {
-      return {
-        from: subDays(new Date(), 89),
-        to: new Date()
-      };
-    }
+  {
+    label: 'Últimos 30 días',
+    value: 'last30days',
+    from: subDays(today, 29),
+    to: today
+  },
+  {
+    label: 'Mes actual',
+    value: 'thisMonth',
+    from: startOfMonth(today),
+    to: today
+  },
+  {
+    label: 'Mes anterior',
+    value: 'lastMonth',
+    from: startOfMonth(subDays(startOfMonth(today), 1)),
+    to: endOfMonth(subDays(startOfMonth(today), 1))
+  },
+  {
+    label: 'Año actual',
+    value: 'thisYear',
+    from: startOfYear(today),
+    to: today
+  },
+  {
+    label: 'Año anterior',
+    value: 'lastYear',
+    from: startOfYear(subDays(startOfYear(today), 1)),
+    to: endOfYear(subDays(startOfYear(today), 1))
   }
 ];
-
-// Initialize with the "last 30 days" preset for better performance
-export const getInitialDateRange = () => ({
-  primary: {
-    from: subDays(new Date(), 29), // Start 30 days ago
-    to: new Date(), // End today
-  },
-  comparisonType: 'none' as const,
-  rangeType: 'last30days' as const
-});
