@@ -17,9 +17,11 @@ const Login = () => {
   
   useEffect(() => {
     console.log('Login component mounted', { currentUser, loading });
+    
+    // Solo redireccionar si tenemos un usuario y no estamos cargando
     if (currentUser && !loading) {
-      console.log('User already logged in, redirecting to dashboard');
-      navigate('/dashboard');
+      console.log('User authenticated, redirecting to dashboard', currentUser);
+      navigate('/dashboard', { replace: true });
     }
   }, [currentUser, loading, navigate]);
   
@@ -30,6 +32,10 @@ const Login = () => {
   
   const handleBackToLogin = () => {
     setShowForgotPassword(false);
+  };
+  
+  const handleLoginSuccess = () => {
+    console.log('Login successful, will redirect in useEffect hook');
   };
   
   // Render a simple loading state
@@ -87,6 +93,7 @@ const Login = () => {
             <TabsContent value="signin">
               <EmailSignInForm 
                 onForgotPassword={handleForgotPassword}
+                onSuccess={handleLoginSuccess}
               />
             </TabsContent>
             <TabsContent value="signup">

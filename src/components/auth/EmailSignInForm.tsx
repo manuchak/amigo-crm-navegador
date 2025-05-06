@@ -3,10 +3,10 @@ import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Loader2, Mail, Lock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { Mail, Lock, Loader2 } from 'lucide-react';
 import { useAuth } from '@/context/auth/AuthContext';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
@@ -45,28 +45,25 @@ const EmailSignInForm: React.FC<EmailSignInFormProps> = ({
     try {
       console.log("Intentando iniciar sesión con:", data.email);
       
-      const { data: authData, error } = await supabase.auth.signInWithPassword({
-        email: data.email,
-        password: data.password,
-      });
+      const result = await signIn(data.email, data.password);
       
-      if (error) {
-        console.error("Error en inicio de sesión:", error);
+      if (result.error) {
+        console.error("Error en inicio de sesión:", result.error);
         
         // Extraer mensaje de error basado en código de error
         let errorMessage = 'Error al iniciar sesión';
-        if (error.message.includes('Invalid login credentials')) {
-          errorMessage = 'Contraseña incorrecta';
-        } else if (error.message.includes('Email not confirmed')) {
+        if (result.error.message?.includes('Invalid login credentials')) {
+          errorMessage = 'Correo o contraseña incorrecta';
+        } else if (result.error.message?.includes('Email not confirmed')) {
           errorMessage = 'Correo electrónico no verificado';
-        } else if (error.message.includes('User not found')) {
+        } else if (result.error.message?.includes('User not found')) {
           errorMessage = 'Usuario no encontrado';
         }
         
         throw new Error(errorMessage);
       }
       
-      if (!authData.user) {
+      if (!result.user) {
         throw new Error("No se pudo iniciar sesión");
       }
       

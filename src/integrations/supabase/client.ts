@@ -86,20 +86,6 @@ export const checkForOwnerRole = async (): Promise<boolean> => {
     return isOwner;
   } catch (error) {
     console.error('Error checking for owner role:', error);
-    
-    // Fallback to localStorage if there's an error with Supabase
-    try {
-      if (typeof window !== 'undefined') {
-        const userData = JSON.parse(localStorage.getItem('current_user') || '{}');
-        if (userData && userData.role === 'owner') {
-          console.log('Owner role verified from localStorage fallback');
-          return true;
-        }
-      }
-    } catch (localStorageError) {
-      console.error('Error checking localStorage for owner role:', localStorageError);
-    }
-    
     return false;
   }
 };

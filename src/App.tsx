@@ -1,8 +1,8 @@
 
-import React from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import React, { useEffect } from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { Toaster } from 'sonner';
-import { AuthProvider } from '@/context/auth/AuthContext';
+import { AuthProvider, useAuth } from '@/context/auth/AuthContext';
 import './App.css';
 
 // Import all components directly to avoid dynamic import issues
@@ -13,26 +13,82 @@ import Support from './pages/Support';
 import ResetPassword from './pages/ResetPassword';
 import VerifyConfirmation from './pages/VerifyConfirmation';
 
+// Protected route component
+const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const { currentUser, loading } = useAuth();
+  const location = useLocation();
+  const navigate = useNavigate();
+  
+  useEffect(() => {
+    if (!loading && !currentUser) {
+      console.log('No authenticated user, redirecting to login');
+      navigate('/login', { state: { from: location }, replace: true });
+    }
+  }, [currentUser, loading, navigate, location]);
+  
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="h-8 w-8 animate-spin mx-auto text-primary mb-4 border-4 border-t-primary border-r-transparent border-b-transparent border-l-transparent rounded-full"></div>
+          <p className="text-muted-foreground">Cargando...</p>
+        </div>
+      </div>
+    );
+  }
+  
+  return currentUser ? <>{children}</> : null;
+};
+
+const AppRoutes = () => {
+  const { currentUser, loading } = useAuth();
+  const location = useLocation();
+  
+  // Log for debugging
+  useEffect(() => {
+    console.log('App Routes rendering with:', { currentUser, loading, pathname: location.pathname });
+  }, [currentUser, loading, location.pathname]);
+  
+  return (
+    <Routes>
+      {/* Auth Routes - Public */}
+      <Route path="/login" element={
+        currentUser && !loading ? <Navigate to="/dashboard" replace /> : <Login />
+      } />
+      <Route path="/reset-password" element={<ResetPassword />} />
+      <Route path="/verify-confirmation" element={<VerifyConfirmation />} />
+      
+      {/* Protected Routes */}
+      <Route 
+        path="/dashboard" 
+        element={<ProtectedRoute><Dashboard /></ProtectedRoute>} 
+      />
+      <Route 
+        path="/user-management" 
+        element={<ProtectedRoute><UserManagement /></ProtectedRoute>} 
+      />
+      <Route 
+        path="/support" 
+        element={<ProtectedRoute><Support /></ProtectedRoute>} 
+      />
+      
+      {/* Default redirect */}
+      <Route path="/" element={
+        <Navigate to={currentUser && !loading ? "/dashboard" : "/login"} replace />
+      } />
+      <Route path="*" element={
+        <Navigate to={currentUser && !loading ? "/dashboard" : "/login"} replace />
+      } />
+    </Routes>
+  );
+};
+
 function App() {
   console.log('App rendering');
   return (
     <AuthProvider>
       <Router>
-        <Routes>
-          {/* Auth Routes */}
-          <Route path="/login" element={<Login />} />
-          <Route path="/reset-password" element={<ResetPassword />} />
-          <Route path="/verify-confirmation" element={<VerifyConfirmation />} />
-          
-          {/* App Routes */}
-          <Route path="/dashboard" element={<Dashboard />} />
-          <Route path="/user-management" element={<UserManagement />} />
-          <Route path="/support" element={<Support />} />
-          
-          {/* Default redirect */}
-          <Route path="/" element={<Navigate to="/login" replace />} />
-          <Route path="*" element={<Navigate to="/login" replace />} />
-        </Routes>
+        <AppRoutes />
         <Toaster />
       </Router>
     </AuthProvider>
