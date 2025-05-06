@@ -34,8 +34,6 @@ import {
   AlertCircle,
   CheckCircle2,
   User,
-  UsersRound,
-  Info
 } from 'lucide-react';
 
 interface DriverGroupsManagementProps {
@@ -95,8 +93,7 @@ export function DriverGroupsManagement({ isOpen, onClose, selectedClient }: Driv
   // Fetch groups for the selected client
   const { 
     data: groups = [], 
-    isLoading: isLoadingGroups,
-    refetch: refetchGroups
+    isLoading: isLoadingGroups
   } = useQuery({
     queryKey: ['driver-groups', currentClient],
     queryFn: () => fetchDriverGroups(currentClient),
@@ -318,30 +315,31 @@ export function DriverGroupsManagement({ isOpen, onClose, selectedClient }: Driv
   
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="sm:max-w-[1000px] h-[90vh] flex flex-col overflow-hidden p-0">
+      <DialogContent className="sm:max-w-[900px] h-[85vh] p-0 overflow-hidden">
         <div className="flex flex-col h-full">
-          {/* Header */}
-          <div className="flex justify-between items-center border-b p-4 bg-gray-50">
+          {/* Header with close button */}
+          <div className="flex justify-between items-center p-4 border-b bg-white sticky top-0 z-10">
             <div className="flex items-center gap-2">
               <Users className="h-5 w-5 text-primary" />
-              <h2 className="text-lg font-semibold">Gestión de Grupos de Conductores</h2>
+              <h2 className="text-lg font-medium">Gestión de Grupos de Conductores</h2>
             </div>
-            <Button variant="ghost" size="sm" onClick={onClose}>
+            <Button variant="ghost" size="icon" onClick={onClose} className="h-8 w-8">
               <X className="h-4 w-4" />
             </Button>
           </div>
           
-          <div className="flex flex-1 overflow-hidden">
-            {/* Left sidebar */}
-            <div className="w-72 border-r flex flex-col overflow-hidden">
-              {/* Client selection */}
-              <div className="p-4 border-b">
-                <Label htmlFor="client-select" className="text-sm font-medium text-gray-500">
+          {/* Main content */}
+          <div className="grid grid-cols-4 h-full">
+            {/* Sidebar (1/4 width) */}
+            <div className="col-span-1 border-r h-full overflow-hidden flex flex-col bg-gray-50">
+              {/* Client selector */}
+              <div className="p-3 border-b bg-white">
+                <Label htmlFor="client-select" className="text-xs font-medium text-gray-500 mb-1 block">
                   Cliente
                 </Label>
                 <select
                   id="client-select"
-                  className="w-full h-10 px-3 py-2 border rounded-md mt-1"
+                  className="w-full h-9 px-3 py-1 text-sm border rounded-md"
                   value={currentClient || ''}
                   onChange={(e) => handleClientChange(e.target.value)}
                 >
@@ -354,23 +352,22 @@ export function DriverGroupsManagement({ isOpen, onClose, selectedClient }: Driv
                 </select>
               </div>
               
-              {/* Groups search */}
-              <div className="p-4 border-b">
-                <div className="relative">
-                  <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    placeholder="Buscar grupos..."
-                    className="pl-8"
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                  />
+              {/* Groups search and list */}
+              <div className="flex flex-col overflow-hidden flex-1">
+                <div className="p-3 border-b">
+                  <div className="relative">
+                    <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-400" />
+                    <Input
+                      placeholder="Buscar grupos..."
+                      className="pl-8 h-9 text-sm"
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                    />
+                  </div>
                 </div>
-              </div>
-              
-              {/* Groups list */}
-              <div className="flex-1 overflow-hidden">
-                <div className="flex justify-between items-center p-4 bg-gray-50 border-b">
-                  <span className="font-medium text-sm text-gray-700">
+                
+                <div className="flex justify-between items-center py-2 px-3 bg-white border-b">
+                  <span className="text-sm font-medium">
                     Grupos{' '}
                     {filteredGroups.length > 0 && (
                       <Badge variant="secondary" className="ml-1">
@@ -382,24 +379,25 @@ export function DriverGroupsManagement({ isOpen, onClose, selectedClient }: Driv
                     onClick={handleNewGroup}
                     size="sm"
                     variant="ghost"
-                    className="h-8 px-2 text-primary hover:text-primary hover:bg-primary/10"
+                    className="h-7 px-2 text-primary hover:text-primary hover:bg-primary/10"
                   >
                     <Plus className="h-4 w-4 mr-1" />
-                    <span>Nuevo</span>
+                    <span className="text-xs">Nuevo</span>
                   </Button>
                 </div>
                 
-                <ScrollArea className="h-[calc(100%-57px)]">
+                {/* Groups list */}
+                <ScrollArea className="flex-1">
                   {isLoadingGroups ? (
                     <div className="flex flex-col items-center justify-center p-8">
                       <div className="h-8 w-8 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
                       <p className="mt-2 text-sm text-gray-500">Cargando grupos...</p>
                     </div>
                   ) : filteredGroups.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center p-8 text-center">
+                    <div className="flex flex-col items-center justify-center p-6 text-center">
                       {currentClient ? (
                         <>
-                          <UsersRound className="h-8 w-8 text-gray-300 mb-2" />
+                          <Users className="h-8 w-8 text-gray-300 mb-2" />
                           <p className="text-sm text-gray-500">No se encontraron grupos para este cliente</p>
                           <Button 
                             onClick={handleNewGroup} 
@@ -412,10 +410,7 @@ export function DriverGroupsManagement({ isOpen, onClose, selectedClient }: Driv
                           </Button>
                         </>
                       ) : (
-                        <>
-                          <Info className="h-8 w-8 text-gray-300 mb-2" />
-                          <p className="text-sm text-gray-500">Seleccione un cliente para gestionar sus grupos</p>
-                        </>
+                        <p className="text-sm text-gray-500">Seleccione un cliente para ver sus grupos</p>
                       )}
                     </div>
                   ) : (
@@ -426,42 +421,35 @@ export function DriverGroupsManagement({ isOpen, onClose, selectedClient }: Driv
                         return (
                           <div 
                             key={group.id}
-                            className={`p-3 hover:bg-muted/50 cursor-pointer border-b transition-colors ${
-                              selectedGroupId === group.id ? 'bg-muted/50' : ''
+                            className={`p-2.5 border-b hover:bg-gray-100 cursor-pointer transition-colors ${
+                              selectedGroupId === group.id ? 'bg-blue-50' : ''
                             }`}
                             onClick={() => handleSelectGroup(group)}
                           >
-                            <div className="flex justify-between items-start">
-                              <div className="flex-1 min-w-0">
-                                <h4 className="font-medium text-gray-800 truncate">{group.name}</h4>
-                                <div className="flex items-center gap-1 mt-1">
-                                  <Users className="h-3.5 w-3.5 text-gray-500" />
-                                  <span className="text-xs text-gray-500">{stats.total} conductores</span>
-                                </div>
-                              </div>
-                              <ChevronRight className="h-4 w-4 text-gray-400 flex-shrink-0" />
+                            <div className="flex justify-between items-center">
+                              <h4 className="font-medium text-gray-800 truncate text-sm">{group.name}</h4>
+                              <ChevronRight className="h-4 w-4 text-gray-400" />
                             </div>
                             
-                            {group.description && (
-                              <p className="text-xs mt-2 text-gray-500 line-clamp-2">
-                                {group.description}
-                              </p>
-                            )}
+                            <div className="flex items-center gap-1 mt-1">
+                              <Users className="h-3.5 w-3.5 text-gray-500" />
+                              <span className="text-xs text-gray-500">{stats.total} conductores</span>
+                            </div>
                             
                             {stats.total > 0 && (
-                              <div className="flex items-center gap-1 mt-2">
+                              <div className="flex items-center gap-1.5 mt-1.5">
                                 {stats.highPerforming > 0 && (
-                                  <Badge variant="outline" className="bg-green-50 text-green-700 text-xs border-green-200">
+                                  <Badge variant="outline" className="bg-green-50 text-green-700 text-[10px] h-5 border-green-200">
                                     {stats.highPerforming} alto
                                   </Badge>
                                 )}
                                 {stats.midPerforming > 0 && (
-                                  <Badge variant="outline" className="bg-amber-50 text-amber-700 text-xs border-amber-200">
+                                  <Badge variant="outline" className="bg-amber-50 text-amber-700 text-[10px] h-5 border-amber-200">
                                     {stats.midPerforming} medio
                                   </Badge>
                                 )}
                                 {stats.lowPerforming > 0 && (
-                                  <Badge variant="outline" className="bg-red-50 text-red-700 text-xs border-red-200">
+                                  <Badge variant="outline" className="bg-red-50 text-red-700 text-[10px] h-5 border-red-200">
                                     {stats.lowPerforming} bajo
                                   </Badge>
                                 )}
@@ -476,64 +464,65 @@ export function DriverGroupsManagement({ isOpen, onClose, selectedClient }: Driv
               </div>
             </div>
             
-            {/* Main content */}
-            <div className="flex-1 flex flex-col overflow-hidden">
+            {/* Main content area (3/4 width) */}
+            <div className="col-span-3 flex flex-col h-full overflow-hidden">
               {currentClient ? (
                 <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col overflow-hidden">
-                  <div className="px-6 py-4 border-b flex items-center justify-between">
+                  <div className="px-4 py-2 border-b flex items-center justify-between bg-white">
                     <TabsList className="bg-muted">
-                      <TabsTrigger value="groups" className="data-[state=active]:bg-background">
+                      <TabsTrigger value="groups" className="data-[state=active]:bg-background text-sm py-1.5">
                         Vista General
                       </TabsTrigger>
-                      <TabsTrigger value="edit" className="data-[state=active]:bg-background">
+                      <TabsTrigger value="edit" className="data-[state=active]:bg-background text-sm py-1.5">
                         {formState.isEditing ? 'Editar Grupo' : 'Nuevo Grupo'}
                       </TabsTrigger>
                     </TabsList>
                     
                     {activeTab === 'groups' && (
-                      <Button onClick={handleNewGroup} className="flex items-center gap-1">
-                        <Plus className="h-4 w-4" />
-                        <span>Nuevo Grupo</span>
+                      <Button onClick={handleNewGroup} size="sm" className="h-8">
+                        <Plus className="h-3.5 w-3.5 mr-1" />
+                        <span className="text-sm">Nuevo Grupo</span>
                       </Button>
                     )}
                   </div>
                   
-                  <TabsContent value="groups" className="flex-1 flex flex-col overflow-hidden p-0 m-0 data-[state=active]:flex data-[state=active]:flex-col border-none">
+                  {/* Vista General content */}
+                  <TabsContent value="groups" className="flex-1 p-4 m-0 overflow-auto">
                     {filteredGroups.length === 0 ? (
-                      <div className="flex-1 flex items-center justify-center p-8 text-center">
-                        <div className="max-w-md">
-                          <UsersRound className="mx-auto h-12 w-12 text-gray-300 mb-4" />
+                      <div className="flex items-center justify-center h-full">
+                        <div className="text-center max-w-xs">
+                          <Users className="mx-auto h-12 w-12 text-gray-300 mb-3" />
                           <h3 className="text-lg font-medium text-gray-900 mb-1">No hay grupos creados</h3>
-                          <p className="text-gray-500 mb-6">
+                          <p className="text-sm text-gray-500 mb-4">
                             Crea grupos para organizar a los conductores y analizar su rendimiento colectivamente.
                           </p>
-                          <Button onClick={handleNewGroup}>
-                            <Plus className="h-4 w-4 mr-2" />
+                          <Button onClick={handleNewGroup} size="sm">
+                            <Plus className="h-4 w-4 mr-1" />
                             Crear primer grupo
                           </Button>
                         </div>
                       </div>
                     ) : (
-                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 p-6 overflow-auto">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                         {filteredGroups.map((group) => {
                           const stats = getDriversStatsByScores(group.driver_ids || []);
                           
                           return (
                             <div 
                               key={group.id} 
-                              className="border rounded-lg overflow-hidden hover:shadow-md transition-shadow cursor-pointer"
+                              className="border rounded-md overflow-hidden hover:shadow-sm transition-shadow cursor-pointer"
                               onClick={() => handleSelectGroup(group)}
                             >
-                              <div className="bg-gray-50 border-b px-4 py-3 flex justify-between items-center">
-                                <h3 className="font-medium truncate">{group.name}</h3>
+                              <div className="bg-gray-50 border-b p-3 flex justify-between items-center">
+                                <h3 className="font-medium text-sm truncate">{group.name}</h3>
                                 <Badge className="bg-primary/10 text-primary hover:bg-primary/20 border-0">
                                   {stats.total} conductores
                                 </Badge>
                               </div>
                               
-                              <div className="p-4">
+                              <div className="p-3">
                                 {group.description && (
-                                  <p className="text-sm text-gray-600 mb-3 line-clamp-2">
+                                  <p className="text-xs text-gray-600 mb-2 line-clamp-2">
                                     {group.description}
                                   </p>
                                 )}
@@ -542,9 +531,10 @@ export function DriverGroupsManagement({ isOpen, onClose, selectedClient }: Driv
                                 {stats.total > 0 && (
                                   <>
                                     <div className="flex items-center justify-between text-xs text-gray-500 mb-1">
-                                      <span>Distribución de rendimiento</span>
+                                      <span>Rendimiento</span>
+                                      <span className="text-[10px] text-gray-400">Actualizado: {new Date(group.updated_at || '').toLocaleDateString()}</span>
                                     </div>
-                                    <div className="h-2 flex rounded-full overflow-hidden mb-2">
+                                    <div className="h-2 flex rounded-full overflow-hidden mb-2 bg-gray-100">
                                       {stats.highPerforming > 0 && (
                                         <div 
                                           className="bg-green-500 h-full" 
@@ -571,7 +561,7 @@ export function DriverGroupsManagement({ isOpen, onClose, selectedClient }: Driv
                                       )}
                                     </div>
                                     
-                                    <div className="grid grid-cols-2 gap-2 text-xs mt-3">
+                                    <div className="grid grid-cols-2 gap-2 text-xs">
                                       <div className="flex items-center gap-1">
                                         <div className="w-2 h-2 rounded-full bg-green-500" />
                                         <span>Alto: {stats.highPerforming}</span>
@@ -592,10 +582,6 @@ export function DriverGroupsManagement({ isOpen, onClose, selectedClient }: Driv
                                   </>
                                 )}
                               </div>
-                              
-                              <div className="bg-gray-50 border-t px-4 py-2 text-xs text-gray-500">
-                                Creado: {new Date(group.created_at || '').toLocaleDateString()}
-                              </div>
                             </div>
                           );
                         })}
@@ -603,148 +589,141 @@ export function DriverGroupsManagement({ isOpen, onClose, selectedClient }: Driv
                     )}
                   </TabsContent>
                   
-                  <TabsContent value="edit" className="flex-1 flex flex-col overflow-hidden p-0 m-0 data-[state=active]:flex data-[state=active]:flex-col border-none">
-                    <form className="flex flex-1 flex-col overflow-hidden" onSubmit={handleSubmit}>
-                      <ScrollArea className="flex-1">
-                        <div className="p-6">
-                          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                            {/* Form fields */}
-                            <div className="space-y-4">
-                              <div className="bg-white p-6 rounded-lg border shadow-sm">
-                                <h3 className="text-lg font-medium mb-4">Información del Grupo</h3>
-                                
-                                <div className="space-y-4">
-                                  <div>
-                                    <Label htmlFor="group-name">Nombre del Grupo</Label>
-                                    <Input
-                                      id="group-name"
-                                      value={formState.name}
-                                      onChange={(e) => setFormState(prev => ({ ...prev, name: e.target.value }))}
-                                      placeholder="Nombre del grupo"
-                                      className="mt-1.5"
-                                      required
-                                    />
-                                  </div>
-                                  
-                                  <div>
-                                    <Label htmlFor="group-client">Cliente</Label>
-                                    <Input
-                                      id="group-client"
-                                      value={formState.client}
-                                      className="mt-1.5 bg-gray-50"
-                                      disabled
-                                      readOnly
-                                    />
-                                  </div>
-                                  
-                                  <div>
-                                    <Label htmlFor="group-description">Descripción</Label>
-                                    <Textarea
-                                      id="group-description"
-                                      value={formState.description}
-                                      onChange={(e) => setFormState(prev => ({ ...prev, description: e.target.value }))}
-                                      placeholder="Descripción opcional del grupo"
-                                      className="mt-1.5 resize-none"
-                                      rows={3}
-                                    />
-                                  </div>
-                                </div>
-                              </div>
+                  {/* Edit Form content */}
+                  <TabsContent value="edit" className="flex-1 p-0 m-0 overflow-hidden">
+                    <form onSubmit={handleSubmit} className="h-full flex flex-col">
+                      <div className="flex-1 overflow-auto p-4">
+                        <div className="grid grid-cols-3 gap-4">
+                          {/* Column 1: Group Information */}
+                          <div>
+                            <div className="bg-white p-4 rounded-md border mb-4">
+                              <h3 className="text-sm font-medium mb-3 text-gray-700">Información del Grupo</h3>
                               
-                              {/* Selected drivers summary */}
-                              <div className="bg-white p-6 rounded-lg border shadow-sm">
-                                <div className="flex items-center justify-between mb-4">
-                                  <h3 className="text-lg font-medium">Conductores Seleccionados</h3>
-                                  <Badge variant="outline" className="font-normal">
-                                    {formState.driver_ids.length} seleccionados
-                                  </Badge>
+                              <div className="space-y-3">
+                                <div>
+                                  <Label htmlFor="group-name" className="text-xs mb-1 block">Nombre del Grupo</Label>
+                                  <Input
+                                    id="group-name"
+                                    value={formState.name}
+                                    onChange={(e) => setFormState(prev => ({ ...prev, name: e.target.value }))}
+                                    placeholder="Nombre del grupo"
+                                    className="h-9 text-sm"
+                                    required
+                                  />
                                 </div>
                                 
-                                {formState.driver_ids.length > 0 ? (
-                                  <>
-                                    {/* Performance stats */}
-                                    {(() => {
-                                      const stats = getDriversStatsByScores(formState.driver_ids);
-                                      return (
-                                        <>
-                                          <div className="flex items-center justify-between text-xs text-gray-500 mb-1">
-                                            <span>Distribución de rendimiento</span>
-                                          </div>
-                                          <div className="h-2.5 flex rounded-full overflow-hidden mb-3 bg-gray-100">
-                                            {stats.highPerforming > 0 && (
-                                              <div 
-                                                className="bg-green-500 h-full" 
-                                                style={{ width: `${(stats.highPerforming / stats.total) * 100}%` }}
-                                              />
-                                            )}
-                                            {stats.midPerforming > 0 && (
-                                              <div 
-                                                className="bg-amber-500 h-full" 
-                                                style={{ width: `${(stats.midPerforming / stats.total) * 100}%` }}
-                                              />
-                                            )}
-                                            {stats.lowPerforming > 0 && (
-                                              <div 
-                                                className="bg-red-500 h-full" 
-                                                style={{ width: `${(stats.lowPerforming / stats.total) * 100}%` }}
-                                              />
-                                            )}
-                                            {stats.noScore > 0 && (
-                                              <div 
-                                                className="bg-gray-300 h-full" 
-                                                style={{ width: `${(stats.noScore / stats.total) * 100}%` }}
-                                              />
-                                            )}
-                                          </div>
-
-                                          <div className="grid grid-cols-2 gap-x-4 gap-y-2">
-                                            <div className="flex items-center gap-2">
-                                              <div className="w-3 h-3 rounded-full bg-green-500" />
-                                              <span className="text-sm">Alto: {stats.highPerforming}</span>
-                                            </div>
-                                            <div className="flex items-center gap-2">
-                                              <div className="w-3 h-3 rounded-full bg-amber-500" />
-                                              <span className="text-sm">Medio: {stats.midPerforming}</span>
-                                            </div>
-                                            <div className="flex items-center gap-2">
-                                              <div className="w-3 h-3 rounded-full bg-red-500" />
-                                              <span className="text-sm">Bajo: {stats.lowPerforming}</span>
-                                            </div>
-                                            <div className="flex items-center gap-2">
-                                              <div className="w-3 h-3 rounded-full bg-gray-300" />
-                                              <span className="text-sm">Sin score: {stats.noScore}</span>
-                                            </div>
-                                          </div>
-                                        </>
-                                      );
-                                    })()}
-                                  </>
-                                ) : (
-                                  <div className="text-center py-6 border border-dashed rounded-md">
-                                    <User className="h-10 w-10 text-gray-300 mx-auto mb-2" />
-                                    <p className="text-sm text-gray-500 mb-1">
-                                      No hay conductores seleccionados
-                                    </p>
-                                    <p className="text-xs text-gray-400">
-                                      Seleccione conductores de la lista
-                                    </p>
-                                  </div>
-                                )}
+                                <div>
+                                  <Label htmlFor="group-client" className="text-xs mb-1 block">Cliente</Label>
+                                  <Input
+                                    id="group-client"
+                                    value={formState.client}
+                                    className="h-9 text-sm bg-gray-50"
+                                    disabled
+                                    readOnly
+                                  />
+                                </div>
+                                
+                                <div>
+                                  <Label htmlFor="group-description" className="text-xs mb-1 block">Descripción</Label>
+                                  <Textarea
+                                    id="group-description"
+                                    value={formState.description}
+                                    onChange={(e) => setFormState(prev => ({ ...prev, description: e.target.value }))}
+                                    placeholder="Descripción opcional del grupo"
+                                    className="resize-none text-sm"
+                                    rows={3}
+                                  />
+                                </div>
                               </div>
                             </div>
                             
-                            {/* Drivers selection */}
-                            <div className="bg-white rounded-lg border shadow-sm overflow-hidden flex flex-col">
-                              <div className="p-6 border-b">
-                                <h3 className="text-lg font-medium mb-3">Seleccionar Conductores</h3>
+                            {/* Stats for selected drivers */}
+                            <div className="bg-white p-4 rounded-md border">
+                              <div className="flex items-center justify-between mb-3">
+                                <h3 className="text-sm font-medium text-gray-700">Conductores Seleccionados</h3>
+                                <Badge variant="outline" className="font-normal text-xs">
+                                  {formState.driver_ids.length} seleccionados
+                                </Badge>
+                              </div>
+                              
+                              {formState.driver_ids.length > 0 ? (
+                                <>
+                                  {(() => {
+                                    const stats = getDriversStatsByScores(formState.driver_ids);
+                                    return (
+                                      <>
+                                        <div className="h-2 flex rounded-full overflow-hidden mb-3 bg-gray-100">
+                                          {stats.highPerforming > 0 && (
+                                            <div 
+                                              className="bg-green-500 h-full" 
+                                              style={{ width: `${(stats.highPerforming / stats.total) * 100}%` }}
+                                            />
+                                          )}
+                                          {stats.midPerforming > 0 && (
+                                            <div 
+                                              className="bg-amber-500 h-full" 
+                                              style={{ width: `${(stats.midPerforming / stats.total) * 100}%` }}
+                                            />
+                                          )}
+                                          {stats.lowPerforming > 0 && (
+                                            <div 
+                                              className="bg-red-500 h-full" 
+                                              style={{ width: `${(stats.lowPerforming / stats.total) * 100}%` }}
+                                            />
+                                          )}
+                                          {stats.noScore > 0 && (
+                                            <div 
+                                              className="bg-gray-300 h-full" 
+                                              style={{ width: `${(stats.noScore / stats.total) * 100}%` }}
+                                            />
+                                          )}
+                                        </div>
+
+                                        <div className="grid grid-cols-2 gap-y-1.5 gap-x-2 text-xs">
+                                          <div className="flex items-center gap-1.5">
+                                            <div className="w-2 h-2 rounded-full bg-green-500" />
+                                            <span>Alto: {stats.highPerforming}</span>
+                                          </div>
+                                          <div className="flex items-center gap-1.5">
+                                            <div className="w-2 h-2 rounded-full bg-amber-500" />
+                                            <span>Medio: {stats.midPerforming}</span>
+                                          </div>
+                                          <div className="flex items-center gap-1.5">
+                                            <div className="w-2 h-2 rounded-full bg-red-500" />
+                                            <span>Bajo: {stats.lowPerforming}</span>
+                                          </div>
+                                          <div className="flex items-center gap-1.5">
+                                            <div className="w-2 h-2 rounded-full bg-gray-300" />
+                                            <span>Sin score: {stats.noScore}</span>
+                                          </div>
+                                        </div>
+                                      </>
+                                    );
+                                  })()}
+                                </>
+                              ) : (
+                                <div className="text-center py-3 border border-dashed rounded-md">
+                                  <User className="h-8 w-8 text-gray-300 mx-auto mb-1.5" />
+                                  <p className="text-xs text-gray-500">
+                                    No hay conductores seleccionados
+                                  </p>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                          
+                          {/* Column 2-3: Drivers selection */}
+                          <div className="col-span-2">
+                            <div className="bg-white rounded-md border flex flex-col h-full overflow-hidden">
+                              <div className="p-4 border-b">
+                                <h3 className="text-sm font-medium mb-3 text-gray-700">Seleccionar Conductores</h3>
                                 
-                                {/* Search and filter */}
-                                <div className="space-y-3">
+                                <div className="space-y-2.5">
                                   <div className="relative">
                                     <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
                                     <Input
                                       placeholder="Buscar conductores..."
-                                      className="pl-9"
+                                      className="pl-9 h-9 text-sm"
                                       value={driverSearchTerm}
                                       onChange={(e) => setDriverSearchTerm(e.target.value)}
                                     />
@@ -755,7 +734,7 @@ export function DriverGroupsManagement({ isOpen, onClose, selectedClient }: Driv
                                       type="button"
                                       size="sm"
                                       variant={driversView === 'all' ? 'default' : 'outline'}
-                                      className="flex-1"
+                                      className="flex-1 h-8 text-xs"
                                       onClick={() => setDriversView('all')}
                                     >
                                       Todos
@@ -764,7 +743,7 @@ export function DriverGroupsManagement({ isOpen, onClose, selectedClient }: Driv
                                       type="button"
                                       size="sm"
                                       variant={driversView === 'selected' ? 'default' : 'outline'}
-                                      className="flex-1"
+                                      className="flex-1 h-8 text-xs"
                                       onClick={() => setDriversView('selected')}
                                     >
                                       Seleccionados
@@ -773,16 +752,16 @@ export function DriverGroupsManagement({ isOpen, onClose, selectedClient }: Driv
                                       type="button"
                                       size="sm"
                                       variant={driversView === 'available' ? 'default' : 'outline'}
-                                      className="flex-1"
+                                      className="flex-1 h-8 text-xs"
                                       onClick={() => setDriversView('available')}
                                     >
                                       Disponibles
                                     </Button>
                                   </div>
                                   
-                                  {/* Bulk actions */}
-                                  <div className="flex justify-between border-t border-b py-3 px-1">
-                                    <span className="text-sm text-gray-500 self-center">
+                                  {/* Actions bar */}
+                                  <div className="flex justify-between items-center py-2 px-1 text-sm">
+                                    <span className="text-xs text-gray-500">
                                       {filteredDrivers.length} conductores
                                     </span>
                                     <div className="flex gap-2">
@@ -792,7 +771,7 @@ export function DriverGroupsManagement({ isOpen, onClose, selectedClient }: Driv
                                         variant="outline"
                                         disabled={filteredDrivers.length === 0 || driversView === 'selected'}
                                         onClick={handleAddAllDrivers}
-                                        className="text-xs"
+                                        className="h-7 text-xs"
                                       >
                                         <UserPlus className="h-3.5 w-3.5 mr-1" />
                                         Agregar todos
@@ -803,7 +782,7 @@ export function DriverGroupsManagement({ isOpen, onClose, selectedClient }: Driv
                                         variant="outline"
                                         disabled={filteredDrivers.length === 0 || driversView === 'available'}
                                         onClick={handleRemoveAllDrivers}
-                                        className="text-xs"
+                                        className="h-7 text-xs"
                                       >
                                         <UserMinus className="h-3.5 w-3.5 mr-1" />
                                         Remover todos
@@ -814,89 +793,87 @@ export function DriverGroupsManagement({ isOpen, onClose, selectedClient }: Driv
                               </div>
                               
                               {/* Drivers list */}
-                              <div className="overflow-hidden flex-1 flex flex-col bg-gray-50">
-                                <ScrollArea className="flex-1 h-[320px]">
-                                  {isLoadingDrivers ? (
-                                    <div className="flex flex-col items-center justify-center p-8">
-                                      <div className="h-8 w-8 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
-                                      <p className="mt-2 text-sm text-gray-500">Cargando conductores...</p>
-                                    </div>
-                                  ) : filteredDrivers.length === 0 ? (
-                                    <div className="flex flex-col items-center justify-center p-8 text-center">
-                                      <User className="h-8 w-8 text-gray-300 mb-2" />
-                                      {driverSearchTerm ? (
-                                        <p className="text-sm text-gray-500">
-                                          No se encontraron conductores con ese término de búsqueda
-                                        </p>
-                                      ) : driversView === 'selected' ? (
-                                        <p className="text-sm text-gray-500">
-                                          No hay conductores seleccionados
-                                        </p>
-                                      ) : driversView === 'available' ? (
-                                        <p className="text-sm text-gray-500">
-                                          No hay conductores disponibles
-                                        </p>
-                                      ) : (
-                                        <p className="text-sm text-gray-500">
-                                          No se encontraron conductores para este cliente
-                                        </p>
-                                      )}
-                                    </div>
-                                  ) : (
-                                    <div className="divide-y bg-white">
-                                      {filteredDrivers.map((driver) => {
-                                        const isSelected = formState.driver_ids.includes(driver.id);
-                                        
-                                        return (
-                                          <div 
-                                            key={driver.id}
-                                            className={`flex items-center p-3 hover:bg-gray-50 transition-colors ${isSelected ? 'bg-blue-50' : ''}`}
+                              <ScrollArea className="flex-1 border-t">
+                                {isLoadingDrivers ? (
+                                  <div className="flex flex-col items-center justify-center p-8">
+                                    <div className="h-8 w-8 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
+                                    <p className="mt-2 text-sm text-gray-500">Cargando conductores...</p>
+                                  </div>
+                                ) : filteredDrivers.length === 0 ? (
+                                  <div className="flex flex-col items-center justify-center p-8 text-center">
+                                    <User className="h-8 w-8 text-gray-300 mb-2" />
+                                    {driverSearchTerm ? (
+                                      <p className="text-sm text-gray-500">
+                                        No se encontraron conductores con ese término de búsqueda
+                                      </p>
+                                    ) : driversView === 'selected' ? (
+                                      <p className="text-sm text-gray-500">
+                                        No hay conductores seleccionados
+                                      </p>
+                                    ) : driversView === 'available' ? (
+                                      <p className="text-sm text-gray-500">
+                                        No hay conductores disponibles
+                                      </p>
+                                    ) : (
+                                      <p className="text-sm text-gray-500">
+                                        No se encontraron conductores para este cliente
+                                      </p>
+                                    )}
+                                  </div>
+                                ) : (
+                                  <div className="grid grid-cols-2 divide-x divide-y">
+                                    {filteredDrivers.map((driver) => {
+                                      const isSelected = formState.driver_ids.includes(driver.id);
+                                      
+                                      return (
+                                        <div 
+                                          key={driver.id}
+                                          className={`flex items-center p-2 hover:bg-gray-50 transition-colors ${isSelected ? 'bg-blue-50' : ''}`}
+                                        >
+                                          <Checkbox
+                                            id={`driver-${driver.id}`}
+                                            checked={isSelected}
+                                            onCheckedChange={() => toggleDriverSelection(driver.id)}
+                                            className="mr-2 h-4 w-4"
+                                          />
+                                          <label
+                                            htmlFor={`driver-${driver.id}`}
+                                            className="flex items-center justify-between w-full text-sm cursor-pointer"
                                           >
-                                            <Checkbox
-                                              id={`driver-${driver.id}`}
-                                              checked={isSelected}
-                                              onCheckedChange={() => toggleDriverSelection(driver.id)}
-                                              className="mr-3"
-                                            />
-                                            <label
-                                              htmlFor={`driver-${driver.id}`}
-                                              className="flex items-center justify-between w-full text-sm cursor-pointer"
-                                            >
-                                              <span className="flex-1 truncate">{driver.name}</span>
-                                              {driver.score !== undefined && (
-                                                <span 
-                                                  className={`
-                                                    ml-2 text-xs font-medium px-2.5 py-0.5 rounded-full
-                                                    ${driver.score >= 8 ? 'bg-green-100 text-green-800' : 
-                                                      driver.score >= 6 ? 'bg-amber-100 text-amber-800' : 
-                                                      'bg-red-100 text-red-800'}
-                                                  `}
-                                                >
-                                                  {driver.score.toFixed(1)}
-                                                </span>
-                                              )}
-                                            </label>
-                                          </div>
-                                        );
-                                      })}
-                                    </div>
-                                  )}
-                                </ScrollArea>
-                              </div>
+                                            <span className="flex-1 truncate text-xs">{driver.name}</span>
+                                            {driver.score !== undefined && (
+                                              <span 
+                                                className={`
+                                                  ml-2 text-[10px] font-medium px-1.5 py-0.5 rounded-full
+                                                  ${driver.score >= 8 ? 'bg-green-100 text-green-800' : 
+                                                    driver.score >= 6 ? 'bg-amber-100 text-amber-800' : 
+                                                    'bg-red-100 text-red-800'}
+                                                `}
+                                              >
+                                                {driver.score.toFixed(1)}
+                                              </span>
+                                            )}
+                                          </label>
+                                        </div>
+                                      );
+                                    })}
+                                  </div>
+                                )}
+                              </ScrollArea>
                             </div>
                           </div>
                         </div>
-                      </ScrollArea>
+                      </div>
                       
-                      {/* Footer with buttons */}
-                      <div className="flex justify-between p-4 border-t bg-gray-50">
+                      {/* Footer buttons */}
+                      <div className="flex justify-between items-center p-3 border-t bg-gray-50">
                         <div>
                           {formState.isEditing && (
                             <Button 
                               type="button" 
                               variant="outline"
                               onClick={() => setIsConfirmDeleteOpen(true)}
-                              className="flex items-center gap-1 border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700"
+                              className="flex items-center gap-1 text-red-600 border-red-200 hover:bg-red-50 hover:text-red-700 h-9"
                             >
                               <Trash2 className="h-4 w-4" />
                               <span>Eliminar</span>
@@ -911,12 +888,13 @@ export function DriverGroupsManagement({ isOpen, onClose, selectedClient }: Driv
                               resetForm();
                               setActiveTab('groups');
                             }}
+                            className="h-9"
                           >
                             Cancelar
                           </Button>
                           <Button 
                             type="submit"
-                            className="flex items-center gap-1"
+                            className="flex items-center gap-1 h-9"
                           >
                             <Save className="h-4 w-4" />
                             <span>Guardar</span>
@@ -929,10 +907,10 @@ export function DriverGroupsManagement({ isOpen, onClose, selectedClient }: Driv
               ) : (
                 <div className="flex flex-col items-center justify-center p-8 text-center flex-1">
                   <div className="bg-gray-50 rounded-full p-4 mb-4">
-                    <Users className="h-12 w-12 text-gray-300" />
+                    <Users className="h-10 w-10 text-gray-300" />
                   </div>
-                  <h3 className="text-lg font-medium">Seleccione un Cliente</h3>
-                  <p className="text-muted-foreground mt-2 max-w-md">
+                  <h3 className="text-base font-medium">Seleccione un Cliente</h3>
+                  <p className="text-sm text-gray-500 mt-2 max-w-md">
                     Para gestionar grupos de conductores, primero seleccione un cliente de la lista desplegable.
                   </p>
                 </div>
@@ -944,24 +922,23 @@ export function DriverGroupsManagement({ isOpen, onClose, selectedClient }: Driv
         {/* Delete Confirmation Dialog */}
         {isConfirmDeleteOpen && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-            <div className="bg-white rounded-lg shadow-lg p-6 max-w-md w-full mx-4">
-              <div className="flex items-start">
-                <div className="flex-shrink-0">
-                  <AlertCircle className="h-6 w-6 text-red-500" />
+            <div className="bg-white rounded-lg shadow-lg p-5 max-w-sm w-full mx-4">
+              <div className="flex items-start mb-4">
+                <div className="flex-shrink-0 text-red-500 mr-3">
+                  <AlertCircle className="h-5 w-5" />
                 </div>
-                <div className="ml-3">
-                  <h3 className="text-lg font-medium text-gray-900">Confirmar eliminación</h3>
-                  <div className="mt-2">
-                    <p className="text-sm text-gray-500">
-                      ¿Está seguro que desea eliminar el grupo "{selectedGroup?.name}"? Esta acción no se puede deshacer.
-                    </p>
-                  </div>
+                <div>
+                  <h3 className="text-base font-medium text-gray-900">Confirmar eliminación</h3>
+                  <p className="mt-1 text-sm text-gray-500">
+                    ¿Está seguro que desea eliminar el grupo "{selectedGroup?.name}"? Esta acción no se puede deshacer.
+                  </p>
                 </div>
               </div>
-              <div className="mt-6 flex justify-end gap-3">
+              <div className="flex justify-end gap-3">
                 <Button 
                   type="button" 
                   variant="outline" 
+                  size="sm"
                   onClick={() => setIsConfirmDeleteOpen(false)}
                 >
                   Cancelar
@@ -969,6 +946,7 @@ export function DriverGroupsManagement({ isOpen, onClose, selectedClient }: Driv
                 <Button 
                   type="button" 
                   variant="destructive" 
+                  size="sm"
                   onClick={handleDeleteGroup}
                 >
                   Eliminar
