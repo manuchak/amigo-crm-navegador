@@ -16,11 +16,8 @@ const Login = () => {
   const [showForgotPassword, setShowForgotPassword] = useState(false);
   const navigate = useNavigate();
   
-  console.log('Login page rendered, auth state:', { currentUser, loading, isInitializing });
-  
   useEffect(() => {
     if (currentUser && !loading && !isInitializing) {
-      console.log("User is already logged in, redirecting to dashboard");
       navigate('/dashboard');
     }
   }, [currentUser, loading, isInitializing, navigate]);
