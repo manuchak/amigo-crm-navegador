@@ -1,48 +1,30 @@
 
 import { supabase } from '@/integrations/supabase/client';
 
-export async function updateLastLogin(userId: string) {
+/**
+ * Updates the last login timestamp for a user
+ */
+export const updateLastLogin = async (userId: string): Promise<void> => {
   try {
-    console.log('Updating last login for user:', userId);
-    
-    const { error } = await supabase
+    await supabase
       .from('profiles')
-      .update({
-        last_login: new Date().toISOString(),
-        last_activity: new Date().toISOString(), // También actualizamos la última actividad
+      .update({ 
+        last_login: new Date().toISOString() 
       })
       .eq('id', userId);
-    
-    if (error) {
-      console.error('Error updating last login:', error);
-    } else {
-      console.log('Last login updated successfully');
-    }
-  } catch (err) {
-    console.error('Exception updating last login:', err);
+  } catch (error) {
+    console.error('Error updating last login:', error);
   }
-}
+};
 
-// Función para registrar acceso a página
-export async function logPageAccess(userId: string, pagePath: string) {
-  if (!userId) return;
-  
+/**
+ * Logs a page access event for analytics
+ */
+export const logPageAccess = async (userId: string, page: string): Promise<void> => {
   try {
-    console.log(`Logging access to page ${pagePath} for user ${userId}`);
-    
-    // Actualizar la última actividad del usuario
-    const { error } = await supabase
-      .from('profiles')
-      .update({
-        last_activity: new Date().toISOString(),
-        last_page_accessed: pagePath
-      })
-      .eq('id', userId);
-    
-    if (error) {
-      console.error('Error logging page access:', error);
-    }
-  } catch (err) {
-    console.error('Exception logging page access:', err);
+    // This could be implemented later to track page views in a dedicated table
+    console.log(`User ${userId} accessed page ${page}`);
+  } catch (error) {
+    console.error('Error logging page access:', error);
   }
-}
+};
