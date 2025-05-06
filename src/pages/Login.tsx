@@ -18,7 +18,7 @@ const Login = () => {
   useEffect(() => {
     console.log('Login component mounted', { currentUser, loading });
     
-    // Solo redireccionar si tenemos un usuario y no estamos cargando
+    // Only redirect if we have a user and we're not loading
     if (currentUser && !loading) {
       console.log('User authenticated, redirecting to dashboard', currentUser);
       navigate('/dashboard', { replace: true });

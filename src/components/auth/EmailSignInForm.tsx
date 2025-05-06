@@ -9,7 +9,6 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Mail, Lock, Loader2 } from 'lucide-react';
 import { useAuth } from '@/context/auth/AuthContext';
 import { toast } from 'sonner';
-import { supabase } from '@/integrations/supabase/client';
 
 const formSchema = z.object({
   email: z.string().email('Correo electrónico inválido'),
@@ -43,36 +42,36 @@ const EmailSignInForm: React.FC<EmailSignInFormProps> = ({
     
     setIsSubmitting(true);
     try {
-      console.log("Intentando iniciar sesión con:", data.email);
+      console.log("Attempting to login with:", data.email);
       
       const result = await signIn(data.email, data.password);
       
       if (result.error) {
-        console.error("Error en inicio de sesión:", result.error);
+        console.error("Login error:", result.error);
         
-        // Extraer mensaje de error basado en código de error
-        let errorMessage = 'Error al iniciar sesión';
+        // Extract error message based on error code
+        let errorMessage = 'Error logging in';
         if (result.error.message?.includes('Invalid login credentials')) {
-          errorMessage = 'Correo o contraseña incorrecta';
+          errorMessage = 'Incorrect email or password';
         } else if (result.error.message?.includes('Email not confirmed')) {
-          errorMessage = 'Correo electrónico no verificado';
+          errorMessage = 'Email not verified';
         } else if (result.error.message?.includes('User not found')) {
-          errorMessage = 'Usuario no encontrado';
+          errorMessage = 'User not found';
         }
         
         throw new Error(errorMessage);
       }
       
       if (!result.user) {
-        throw new Error("No se pudo iniciar sesión");
+        throw new Error("Could not log in");
       }
       
-      toast.success('¡Inicio de sesión exitoso!');
+      toast.success('Login successful!');
       if (onSuccess) onSuccess();
       
     } catch (error: any) {
-      console.error("Error de inicio de sesión:", error);
-      toast.error(error?.message || "Error al iniciar sesión");
+      console.error("Login error:", error);
+      toast.error(error?.message || "Error logging in");
     } finally {
       setIsSubmitting(false);
     }
