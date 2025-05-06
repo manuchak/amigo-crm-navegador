@@ -2,12 +2,15 @@
 import React from 'react';
 import PageLayout from '@/components/layout/PageLayout';
 import LeadsDashboard from '@/components/leads/LeadsDashboard';
+import { LeadsProvider } from '@/context/LeadsContext';
 
 const Leads: React.FC = () => {
   return (
     <PageLayout title="Leads">
       <div className="bg-white rounded-lg p-6 shadow-sm">
-        <LeadsDashboard />
+        <LeadsProvider>
+          <LeadsDashboard />
+        </LeadsProvider>
       </div>
     </PageLayout>
   );
