@@ -17,6 +17,7 @@ import UserManagement from './pages/UserManagement';
 import Support from './pages/Support';
 import ResetPassword from './pages/ResetPassword';
 import VerifyConfirmation from './pages/VerifyConfirmation';
+import Index from './pages/Index';
 
 // Protected route component
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -79,6 +80,10 @@ const AppRoutes = () => {
       
       {/* Protected Routes */}
       <Route 
+        path="/" 
+        element={<ProtectedRoute><Index /></ProtectedRoute>} 
+      />
+      <Route 
         path="/dashboard" 
         element={<ProtectedRoute><Dashboard /></ProtectedRoute>} 
       />
@@ -110,14 +115,6 @@ const AppRoutes = () => {
         path="/support" 
         element={<ProtectedRoute><Support /></ProtectedRoute>} 
       />
-      
-      {/* Default redirect */}
-      <Route path="/" element={
-        <Navigate to={currentUser && !loading ? "/dashboard" : "/login"} replace />
-      } />
-      <Route path="*" element={
-        <Navigate to={currentUser && !loading ? "/dashboard" : "/login"} replace />
-      } />
     </Routes>
   );
 };

@@ -2,18 +2,18 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { cn } from '@/lib/utils';
-import { useAuth } from '@/context/AuthContext';
+import { useAuth } from '@/context/auth/AuthContext';
 
 export const NavLinks: React.FC = () => {
   const location = useLocation();
-  const { currentUser, userData } = useAuth();
+  const { currentUser } = useAuth();
   
   const getNavItems = () => {
     const items = [
       { name: 'Inicio', path: '/' }
     ];
     
-    if (currentUser && userData) {
+    if (currentUser) {
       items.push({ name: 'Dashboard', path: '/dashboard' });
       
       // Mostrar todos los enlaces disponibles para cualquier usuario autenticado
