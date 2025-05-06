@@ -1,7 +1,7 @@
 
 import { UserData } from '@/types/auth';
 import { toast } from 'sonner';
-import { createUser, loginUser, findUserByEmail, setAsVerifiedOwner } from '@/utils/auth';
+import { createUser, loginUser } from '@/utils/auth';
 import { SPECIAL_USERS } from './constants';
 
 export const useAuthentication = (
@@ -14,17 +14,9 @@ export const useAuthentication = (
     try {
       const userData = loginUser(email, password);
       
-      // Special case for manuel.chacon
+      // Special case for system owner
       if (email.toLowerCase() === SPECIAL_USERS.SYSTEM_OWNER) {
-        try {
-          const user = findUserByEmail(email);
-          if (user && user.uid) {
-            setAsVerifiedOwner(user.uid);
-          }
-        } catch (specialUserError) {
-          console.error('Error setting special user permissions:', specialUserError);
-          // Continue login even if special permissions failed
-        }
+        // Special handling would go here in a real app
       }
       
       setUserData(userData);
@@ -47,16 +39,9 @@ export const useAuthentication = (
       const userData = createUser(email, password, displayName);
       setUserData(userData);
       
-      // Special case for manuel.chacon
+      // Special case for system owner
       if (email.toLowerCase() === SPECIAL_USERS.SYSTEM_OWNER) {
-        try {
-          if (userData && userData.uid) {
-            setAsVerifiedOwner(userData.uid);
-          }
-        } catch (specialUserError) {
-          console.error('Error setting special user permissions:', specialUserError);
-          // Continue login even if special permissions failed
-        }
+        // Special handling would go here in a real app
       }
       
       toast.success('Cuenta creada con éxito');

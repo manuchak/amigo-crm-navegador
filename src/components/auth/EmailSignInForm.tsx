@@ -37,7 +37,6 @@ const EmailSignInForm: React.FC<{ onSuccess?: () => void; onForgotPassword?: () 
     
     setIsSubmitting(true);
     try {
-      console.log("Attempting sign in with:", data.email);
       const result = await signIn(data.email, data.password);
       
       if (result.error) {
@@ -45,7 +44,6 @@ const EmailSignInForm: React.FC<{ onSuccess?: () => void; onForgotPassword?: () 
       }
       
       if (result.user) {
-        console.log("Sign in successful:", result.user);
         toast.success('¡Inicio de sesión exitoso!');
         if (onSuccess) onSuccess();
       } else {

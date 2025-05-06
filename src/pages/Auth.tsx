@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
+import React, { useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -12,7 +12,7 @@ const Auth = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { currentUser, loading } = useAuth();
-  const [activeTab, setActiveTab] = useState('login');
+  const [activeTab, setActiveTab] = React.useState('login');
   
   // Get return URL from location state
   const from = (location.state as { from?: { pathname: string } })?.from?.pathname || '/dashboard';
