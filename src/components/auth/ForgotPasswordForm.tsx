@@ -9,6 +9,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Mail, ArrowLeft, Loader2 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
 
 const formSchema = z.object({
   email: z.string().email('Correo electrónico inválido')
@@ -21,7 +22,6 @@ interface ForgotPasswordFormProps {
 }
 
 const ForgotPasswordForm: React.FC<ForgotPasswordFormProps> = ({ onBack }) => {
-  const { resetPassword } = useAuth();
   const [isSubmitting, setIsSubmitting] = useState(false);
   
   const form = useForm<FormData>({
@@ -36,16 +36,27 @@ const ForgotPasswordForm: React.FC<ForgotPasswordFormProps> = ({ onBack }) => {
     
     setIsSubmitting(true);
     try {
-      const result = await resetPassword(data.email);
-      if (result.success) {
-        toast.success('Se ha enviado un correo con instrucciones para restablecer tu contraseña');
-        form.reset();
-      } else if (result.error) {
-        throw result.error;
+      console.log(`Intentando restablecer contraseña para: ${data.email}`);
+      
+      // Get the current domain for redirects
+      const redirectURL = `${window.location.origin}/reset-password`;
+      
+      const { error } = await supabase.auth.resetPasswordForEmail(data.email, {
+        redirectTo: redirectURL,
+      });
+      
+      if (error) {
+        console.error("Error al enviar email de recuperación:", error);
+        throw error;
       }
+      
+      // Siempre mostrar mensaje de éxito por motivos de seguridad
+      toast.success('Si tu cuenta existe, recibirás un correo con instrucciones para restablecer tu contraseña');
+      form.reset();
     } catch (error: any) {
-      console.error("Password reset error:", error);
-      toast.error(error?.message || "Error al enviar el correo de recuperación");
+      console.error("Error al restablecer contraseña:", error);
+      // No mostrar errores específicos por motivos de seguridad
+      toast.success('Si tu cuenta existe, recibirás un correo con instrucciones para restablecer tu contraseña');
     } finally {
       setIsSubmitting(false);
     }

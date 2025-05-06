@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { useAuth } from '@/context/AuthContext';
 import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
 
 const formSchema = z.object({
   email: z.string().email('Correo electrónico inválido'),
@@ -42,31 +43,38 @@ const EmailSignInForm: React.FC<EmailSignInFormProps> = ({
     
     setIsSubmitting(true);
     try {
-      console.log("Attempting to sign in with:", data.email);
-      const result = await signIn(data.email, data.password);
+      console.log("Intentando iniciar sesión con:", data.email);
       
-      if (result.error) {
-        console.error("Login error details:", result.error);
+      const { data: authData, error } = await supabase.auth.signInWithPassword({
+        email: data.email,
+        password: data.password,
+      });
+      
+      if (error) {
+        console.error("Error en inicio de sesión:", error);
         
-        // Extract error message based on error code
+        // Extraer mensaje de error basado en código de error
         let errorMessage = 'Error al iniciar sesión';
-        if (result.error.message === 'auth/user-not-found') {
-          errorMessage = 'Usuario no encontrado';
-        } else if (result.error.message === 'auth/wrong-password') {
+        if (error.message.includes('Invalid login credentials')) {
           errorMessage = 'Contraseña incorrecta';
+        } else if (error.message.includes('Email not confirmed')) {
+          errorMessage = 'Correo electrónico no verificado';
+        } else if (error.message.includes('User not found')) {
+          errorMessage = 'Usuario no encontrado';
         }
         
         throw new Error(errorMessage);
       }
       
-      if (result.user) {
-        toast.success('¡Inicio de sesión exitoso!');
-        if (onSuccess) onSuccess();
-      } else {
+      if (!authData.user) {
         throw new Error("No se pudo iniciar sesión");
       }
+      
+      toast.success('¡Inicio de sesión exitoso!');
+      if (onSuccess) onSuccess();
+      
     } catch (error: any) {
-      console.error("Login error:", error);
+      console.error("Error de inicio de sesión:", error);
       toast.error(error?.message || "Error al iniciar sesión");
     } finally {
       setIsSubmitting(false);
