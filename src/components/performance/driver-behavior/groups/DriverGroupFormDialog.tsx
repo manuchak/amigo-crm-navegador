@@ -240,7 +240,7 @@ export function DriverGroupFormDialog({
   
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="sm:max-w-[550px] max-h-[90vh] overflow-hidden flex flex-col">
+      <DialogContent className="sm:max-w-[550px] overflow-hidden flex flex-col h-[90vh]">
         <DialogHeader>
           <DialogTitle>{isEditing ? 'Editar Grupo' : 'Crear Nuevo Grupo'}</DialogTitle>
           <DialogDescription>
@@ -250,209 +250,211 @@ export function DriverGroupFormDialog({
           </DialogDescription>
         </DialogHeader>
         
-        <ScrollArea className="flex-1 max-h-[calc(90vh-180px)] pr-4">
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-              {/* Group Name */}
-              <FormField
-                control={form.control}
-                name="name"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Nombre del Grupo</FormLabel>
-                    <FormControl>
-                      <Input 
-                        placeholder="Nombre del grupo" 
-                        {...field}
-                        disabled={isSubmitting}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              {/* Client Selection - Disabled when editing */}
-              <FormField
-                control={form.control}
-                name="client"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Cliente</FormLabel>
-                    <Select
-                      disabled={isEditing || isSubmitting}
-                      onValueChange={field.onChange}
-                      value={field.value}
-                    >
+        <ScrollArea className="flex-1 pr-4">
+          <div className="p-1">
+            <Form {...form}>
+              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                {/* Group Name */}
+                <FormField
+                  control={form.control}
+                  name="name"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Nombre del Grupo</FormLabel>
                       <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Seleccionar cliente" />
-                        </SelectTrigger>
+                        <Input 
+                          placeholder="Nombre del grupo" 
+                          {...field}
+                          disabled={isSubmitting}
+                        />
                       </FormControl>
-                      <SelectContent className="bg-white">
-                        {isLoadingClients ? (
-                          <div className="flex items-center justify-center p-2">
-                            <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
-                            <span className="ml-2 text-sm text-muted-foreground">Cargando...</span>
-                          </div>
-                        ) : (
-                          clientsData?.map((client: string) => (
-                            <SelectItem key={client} value={client}>{client}</SelectItem>
-                          ))
-                        )}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              {/* Description */}
-              <FormField
-                control={form.control}
-                name="description"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Descripción</FormLabel>
-                    <FormControl>
-                      <Textarea
-                        placeholder="Descripción del grupo (opcional)"
-                        className="resize-none"
-                        {...field}
-                        disabled={isSubmitting}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              {/* Driver Selection */}
-              <FormField
-                control={form.control}
-                name="driver_ids"
-                render={({ field }) => (
-                  <FormItem className="space-y-2">
-                    <FormLabel>Conductores</FormLabel>
-                    <div className="space-y-4">
-                      {/* Driver Selection Button */}
-                      <Button
-                        type="button"
-                        variant="outline"
-                        className="w-full justify-between"
-                        onClick={toggleDriversList}
-                        disabled={!selectedClient || selectedClient === 'all' || isSubmitting}
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                {/* Client Selection - Disabled when editing */}
+                <FormField
+                  control={form.control}
+                  name="client"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Cliente</FormLabel>
+                      <Select
+                        disabled={isEditing || isSubmitting}
+                        onValueChange={field.onChange}
+                        value={field.value}
                       >
-                        {selectedDrivers.length > 0 ? 
-                          `${selectedDrivers.length} conductor(es) seleccionado(s)` : 
-                          "Seleccionar conductores"}
-                        {showDriversList ? <X className="ml-2 h-4 w-4" /> : <Search className="ml-2 h-4 w-4" />}
-                      </Button>
-                      
-                      {/* Drivers Dropdown Panel */}
-                      {showDriversList && (
-                        <div className="border rounded-md overflow-hidden mt-2">
-                          {/* Search Bar */}
-                          <div className="p-2 border-b bg-muted/30 sticky top-0 z-10">
-                            <div className="relative">
-                              <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-                              <Input
-                                placeholder="Buscar conductores..."
-                                className="pl-8"
-                                value={searchTerm}
-                                onChange={(e) => setSearchTerm(e.target.value)}
-                              />
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Seleccionar cliente" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent className="bg-white">
+                          {isLoadingClients ? (
+                            <div className="flex items-center justify-center p-2">
+                              <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+                              <span className="ml-2 text-sm text-muted-foreground">Cargando...</span>
+                            </div>
+                          ) : (
+                            clientsData?.map((client: string) => (
+                              <SelectItem key={client} value={client}>{client}</SelectItem>
+                            ))
+                          )}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                {/* Description */}
+                <FormField
+                  control={form.control}
+                  name="description"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Descripción</FormLabel>
+                      <FormControl>
+                        <Textarea
+                          placeholder="Descripción del grupo (opcional)"
+                          className="resize-none"
+                          {...field}
+                          disabled={isSubmitting}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                {/* Driver Selection */}
+                <FormField
+                  control={form.control}
+                  name="driver_ids"
+                  render={({ field }) => (
+                    <FormItem className="space-y-2">
+                      <FormLabel>Conductores</FormLabel>
+                      <div className="space-y-4">
+                        {/* Driver Selection Button */}
+                        <Button
+                          type="button"
+                          variant="outline"
+                          className="w-full justify-between"
+                          onClick={toggleDriversList}
+                          disabled={!selectedClient || selectedClient === 'all' || isSubmitting}
+                        >
+                          {selectedDrivers.length > 0 ? 
+                            `${selectedDrivers.length} conductor(es) seleccionado(s)` : 
+                            "Seleccionar conductores"}
+                          {showDriversList ? <X className="ml-2 h-4 w-4" /> : <Search className="ml-2 h-4 w-4" />}
+                        </Button>
+                        
+                        {/* Selected Drivers Display */}
+                        {selectedDrivers.length > 0 && (
+                          <div className="border rounded-md p-3 bg-muted/30">
+                            <div className="text-sm text-muted-foreground mb-2">
+                              Conductores seleccionados:
+                            </div>
+                            <div className="flex flex-wrap gap-2">
+                              {selectedDrivers.map(driver => (
+                                <Badge 
+                                  key={driver.id} 
+                                  variant="secondary" 
+                                  className="flex items-center gap-1 py-1 px-2"
+                                >
+                                  <span className="truncate max-w-[200px]" title={driver.name}>{driver.name}</span>
+                                  <X 
+                                    className="h-3 w-3 cursor-pointer ml-1 flex-shrink-0" 
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      toggleDriverSelection(driver);
+                                    }} 
+                                  />
+                                </Badge>
+                              ))}
                             </div>
                           </div>
-                          
-                          {/* Drivers List */}
-                          <ScrollArea className="h-[200px] w-full">
-                            {isLoadingDrivers ? (
-                              <div className="flex flex-col items-center justify-center h-full p-4">
-                                <Loader2 className="h-6 w-6 animate-spin text-primary" />
-                                <p className="mt-2 text-sm text-muted-foreground">Cargando conductores...</p>
-                              </div>
-                            ) : filteredDrivers.length === 0 ? (
-                              <div className="p-4 text-center text-muted-foreground">
-                                {searchTerm ? 
-                                  "No se encontraron conductores con ese término de búsqueda" : 
-                                  "No hay conductores disponibles para este cliente"}
-                              </div>
-                            ) : (
-                              <div className="divide-y">
-                                {filteredDrivers.map((driver) => {
-                                  const isSelected = selectedDrivers.some(d => d.id === driver.id);
-                                  return (
-                                    <div 
-                                      key={driver.id}
-                                      className={cn(
-                                        "flex items-center justify-between p-3 cursor-pointer hover:bg-muted/50 transition-colors",
-                                        isSelected && "bg-primary/10"
-                                      )}
-                                      onClick={() => toggleDriverSelection(driver)}
-                                    >
-                                      <div className="flex items-center gap-3">
-                                        <div className={cn(
-                                          "flex h-5 w-5 items-center justify-center rounded border",
-                                          isSelected 
-                                            ? "bg-primary border-primary text-primary-foreground" 
-                                            : "border-input"
-                                        )}>
-                                          {isSelected && <Check className="h-3 w-3" />}
-                                        </div>
-                                        <span className="font-medium truncate max-w-[280px]" title={driver.name}>{driver.name}</span>
-                                      </div>
-                                      {driver.score !== undefined && (
-                                        <span className="text-sm text-muted-foreground">
-                                          Score: {driver.score}
-                                        </span>
-                                      )}
-                                    </div>
-                                  );
-                                })}
-                              </div>
-                            )}
-                          </ScrollArea>
-                        </div>
-                      )}
-                      
-                      {/* Selected Drivers Display */}
-                      {selectedDrivers.length > 0 && (
-                        <div className="border rounded-md p-3 bg-muted/30">
-                          <div className="text-sm text-muted-foreground mb-2">
-                            Conductores seleccionados:
-                          </div>
-                          <div className="flex flex-wrap gap-2">
-                            {selectedDrivers.map(driver => (
-                              <Badge 
-                                key={driver.id} 
-                                variant="secondary" 
-                                className="flex items-center gap-1 py-1 px-2"
-                              >
-                                <span className="truncate max-w-[200px]" title={driver.name}>{driver.name}</span>
-                                <X 
-                                  className="h-3 w-3 cursor-pointer ml-1 flex-shrink-0" 
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    toggleDriverSelection(driver);
-                                  }} 
+                        )}
+                        
+                        {/* Drivers Dropdown Panel */}
+                        {showDriversList && (
+                          <div className="border rounded-md overflow-hidden mt-2">
+                            {/* Search Bar */}
+                            <div className="p-2 border-b bg-muted/30 sticky top-0 z-10">
+                              <div className="relative">
+                                <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                                <Input
+                                  placeholder="Buscar conductores..."
+                                  className="pl-8"
+                                  value={searchTerm}
+                                  onChange={(e) => setSearchTerm(e.target.value)}
                                 />
-                              </Badge>
-                            ))}
+                              </div>
+                            </div>
+                            
+                            {/* Drivers List */}
+                            <ScrollArea className="h-[200px] w-full">
+                              {isLoadingDrivers ? (
+                                <div className="flex flex-col items-center justify-center h-full p-4">
+                                  <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                                  <p className="mt-2 text-sm text-muted-foreground">Cargando conductores...</p>
+                                </div>
+                              ) : filteredDrivers.length === 0 ? (
+                                <div className="p-4 text-center text-muted-foreground">
+                                  {searchTerm ? 
+                                    "No se encontraron conductores con ese término de búsqueda" : 
+                                    "No hay conductores disponibles para este cliente"}
+                                </div>
+                              ) : (
+                                <div className="divide-y">
+                                  {filteredDrivers.map((driver) => {
+                                    const isSelected = selectedDrivers.some(d => d.id === driver.id);
+                                    return (
+                                      <div 
+                                        key={driver.id}
+                                        className={cn(
+                                          "flex items-center justify-between p-3 cursor-pointer hover:bg-muted/50 transition-colors",
+                                          isSelected && "bg-primary/10"
+                                        )}
+                                        onClick={() => toggleDriverSelection(driver)}
+                                      >
+                                        <div className="flex items-center gap-3">
+                                          <div className={cn(
+                                            "flex h-5 w-5 items-center justify-center rounded border",
+                                            isSelected 
+                                              ? "bg-primary border-primary text-primary-foreground" 
+                                              : "border-input"
+                                          )}>
+                                            {isSelected && <Check className="h-3 w-3" />}
+                                          </div>
+                                          <span className="font-medium truncate max-w-[280px]" title={driver.name}>{driver.name}</span>
+                                        </div>
+                                        {driver.score !== undefined && (
+                                          <span className="text-sm text-muted-foreground">
+                                            Score: {driver.score}
+                                          </span>
+                                        )}
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              )}
+                            </ScrollArea>
                           </div>
-                        </div>
-                      )}
-                      
-                      <FormMessage />
-                    </div>
-                  </FormItem>
-                )}
-              />
-            </form>
-          </Form>
+                        )}
+                        
+                        <FormMessage />
+                      </div>
+                    </FormItem>
+                  )}
+                />
+              </form>
+            </Form>
+          </div>
         </ScrollArea>
             
-        <DialogFooter className="pt-4">
+        <DialogFooter className="pt-4 mt-2 border-t">
           <Button type="button" variant="outline" onClick={onClose} disabled={isSubmitting}>
             Cancelar
           </Button>

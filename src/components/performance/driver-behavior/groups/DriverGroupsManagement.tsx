@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -246,12 +247,12 @@ export function DriverGroupsManagement({ isOpen, onClose, selectedClient }: Driv
   
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="sm:max-w-[900px] max-h-[90vh] flex flex-col">
+      <DialogContent className="sm:max-w-[900px] h-[90vh] flex flex-col overflow-hidden">
         <DialogHeader>
           <DialogTitle className="text-xl font-semibold">Gestión de Grupos de Conductores</DialogTitle>
         </DialogHeader>
         
-        <div className="flex flex-col sm:flex-row gap-4 mt-4">
+        <div className="flex flex-col sm:flex-row gap-4 mt-2">
           {/* Client selection */}
           <div className="w-full sm:w-64">
             <Label htmlFor="client-select">Cliente</Label>
@@ -287,7 +288,7 @@ export function DriverGroupsManagement({ isOpen, onClose, selectedClient }: Driv
         </div>
         
         {currentClient ? (
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col">
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col overflow-hidden mt-2">
             <TabsList className="mb-2">
               <TabsTrigger value="groups">Grupos</TabsTrigger>
               <TabsTrigger value="edit">
@@ -295,8 +296,8 @@ export function DriverGroupsManagement({ isOpen, onClose, selectedClient }: Driv
               </TabsTrigger>
             </TabsList>
             
-            <TabsContent value="groups" className="flex-1 flex flex-col">
-              <div className="flex justify-between items-center mb-4">
+            <TabsContent value="groups" className="flex-1 flex flex-col overflow-hidden">
+              <div className="flex justify-between items-center mb-2">
                 <h3 className="text-lg font-medium">
                   Grupos para {currentClient}
                 </h3>
@@ -353,145 +354,147 @@ export function DriverGroupsManagement({ isOpen, onClose, selectedClient }: Driv
               </ScrollArea>
             </TabsContent>
             
-            <TabsContent value="edit" className="flex-1 flex flex-col">
-              <form onSubmit={handleSubmit} className="flex flex-col flex-1">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
-                  <div>
-                    <Label htmlFor="group-name">Nombre del Grupo</Label>
-                    <Input
-                      id="group-name"
-                      value={formState.name}
-                      onChange={(e) => setFormState(prev => ({ ...prev, name: e.target.value }))}
-                      placeholder="Nombre del grupo"
-                      required
-                    />
-                  </div>
-                  
-                  <div>
-                    <Label htmlFor="group-client">Cliente</Label>
-                    <Input
-                      id="group-client"
-                      value={formState.client}
-                      disabled
-                      readOnly
-                    />
-                  </div>
-                </div>
-                
-                <div className="mb-4">
-                  <Label htmlFor="group-description">Descripción</Label>
-                  <Textarea
-                    id="group-description"
-                    value={formState.description}
-                    onChange={(e) => setFormState(prev => ({ ...prev, description: e.target.value }))}
-                    placeholder="Descripción opcional del grupo"
-                    rows={2}
-                  />
-                </div>
-                
-                <Label>Conductores Seleccionados ({formState.driver_ids.length})</Label>
-                <div className="flex flex-wrap gap-2 mb-4 p-2 border rounded-md min-h-[60px]">
-                  {formState.driver_ids.length === 0 ? (
-                    <div className="w-full text-center text-muted-foreground text-sm py-2">
-                      No hay conductores seleccionados
+            <TabsContent value="edit" className="flex-1 flex flex-col overflow-hidden">
+              <ScrollArea className="flex-1">
+                <form onSubmit={handleSubmit} className="flex flex-col space-y-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="group-name">Nombre del Grupo</Label>
+                      <Input
+                        id="group-name"
+                        value={formState.name}
+                        onChange={(e) => setFormState(prev => ({ ...prev, name: e.target.value }))}
+                        placeholder="Nombre del grupo"
+                        required
+                      />
                     </div>
-                  ) : (
-                    formState.driver_ids.map((driverId) => (
-                      <Badge key={driverId} variant="secondary" className="flex items-center gap-1">
-                        {getDriverNameById(driverId)}
-                        <X 
-                          className="h-3 w-3 cursor-pointer" 
-                          onClick={() => toggleDriverSelection(driverId)}
-                        />
-                      </Badge>
-                    ))
-                  )}
-                </div>
-                
-                <div className="flex-1 flex flex-col">
-                  <div className="flex justify-between items-center mb-2">
-                    <Label>Conductores Disponibles</Label>
-                    <span className="text-xs text-muted-foreground">
-                      {filteredDrivers.length} conductores
-                    </span>
+                    
+                    <div>
+                      <Label htmlFor="group-client">Cliente</Label>
+                      <Input
+                        id="group-client"
+                        value={formState.client}
+                        disabled
+                        readOnly
+                      />
+                    </div>
                   </div>
                   
-                  <ScrollArea className="flex-1 border rounded-md">
-                    {isLoadingDrivers ? (
-                      <div className="p-4 text-center">Cargando conductores...</div>
-                    ) : filteredDrivers.length === 0 ? (
-                      <div className="p-4 text-center text-muted-foreground">
-                        No se encontraron conductores para este cliente
+                  <div>
+                    <Label htmlFor="group-description">Descripción</Label>
+                    <Textarea
+                      id="group-description"
+                      value={formState.description}
+                      onChange={(e) => setFormState(prev => ({ ...prev, description: e.target.value }))}
+                      placeholder="Descripción opcional del grupo"
+                      rows={2}
+                    />
+                  </div>
+                  
+                  <Label>Conductores Seleccionados ({formState.driver_ids.length})</Label>
+                  <div className="flex flex-wrap gap-2 mb-2 p-2 border rounded-md min-h-[60px]">
+                    {formState.driver_ids.length === 0 ? (
+                      <div className="w-full text-center text-muted-foreground text-sm py-2">
+                        No hay conductores seleccionados
                       </div>
                     ) : (
-                      <div className="divide-y">
-                        {filteredDrivers.map((driver) => (
-                          <div 
-                            key={driver.id}
-                            className="flex items-center p-3 hover:bg-muted/50"
-                          >
-                            <Checkbox
-                              id={`driver-${driver.id}`}
-                              checked={formState.driver_ids.includes(driver.id)}
-                              onCheckedChange={() => toggleDriverSelection(driver.id)}
-                            />
-                            <label
-                              htmlFor={`driver-${driver.id}`}
-                              className="ml-2 text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 flex-1 cursor-pointer"
-                            >
-                              {driver.name}
-                            </label>
-                            {driver.score !== undefined && (
-                              <span className="text-xs font-medium bg-blue-100 text-blue-800 px-2 py-0.5 rounded">
-                                {driver.score.toFixed(1)}
-                              </span>
-                            )}
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </ScrollArea>
-                </div>
-                
-                <div className="flex justify-between mt-6">
-                  <div>
-                    {formState.isEditing && (
-                      <Button 
-                        type="button" 
-                        variant="destructive"
-                        onClick={handleDeleteGroup}
-                        className="flex items-center gap-1"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                        <span>Eliminar</span>
-                      </Button>
+                      formState.driver_ids.map((driverId) => (
+                        <Badge key={driverId} variant="secondary" className="flex items-center gap-1">
+                          {getDriverNameById(driverId)}
+                          <X 
+                            className="h-3 w-3 cursor-pointer" 
+                            onClick={() => toggleDriverSelection(driverId)}
+                          />
+                        </Badge>
+                      ))
                     )}
                   </div>
-                  <div className="flex gap-2">
+                  
+                  <div>
+                    <div className="flex justify-between items-center mb-2">
+                      <Label>Conductores Disponibles</Label>
+                      <span className="text-xs text-muted-foreground">
+                        {filteredDrivers.length} conductores
+                      </span>
+                    </div>
+                    
+                    <ScrollArea className="border rounded-md h-[200px]">
+                      {isLoadingDrivers ? (
+                        <div className="p-4 text-center">Cargando conductores...</div>
+                      ) : filteredDrivers.length === 0 ? (
+                        <div className="p-4 text-center text-muted-foreground">
+                          No se encontraron conductores para este cliente
+                        </div>
+                      ) : (
+                        <div className="divide-y">
+                          {filteredDrivers.map((driver) => (
+                            <div 
+                              key={driver.id}
+                              className="flex items-center p-3 hover:bg-muted/50"
+                            >
+                              <Checkbox
+                                id={`driver-${driver.id}`}
+                                checked={formState.driver_ids.includes(driver.id)}
+                                onCheckedChange={() => toggleDriverSelection(driver.id)}
+                              />
+                              <label
+                                htmlFor={`driver-${driver.id}`}
+                                className="ml-2 text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 flex-1 cursor-pointer"
+                              >
+                                {driver.name}
+                              </label>
+                              {driver.score !== undefined && (
+                                <span className="text-xs font-medium bg-blue-100 text-blue-800 px-2 py-0.5 rounded">
+                                  {driver.score.toFixed(1)}
+                                </span>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </ScrollArea>
+                  </div>
+                </form>
+              </ScrollArea>
+              
+              <div className="flex justify-between pt-4 mt-2 border-t">
+                <div>
+                  {formState.isEditing && (
                     <Button 
                       type="button" 
-                      variant="outline"
-                      onClick={() => {
-                        resetForm();
-                        setActiveTab('groups');
-                      }}
-                    >
-                      Cancelar
-                    </Button>
-                    <Button 
-                      type="submit"
+                      variant="destructive"
+                      onClick={handleDeleteGroup}
                       className="flex items-center gap-1"
                     >
-                      <Save className="h-4 w-4" />
-                      <span>Guardar</span>
+                      <Trash2 className="h-4 w-4" />
+                      <span>Eliminar</span>
                     </Button>
-                  </div>
+                  )}
                 </div>
-              </form>
+                <div className="flex gap-2">
+                  <Button 
+                    type="button" 
+                    variant="outline"
+                    onClick={() => {
+                      resetForm();
+                      setActiveTab('groups');
+                    }}
+                  >
+                    Cancelar
+                  </Button>
+                  <Button 
+                    onClick={handleSubmit}
+                    className="flex items-center gap-1"
+                  >
+                    <Save className="h-4 w-4" />
+                    <span>Guardar</span>
+                  </Button>
+                </div>
+              </div>
             </TabsContent>
           </Tabs>
         ) : (
-          <div className="flex flex-col items-center justify-center p-8 text-center">
+          <div className="flex flex-col items-center justify-center p-8 text-center flex-1">
             <Users className="h-12 w-12 text-muted-foreground mb-4" />
             <h3 className="text-lg font-medium">Seleccione un Cliente</h3>
             <p className="text-muted-foreground mt-2 max-w-md">
