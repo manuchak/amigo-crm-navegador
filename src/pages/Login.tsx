@@ -18,6 +18,7 @@ const Login = () => {
   useEffect(() => {
     console.log('Login component mounted', { currentUser, loading });
     if (currentUser && !loading) {
+      console.log('User already logged in, redirecting to dashboard');
       navigate('/dashboard');
     }
   }, [currentUser, loading, navigate]);

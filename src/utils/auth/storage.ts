@@ -6,7 +6,14 @@ import { UserData } from '@/types/auth';
 export const getUsers = (): StoredUser[] => {
   try {
     const usersJson = localStorage.getItem(USERS_STORAGE_KEY);
-    return usersJson ? JSON.parse(usersJson) : [];
+    const users = usersJson ? JSON.parse(usersJson) : [];
+    
+    // Ensure dates are proper Date objects
+    return users.map((user: any) => ({
+      ...user,
+      createdAt: new Date(user.createdAt),
+      lastLogin: new Date(user.lastLogin)
+    }));
   } catch (error) {
     console.error('Error retrieving users:', error);
     return [];
@@ -26,7 +33,16 @@ export const saveUsers = (users: StoredUser[]): void => {
 export const getCurrentUser = (): UserData | null => {
   try {
     const userJson = localStorage.getItem(CURRENT_USER_KEY);
-    return userJson ? JSON.parse(userJson) : null;
+    if (!userJson) return null;
+    
+    const user = JSON.parse(userJson);
+    
+    // Ensure dates are proper Date objects
+    return {
+      ...user,
+      createdAt: new Date(user.createdAt),
+      lastLogin: new Date(user.lastLogin)
+    };
   } catch (error) {
     console.error('Error retrieving current user:', error);
     return null;

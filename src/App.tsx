@@ -1,5 +1,5 @@
 
-import React, { Suspense, lazy } from 'react';
+import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from 'sonner';
 import { AuthProvider } from '@/context/AuthContext';
@@ -28,21 +28,9 @@ function App() {
           <Route path="/login" element={<Login />} />
           
           {/* App Routes - Add your other routes here */}
-          <Route path="/dashboard" element={
-            <Suspense fallback={<PageLoader />}>
-              <Dashboard />
-            </Suspense>
-          } />
-          <Route path="/user-management" element={
-            <Suspense fallback={<PageLoader />}>
-              <UserManagement />
-            </Suspense>
-          } />
-          <Route path="/support" element={
-            <Suspense fallback={<PageLoader />}>
-              <Support />
-            </Suspense>
-          } />
+          <Route path="/dashboard" element={<Dashboard />} />
+          <Route path="/user-management" element={<UserManagement />} />
+          <Route path="/support" element={<Support />} />
           
           {/* Default redirect */}
           <Route path="/" element={<Navigate to="/login" replace />} />

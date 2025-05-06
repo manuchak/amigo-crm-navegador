@@ -46,7 +46,17 @@ const EmailSignInForm: React.FC<EmailSignInFormProps> = ({
       const result = await signIn(data.email, data.password);
       
       if (result.error) {
-        throw result.error;
+        console.error("Login error details:", result.error);
+        
+        // Extract error message based on error code
+        let errorMessage = 'Error al iniciar sesión';
+        if (result.error.message === 'auth/user-not-found') {
+          errorMessage = 'Usuario no encontrado';
+        } else if (result.error.message === 'auth/wrong-password') {
+          errorMessage = 'Contraseña incorrecta';
+        }
+        
+        throw new Error(errorMessage);
       }
       
       if (result.user) {

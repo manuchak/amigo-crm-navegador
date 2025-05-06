@@ -1,7 +1,7 @@
 
 import { UserData } from '@/types/auth';
 import { toast } from 'sonner';
-import { createUser, loginUser } from '@/utils/auth';
+import { createUser, loginUser, findUserByEmail } from '@/utils/auth';
 
 export const useAuthentication = (
   setUserData: React.Dispatch<React.SetStateAction<UserData | null>>,
@@ -11,8 +11,20 @@ export const useAuthentication = (
   const signIn = async (email: string, password: string): Promise<UserData | null> => {
     setLoading(true);
     try {
+      console.log('Attempting to sign in with email:', email);
+      
+      // First check if this user exists
+      const userExists = findUserByEmail(email);
+      if (!userExists) {
+        console.error('User not found:', email);
+        throw new Error('auth/user-not-found');
+      }
+      
       const userData = loginUser(email, password);
       setUserData(userData);
+      
+      // Log successful login
+      console.log('User logged in successfully:', userData.email);
       toast.success('Sesión iniciada con éxito');
       return userData;
     } catch (error: any) {
@@ -28,8 +40,19 @@ export const useAuthentication = (
   const signUp = async (email: string, password: string, displayName: string): Promise<UserData | null> => {
     setLoading(true);
     try {
+      console.log('Attempting to create user with email:', email);
+      
+      // Check if user already exists before trying to create
+      const existingUser = findUserByEmail(email);
+      if (existingUser) {
+        throw new Error('auth/email-already-in-use');
+      }
+      
       const userData = createUser(email, password, displayName);
       setUserData(userData);
+      
+      // Log successful registration
+      console.log('User created successfully:', userData.email);
       toast.success('Cuenta creada con éxito');
       return userData;
     } catch (error: any) {
