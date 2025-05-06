@@ -1,24 +1,17 @@
 
 import React from 'react';
-import { ActiveServicesDashboard } from '@/components/performance/dashboard/ActiveServicesDashboard';
-import { MapPin, ShieldAlert } from 'lucide-react';
+import PageLayout from '@/components/layout/PageLayout';
 
-export default function ActiveServices() {
+const ActiveServices: React.FC = () => {
   return (
-    <div className="w-full h-full pt-16">
-      <div className="mb-2 px-2">
-        <div className="flex items-center gap-2 mb-1">
-          <div className="h-9 w-9 rounded-lg bg-primary/10 flex items-center justify-center">
-            <ShieldAlert className="h-4 w-4 text-primary" />
-          </div>
-          <div>
-            <h1 className="text-xl font-bold">Monitoreo de Cadena de Suministro</h1>
-            <p className="text-sm text-muted-foreground">Servicios activos e incidentes en tiempo real</p>
-          </div>
-        </div>
+    <PageLayout title="Servicios Activos">
+      <div className="bg-white rounded-lg p-6 shadow-sm">
+        <p className="text-center text-slate-500">
+          Contenido de la página Servicios Activos se mostrará aquí
+        </p>
       </div>
-      
-      <ActiveServicesDashboard />
-    </div>
+    </PageLayout>
   );
-}
+};
+
+export default ActiveServices;

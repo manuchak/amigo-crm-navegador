@@ -8,6 +8,11 @@ import './App.css';
 // Import all components directly to avoid dynamic import issues
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
+import Performance from './pages/Performance';
+import ActiveServices from './pages/ActiveServices';
+import Leads from './pages/Leads';
+import Requerimientos from './pages/Requerimientos';
+import InstalacionGPS from './pages/InstalacionGPS';
 import UserManagement from './pages/UserManagement';
 import Support from './pages/Support';
 import ResetPassword from './pages/ResetPassword';
@@ -79,23 +84,23 @@ const AppRoutes = () => {
       />
       <Route 
         path="/performance" 
-        element={<ProtectedRoute><Dashboard /></ProtectedRoute>} 
+        element={<ProtectedRoute><Performance /></ProtectedRoute>} 
       />
       <Route 
         path="/active-services" 
-        element={<ProtectedRoute><Dashboard /></ProtectedRoute>} 
+        element={<ProtectedRoute><ActiveServices /></ProtectedRoute>} 
       />
       <Route 
         path="/leads" 
-        element={<ProtectedRoute><Dashboard /></ProtectedRoute>} 
+        element={<ProtectedRoute><Leads /></ProtectedRoute>} 
       />
       <Route 
         path="/requerimientos" 
-        element={<ProtectedRoute><Dashboard /></ProtectedRoute>} 
+        element={<ProtectedRoute><Requerimientos /></ProtectedRoute>} 
       />
       <Route 
         path="/instalacion-gps" 
-        element={<ProtectedRoute><Dashboard /></ProtectedRoute>} 
+        element={<ProtectedRoute><InstalacionGPS /></ProtectedRoute>} 
       />
       <Route 
         path="/user-management" 
