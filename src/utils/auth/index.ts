@@ -1,14 +1,33 @@
 
 // Import underlying implementations
-import { loginUser, createUser, getCurrentUser, resetPassword } from './userManagement';
-import { findUserByEmail, setAsVerifiedOwner } from './roleManagement';
+import { loginUser, createUser, resetPassword, signOut } from './userManagement';
+import { 
+  updateUserRole, 
+  verifyUserEmail, 
+  setAsVerifiedOwner, 
+  getAllUsers, 
+  findUserByEmail 
+} from './roleManagement';
+import { getUsers, saveUsers, getCurrentUser, setCurrentUser } from './storage';
 
 // Re-export all functions for use throughout the app
 export {
+  // User management functions
   loginUser,
   createUser,
-  getCurrentUser,
   resetPassword,
+  signOut,
+  
+  // Role management functions
+  updateUserRole,
+  verifyUserEmail,
+  setAsVerifiedOwner,
+  getAllUsers,
   findUserByEmail,
-  setAsVerifiedOwner
+  
+  // Storage functions
+  getUsers,
+  saveUsers,
+  getCurrentUser,
+  setCurrentUser
 };
