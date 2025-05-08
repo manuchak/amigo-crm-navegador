@@ -1,105 +1,216 @@
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
-import { useAuth } from '@/context/auth/AuthContext';
-import { LeadForInterview, LeadFilter, UseLeadInterviewsReturn } from './types';
-import { useStaffMembers } from './useStaffMembers';
-import { useLeadFilters } from './useLeadFilters';
-import { useLeadActions } from './useLeadActions';
+import { LeadForInterview, StaffUser, LeadFilter, UseLeadInterviewsReturn } from './types';
+import { useAuth } from '@/context/AuthContext';
 
 export const useLeadInterviews = (): UseLeadInterviewsReturn => {
+  // States
   const [leads, setLeads] = useState<LeadForInterview[]>([]);
+  const [staffUsers, setStaffUsers] = useState<StaffUser[]>([]);
+  const [loadingStaff, setLoadingStaff] = useState(false);
   const [loading, setLoading] = useState(true);
-  const { currentUser } = useAuth();
+  const [filter, setFilter] = useState<LeadFilter>('all');
+  const { userData } = useAuth();
   
-  // Get staff members data
-  const { 
-    staffUsers, 
-    loadingStaff, 
-    isSupplyAdmin, 
-    isSupply 
-  } = useStaffMembers();
-
-  // Fetch leads data
-  const fetchLeads = async () => {
-    setLoading(true);
+  // Derived states for different lead categories
+  const newLeads = leads.filter(lead => lead.estado === 'nuevo');
+  const classifiedLeads = leads.filter(lead => lead.estado === 'clasificado');
+  const scheduledLeads = leads.filter(lead => lead.estado === 'agendado');
+  const unassignedLeads = leads.filter(lead => !lead.assigned_to);
+  const assignedLeads = leads.filter(lead => !!lead.assigned_to);
+  const myLeads = leads.filter(lead => lead.assigned_to === userData?.uid);
+  
+  // Check if current user has supply-related role
+  const isSupplyAdmin = userData?.role === 'supply_admin' || userData?.role === 'owner';
+  const isSupply = userData?.role === 'supply' || isSupplyAdmin;
+  
+  // Fetch leads from the database
+  const fetchLeads = useCallback(async () => {
     try {
-      let query = supabase
+      setLoading(true);
+      
+      // Get current session
+      const { data: sessionData } = await supabase.auth.getSession();
+      const session = sessionData.session;
+      
+      if (!session) {
+        console.error('No active session found');
+        setLoading(false);
+        return;
+      }
+      
+      // Fetch leads from Supabase
+      const { data: leadsData, error } = await supabase
         .from('leads')
-        .select(`*`);
-
-      // If user is Supply (not admin), only show their assigned leads
-      if (currentUser?.role === 'supply') {
-        query = query.eq('assigned_to', currentUser.uid);
-      }
-
-      const { data, error } = await query;
-
-      if (error) throw error;
+        .select(`
+          *,
+          profiles!leads_assigned_to_fkey(display_name)
+        `);
       
-      // Get all assigned users separately to avoid join issues
-      const leadIds = data.filter(lead => lead.assigned_to).map(lead => lead.id);
-      let assigneeNames: Record<string, string> = {};
-      
-      if (leadIds.length > 0) {
-        const { data: profiles, error: profilesError } = await supabase
-          .from('profiles')
-          .select('id, display_name')
-          .in('id', data.filter(lead => lead.assigned_to).map(lead => lead.assigned_to));
-          
-        if (!profilesError && profiles) {
-          // Create a map of user id to display name
-          assigneeNames = profiles.reduce((acc: Record<string, string>, profile) => {
-            acc[profile.id] = profile.display_name;
-            return acc;
-          }, {});
-        }
+      if (error) {
+        console.error('Error fetching leads:', error);
+        return;
       }
       
-      // Transform data to include assignee name
-      const transformedLeads = (data as any[]).map(lead => ({
+      // Map data to include assignee name
+      const mappedLeads = leadsData.map((lead: any) => ({
         ...lead,
-        assignee_name: lead.assigned_to ? assigneeNames[lead.assigned_to] || 'Unknown User' : null
+        // Format date for display
+        fecha_creacion: new Date(lead.created_at).toLocaleDateString('es-MX'),
+        // Include assignee name if available
+        assignee_name: lead.profiles?.display_name || null
       }));
       
-      setLeads(transformedLeads as LeadForInterview[]);
+      setLeads(mappedLeads);
     } catch (error) {
-      console.error('Error fetching leads:', error);
-      toast.error('Error al cargar los candidatos');
+      console.error('Error in fetchLeads:', error);
     } finally {
       setLoading(false);
     }
+  }, []);
+  
+  // Update lead status
+  const updateLeadStatus = async (leadId: number, newStatus: string) => {
+    try {
+      const { error } = await supabase
+        .from('leads')
+        .update({ estado: newStatus })
+        .eq('id', leadId);
+      
+      if (error) {
+        console.error('Error updating lead status:', error);
+        return;
+      }
+      
+      // Refresh leads after update
+      await fetchLeads();
+    } catch (error) {
+      console.error('Error in updateLeadStatus:', error);
+    }
   };
-
-  // Load leads on component mount
+  
+  // Classify lead as armed or with vehicle
+  const classifyLead = async (leadId: number, type: 'armed' | 'vehicle') => {
+    try {
+      const updateData = type === 'armed' 
+        ? { esarmado: 'SI' } 
+        : { tienevehiculo: 'SI' };
+      
+      const { error } = await supabase
+        .from('leads')
+        .update({ ...updateData, estado: 'clasificado' })
+        .eq('id', leadId);
+      
+      if (error) {
+        console.error(`Error classifying lead as ${type}:`, error);
+        return;
+      }
+      
+      // Refresh leads after update
+      await fetchLeads();
+    } catch (error) {
+      console.error('Error in classifyLead:', error);
+    }
+  };
+  
+  // Assign lead to user
+  const assignLead = async (leadId: number, userId: string) => {
+    try {
+      const { error } = await supabase
+        .from('leads')
+        .update({ 
+          assigned_to: userId,
+          assigned_at: new Date().toISOString()
+        })
+        .eq('id', leadId);
+      
+      if (error) {
+        console.error('Error assigning lead:', error);
+        return;
+      }
+      
+      // Refresh leads after update
+      await fetchLeads();
+    } catch (error) {
+      console.error('Error in assignLead:', error);
+    }
+  };
+  
+  // Unassign lead
+  const unassignLead = async (leadId: number) => {
+    try {
+      const { error } = await supabase
+        .from('leads')
+        .update({ 
+          assigned_to: null,
+          assigned_at: null
+        })
+        .eq('id', leadId);
+      
+      if (error) {
+        console.error('Error unassigning lead:', error);
+        return;
+      }
+      
+      // Refresh leads after update
+      await fetchLeads();
+    } catch (error) {
+      console.error('Error in unassignLead:', error);
+    }
+  };
+  
+  // Fetch staff users for assignment
+  useEffect(() => {
+    const fetchStaffUsers = async () => {
+      try {
+        setLoadingStaff(true);
+        
+        // Get supply staff roles
+        const { data: userData, error } = await supabase
+          .from('profiles')
+          .select(`
+            id,
+            display_name,
+            email,
+            user_roles!inner (role)
+          `)
+          .or('role.eq.supply,role.eq.supply_admin', { foreignTable: 'user_roles' });
+        
+        if (error) {
+          console.error('Error fetching staff users:', error);
+          return;
+        }
+        
+        // Map to StaffUser format
+        const staffData = userData.map((user: any) => ({
+          uid: user.id,
+          displayName: user.display_name,
+          email: user.email,
+          role: user.user_roles?.role || 'supply'
+        }));
+        
+        setStaffUsers(staffData);
+      } catch (error) {
+        console.error('Error in fetchStaffUsers:', error);
+      } finally {
+        setLoadingStaff(false);
+      }
+    };
+    
+    // Only fetch staff if user has appropriate permissions
+    if (isSupply) {
+      fetchStaffUsers();
+    }
+  }, [isSupply]);
+  
+  // Initial load of leads
   useEffect(() => {
     fetchLeads();
-  }, [currentUser?.uid, isSupplyAdmin]);
-
-  // Get filtered leads
-  const {
-    filter,
-    setFilter,
-    filteredLeads,
-    newLeads,
-    classifiedLeads,
-    scheduledLeads,
-    unassignedLeads,
-    assignedLeads,
-    myLeads
-  } = useLeadFilters(leads);
-
-  // Get lead action methods
-  const {
-    updateLeadStatus,
-    classifyLead,
-    assignLead,
-    unassignLead
-  } = useLeadActions(leads, setLeads, fetchLeads);
-
+  }, [fetchLeads]);
+  
   return {
-    leads: filteredLeads,
+    leads,
     newLeads,
     classifiedLeads,
     scheduledLeads,
@@ -120,5 +231,3 @@ export const useLeadInterviews = (): UseLeadInterviewsReturn => {
     isSupply
   };
 };
-
-export default useLeadInterviews;
