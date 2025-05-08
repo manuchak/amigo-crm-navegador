@@ -1,8 +1,8 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
-import { toast } from 'sonner';
-import { AuthContextProps, UserData, UserRole } from '@/types/auth';
+import React, { createContext, useContext } from 'react';
+import { AuthContextProps } from '@/types/auth';
+import { useSessionManager } from '@/hooks/auth/useSessionManager';
 import { supabase } from '@/integrations/supabase/client';
-import { User, Session } from '@supabase/supabase-js';
+import { toast } from 'sonner';
 import { mapUserData } from '@/utils/userDataMapper';
 
 // Create context
@@ -18,104 +18,19 @@ export const useAuth = () => {
 };
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [userData, setUserData] = useState<UserData | null>(null);
-  const [loading, setLoading] = useState<boolean>(true);
-  const [isInitializing, setIsInitializing] = useState<boolean>(true);
-  const [supabaseUser, setSupabaseUser] = useState<User | null>(null);
-  const [session, setSession] = useState<Session | null>(null);
-  
-  // Listen for authentication state changes
-  useEffect(() => {
-    console.log('Setting up authentication listeners...');
-    let mounted = true;
-    
-    // Set up the auth state listener FIRST to prevent issues
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, newSession) => {
-        console.log('Auth state change event:', event);
-        
-        if (!mounted) return;
-        
-        // Update session immediately
-        setSession(newSession);
-        setSupabaseUser(newSession?.user || null);
-        
-        if (newSession?.user) {
-          try {
-            // Get profile data
-            const mappedUserData = await mapUserData(newSession.user);
-            if (mounted) {
-              setUserData(mappedUserData);
-              console.log('Authenticated user loaded:', mappedUserData?.email);
-            }
-          } catch (error) {
-            console.error('Error getting profile data:', error);
-            if (mounted) setUserData(null);
-          } finally {
-            if (mounted) {
-              setLoading(false);
-              setIsInitializing(false);
-            }
-          }
-        } else {
-          if (mounted) {
-            console.log('No active session in auth state change');
-            setUserData(null);
-            setLoading(false);
-            setIsInitializing(false);
-          }
-        }
-      }
-    );
-
-    // THEN check for an existing session
-    const checkSession = async () => {
-      try {
-        console.log('Checking for existing session...');
-        const { data, error } = await supabase.auth.getSession();
-        
-        if (error) {
-          console.error('Error getting session:', error);
-          if (mounted) {
-            setLoading(false);
-            setIsInitializing(false);
-          }
-          return;
-        }
-        
-        if (data.session) {
-          console.log('Existing session found:', data.session.user.email);
-          // Session handling will be done by the auth state change listener
-        } else {
-          console.log('No existing session');
-          if (mounted) {
-            setLoading(false);
-            setIsInitializing(false);
-          }
-        }
-      } catch (err) {
-        console.error('Unexpected error checking session:', err);
-        if (mounted) {
-          setLoading(false);
-          setIsInitializing(false);
-        }
-      }
-    };
-
-    // Run session check
-    checkSession();
-
-    return () => {
-      console.log('Cleaning up auth listeners');
-      mounted = false;
-      subscription.unsubscribe();
-    };
-  }, []);
+  // Use our consolidated session manager hook
+  const { 
+    user: supabaseUser, 
+    session, 
+    userData, 
+    loading, 
+    isInitializing,
+    setUserData
+  } = useSessionManager();
 
   // Authentication functions
   const signIn = async (email: string, password: string) => {
     try {
-      setLoading(true);
       console.log("Attempting to sign in:", email);
       
       const { data, error } = await supabase.auth.signInWithPassword({
@@ -125,12 +40,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       if (error) {
         console.error("Login error:", error);
-        setLoading(false);
         return { user: null, error };
       }
       
       if (!data.user) {
-        setLoading(false);
         return { user: null, error: new Error("Could not sign in") };
       }
 
@@ -140,16 +53,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const mappedUserData = await mapUserData(data.user);
       
       return { user: mappedUserData, error: null };
-    } catch (error: any) {
+    } catch (error) {
       console.error("Error signing in:", error);
-      setLoading(false);
       return { user: null, error };
     }
   };
 
   const signUp = async (email: string, password: string, displayName: string) => {
     try {
-      setLoading(true);
       console.log("Attempting to create user:", email);
       
       const { data, error } = await supabase.auth.signUp({
@@ -166,40 +77,29 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (error) {
         console.error("Registration error:", error);
         toast.error(`Error al registrar: ${error.message}`);
-        setLoading(false);
         return { user: null, error };
       }
       
       const mappedUserData = data.user ? await mapUserData(data.user) : null;
       
       toast.success('Cuenta creada con éxito. Por favor, verifica tu correo electrónico.');
-      setLoading(false);
       return { user: mappedUserData, error: null };
-    } catch (error: any) {
+    } catch (error) {
       console.error("Error registering:", error);
       toast.error(`Error inesperado: ${error.message || 'Desconocido'}`);
-      setLoading(false);
       return { user: null, error };
     }
   };
 
   const signOut = async (): Promise<void> => {
     try {
-      setLoading(true);
       console.log("Signing out...");
       await supabase.auth.signOut();
-      
-      // Explicitly reset user state to ensure fresh state after sign-out
-      setUserData(null);
-      setSupabaseUser(null);
-      setSession(null);
       
       toast.success('Sesión cerrada con éxito');
     } catch (error) {
       console.error('Error signing out:', error);
       toast.error('Error al cerrar sesión');
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -225,7 +125,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  // Implement the missing refreshSession function
   const refreshSession = async (): Promise<boolean> => {
     try {
       console.log("Refreshing session...");
@@ -239,13 +138,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       if (data.session) {
         console.log("Session refreshed successfully");
-        setSession(data.session);
-        setSupabaseUser(data.session.user);
-        
-        // Update user data with the refreshed user
-        const mappedUserData = await mapUserData(data.session.user);
-        setUserData(mappedUserData);
-        
+        // The session update will be handled by the onAuthStateChange listener
         return true;
       } else {
         console.log("No session to refresh");
