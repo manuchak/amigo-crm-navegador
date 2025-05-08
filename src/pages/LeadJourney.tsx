@@ -10,9 +10,9 @@ import { ProcessSummary } from '@/components/lead-journey/ProcessSummary';
 import { JourneyStagesCard } from '@/components/lead-journey/JourneyStagesCard';
 import { JourneyWorkflow } from '@/components/lead-journey/JourneyWorkflow';
 import { LeadAssignmentProcess } from '@/components/lead-journey/LeadAssignmentProcess';
-import { useAuth } from '@/context/auth/AuthContext';
+import { useAuth } from '@/context/auth';
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useNavigate as useReactNavigate, useLocation } from 'react-router-dom';
+import { useLocation } from 'react-router-dom';
 
 interface Stage {
   name: string;

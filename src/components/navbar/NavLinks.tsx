@@ -2,7 +2,7 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { cn } from '@/lib/utils';
-import { useAuth } from '@/context/auth/AuthContext';
+import { useAuth } from '@/context/auth';
 
 export const NavLinks: React.FC = () => {
   const location = useLocation();

@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
@@ -7,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { Mail, Lock, Loader2 } from 'lucide-react';
-import { useAuth } from '@/context/auth/AuthContext';
+import { useAuth } from '@/context/auth';
 import { toast } from 'sonner';
 
 const formSchema = z.object({

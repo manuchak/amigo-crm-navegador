@@ -1,6 +1,5 @@
-
 import React from 'react';
-import { useAuth } from '@/context/auth/AuthContext';
+import { useAuth } from '@/context/auth';
 import { Card, CardContent } from '@/components/ui/card';
 import { 
   LayoutGrid, Shield, Users, LifeBuoy, Car, Settings,

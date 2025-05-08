@@ -1,3 +1,3 @@
 
-// Re-export from parent AuthContext to maintain backward compatibility
-export * from '../AuthContext';
+// Re-export from local AuthContext file
+export * from './AuthContext';

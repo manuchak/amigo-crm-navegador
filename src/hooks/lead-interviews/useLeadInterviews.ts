@@ -2,7 +2,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { LeadForInterview, StaffUser, LeadFilter, UseLeadInterviewsReturn } from './types';
-import { useAuth } from '@/context/AuthContext';
+import { useAuth } from '@/context/auth';
 import { toast } from 'sonner';
 
 export const useLeadInterviews = (): UseLeadInterviewsReturn => {
@@ -12,7 +12,6 @@ export const useLeadInterviews = (): UseLeadInterviewsReturn => {
   const [loadingStaff, setLoadingStaff] = useState(false);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<LeadFilter>('all');
-  const [error, setError] = useState<Error | null>(null);
   const { userData } = useAuth();
   
   // Derived states for different lead categories
@@ -31,7 +30,6 @@ export const useLeadInterviews = (): UseLeadInterviewsReturn => {
   const fetchLeads = useCallback(async () => {
     try {
       setLoading(true);
-      setError(null);
       
       console.log('Fetching leads data...');
       
@@ -40,14 +38,12 @@ export const useLeadInterviews = (): UseLeadInterviewsReturn => {
       
       if (sessionError) {
         console.error('Error getting session:', sessionError);
-        setError(new Error(`Session error: ${sessionError.message}`));
         setLoading(false);
         return;
       }
       
       if (!sessionData.session) {
         console.error('No active session found');
-        setError(new Error('No active session found. Please log in again.'));
         setLoading(false);
         return;
       }
@@ -62,7 +58,6 @@ export const useLeadInterviews = (): UseLeadInterviewsReturn => {
       
       if (error) {
         console.error('Error fetching leads:', error);
-        setError(new Error(`Failed to fetch leads: ${error.message}`));
         setLoading(false);
         return;
       }
@@ -78,10 +73,8 @@ export const useLeadInterviews = (): UseLeadInterviewsReturn => {
       
       console.log(`Fetched ${mappedLeads.length} leads successfully`);
       setLeads(mappedLeads);
-      setError(null);
     } catch (error: any) {
       console.error('Error in fetchLeads:', error);
-      setError(error instanceof Error ? error : new Error(String(error)));
       toast.error('Error al cargar leads', { 
         description: error instanceof Error ? error.message : 'Error desconocido'
       });
@@ -274,7 +267,6 @@ export const useLeadInterviews = (): UseLeadInterviewsReturn => {
     myLeads,
     loading,
     filter,
-    error,
     setFilter,
     fetchLeads,
     updateLeadStatus,

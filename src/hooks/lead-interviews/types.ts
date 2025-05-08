@@ -1,5 +1,5 @@
 
-import { User } from '@supabase/supabase-js';
+export type LeadFilter = 'all' | 'armed' | 'vehicle' | 'unassigned' | 'assigned' | 'mine';
 
 export interface LeadForInterview {
   id: number;
@@ -20,7 +20,7 @@ export interface LeadForInterview {
   anovehiculo: string | null;
   assigned_to: string | null;
   assigned_at: string | null;
-  assignee_name?: string;
+  assignee_name?: string | null;
 }
 
 export interface StaffUser {
@@ -29,8 +29,6 @@ export interface StaffUser {
   email: string;
   role: string;
 }
-
-export type LeadFilter = 'all' | 'armed' | 'vehicle' | 'unassigned' | 'assigned' | 'mine';
 
 export interface UseLeadInterviewsReturn {
   leads: LeadForInterview[];
