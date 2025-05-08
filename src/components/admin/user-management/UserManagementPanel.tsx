@@ -134,11 +134,26 @@ const UserManagementPanel: React.FC<UserManagementPanelProps> = () => {
     },
   })
 
-  // Fix for the Promise return type mismatch
-  // We're wrapping the refreshUserData function to ensure it returns void
+  // Enhanced wrapper function with proper error handling
   const wrappedRefreshUserData = async (): Promise<void> => {
-    await refreshUserData();
-    return;
+    try {
+      const result = await refreshUserData();
+      if (result && !result.success && result.error) {
+        console.error("Error refreshing user data:", result.error);
+        toast({
+          title: "Error",
+          description: "Failed to refresh user data",
+          variant: "destructive",
+        });
+      }
+    } catch (error: any) {
+      console.error("Unexpected error refreshing user data:", error);
+      toast({
+        title: "Error",
+        description: error?.message || "An unexpected error occurred",
+        variant: "destructive",
+      });
+    }
   };
 
   const {
