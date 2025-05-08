@@ -10,12 +10,11 @@ export const JourneyWorkflow: React.FC<JourneyWorkflowProps> = ({ currentStage =
   const navigate = useNavigate();
   
   const stages = [
-    { id: 'interviews', name: 'Entrevistas Iniciales', color: 'blue' },
-    { id: 'validation', name: 'Validación', color: 'indigo' },
-    { id: 'documents', name: 'Documentación', color: 'purple' },
-    { id: 'tests', name: 'Exámenes Psicométricos', color: 'pink' },
-    { id: 'fieldtests', name: 'Pruebas de Campo', color: 'amber' },
-    { id: 'hiring', name: 'Contratación', color: 'emerald' }
+    { id: 'interviews', name: 'Entrevista Inicial', description: 'Clasificación', color: 'blue' },
+    { id: 'validation', name: 'Validación', description: 'Segunda Entrevista', color: 'indigo' },
+    { id: 'documents', name: 'Documentación', description: 'Verificación', color: 'purple' },
+    { id: 'tests', name: 'Exámenes', description: 'Psicométricos y Campo', color: 'pink' },
+    { id: 'hiring', name: 'Contratación', description: 'Onboarding', color: 'emerald' }
   ];
   
   const currentIndex = stages.findIndex(stage => stage.id === currentStage);
@@ -25,7 +24,7 @@ export const JourneyWorkflow: React.FC<JourneyWorkflowProps> = ({ currentStage =
   };
   
   return (
-    <div className="w-full pt-2 pb-6">
+    <div className="w-full pt-4 pb-6">
       <div className="relative">
         {/* Progress Line */}
         <div className="absolute top-1/2 left-0 right-0 -translate-y-1/2 h-1 bg-slate-200 z-0"></div>
@@ -33,7 +32,7 @@ export const JourneyWorkflow: React.FC<JourneyWorkflowProps> = ({ currentStage =
           className="absolute top-1/2 left-0 -translate-y-1/2 h-1 bg-blue-500 z-10 transition-all duration-500"
           style={{ 
             width: `${Math.max((currentIndex / (stages.length - 1)) * 100, 5)}%`,
-            background: 'linear-gradient(to right, #3B82F6, #6366F1, #8B5CF6, #EC4899, #F59E0B, #10B981)'
+            background: 'linear-gradient(to right, #3B82F6, #6366F1, #8B5CF6, #EC4899, #10B981)'
           }}
         ></div>
         
@@ -99,9 +98,16 @@ export const JourneyWorkflow: React.FC<JourneyWorkflowProps> = ({ currentStage =
                     {index + 1}
                   </span>
                 </div>
-                <span className={`text-xs font-medium mt-2 ${isPassed ? textColor : 'text-slate-400'} max-w-[90px] text-center truncate group-hover:text-slate-800 transition-colors`}>
-                  {stage.name}
-                </span>
+                <div className="flex flex-col items-center mt-2">
+                  <span className={`text-xs font-medium ${isPassed ? textColor : 'text-slate-400'} text-center group-hover:text-slate-800 transition-colors`}>
+                    {stage.name}
+                  </span>
+                  {stage.description && (
+                    <span className="text-[10px] text-slate-500 text-center max-w-[90px]">
+                      ({stage.description})
+                    </span>
+                  )}
+                </div>
               </div>
             );
           })}

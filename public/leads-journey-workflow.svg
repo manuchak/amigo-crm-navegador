@@ -9,35 +9,40 @@
   <path d="M485,90 C535,90 555,90 605,90" stroke="#E0E0E0" stroke-width="3" stroke-dasharray="6,3" fill="none" />
   <path d="M665,90 C715,90 735,90 785,90" stroke="#E0E0E0" stroke-width="3" stroke-dasharray="6,3" fill="none" />
   
-  <!-- Step 1: Interviews -->
+  <!-- Step 1: Initial Interviews -->
   <circle cx="95" cy="90" r="40" fill="url(#blueGradient)" opacity="0.9" />
   <circle cx="95" cy="90" r="35" fill="white" />
   <text x="95" y="95" font-family="Inter, -apple-system, BlinkMacSystemFont, sans-serif" font-size="16" font-weight="600" text-anchor="middle" fill="#3B82F6">1</text>
-  <text x="95" y="145" font-family="Inter, -apple-system, BlinkMacSystemFont, sans-serif" font-size="13" font-weight="500" text-anchor="middle" fill="#1D1D1F">Entrevistas</text>
+  <text x="95" y="145" font-family="Inter, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="500" text-anchor="middle" fill="#1D1D1F">Entrevista Inicial</text>
+  <text x="95" y="162" font-family="Inter, -apple-system, BlinkMacSystemFont, sans-serif" font-size="10" font-weight="400" text-anchor="middle" fill="#6B7280">(Clasificación)</text>
   
   <!-- Step 2: Validation -->
   <circle cx="275" cy="90" r="40" fill="url(#indigoGradient)" opacity="0.9" />
   <circle cx="275" cy="90" r="35" fill="white" />
   <text x="275" y="95" font-family="Inter, -apple-system, BlinkMacSystemFont, sans-serif" font-size="16" font-weight="600" text-anchor="middle" fill="#6366F1">2</text>
-  <text x="275" y="145" font-family="Inter, -apple-system, BlinkMacSystemFont, sans-serif" font-size="13" font-weight="500" text-anchor="middle" fill="#1D1D1F">Validación</text>
+  <text x="275" y="145" font-family="Inter, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="500" text-anchor="middle" fill="#1D1D1F">Validación</text>
+  <text x="275" y="162" font-family="Inter, -apple-system, BlinkMacSystemFont, sans-serif" font-size="10" font-weight="400" text-anchor="middle" fill="#6B7280">(Segunda Entrevista)</text>
   
   <!-- Step 3: Documentation -->
   <circle cx="455" cy="90" r="40" fill="url(#purpleGradient)" opacity="0.9" />
   <circle cx="455" cy="90" r="35" fill="white" />
   <text x="455" y="95" font-family="Inter, -apple-system, BlinkMacSystemFont, sans-serif" font-size="16" font-weight="600" text-anchor="middle" fill="#8B5CF6">3</text>
-  <text x="455" y="145" font-family="Inter, -apple-system, BlinkMacSystemFont, sans-serif" font-size="13" font-weight="500" text-anchor="middle" fill="#1D1D1F">Documentación</text>
+  <text x="455" y="145" font-family="Inter, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="500" text-anchor="middle" fill="#1D1D1F">Documentación</text>
+  <text x="455" y="162" font-family="Inter, -apple-system, BlinkMacSystemFont, sans-serif" font-size="10" font-weight="400" text-anchor="middle" fill="#6B7280">(Verificación)</text>
   
   <!-- Step 4: Tests -->
   <circle cx="635" cy="90" r="40" fill="url(#pinkGradient)" opacity="0.9" />
   <circle cx="635" cy="90" r="35" fill="white" />
   <text x="635" y="95" font-family="Inter, -apple-system, BlinkMacSystemFont, sans-serif" font-size="16" font-weight="600" text-anchor="middle" fill="#EC4899">4</text>
-  <text x="635" y="145" font-family="Inter, -apple-system, BlinkMacSystemFont, sans-serif" font-size="13" font-weight="500" text-anchor="middle" fill="#1D1D1F">Exámenes</text>
+  <text x="635" y="145" font-family="Inter, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="500" text-anchor="middle" fill="#1D1D1F">Exámenes</text>
+  <text x="635" y="162" font-family="Inter, -apple-system, BlinkMacSystemFont, sans-serif" font-size="10" font-weight="400" text-anchor="middle" fill="#6B7280">(Psicométricos y Campo)</text>
   
   <!-- Step 5: Hiring -->
   <circle cx="815" cy="90" r="40" fill="url(#emeraldGradient)" opacity="0.9" />
   <circle cx="815" cy="90" r="35" fill="white" />
   <text x="815" y="95" font-family="Inter, -apple-system, BlinkMacSystemFont, sans-serif" font-size="16" font-weight="600" text-anchor="middle" fill="#10B981">5</text>
-  <text x="815" y="145" font-family="Inter, -apple-system, BlinkMacSystemFont, sans-serif" font-size="13" font-weight="500" text-anchor="middle" fill="#1D1D1F">Contratación</text>
+  <text x="815" y="145" font-family="Inter, -apple-system, BlinkMacSystemFont, sans-serif" font-size="12" font-weight="500" text-anchor="middle" fill="#1D1D1F">Contratación</text>
+  <text x="815" y="162" font-family="Inter, -apple-system, BlinkMacSystemFont, sans-serif" font-size="10" font-weight="400" text-anchor="middle" fill="#6B7280">(Onboarding)</text>
   
   <!-- Gradient Definitions -->
   <defs>

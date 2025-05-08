@@ -14,25 +14,25 @@ export const JourneyStagesCard: React.FC = () => {
       {/* Journey Visualization */}
       <Card className="overflow-hidden border-0 shadow-sm">
         <CardContent className="p-6">
-          <div className="mb-8">
+          <div className="mb-6">
             <h2 className="text-2xl font-medium text-slate-800">Proceso de Reclutamiento de Custodios</h2>
             <p className="text-slate-500 mt-1">Visualización del proceso completo de reclutamiento.</p>
           </div>
           
-          <div className="flex justify-center mb-8">
+          <div className="flex justify-center mb-4 px-2">
             <div className="w-full overflow-hidden">
               <div className="w-full flex justify-center">
                 <img 
                   src="/leads-journey-workflow.svg" 
                   alt="Proceso de reclutamiento de custodios" 
-                  className="w-full max-w-5xl px-2"
+                  className="w-full max-w-5xl"
                   style={{ maxHeight: "180px", objectFit: "contain" }}
                 />
               </div>
             </div>
           </div>
           
-          <div className="mt-8">
+          <div className="mt-4">
             <JourneyWorkflow />
           </div>
         </CardContent>
@@ -44,21 +44,21 @@ export const JourneyStagesCard: React.FC = () => {
         <Card className="overflow-hidden border border-slate-100 transition-all hover:shadow-md">
           <CardContent className="p-0">
             <div className="bg-blue-50 p-4 border-b border-blue-100">
-              <h3 className="text-lg font-medium text-blue-800">1. Entrevistas Iniciales</h3>
-              <p className="text-blue-600 text-sm mt-1">Primera evaluación del candidato</p>
+              <h3 className="text-lg font-medium text-blue-800">1. Entrevista Inicial</h3>
+              <p className="text-blue-600 text-sm mt-1">Clasificación de candidatos según perfil</p>
             </div>
             <div className="p-4 space-y-2">
               <p className="text-slate-600 text-sm">
-                Entrevistas breves para evaluar la experiencia y perfil del candidato.
+                Entrevista breve para clasificar candidatos según su perfil y experiencia.
               </p>
               <div className="flex flex-col gap-2 mt-4">
                 <div className="flex items-center text-sm text-slate-700">
                   <div className="w-3 h-3 rounded-full bg-blue-500 mr-2"></div>
-                  <span>Custodio Armado</span>
+                  <span>Identificación de Custodio Armado</span>
                 </div>
                 <div className="flex items-center text-sm text-slate-700">
                   <div className="w-3 h-3 rounded-full bg-green-500 mr-2"></div>
-                  <span>Custodio con Vehículo</span>
+                  <span>Identificación de Custodio con Vehículo</span>
                 </div>
               </div>
               <Button 
@@ -77,11 +77,11 @@ export const JourneyStagesCard: React.FC = () => {
           <CardContent className="p-0">
             <div className="bg-indigo-50 p-4 border-b border-indigo-100">
               <h3 className="text-lg font-medium text-indigo-800">2. Validación</h3>
-              <p className="text-indigo-600 text-sm mt-1">Verificación de credenciales y segunda entrevista</p>
+              <p className="text-indigo-600 text-sm mt-1">Segunda entrevista más exhaustiva</p>
             </div>
             <div className="p-4 space-y-2">
               <p className="text-slate-600 text-sm">
-                Validación del perfil y segunda entrevista más exhaustiva.
+                Validación del perfil y entrevista exhaustiva según el tipo de custodio.
               </p>
               <div className="flex items-center gap-2 mt-4">
                 <div className="h-2 w-full bg-slate-100 rounded-full overflow-hidden">
@@ -105,11 +105,11 @@ export const JourneyStagesCard: React.FC = () => {
           <CardContent className="p-0">
             <div className="bg-purple-50 p-4 border-b border-purple-100">
               <h3 className="text-lg font-medium text-purple-800">3. Documentación</h3>
-              <p className="text-purple-600 text-sm mt-1">Recolección de documentación requerida</p>
+              <p className="text-purple-600 text-sm mt-1">Recolección y verificación de documentos</p>
             </div>
             <div className="p-4 space-y-2">
               <p className="text-slate-600 text-sm">
-                Entrega y verificación de documentación oficial y personal.
+                Entrega y verificación de documentación oficial según tipo de custodio.
               </p>
               <div className="flex items-center gap-2 mt-4">
                 <div className="h-2 w-full bg-slate-100 rounded-full overflow-hidden">
@@ -137,7 +137,7 @@ export const JourneyStagesCard: React.FC = () => {
             </div>
             <div className="p-4 space-y-2">
               <p className="text-slate-600 text-sm">
-                Evaluación del perfil psicológico del candidato.
+                Evaluación del perfil psicológico del candidato según su tipo.
               </p>
               <div className="flex items-center gap-2 mt-4">
                 <div className="h-2 w-full bg-slate-100 rounded-full overflow-hidden">
@@ -165,16 +165,16 @@ export const JourneyStagesCard: React.FC = () => {
             </div>
             <div className="p-4 space-y-2">
               <p className="text-slate-600 text-sm">
-                Evaluaciones prácticas según el tipo de custodio.
+                Evaluaciones prácticas específicas según el tipo de custodio.
               </p>
               <div className="flex flex-col gap-2 mt-4">
                 <div className="flex items-center text-sm text-slate-700">
                   <div className="w-3 h-3 rounded-full bg-amber-500 mr-2"></div>
-                  <span>Manejo de Armas</span>
+                  <span>Manejo de Armas (Custodio Armado)</span>
                 </div>
                 <div className="flex items-center text-sm text-slate-700">
                   <div className="w-3 h-3 rounded-full bg-green-500 mr-2"></div>
-                  <span>Conducción y Manejo</span>
+                  <span>Conducción y Manejo (Custodio con Vehículo)</span>
                 </div>
               </div>
               <Button 
