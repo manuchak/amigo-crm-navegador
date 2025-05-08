@@ -22,6 +22,11 @@ export const updateLastLogin = async (userId: string): Promise<void> => {
  */
 export const logPageAccess = async (userId: string, page: string): Promise<void> => {
   try {
+    if (!userId || !page) {
+      console.log("Missing parameters for logPageAccess", { userId, page });
+      return;
+    }
+    
     // This could be implemented later to track page views in a dedicated table
     console.log(`User ${userId} accessed page ${page}`);
   } catch (error) {

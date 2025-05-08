@@ -1,5 +1,4 @@
-
-import React, { useEffect } from 'react';
+import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { Toaster } from 'sonner';
 import { AuthProvider, useAuth } from '@/context/auth/AuthContext';
@@ -31,7 +30,6 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) =
   const navigate = useNavigate();
   
   useEffect(() => {
-    // Add debug logging
     console.log('ProtectedRoute check:', { 
       authenticated: !!currentUser, 
       loading, 
@@ -62,7 +60,6 @@ const AppRoutes = () => {
   const { currentUser, loading } = useAuth();
   const location = useLocation();
   
-  // Log for debugging
   useEffect(() => {
     console.log('App Routes rendering with:', { 
       authenticated: !!currentUser, 

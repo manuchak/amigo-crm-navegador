@@ -44,25 +44,25 @@ const EmailSignInForm: React.FC<EmailSignInFormProps> = ({
     try {
       console.log("Attempting to login with:", data.email);
       
-      const { user, error } = await signIn(data.email, data.password);
+      const result = await signIn(data.email, data.password);
       
-      if (error) {
-        console.error("Login error:", error);
+      if (result.error) {
+        console.error("Login error:", result.error);
         
         // Extract error message based on error code
         let errorMessage = 'Error al iniciar sesión';
-        if (error.message?.includes('Invalid login credentials')) {
+        if (result.error.message?.includes('Invalid login credentials')) {
           errorMessage = 'Email o contraseña incorrectos';
-        } else if (error.message?.includes('Email not confirmed')) {
+        } else if (result.error.message?.includes('Email not confirmed')) {
           errorMessage = 'Email no verificado';
-        } else if (error.message?.includes('User not found')) {
+        } else if (result.error.message?.includes('User not found')) {
           errorMessage = 'Usuario no encontrado';
         }
         
         throw new Error(errorMessage);
       }
       
-      if (!user) {
+      if (!result.user) {
         throw new Error("No se pudo iniciar sesión");
       }
       
