@@ -9,7 +9,6 @@ import { LeadValidation } from '@/components/lead-journey/LeadValidation';
 import { DocumentCollection } from '@/components/lead-journey/DocumentCollection';
 import { PsychometricTests } from '@/components/lead-journey/PsychometricTests';
 import { FieldTests } from '@/components/lead-journey/FieldTests';
-import { SpecializedEvaluation } from '@/components/lead-journey/SpecializedEvaluation';
 import { Hiring } from '@/components/lead-journey/Hiring';
 import { ProcessSummary } from '@/components/lead-journey/ProcessSummary';
 
@@ -27,6 +26,7 @@ const LeadJourney: React.FC = () => {
             <TabsTrigger value="documents" className="text-sm">Documentación</TabsTrigger>
             <TabsTrigger value="tests" className="text-sm">Exámenes</TabsTrigger>
             <TabsTrigger value="fieldtests" className="text-sm">Pruebas de Campo</TabsTrigger>
+            <TabsTrigger value="hiring" className="text-sm">Contratación</TabsTrigger>
             <TabsTrigger value="summary" className="text-sm">Resumen</TabsTrigger>
           </TabsList>
           
@@ -52,6 +52,10 @@ const LeadJourney: React.FC = () => {
           
           <TabsContent value="fieldtests" className="mt-0 animate-fade-in">
             <FieldTests />
+          </TabsContent>
+          
+          <TabsContent value="hiring" className="mt-0 animate-fade-in">
+            <Hiring />
           </TabsContent>
           
           <TabsContent value="summary" className="mt-0 animate-fade-in">
