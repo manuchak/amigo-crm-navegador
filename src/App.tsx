@@ -14,6 +14,7 @@ import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import Performance from './pages/Performance';
 import ActiveServices from './pages/ActiveServices';
+import LeadJourney from './pages/LeadJourney';
 import Leads from './pages/Leads';
 import Requerimientos from './pages/Requerimientos';
 import InstalacionGPS from './pages/InstalacionGPS';
@@ -98,22 +99,35 @@ const AppRoutes = () => {
         path="/active-services" 
         element={<ProtectedRoute><ActiveServices /></ProtectedRoute>} 
       />
+      
+      {/* Lead Journey Routes */}
+      <Route 
+        path="/lead-journey" 
+        element={<ProtectedRoute><LeadJourney /></ProtectedRoute>} 
+      />
+      <Route 
+        path="/lead-journey/:tab" 
+        element={<ProtectedRoute><LeadJourney /></ProtectedRoute>} 
+      />
+      
+      {/* Legacy Lead Routes - redirect to new journey */}
       <Route 
         path="/leads" 
-        element={<ProtectedRoute><Leads /></ProtectedRoute>} 
+        element={<Navigate to="/lead-journey" replace />} 
       />
       <Route 
         path="/leads/prospects" 
-        element={<ProtectedRoute><Leads /></ProtectedRoute>} 
+        element={<Navigate to="/lead-journey/interviews" replace />} 
       />
       <Route 
         path="/leads/validation" 
-        element={<ProtectedRoute><Leads /></ProtectedRoute>} 
+        element={<Navigate to="/lead-journey/validation" replace />} 
       />
       <Route 
         path="/leads/crm" 
-        element={<ProtectedRoute><Leads /></ProtectedRoute>} 
+        element={<Navigate to="/lead-journey/summary" replace />} 
       />
+      
       <Route 
         path="/requerimientos" 
         element={<ProtectedRoute><Requerimientos /></ProtectedRoute>} 
