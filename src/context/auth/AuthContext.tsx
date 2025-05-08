@@ -1,5 +1,6 @@
-import React, { createContext, useContext } from 'react';
-import { AuthContextProps } from '@/types/auth';
+
+import React, { createContext, useContext, useState } from 'react';
+import { AuthContextProps, UserData, UserRole } from '@/types/auth';
 import { useSessionManager } from '@/hooks/auth/useSessionManager';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -27,6 +28,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     isInitializing,
     setUserData
   } = useSessionManager();
+  
+  // Add local loading state for auth operations
+  const [authLoading, setAuthLoading] = useState(false);
 
   // Authentication functions
   const signIn = async (email: string, password: string) => {
@@ -165,6 +169,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     refreshSession,
     updateUserRole: async (userId, role) => {
       try {
+        setAuthLoading(true);
         console.log(`Attempting to update user role: ${userId} to ${role}`);
         const { error } = await supabase.rpc('update_user_role', {
           target_user_id: userId,
@@ -184,6 +189,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       } catch (error) {
         console.error('Error updating role:', error);
         return { success: false, error: error as Error };
+      } finally {
+        setAuthLoading(false);
       }
     },
     getAllUsers: async () => {
@@ -250,7 +257,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     },
     resetPassword: async (email: string) => {
       try {
-        setLoading(true);
+        setAuthLoading(true);
         
         console.log(`Attempting to reset password for: ${email}`);
         
@@ -275,7 +282,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         toast.error(`Error al restablecer contraseña: ${error.message || 'Desconocido'}`);
         return { success: false, error };
       } finally {
-        setLoading(false);
+        setAuthLoading(false);
       }
     }
   };
