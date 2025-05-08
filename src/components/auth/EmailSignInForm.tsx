@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
@@ -8,6 +9,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { Mail, Lock, Loader2 } from 'lucide-react';
 import { useAuth } from '@/context/auth';
 import { toast } from 'sonner';
+import { useNavigate } from 'react-router-dom';
 
 const formSchema = z.object({
   email: z.string().email('Correo electrónico inválido'),
@@ -26,7 +28,9 @@ const EmailSignInForm: React.FC<EmailSignInFormProps> = ({
   onForgotPassword 
 }) => {
   const { signIn } = useAuth();
+  const navigate = useNavigate();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [loginError, setLoginError] = useState<string | null>(null);
   
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
@@ -40,39 +44,49 @@ const EmailSignInForm: React.FC<EmailSignInFormProps> = ({
     if (isSubmitting) return; // Prevent multiple submissions
     
     setIsSubmitting(true);
+    setLoginError(null);
+    
     try {
       console.log("Attempting to login with:", data.email);
       
-      const result = await signIn(data.email, data.password);
+      const { user, error } = await signIn(data.email, data.password);
       
-      if (result.error) {
-        console.error("Login error:", result.error);
+      if (error) {
+        console.error("Login error:", error);
         
         // Extract error message based on error code
         let errorMessage = 'Error al iniciar sesión';
-        if (result.error.message?.includes('Invalid login credentials')) {
+        if (error.message?.includes('Invalid login credentials')) {
           errorMessage = 'Email o contraseña incorrectos';
-        } else if (result.error.message?.includes('Email not confirmed')) {
+        } else if (error.message?.includes('Email not confirmed')) {
           errorMessage = 'Email no verificado';
-        } else if (result.error.message?.includes('User not found')) {
+        } else if (error.message?.includes('User not found')) {
           errorMessage = 'Usuario no encontrado';
         }
         
-        throw new Error(errorMessage);
+        setLoginError(errorMessage);
+        toast.error(errorMessage);
+        return;
       }
       
-      if (!result.user) {
-        throw new Error("No se pudo iniciar sesión");
+      if (!user) {
+        setLoginError("No se pudo iniciar sesión");
+        toast.error("No se pudo iniciar sesión");
+        return;
       }
       
       toast.success('Sesión iniciada con éxito');
+      
       if (onSuccess) {
         console.log("Login successful, calling onSuccess callback");
         onSuccess();
+      } else {
+        navigate('/dashboard');
       }
       
     } catch (error: any) {
       console.error("Login submission error:", error);
+      setLoginError(error?.message || "Error al iniciar sesión");
       toast.error(error?.message || "Error al iniciar sesión");
     } finally {
       setIsSubmitting(false);
@@ -127,6 +141,12 @@ const EmailSignInForm: React.FC<EmailSignInFormProps> = ({
             </FormItem>
           )}
         />
+        
+        {loginError && (
+          <div className="text-sm text-red-500 mt-2">
+            {loginError}
+          </div>
+        )}
         
         {onForgotPassword && (
           <div className="flex justify-end">

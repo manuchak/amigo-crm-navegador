@@ -1,6 +1,6 @@
 
 import { User } from '@supabase/supabase-js';
-import { UserData } from '@/types/auth';
+import { UserData, UserRole } from '@/types/auth';
 import { supabase } from '@/integrations/supabase/client';
 
 /**
@@ -25,6 +25,17 @@ export const mapUserData = async (user: User | null): Promise<UserData | null> =
     // Handle error fetching profile
     if (profileError) {
       console.error('Error fetching user profile:', profileError);
+      
+      // Create a minimal UserData object if profile fetch fails
+      return {
+        uid: user.id,
+        email: user.email || '',
+        displayName: user.user_metadata?.display_name || user.email || '',
+        role: 'unverified' as UserRole,
+        emailVerified: user.email_confirmed_at ? true : false,
+        createdAt: new Date(user.created_at),
+        lastLogin: new Date(),
+      };
     }
     
     // Get user role
@@ -55,6 +66,16 @@ export const mapUserData = async (user: User | null): Promise<UserData | null> =
     return userData;
   } catch (error) {
     console.error('Error mapping user data:', error);
-    return null;
+    
+    // Return a minimal UserData object in case of error
+    return {
+      uid: user.id,
+      email: user.email || '',
+      displayName: user.user_metadata?.display_name || user.email || '',
+      role: 'unverified' as UserRole,
+      emailVerified: user.email_confirmed_at ? true : false,
+      createdAt: new Date(user.created_at),
+      lastLogin: new Date(),
+    };
   }
 };

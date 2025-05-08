@@ -1,7 +1,7 @@
 import React, { Suspense, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from 'sonner';
-import { AuthProvider } from '@/context/AuthContext';
+import { AuthProvider } from '@/context/auth';
 
 // Import ALL auth-related and critical components statically 
 import Login from './pages/Login';
@@ -51,7 +51,7 @@ function App() {
           <Route path="/leads/*" element={<Leads />} /> {/* Handle nested routes */}
           
           {/* Other protected routes with Suspense */}
-          <Route path="/lead-journey" element={
+          <Route path="/lead-journey/*" element={
             <Suspense fallback={<LoadingFallback />}>
               <LeadJourney />
             </Suspense>
