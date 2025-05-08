@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import PageLayout from '@/components/layout/PageLayout';
 import LeadsDashboard from '@/components/leads/LeadsDashboard';
@@ -7,14 +8,17 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import ProspectsPage from '@/components/leads/ProspectsPage';
 import QualifiedLeadsApproval from '@/components/leads/QualifiedLeadsApproval';
 import LeadsCrmDashboard from '@/components/leads/LeadsCrmDashboard';
-import { useAuth } from '@/context/auth'; // Updated import path
+import { useAuth } from '@/context/auth'; // Ensure consistent import path
 
 const Leads: React.FC = () => {
   // Add debug logging
   const { currentUser } = useAuth();
   
   useEffect(() => {
-    console.log("Leads page mounted", { user: currentUser?.email });
+    console.log("Leads page mounted", { 
+      user: currentUser?.email,
+      timestamp: new Date().toISOString() // Add timestamp for debugging
+    });
   }, [currentUser]);
   
   const navigate = useNavigate();

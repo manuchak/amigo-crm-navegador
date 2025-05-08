@@ -29,14 +29,61 @@ const LoadingFallback = () => (
   </div>
 );
 
+function AuthLogger() {
+  const start = performance.now();
+  
+  useEffect(() => {
+    const end = performance.now();
+    console.log(`[Auth] Initialization took ${(end - start).toFixed(2)}ms`);
+    
+    // Log authentication-related localStorage items (without values)
+    const authKeys = Object.keys(localStorage).filter(key => 
+      key.includes('auth') || 
+      key.includes('supabase') || 
+      key.includes('user') ||
+      key.includes('session')
+    );
+    
+    console.log('[Auth] Storage keys:', authKeys);
+    
+    // Log any session or user info in window object
+    if ('Supabase' in window) {
+      console.log('[Auth] Supabase initialized in window object');
+    }
+  }, []);
+  
+  return null;
+}
+
 function App() {
   // Log initial render for debugging
   useEffect(() => {
     console.log("App rendering");
+    
+    // Add a global error handler for auth-related errors
+    const originalConsoleError = console.error;
+    console.error = function(...args) {
+      // Check if the error is auth-related
+      const errorString = args.join(' ');
+      if (
+        errorString.includes('auth') || 
+        errorString.includes('session') || 
+        errorString.includes('token') ||
+        errorString.includes('user')
+      ) {
+        console.log('[Auth Error]', ...args);
+      }
+      originalConsoleError.apply(console, args);
+    };
+    
+    return () => {
+      console.error = originalConsoleError;
+    };
   }, []);
 
   return (
     <AuthProvider>
+      <AuthLogger />
       <Router>
         <Toaster position="top-right" richColors closeButton />
         <Routes>
