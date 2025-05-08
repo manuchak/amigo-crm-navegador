@@ -19,7 +19,7 @@ import {
   RefreshCw
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
-import { useLeadInterviews } from '@/hooks/useLeadInterviews';
+import { useLeadInterviews } from '@/hooks/lead-interviews';
 import { formatDistanceToNow } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { useNavigate } from 'react-router-dom';

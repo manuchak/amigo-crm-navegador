@@ -1,100 +1,92 @@
-
-import React, { useState, useEffect } from 'react';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import PageLayout from '@/components/layout/PageLayout';
-import { LeadsProvider } from '@/context/LeadsContext';
-import { JourneyStagesCard } from '@/components/lead-journey/JourneyStagesCard';
+import React, { useState } from 'react';
+import { useNavigate, Navigate, Routes, Route } from 'react-router-dom';
 import { LeadInitialInterview } from '@/components/lead-journey/LeadInitialInterview';
 import { LeadValidation } from '@/components/lead-journey/LeadValidation';
 import { DocumentCollection } from '@/components/lead-journey/DocumentCollection';
-import { PsychometricTests } from '@/components/lead-journey/PsychometricTests';
 import { FieldTests } from '@/components/lead-journey/FieldTests';
+import { PsychometricTests } from '@/components/lead-journey/PsychometricTests';
 import { Hiring } from '@/components/lead-journey/Hiring';
 import { ProcessSummary } from '@/components/lead-journey/ProcessSummary';
-import { useNavigate, useParams, useLocation } from 'react-router-dom';
-import { logPageAccess } from '@/context/auth/hooks/utils/userActions';
+import { JourneyStagesCard } from '@/components/lead-journey/JourneyStagesCard';
+import { JourneyWorkflow } from '@/components/lead-journey/JourneyWorkflow';
+import { LeadAssignmentProcess } from '@/components/lead-journey/LeadAssignmentProcess';
 import { useAuth } from '@/context/auth/AuthContext';
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useNavigate as useReactNavigate, useLocation } from 'react-router-dom';
+
+interface Stage {
+  name: string;
+  description: string;
+  path: string;
+}
 
 const LeadJourney: React.FC = () => {
-  const { tab } = useParams<{ tab?: string }>();
-  const [activeTab, setActiveTab] = useState<string>('journey');
-  const navigate = useNavigate();
-  const location = useLocation();
+  const [activeTab, setActiveTab] = useState<string>('workflow');
   const { currentUser } = useAuth();
+  const navigate = useNavigate();
+
+  if (!currentUser) {
+    return <Navigate to="/login" replace />;
+  }
   
-  // Set active tab based on URL parameter
-  useEffect(() => {
-    if (tab && ['interviews', 'validation', 'documents', 'tests', 'fieldtests', 'hiring', 'summary'].includes(tab)) {
-      setActiveTab(tab);
-    } else if (location.pathname === '/lead-journey') {
-      setActiveTab('journey');
-    }
-    
-    // Log page access for analytics
-    if (currentUser?.uid) {
-      logPageAccess(currentUser.uid, `lead-journey/${activeTab}`);
-    }
-  }, [tab, location.pathname, currentUser, activeTab]);
-  
-  // Handle tab change
+  const stages = [
+    { name: 'Flujo de Trabajo', description: 'Descripción del flujo de trabajo', path: 'workflow' },
+    { name: 'Entrevistas', description: 'Entrevistas iniciales', path: 'interviews' },
+    { name: 'Validación', description: 'Validación de datos', path: 'validation' },
+    { name: 'Documentación', description: 'Recolección de documentos', path: 'documents' },
+    { name: 'Pruebas de Campo', description: 'Realización de pruebas de campo', path: 'field-tests' },
+    { name: 'Pruebas Psicométricas', description: 'Aplicación de pruebas psicométricas', path: 'psychometric' },
+    { name: 'Contratación', description: 'Proceso de contratación', path: 'hiring' },
+    { name: 'Resumen', description: 'Resumen del proceso', path: 'summary' },
+  ];
+
   const handleTabChange = (value: string) => {
     setActiveTab(value);
-    if (value === 'journey') {
-      navigate('/lead-journey');
-    } else {
-      navigate(`/lead-journey/${value}`);
-    }
+    navigate(value);
   };
-  
+
+  const location = useLocation();
+  const getTabValue = () => {
+    const path = location.pathname.split('/')[2];
+    return path || 'workflow';
+  };
+
   return (
-    <PageLayout title="Proceso de Custodios">
-      <LeadsProvider>
-        <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
-          <TabsList className="mb-6 bg-white">
-            <TabsTrigger value="journey" className="text-sm">Proceso</TabsTrigger>
-            <TabsTrigger value="interviews" className="text-sm">Entrevistas Iniciales</TabsTrigger>
-            <TabsTrigger value="validation" className="text-sm">Validación</TabsTrigger>
-            <TabsTrigger value="documents" className="text-sm">Documentación</TabsTrigger>
-            <TabsTrigger value="tests" className="text-sm">Exámenes</TabsTrigger>
-            <TabsTrigger value="fieldtests" className="text-sm">Pruebas de Campo</TabsTrigger>
-            <TabsTrigger value="hiring" className="text-sm">Contratación</TabsTrigger>
-            <TabsTrigger value="summary" className="text-sm">Resumen</TabsTrigger>
-          </TabsList>
-          
-          <TabsContent value="journey" className="mt-0 animate-fade-in">
-            <JourneyStagesCard />
-          </TabsContent>
-          
-          <TabsContent value="interviews" className="mt-0 animate-fade-in">
-            <LeadInitialInterview />
-          </TabsContent>
-          
-          <TabsContent value="validation" className="mt-0 animate-fade-in">
-            <LeadValidation />
-          </TabsContent>
-          
-          <TabsContent value="documents" className="mt-0 animate-fade-in">
-            <DocumentCollection />
-          </TabsContent>
-          
-          <TabsContent value="tests" className="mt-0 animate-fade-in">
-            <PsychometricTests />
-          </TabsContent>
-          
-          <TabsContent value="fieldtests" className="mt-0 animate-fade-in">
-            <FieldTests />
-          </TabsContent>
-          
-          <TabsContent value="hiring" className="mt-0 animate-fade-in">
-            <Hiring />
-          </TabsContent>
-          
-          <TabsContent value="summary" className="mt-0 animate-fade-in">
-            <ProcessSummary />
-          </TabsContent>
-        </Tabs>
-      </LeadsProvider>
-    </PageLayout>
+    <div className="container mx-auto p-4 space-y-6">
+      <h1 className="text-2xl font-bold mb-4">Lead Journey</h1>
+      
+      {/* Tabs navigation */}
+      <Tabs value={getTabValue()} onValueChange={handleTabChange} className="w-full">
+        <TabsList className="mb-4">
+          <TabsTrigger value="workflow">Flujo de Trabajo</TabsTrigger>
+          <TabsTrigger value="interviews">Entrevistas</TabsTrigger>
+          <TabsTrigger value="assignment-process">Proceso de Asignación</TabsTrigger>
+          <TabsTrigger value="validation">Validación</TabsTrigger>
+          <TabsTrigger value="documents">Documentación</TabsTrigger>
+          <TabsTrigger value="field-tests">Pruebas de Campo</TabsTrigger>
+          <TabsTrigger value="psychometric">Pruebas Psicométricas</TabsTrigger>
+          <TabsTrigger value="hiring">Contratación</TabsTrigger>
+          <TabsTrigger value="summary">Resumen</TabsTrigger>
+        </TabsList>
+      </Tabs>
+      
+      {/* Tab content */}
+      <Routes>
+        <Route path="/" element={<Navigate to="workflow" />} />
+        <Route path="/workflow" element={<JourneyWorkflow />} />
+        <Route path="/interviews" element={<LeadInitialInterview />} />
+        <Route path="/assignment-process" element={<LeadAssignmentProcess />} />
+        <Route path="/validation" element={<LeadValidation />} />
+        <Route path="/documents" element={<DocumentCollection />} />
+        <Route path="/field-tests" element={<FieldTests />} />
+        <Route path="/psychometric" element={<PsychometricTests />} />
+        <Route path="/hiring" element={<Hiring />} />
+        <Route path="/summary" element={<ProcessSummary />} />
+      </Routes>
+      
+      {/* Journey Stages Card */}
+      <JourneyStagesCard stages={stages} />
+    </div>
   );
 };
 
