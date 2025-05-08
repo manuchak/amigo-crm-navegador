@@ -2,7 +2,7 @@
 import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { useAuth } from '@/context/auth'; // Updated import path
+import { useAuth } from '@/context/auth'; 
 import { ShieldX, Home, LogOut } from 'lucide-react';
 import { Link } from 'react-router-dom';
 

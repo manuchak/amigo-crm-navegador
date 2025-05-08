@@ -10,7 +10,10 @@ interface AuthGuardProps {
   requiredRole?: string;
 }
 
-const AuthGuard: React.FC<AuthGuardProps> = ({ children, requiredRole }) => {
+const AuthGuard: React.FC<AuthGuardProps> = ({ 
+  children, 
+  requiredRole 
+}) => {
   const { currentUser, loading, refreshUserData, refreshSession } = useAuth();
   const location = useLocation();
   const [verificationState, setVerificationState] = useState<'pending' | 'verified' | 'denied'>('pending');
