@@ -13,6 +13,7 @@ import {
   StatusBadgeFilter
 } from './components';
 import { useStatusFilters, useClienteFilters } from './hooks';
+import { useAuth } from '@/context/auth'; // Added auth context import
 
 export type { StatusOption } from './hooks/useStatusFilters';
 
@@ -22,7 +23,10 @@ interface ServiciosDashboardProps {
 }
 
 export function ServiciosDashboard({ dateRange, comparisonRange }: ServiciosDashboardProps) {
-  console.log("ServiciosDashboard rendering with dateRange:", dateRange);
+  // Add auth context
+  const { currentUser } = useAuth();
+  
+  console.log("ServiciosDashboard rendering with dateRange:", dateRange, "user:", currentUser?.email);
   
   const { data, isLoading, isError } = useQuery({
     queryKey: ['servicios', dateRange, comparisonRange],

@@ -13,6 +13,7 @@ import { DriverBehaviorFilters, DriverBehaviorData, DriverScore, DriverPerforman
 import { ProductivityDashboard } from './productivity/ProductivityDashboard';
 import { useQuery } from '@tanstack/react-query';
 import { fetchDriverBehaviorData } from '../services/driverBehavior/dataService';
+import { useAuth } from '@/context/auth'; // Added auth context import
 
 interface DriverBehaviorDashboardProps {
   dateRange: DateRange;
@@ -25,6 +26,8 @@ export function DriverBehaviorDashboard({
   comparisonRange,
   onOpenGroupsManagement
 }: DriverBehaviorDashboardProps) {
+  // Add auth context
+  const { currentUser } = useAuth();
   const [activeTab, setActiveTab] = useState('resumen');
   const [filters, setFilters] = useState<DriverBehaviorFilters>({});
   
@@ -55,9 +58,10 @@ export function DriverBehaviorDashboard({
       comparisonRange,
       onOpenGroupsManagement: !!onOpenGroupsManagement,
       filters,
-      dataLoaded: !!data 
+      dataLoaded: !!data,
+      user: currentUser?.email
     });
-  }, [dateRange, comparisonRange, onOpenGroupsManagement, filters, data]);
+  }, [dateRange, comparisonRange, onOpenGroupsManagement, filters, data, currentUser]);
 
   return (
     <div className="space-y-6">

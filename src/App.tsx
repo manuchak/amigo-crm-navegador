@@ -10,6 +10,7 @@ import VerifyConfirmation from './pages/VerifyConfirmation';
 import Dashboard from './pages/Dashboard';
 import Leads from './pages/Leads';
 import Prospects from './pages/Prospects';
+import Performance from './pages/Performance';
 
 // Use dynamic imports for non-critical components
 const LeadJourney = React.lazy(() => import('./pages/LeadJourney'));
@@ -47,10 +48,11 @@ function App() {
           <Route path="/" element={<Navigate replace to="/dashboard" />} />
           <Route path="/dashboard" element={<Dashboard />} />
           
-          {/* Leads and Prospects routes - Imported statically */}
+          {/* Leads, Prospects, and Performance routes - Imported statically */}
           <Route path="/leads" element={<Leads />} />
           <Route path="/leads/*" element={<Leads />} /> {/* Handle nested routes */}
           <Route path="/prospects" element={<Prospects />} />
+          <Route path="/performance" element={<Performance />} />
           
           {/* Other protected routes with Suspense */}
           <Route path="/lead-journey/*" element={

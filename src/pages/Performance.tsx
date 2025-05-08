@@ -6,8 +6,17 @@ import { PerformanceHeader } from '@/components/performance/PerformanceHeader';
 import { DateRange } from 'react-day-picker';
 import { addDays, subDays } from 'date-fns';
 import { DriverGroupsManagement } from '@/components/performance/driver-behavior/groups/DriverGroupsManagement';
+import { useAuth } from '@/context/auth'; // Ensure correct import of auth context
 
 const Performance: React.FC = () => {
+  // Get auth context to ensure it's properly loaded
+  const { currentUser, loading: authLoading } = useAuth();
+  
+  // Debug logging
+  React.useEffect(() => {
+    console.log("Performance page mounted", { user: currentUser?.email, authLoading });
+  }, [currentUser, authLoading]);
+  
   // Estado para la pestaña activa
   const [activeTab, setActiveTab] = useState('servicios');
   

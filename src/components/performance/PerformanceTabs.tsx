@@ -1,10 +1,11 @@
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { CustodioPerformanceDashboard } from "@/components/performance/CustodioPerformanceDashboard";
 import { ServiciosDashboard } from "@/components/performance/dashboard/ServiciosDashboard";
 import { DriverBehaviorDashboard } from "@/components/performance/driver-behavior/DriverBehaviorDashboard";
 import { DateRange } from "react-day-picker";
+import { useAuth } from '@/context/auth'; // Added auth context import
 
 interface PerformanceTabsProps {
   activeTab: string;
@@ -22,6 +23,17 @@ export function PerformanceTabs({
   dateRange,
   onOpenGroupsManagement
 }: PerformanceTabsProps) {
+  // Add debug logging
+  const { currentUser } = useAuth();
+  
+  useEffect(() => {
+    console.log('PerformanceTabs rendered', { 
+      activeTab,
+      user: currentUser?.email,
+      dateRange: dateRange.primary
+    });
+  }, [activeTab, currentUser, dateRange]);
+  
   return (
     <Tabs 
       value={activeTab} 
