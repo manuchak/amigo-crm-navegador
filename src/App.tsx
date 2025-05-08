@@ -1,16 +1,15 @@
-
 import React, { Suspense } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from 'sonner';
 import { AuthProvider } from '@/context/AuthContext';
 
-// Import ALL auth-related components statically to prevent dynamic import issues
+// Import ALL auth-related components statically to avoid dynamic import issues
 import Login from './pages/Login';
 import Auth from './pages/Auth';
 import VerifyConfirmation from './pages/VerifyConfirmation';
+import Dashboard from './pages/Dashboard';
 
 // Use dynamic imports for non-critical components
-const Dashboard = React.lazy(() => import('./pages/Dashboard'));
 const LeadJourney = React.lazy(() => import('./pages/LeadJourney'));
 const Settings = React.lazy(() => import('./pages/Settings'));
 const UserManagement = React.lazy(() => import('./pages/UserManagement'));
@@ -37,21 +36,31 @@ function App() {
           <Route path="/auth" element={<Auth />} />
           <Route path="/verify-confirmation" element={<VerifyConfirmation />} />
           
-          {/* Protected routes with Suspense */}
+          {/* Dashboard route - Also import statically to avoid loading issues */}
           <Route path="/" element={<Navigate replace to="/dashboard" />} />
-          <Route path="*" 
-            element={
-              <Suspense fallback={<LoadingFallback />}>
-                <Routes>
-                  <Route path="/dashboard" element={<Dashboard />} />
-                  <Route path="/lead-journey" element={<LeadJourney />} />
-                  <Route path="/settings" element={<Settings />} />
-                  <Route path="/user-management" element={<UserManagement />} />
-                  <Route path="*" element={<NotFound />} />
-                </Routes>
-              </Suspense>
-            } 
-          />
+          <Route path="/dashboard" element={<Dashboard />} />
+          
+          {/* Other protected routes with Suspense */}
+          <Route path="/lead-journey" element={
+            <Suspense fallback={<LoadingFallback />}>
+              <LeadJourney />
+            </Suspense>
+          } />
+          <Route path="/settings" element={
+            <Suspense fallback={<LoadingFallback />}>
+              <Settings />
+            </Suspense>
+          } />
+          <Route path="/user-management" element={
+            <Suspense fallback={<LoadingFallback />}>
+              <UserManagement />
+            </Suspense>
+          } />
+          <Route path="*" element={
+            <Suspense fallback={<LoadingFallback />}>
+              <NotFound />
+            </Suspense>
+          } />
         </Routes>
       </Router>
     </AuthProvider>

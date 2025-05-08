@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { LeadForInterview, StaffUser, LeadFilter, UseLeadInterviewsReturn } from './types';
@@ -38,9 +39,7 @@ export const useLeadInterviews = (): UseLeadInterviewsReturn => {
         return;
       }
       
-      const session = sessionData.session;
-      
-      if (!session) {
+      if (!sessionData.session) {
         console.error('No active session found');
         setLoading(false);
         return;
@@ -56,6 +55,7 @@ export const useLeadInterviews = (): UseLeadInterviewsReturn => {
       
       if (error) {
         console.error('Error fetching leads:', error);
+        setLoading(false);
         return;
       }
       
@@ -63,7 +63,7 @@ export const useLeadInterviews = (): UseLeadInterviewsReturn => {
       const mappedLeads = leadsData.map((lead: any) => ({
         ...lead,
         // Format date for display
-        fecha_creacion: new Date(lead.created_at).toLocaleDateString('es-MX'),
+        fecha_creacion: lead.created_at ? new Date(lead.created_at).toLocaleDateString('es-MX') : '',
         // Include assignee name if available
         assignee_name: lead.profiles?.display_name || null
       }));
@@ -185,6 +185,7 @@ export const useLeadInterviews = (): UseLeadInterviewsReturn => {
         
         if (error) {
           console.error('Error fetching staff users:', error);
+          setLoadingStaff(false);
           return;
         }
         

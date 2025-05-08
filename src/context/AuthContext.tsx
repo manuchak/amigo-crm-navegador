@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { toast } from 'sonner';
 import { AuthContextProps, UserData, UserRole } from '@/types/auth';
@@ -25,109 +24,92 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [supabaseUser, setSupabaseUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   
-  // Listen for authentication state changes - improved implementation
+  // Listen for authentication state changes
   useEffect(() => {
     console.log('Setting up authentication listeners and checking existing session...');
     let mounted = true;
     
-    try {
-      // Set up the auth state listener FIRST
-      const { data: { subscription } } = supabase.auth.onAuthStateChange(
-        (event, newSession) => {
-          console.log('Auth state change event:', event);
-          
-          if (!mounted) return;
-          
-          // Update session immediately to avoid race conditions
-          setSession(newSession);
-          setSupabaseUser(newSession?.user || null);
-          
-          if (newSession?.user) {
-            // Use setTimeout to avoid potential deadlocks
-            setTimeout(async () => {
-              if (!mounted) return;
-              
-              try {
-                // Get profile data
-                const mappedUserData = await mapUserData(newSession.user);
-                if (mounted) {
-                  setUserData(mappedUserData);
-                  console.log('Authenticated user loaded:', mappedUserData);
-                }
-              } catch (error) {
-                console.error('Error getting profile data:', error);
-                if (mounted) setUserData(null);
-              } finally {
-                if (mounted) {
-                  setLoading(false);
-                  setIsInitializing(false);
-                }
-              }
-            }, 0);
-          } else {
+    // Set up the auth state listener FIRST
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, newSession) => {
+        console.log('Auth state change event:', event);
+        
+        if (!mounted) return;
+        
+        // Update session and user immediately to avoid race conditions
+        setSession(newSession);
+        setSupabaseUser(newSession?.user || null);
+        
+        if (newSession?.user) {
+          try {
+            // Get profile data
+            const mappedUserData = await mapUserData(newSession.user);
             if (mounted) {
-              console.log('No active session in auth state change');
+              setUserData(mappedUserData);
+              console.log('Authenticated user loaded:', mappedUserData);
+              setLoading(false);
+              setIsInitializing(false);
+            }
+          } catch (error) {
+            console.error('Error getting profile data:', error);
+            if (mounted) {
               setUserData(null);
               setLoading(false);
               setIsInitializing(false);
             }
           }
+        } else {
+          if (mounted) {
+            console.log('No active session in auth state change');
+            setUserData(null);
+            setLoading(false);
+            setIsInitializing(false);
+          }
         }
-      );
+      }
+    );
 
-      // THEN check for an existing session
-      const checkSession = async () => {
-        try {
-          const { data, error } = await supabase.auth.getSession();
-          
-          if (error) {
-            console.error('Error getting session:', error);
-            if (mounted) {
-              setLoading(false);
-              setIsInitializing(false);
-            }
-            return;
+    // THEN check for an existing session
+    const checkSession = async () => {
+      try {
+        const { data, error } = await supabase.auth.getSession();
+        
+        if (error) {
+          console.error('Error getting session:', error);
+          if (mounted) {
+            setLoading(false);
+            setIsInitializing(false);
           }
-          
-          if (data.session) {
-            console.log('Existing session found:', data.session.user.email);
-            if (mounted) {
-              setSession(data.session);
-              setSupabaseUser(data.session.user);
-            }
-            
-            // User data will be updated by the auth state listener
-          } else {
-            console.log('No existing session');
-            if (mounted) {
-              setLoading(false);
-              setIsInitializing(false);
-            }
-          }
-        } catch (err) {
-          console.error('Unexpected error checking session:', err);
+          return;
+        }
+        
+        if (data.session) {
+          console.log('Existing session found:', data.session.user.email);
+          // Session handling will be done by the auth state change listener
+        } else {
+          console.log('No existing session');
           if (mounted) {
             setLoading(false);
             setIsInitializing(false);
           }
         }
-      };
-
-      // Run session check
-      checkSession();
-
-      return () => {
-        console.log('Cleaning up auth listeners');
-        mounted = false;
-        subscription.unsubscribe();
-      };
-    } catch (error) {
-      console.error('Error setting up auth:', error);
-      if (mounted) {
-        setLoading(false);
-        setIsInitializing(false);
+      } catch (err) {
+        console.error('Unexpected error checking session:', err);
+        if (mounted) {
+          setLoading(false);
+          setIsInitializing(false);
+        }
       }
-    }
+    };
+
+    // Run session check
+    checkSession();
+
+    return () => {
+      console.log('Cleaning up auth listeners');
+      mounted = false;
+      subscription.unsubscribe();
+    };
   }, []);
 
   // Authentication functions
@@ -143,26 +125,24 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       if (error) {
         console.error("Login error:", error);
-        toast.error(`Error de inicio de sesión: ${error.message}`);
+        setLoading(false);  // Set loading to false on error
         return { user: null, error };
       }
       
       if (!data.user) {
-        const noUserError = new Error("No se pudo iniciar sesión");
-        toast.error(noUserError.message);
-        return { user: null, error: noUserError };
+        setLoading(false);  // Set loading to false if no user
+        return { user: null, error: new Error("Could not sign in") };
       }
 
+      // Map Supabase User to our UserData format
+      const mappedUser = await mapUserData(data.user);
+      
       console.log("Login successful:", data.user.email);
-      toast.success('Sesión iniciada con éxito');
-      return { user: data.user, error: null };
+      return { user: mappedUser, error: null };
     } catch (error: any) {
       console.error("Error signing in:", error);
-      toast.error(`Error inesperado: ${error.message || 'Desconocido'}`);
+      setLoading(false);  // Set loading to false on catch
       return { user: null, error };
-    } finally {
-      // Don't set loading false here - the auth state listener will do it
-      // This prevents race conditions
     }
   };
 
@@ -200,23 +180,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const signOut = async () => {
+  const signOut = async (): Promise<void> => {
     try {
       setLoading(true);
       console.log("Signing out...");
-      const { error } = await supabase.auth.signOut();
+      await supabase.auth.signOut();
       
-      if (error) {
-        console.error("Error signing out:", error);
-        toast.error(`Error al cerrar sesión: ${error.message}`);
-        return;
-      }
+      // Explicitly reset user state - don't rely solely on auth state listener
+      setUserData(null);
+      setSupabaseUser(null);
+      setSession(null);
       
-      // No need to reset state here as the auth state listener will do it
-      toast.success('Sesión cerrada con éxito');
-    } catch (error: any) {
+      toast.success('Session ended successfully');
+    } catch (error) {
       console.error('Error signing out:', error);
-      toast.error(`Error al cerrar sesión: ${error.message || 'Desconocido'}`);
+      toast.error('Error signing out');
     } finally {
       setLoading(false);
     }
@@ -343,7 +321,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       try {
         const { data } = await supabase.auth.getUser();
         if (!data.user) {
-          return { success: false, error: new Error('No hay usuario autenticado') };
+          return { success: false, error: new Error('No authenticated user') };
         }
         
         // The onAuthStateChange listener will update the state
