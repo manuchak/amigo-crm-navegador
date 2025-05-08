@@ -10,14 +10,16 @@ RETURNS TABLE (
 BEGIN
   RETURN QUERY
   SELECT 
-    p.id AS uid, 
+    u.id AS uid, 
     p.email, 
     p.display_name, 
     ur.role
   FROM 
-    public.profiles p
+    auth.users u
   JOIN 
-    public.user_roles ur ON p.id = ur.user_id
+    public.profiles p ON u.id = p.id
+  JOIN 
+    public.user_roles ur ON u.id = ur.user_id
   WHERE 
     ur.role = role_param
   ORDER BY 

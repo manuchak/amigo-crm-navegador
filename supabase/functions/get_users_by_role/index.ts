@@ -29,37 +29,22 @@ serve(async (req) => {
       );
     }
     
-    // Get users from profiles table
-    const { data: profilesData, error: profilesError } = await supabase
-      .from('profiles')
-      .select('id, email, display_name');
-      
-    if (profilesError) {
-      throw profilesError;
+    // Use the SQL function to get users by role
+    const { data, error } = await supabase.rpc('get_users_by_role', {
+      role_param: role
+    });
+    
+    if (error) {
+      throw error;
     }
     
-    // Get users with the specified role
-    const { data: rolesData, error: rolesError } = await supabase
-      .from('user_roles')
-      .select('user_id, role')
-      .eq('role', role);
-      
-    if (rolesError) {
-      throw rolesError;
-    }
-    
-    // Match profiles with roles
-    const users = profilesData
-      .filter(profile => rolesData.some(roleData => roleData.user_id === profile.id))
-      .map(profile => {
-        const roleData = rolesData.find(r => r.user_id === profile.id);
-        return {
-          uid: profile.id,
-          email: profile.email,
-          displayName: profile.display_name,
-          role: roleData?.role || 'unknown'
-        };
-      });
+    // Format the response data to match expected structure
+    const users = data.map((user: any) => ({
+      uid: user.uid,
+      email: user.email,
+      displayName: user.display_name,
+      role: user.role
+    }));
     
     // Return the users with the specified role
     return new Response(

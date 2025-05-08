@@ -48,11 +48,7 @@ export const useLeadInterviews = () => {
     try {
       let query = supabase
         .from('leads')
-        .select(`
-          *,
-          profiles!assigned_to(display_name)
-        `)
-        .order('created_at', { ascending: false });
+        .select(`*`);
 
       // If user is Supply (not admin), only show their assigned leads
       if (currentUser?.role === 'supply') {
@@ -63,10 +59,29 @@ export const useLeadInterviews = () => {
 
       if (error) throw error;
       
+      // Get all assigned users separately to avoid join issues
+      const leadIds = data.filter(lead => lead.assigned_to).map(lead => lead.id);
+      let assigneeNames: Record<string, string> = {};
+      
+      if (leadIds.length > 0) {
+        const { data: profiles, error: profilesError } = await supabase
+          .from('profiles')
+          .select('id, display_name')
+          .in('id', data.filter(lead => lead.assigned_to).map(lead => lead.assigned_to));
+          
+        if (!profilesError && profiles) {
+          // Create a map of user id to display name
+          assigneeNames = profiles.reduce((acc: Record<string, string>, profile) => {
+            acc[profile.id] = profile.display_name;
+            return acc;
+          }, {});
+        }
+      }
+      
       // Transform data to include assignee name
       const transformedLeads = (data as any[]).map(lead => ({
         ...lead,
-        assignee_name: lead.profiles?.display_name || null
+        assignee_name: lead.assigned_to ? assigneeNames[lead.assigned_to] || 'Unknown User' : null
       }));
       
       setLeads(transformedLeads as LeadForInterview[]);
@@ -84,20 +99,40 @@ export const useLeadInterviews = () => {
     
     setLoadingStaff(true);
     try {
-      const { data: users, error } = await supabase.rpc('get_users_by_role', {
-        role_param: 'supply'
+      // Make a fetch request to our edge function
+      const response = await fetch('https://beefjsdgrdeiymzxwxru.supabase.co/functions/v1/get_users_by_role', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${supabase.auth.session()?.access_token}`
+        },
+        body: JSON.stringify({
+          role: 'supply'
+        })
       });
       
-      if (error) throw error;
+      const supplyUsers = await response.json();
       
-      // Add supply admin user to the list too
-      const { data: adminUsers, error: adminError } = await supabase.rpc('get_users_by_role', {
-        role_param: 'supply_admin'
+      // Also fetch supply admin users
+      const adminResponse = await fetch('https://beefjsdgrdeiymzxwxru.supabase.co/functions/v1/get_users_by_role', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${supabase.auth.session()?.access_token}`
+        },
+        body: JSON.stringify({
+          role: 'supply_admin'
+        })
       });
       
-      if (adminError) throw adminError;
+      const adminUsers = await adminResponse.json();
       
-      const allStaff = [...(users || []), ...(adminUsers || [])];
+      // Combine both user types
+      const allStaff = [
+        ...(Array.isArray(supplyUsers) ? supplyUsers : []), 
+        ...(Array.isArray(adminUsers) ? adminUsers : [])
+      ];
+      
       setStaffUsers(allStaff as StaffUser[]);
     } catch (error) {
       console.error('Error fetching staff users:', error);
