@@ -6,7 +6,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Form, FormField, FormItem, FormLabel, FormControl, FormMessage } from '@/components/ui/form';
-import { useAuth } from '@/context/AuthContext';
+import { useAuth } from '@/context/auth';
 import { toast } from 'sonner';
 import { Loader2 } from 'lucide-react';
 

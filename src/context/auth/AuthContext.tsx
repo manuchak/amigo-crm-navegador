@@ -229,7 +229,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Create the context value with all authentication methods
   const contextValue: AuthContextProps = {
     user: supabaseUser,
-    currentUser: userData,
+    currentUser: userData, 
     userData,
     session,
     loading,
