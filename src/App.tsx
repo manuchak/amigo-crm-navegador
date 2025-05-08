@@ -1,8 +1,8 @@
-
-import React, { Suspense, useEffect } from 'react';
+import React, { Suspense, useEffect, useState } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from 'sonner';
-import { AuthProvider } from '@/context/auth';
+import { AuthProvider, useAuth } from '@/context/auth';
+import { toast } from 'sonner';
 
 // Import ALL auth-related and critical components statically 
 import Login from './pages/Login';
@@ -31,10 +31,14 @@ const LoadingFallback = () => (
 
 function AuthLogger() {
   const start = performance.now();
+  const { currentUser, loading } = useAuth();
+  const [loggedOut, setLoggedOut] = useState(false);
   
   useEffect(() => {
     const end = performance.now();
     console.log(`[Auth] Initialization took ${(end - start).toFixed(2)}ms`);
+    console.log(`[Auth] Auth loading state: ${loading}`);
+    console.log(`[Auth] User authenticated: ${!!currentUser}`);
     
     // Log authentication-related localStorage items (without values)
     const authKeys = Object.keys(localStorage).filter(key => 
@@ -46,16 +50,42 @@ function AuthLogger() {
     
     console.log('[Auth] Storage keys:', authKeys);
     
+    // Check if previously logged in but now logged out
+    const hadPreviousSession = authKeys.length > 0;
+    if (hadPreviousSession && !currentUser && !loading && !loggedOut) {
+      setLoggedOut(true);
+      toast.error("Sesión expirada", {
+        description: "Tu sesión ha expirado. Por favor, inicia sesión nuevamente."
+      });
+    }
+    
     // Log any session or user info in window object
     if ('Supabase' in window) {
       console.log('[Auth] Supabase initialized in window object');
     }
-  }, []);
+  }, [currentUser, loading]);
   
   return null;
 }
 
+// Protected route component that handles auth state
+function ProtectedRoute({ children }: { children: React.ReactNode }) {
+  const { currentUser, loading } = useAuth();
+  
+  if (loading) {
+    return <LoadingFallback />;
+  }
+  
+  if (!currentUser) {
+    return <Navigate to="/login" replace />;
+  }
+  
+  return <>{children}</>;
+}
+
 function App() {
+  const [appReady, setAppReady] = useState(false);
+
   // Log initial render for debugging
   useEffect(() => {
     console.log("App rendering");
@@ -76,10 +106,20 @@ function App() {
       originalConsoleError.apply(console, args);
     };
     
+    // Set app as ready after a short delay to ensure auth is initialized
+    const timer = setTimeout(() => {
+      setAppReady(true);
+    }, 500);
+    
     return () => {
       console.error = originalConsoleError;
+      clearTimeout(timer);
     };
   }, []);
+
+  if (!appReady) {
+    return <LoadingFallback />;
+  }
 
   return (
     <AuthProvider>
@@ -92,31 +132,57 @@ function App() {
           <Route path="/auth" element={<Auth />} />
           <Route path="/verify-confirmation" element={<VerifyConfirmation />} />
           
-          {/* Dashboard route - Imported statically to avoid loading issues */}
+          {/* Protected routes - Use the ProtectedRoute component */}
           <Route path="/" element={<Navigate replace to="/dashboard" />} />
-          <Route path="/dashboard" element={<Dashboard />} />
           
-          {/* Leads, Prospects, and Performance routes - Imported statically */}
-          <Route path="/leads" element={<Leads />} />
-          <Route path="/leads/*" element={<Leads />} /> {/* Handle nested routes */}
-          <Route path="/prospects" element={<Prospects />} />
-          <Route path="/performance" element={<Performance />} />
+          {/* Core functionality routes - Imported statically but protected */}
+          <Route path="/dashboard" element={
+            <ProtectedRoute>
+              <Dashboard />
+            </ProtectedRoute>
+          } />
+          <Route path="/leads" element={
+            <ProtectedRoute>
+              <Leads />
+            </ProtectedRoute>
+          } />
+          <Route path="/leads/*" element={
+            <ProtectedRoute>
+              <Leads />
+            </ProtectedRoute>
+          } />
+          <Route path="/prospects" element={
+            <ProtectedRoute>
+              <Prospects />
+            </ProtectedRoute>
+          } />
+          <Route path="/performance" element={
+            <ProtectedRoute>
+              <Performance />
+            </ProtectedRoute>
+          } />
           
           {/* Other protected routes with Suspense */}
           <Route path="/lead-journey/*" element={
-            <Suspense fallback={<LoadingFallback />}>
-              <LeadJourney />
-            </Suspense>
+            <ProtectedRoute>
+              <Suspense fallback={<LoadingFallback />}>
+                <LeadJourney />
+              </Suspense>
+            </ProtectedRoute>
           } />
           <Route path="/settings" element={
-            <Suspense fallback={<LoadingFallback />}>
-              <Settings />
-            </Suspense>
+            <ProtectedRoute>
+              <Suspense fallback={<LoadingFallback />}>
+                <Settings />
+              </Suspense>
+            </ProtectedRoute>
           } />
           <Route path="/user-management" element={
-            <Suspense fallback={<LoadingFallback />}>
-              <UserManagement />
-            </Suspense>
+            <ProtectedRoute>
+              <Suspense fallback={<LoadingFallback />}>
+                <UserManagement />
+              </Suspense>
+            </ProtectedRoute>
           } />
           <Route path="*" element={
             <Suspense fallback={<LoadingFallback />}>

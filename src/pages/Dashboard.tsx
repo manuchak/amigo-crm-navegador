@@ -1,25 +1,35 @@
-import React, { useState, useEffect } from 'react';
+
+import React, { useState, useEffect, Suspense } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/context/auth';
 import PageLayout from '@/components/layout/PageLayout';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { AlertCircle } from 'lucide-react';
 
 const Dashboard: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'Resumen' | 'Por Clientes' | 'Por Valor'>('Resumen');
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const { currentUser, loading: authLoading } = useAuth();
 
-  // Simulate data loading
+  // Simulate data loading with proper error handling
   useEffect(() => {
     console.log("Dashboard component mounted");
     
-    // Simulate data fetch
-    const timer = setTimeout(() => {
+    try {
+      // Simulate data fetch
+      const timer = setTimeout(() => {
+        setIsLoading(false);
+      }, 1000);
+      
+      return () => clearTimeout(timer);
+    } catch (err) {
+      console.error("Dashboard loading error:", err);
+      setError("Error loading dashboard data");
       setIsLoading(false);
-    }, 1000);
-    
-    return () => clearTimeout(timer);
+    }
   }, []);
   
   // Debug logging
@@ -27,9 +37,41 @@ const Dashboard: React.FC = () => {
     console.log("Dashboard auth state:", { 
       user: currentUser?.email, 
       role: currentUser?.role,
-      authLoading
+      authLoading,
+      authState: !!currentUser ? "authenticated" : "unauthenticated"
     });
   }, [currentUser, authLoading]);
+
+  // Show loading state while auth is loading
+  if (authLoading) {
+    return (
+      <PageLayout title="Dashboard">
+        <div className="w-full flex items-center justify-center py-12">
+          <div className="text-center space-y-4">
+            <div className="animate-spin w-10 h-10 border-4 border-primary border-t-transparent rounded-full mx-auto"></div>
+            <p className="text-muted-foreground">Cargando autenticación...</p>
+          </div>
+        </div>
+      </PageLayout>
+    );
+  }
+
+  // Show error if something went wrong
+  if (error) {
+    return (
+      <PageLayout title="Dashboard">
+        <Alert variant="destructive" className="mb-6">
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>Error</AlertTitle>
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+        
+        <Button onClick={() => window.location.reload()}>
+          Reintentar
+        </Button>
+      </PageLayout>
+    );
+  }
 
   return (
     <PageLayout title="Dashboard">
