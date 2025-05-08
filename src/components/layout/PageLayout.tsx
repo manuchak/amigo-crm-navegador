@@ -2,7 +2,7 @@
 import React, { useEffect } from 'react';
 import Navbar from '@/components/Navbar';
 import { useLocation } from 'react-router-dom';
-import { useAuth } from '@/context/AuthContext';
+import { useAuth } from '@/context/auth';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Loader2 } from 'lucide-react';
 
