@@ -8,6 +8,7 @@ import Login from './pages/Login';
 import Auth from './pages/Auth';
 import VerifyConfirmation from './pages/VerifyConfirmation';
 import Dashboard from './pages/Dashboard';
+import Leads from './pages/Leads';
 
 // Use dynamic imports for non-critical components
 const LeadJourney = React.lazy(() => import('./pages/LeadJourney'));
@@ -39,6 +40,10 @@ function App() {
           {/* Dashboard route - Also import statically to avoid loading issues */}
           <Route path="/" element={<Navigate replace to="/dashboard" />} />
           <Route path="/dashboard" element={<Dashboard />} />
+          
+          {/* Leads route - Imported statically */}
+          <Route path="/leads" element={<Leads />} />
+          <Route path="/leads/*" element={<Leads />} /> {/* Add this to handle nested routes */}
           
           {/* Other protected routes with Suspense */}
           <Route path="/lead-journey" element={
