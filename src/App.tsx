@@ -9,9 +9,9 @@ import Login from './pages/Login';
 import Auth from './pages/Auth';
 import VerifyConfirmation from './pages/VerifyConfirmation';
 import Dashboard from './pages/Dashboard';
-import Leads from './pages/Leads'; // Imported statically
+import Leads from './pages/Leads'; // Keep as static import
 import Prospects from './pages/Prospects';
-import Performance from './pages/Performance'; // Also statically imported
+import Performance from './pages/Performance';
 
 // Use dynamic imports for non-critical components
 const LeadJourney = React.lazy(() => import('./pages/LeadJourney'));
@@ -32,7 +32,7 @@ const LoadingFallback = () => (
 function App() {
   // Log initial render for debugging
   useEffect(() => {
-    console.log("App component mounted");
+    console.log("App rendering");
   }, []);
 
   return (
