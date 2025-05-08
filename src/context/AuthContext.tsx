@@ -127,23 +127,26 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       if (error) {
         console.error("Login error:", error);
-        setLoading(false);  // Set loading to false on error
+        setLoading(false);  
         return { user: null, error };
       }
       
       if (!data.user) {
-        setLoading(false);  // Set loading to false if no user
+        setLoading(false);
         return { user: null, error: new Error("Could not sign in") };
       }
 
       console.log("Login successful:", data.user.email);
-      return { user: data.user, error: null };
+      
+      // Map the user data to our UserData format
+      const mappedUserData = await mapUserData(data.user);
+      
+      return { user: mappedUserData, error: null };
     } catch (error: any) {
       console.error("Error signing in:", error);
-      setLoading(false);  // Set loading to false on catch
+      setLoading(false);
       return { user: null, error };
     }
-    // Don't set loading to false here - the auth state listener will handle this
   };
 
   const signUp = async (email: string, password: string, displayName: string) => {
@@ -166,17 +169,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (error) {
         console.error("Registration error:", error);
         toast.error(`Error al registrar: ${error.message}`);
+        setLoading(false);
         return { user: null, error };
       }
       
+      // Map user data if registration is successful
+      const mappedUserData = data.user ? await mapUserData(data.user) : null;
+      
       toast.success('Cuenta creada con éxito. Por favor, verifica tu correo electrónico.');
-      return { user: data.user, error: null };
+      setLoading(false);
+      return { user: mappedUserData, error: null };
     } catch (error: any) {
       console.error("Error registering:", error);
       toast.error(`Error inesperado: ${error.message || 'Desconocido'}`);
-      return { user: null, error };
-    } finally {
       setLoading(false);
+      return { user: null, error };
     }
   };
 
