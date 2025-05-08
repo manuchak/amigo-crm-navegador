@@ -1,70 +1,41 @@
 
 import { User } from '@supabase/supabase-js';
-import { UserData, UserRole } from '@/types/auth';
 import { supabase } from '@/integrations/supabase/client';
+import { UserData } from '@/types/auth';
 
-/**
- * Maps a Supabase User to the application's UserData format
- * with improved error handling and logging
- */
-export const mapUserData = async (user: User | null): Promise<UserData | null> => {
-  if (!user) {
-    console.log('mapUserData: No user provided');
-    return null;
-  }
-  
+// Function to map Supabase user data to our UserData format
+export const mapUserData = async (user: User): Promise<UserData | null> => {
+  if (!user) return null;
+
   try {
-    console.log(`Mapping user data for: ${user.email}`);
-    
-    // Get user profile from profiles table
+    // Get profile data
     const { data: profileData, error: profileError } = await supabase
       .from('profiles')
       .select('*')
-      .eq('id', user.id)
+      .eq('id', user.id as string)
       .maybeSingle();
-    
-    if (profileError) {
-      console.error('Error fetching user profile:', profileError);
-      // Don't return early, continue to create a minimal user object
-    }
-    
+
+    if (profileError) throw profileError;
+
     // Get user role
     const { data: roleData, error: roleError } = await supabase
-      .rpc('get_user_role', { user_uid: user.id });
-    
-    if (roleError) {
-      console.error('Error fetching user role:', roleError);
-    }
-    
-    // Create user data object with fallbacks for all properties
-    const userData: UserData = {
-      uid: user.id,
-      email: user.email || '',
-      // Use profile display_name if available, otherwise fallback to user metadata
-      displayName: profileData?.display_name || user.user_metadata?.display_name || user.email || '',
-      role: roleData || 'unverified',
-      // Consider email verified if confirmed_at exists
-      emailVerified: user.email_confirmed_at ? true : false,
-      // Use timestamps from profile if available, otherwise use current date
-      createdAt: profileData?.created_at ? new Date(profileData.created_at) : new Date(user.created_at),
-      lastLogin: profileData?.last_login ? new Date(profileData.last_login) : new Date(),
-      photoURL: profileData?.photo_url || undefined,
-    };
-    
-    console.log(`User data mapped successfully: ${userData.email} (${userData.role})`);
-    return userData;
-  } catch (error) {
-    console.error('Error mapping user data:', error);
-    
-    // Return a minimal UserData object in case of error
+      .rpc('get_user_role', { user_uid: user.id })
+      .single();
+
+    if (roleError) throw roleError;
+
     return {
       uid: user.id,
       email: user.email || '',
-      displayName: user.user_metadata?.display_name || user.email || '',
-      role: 'unverified' as UserRole,
+      displayName: profileData?.display_name || user.email || '',
+      photoURL: profileData?.photo_url,
+      role: roleData as any || 'unverified',
       emailVerified: user.email_confirmed_at ? true : false,
-      createdAt: new Date(user.created_at),
-      lastLogin: new Date(),
+      createdAt: profileData?.created_at ? new Date(profileData.created_at) : new Date(),
+      lastLogin: profileData?.last_login ? new Date(profileData.last_login) : new Date(),
     };
+  } catch (error) {
+    console.error('Error mapping user data:', error);
+    return null;
   }
 };

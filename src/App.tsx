@@ -9,7 +9,7 @@ import Login from './pages/Login';
 import Auth from './pages/Auth';
 import VerifyConfirmation from './pages/VerifyConfirmation';
 import Dashboard from './pages/Dashboard';
-import Leads from './pages/Leads'; // Imported statically instead of dynamically
+import Leads from './pages/Leads'; // Imported statically
 import Prospects from './pages/Prospects';
 import Performance from './pages/Performance'; // Also statically imported
 

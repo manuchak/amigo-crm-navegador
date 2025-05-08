@@ -6,7 +6,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { User, Session } from '@supabase/supabase-js';
 import { mapUserData } from '@/utils/userDataMapper';
 
-// Create a context with a default undefined value
+// Create context
 const AuthContext = createContext<AuthContextProps | undefined>(undefined);
 
 // Hook to use auth context
@@ -27,7 +27,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   
   // Listen for authentication state changes
   useEffect(() => {
-    console.log('Setting up authentication listeners and checking existing session...');
+    console.log('Setting up authentication listeners...');
     let mounted = true;
     
     // Set up the auth state listener FIRST to prevent issues
@@ -42,7 +42,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setSupabaseUser(newSession?.user || null);
         
         if (newSession?.user) {
-          // Use a safe pattern to avoid auth deadlocks
           try {
             // Get profile data
             const mappedUserData = await mapUserData(newSession.user);
@@ -127,12 +126,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       if (error) {
         console.error("Login error:", error);
-        setLoading(false);  // Set loading to false on error
+        setLoading(false);
         return { user: null, error };
       }
       
       if (!data.user) {
-        setLoading(false);  // Set loading to false if no user
+        setLoading(false);
         return { user: null, error: new Error("Could not sign in") };
       }
 
@@ -144,10 +143,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return { user: mappedUserData, error: null };
     } catch (error: any) {
       console.error("Error signing in:", error);
-      setLoading(false);  // Set loading to false on catch
+      setLoading(false);
       return { user: null, error };
     }
-    // Don't set loading to false here - the auth state listener will handle this
   };
 
   const signUp = async (email: string, password: string, displayName: string) => {
@@ -155,7 +153,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setLoading(true);
       console.log("Attempting to create user:", email);
       
-      // Create user with email confirmation
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
@@ -174,7 +171,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return { user: null, error };
       }
       
-      // Map the Supabase User to our UserData format
       const mappedUserData = data.user ? await mapUserData(data.user) : null;
       
       toast.success('Cuenta creada con éxito. Por favor, verifica tu correo electrónico.');
@@ -199,10 +195,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setSupabaseUser(null);
       setSession(null);
       
-      toast.success('Session ended successfully');
+      toast.success('Sesión cerrada con éxito');
     } catch (error) {
       console.error('Error signing out:', error);
-      toast.error('Error signing out');
+      toast.error('Error al cerrar sesión');
     } finally {
       setLoading(false);
     }
@@ -212,7 +208,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       console.log("Refreshing user data...");
       
-      // Get current user
       const { data: userData, error } = await supabase.auth.getUser();
       
       if (error || !userData.user) {
@@ -220,7 +215,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return { success: false, error: error || new Error('No user found') };
       }
 
-      // Map to our user data format
       const mappedUserData = await mapUserData(userData.user);
       setUserData(mappedUserData);
       
@@ -232,10 +226,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  // Create the context value with all the authentication methods
+  // Create the context value with all authentication methods
   const contextValue: AuthContextProps = {
-    user: supabaseUser, // Native Supabase user
-    currentUser: userData, // Our UserData format
+    user: supabaseUser,
+    currentUser: userData,
     userData,
     session,
     loading,
@@ -256,7 +250,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           throw error;
         }
         
-        // Refresh user data if the updated user is the current user
         if (supabaseUser && userId === supabaseUser.id) {
           await refreshUserData();
         }
