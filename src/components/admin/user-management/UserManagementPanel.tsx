@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Loader2, RefreshCw, AlertTriangle, Users, Search, Filter } from 'lucide-react';
-import { useAuth } from '@/context/auth'; // Updated import path
+import { useAuth } from '@/context/auth';
 import {
   Table,
   TableBody,
@@ -51,6 +51,7 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
+  DialogFooter,
   DialogTrigger,
 } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
@@ -115,7 +116,7 @@ const UserManagementPanel: React.FC<UserManagementPanelProps> = () => {
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
   const { currentUser, userData, refreshUserData } = useAuth();
   const { toast } = useToast();
-  const [date, setDate] = React.useState<DateRange>({
+  const [date, setDate] = React.useState<DateRange | undefined>({
     from: new Date(2023, 0, 20),
     to: addDays(new Date(2023, 0, 20), 20),
   })
@@ -133,15 +134,22 @@ const UserManagementPanel: React.FC<UserManagementPanelProps> = () => {
     },
   })
 
+  // Fix for the Promise return type mismatch
+  // We're wrapping the refreshUserData function to ensure it returns void
+  const wrappedRefreshUserData = async (): Promise<void> => {
+    await refreshUserData();
+    return;
+  };
+
   const {
     updateUserRole,
     getAllUsers,
     verifyEmail,
     setUserAsVerifiedOwner
   } = useUserManagementMethods(
-    (data: React.SetStateAction<UserData | null>) => { },
+    setSelectedUser,
     setLoading,
-    refreshUserData
+    wrappedRefreshUserData
   );
 
   useEffect(() => {
@@ -527,6 +535,7 @@ const UserManagementPanel: React.FC<UserManagementPanelProps> = () => {
                           <SelectItem value="monitoring">Monitoreo</SelectItem>
                           <SelectItem value="monitoring_supervisor">Supervisor Monitoreo</SelectItem>
                           <SelectItem value="admin">Administrador</SelectItem>
+                          <SelectItem value="owner">Propietario</SelectItem>
                           <SelectItem value="afiliados">Afiliados</SelectItem>
                           <SelectItem value="atención_afiliado">Atención Afiliado</SelectItem>
                         </SelectContent>

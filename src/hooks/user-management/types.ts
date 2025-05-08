@@ -2,7 +2,7 @@
 import { UserData, UserRole } from '@/types/auth';
 
 export interface UserManagementHookProps {
-  setLoading: (state: string | null) => void;
+  setLoading: (id: string | null) => void;
   refreshUserData: () => Promise<void>;
 }
 
