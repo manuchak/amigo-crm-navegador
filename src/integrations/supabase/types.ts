@@ -619,9 +619,59 @@ export type Database = {
         }
         Relationships: []
       }
+      lead_assignments: {
+        Row: {
+          assigned_by: string
+          assigned_to: string
+          created_at: string
+          id: string
+          lead_id: number
+          notes: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          assigned_by: string
+          assigned_to: string
+          created_at?: string
+          id?: string
+          lead_id: number
+          notes?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          assigned_by?: string
+          assigned_to?: string
+          created_at?: string
+          id?: string
+          lead_id?: number
+          notes?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lead_assignments_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lead_assignments_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "prospects"
+            referencedColumns: ["lead_id"]
+          },
+        ]
+      }
       leads: {
         Row: {
           anovehiculo: string | null
+          assigned_at: string | null
+          assigned_to: string | null
           call_count: number
           created_at: string
           credencialsedena: string | null
@@ -644,6 +694,8 @@ export type Database = {
         }
         Insert: {
           anovehiculo?: string | null
+          assigned_at?: string | null
+          assigned_to?: string | null
           call_count?: number
           created_at?: string
           credencialsedena?: string | null
@@ -666,6 +718,8 @@ export type Database = {
         }
         Update: {
           anovehiculo?: string | null
+          assigned_at?: string | null
+          assigned_to?: string | null
           call_count?: number
           created_at?: string
           credencialsedena?: string | null

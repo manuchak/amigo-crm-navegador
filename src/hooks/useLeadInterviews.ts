@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { useAuth } from '@/context/auth/AuthContext';
 
 interface LeadForInterview {
   id: number;
@@ -20,24 +21,55 @@ interface LeadForInterview {
   fecha_creacion: string;
   modelovehiculo: string | null;
   anovehiculo: string | null;
+  assigned_to: string | null;
+  assigned_at: string | null;
+  assignee_name?: string;
+}
+
+interface StaffUser {
+  uid: string;
+  displayName: string;
+  email: string;
+  role: string;
 }
 
 export const useLeadInterviews = () => {
   const [leads, setLeads] = useState<LeadForInterview[]>([]);
   const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState<'all' | 'armed' | 'vehicle'>('all');
+  const [filter, setFilter] = useState<'all' | 'armed' | 'vehicle' | 'unassigned' | 'assigned' | 'mine'>('all');
+  const [staffUsers, setStaffUsers] = useState<StaffUser[]>([]);
+  const [loadingStaff, setLoadingStaff] = useState(false);
+  const { currentUser } = useAuth();
+  const isSupplyAdmin = currentUser?.role === 'supply_admin';
+  const isSupply = currentUser?.role === 'supply' || isSupplyAdmin;
 
   const fetchLeads = async () => {
     setLoading(true);
     try {
-      const { data, error } = await supabase
+      let query = supabase
         .from('leads')
-        .select('*')
+        .select(`
+          *,
+          profiles!assigned_to(display_name)
+        `)
         .order('created_at', { ascending: false });
+
+      // If user is Supply (not admin), only show their assigned leads
+      if (currentUser?.role === 'supply') {
+        query = query.eq('assigned_to', currentUser.uid);
+      }
+
+      const { data, error } = await query;
 
       if (error) throw error;
       
-      setLeads(data as LeadForInterview[]);
+      // Transform data to include assignee name
+      const transformedLeads = (data as any[]).map(lead => ({
+        ...lead,
+        assignee_name: lead.profiles?.display_name || null
+      }));
+      
+      setLeads(transformedLeads as LeadForInterview[]);
     } catch (error) {
       console.error('Error fetching leads:', error);
       toast.error('Error al cargar los candidatos');
@@ -46,9 +78,41 @@ export const useLeadInterviews = () => {
     }
   };
 
+  // Fetch supply staff users
+  const fetchStaffUsers = async () => {
+    if (!isSupplyAdmin) return;
+    
+    setLoadingStaff(true);
+    try {
+      const { data: users, error } = await supabase.rpc('get_users_by_role', {
+        role_param: 'supply'
+      });
+      
+      if (error) throw error;
+      
+      // Add supply admin user to the list too
+      const { data: adminUsers, error: adminError } = await supabase.rpc('get_users_by_role', {
+        role_param: 'supply_admin'
+      });
+      
+      if (adminError) throw adminError;
+      
+      const allStaff = [...(users || []), ...(adminUsers || [])];
+      setStaffUsers(allStaff as StaffUser[]);
+    } catch (error) {
+      console.error('Error fetching staff users:', error);
+      toast.error('Error al cargar usuarios de staff');
+    } finally {
+      setLoadingStaff(false);
+    }
+  };
+
   useEffect(() => {
     fetchLeads();
-  }, []);
+    if (isSupplyAdmin) {
+      fetchStaffUsers();
+    }
+  }, [currentUser?.uid, isSupplyAdmin]);
 
   const updateLeadStatus = async (leadId: number, newStatus: string) => {
     try {
@@ -68,6 +132,100 @@ export const useLeadInterviews = () => {
     } catch (error) {
       console.error('Error updating lead status:', error);
       toast.error('Error al actualizar el estado');
+    }
+  };
+
+  const assignLead = async (leadId: number, userId: string) => {
+    if (!currentUser) return;
+    
+    try {
+      // Update the lead with assigned_to and assigned_at
+      const { error: leadError } = await supabase
+        .from('leads')
+        .update({ 
+          assigned_to: userId, 
+          assigned_at: new Date().toISOString() 
+        })
+        .eq('id', leadId);
+
+      if (leadError) throw leadError;
+      
+      // Create a record in lead_assignments table
+      const { error: assignmentError } = await supabase
+        .from('lead_assignments')
+        .insert({
+          lead_id: leadId,
+          assigned_to: userId,
+          assigned_by: currentUser.uid,
+          status: 'pending'
+        });
+
+      if (assignmentError) throw assignmentError;
+      
+      // Find the staff user name for UI update
+      const staffUser = staffUsers.find(user => user.uid === userId);
+      
+      // Update local state
+      setLeads(leads.map(lead => 
+        lead.id === leadId ? { 
+          ...lead, 
+          assigned_to: userId, 
+          assigned_at: new Date().toISOString(),
+          assignee_name: staffUser?.displayName || 'Unknown'
+        } : lead
+      ));
+      
+      toast.success('Asignado correctamente');
+      
+      // Refresh data to ensure consistency
+      fetchLeads();
+    } catch (error) {
+      console.error('Error assigning lead:', error);
+      toast.error('Error al asignar el candidato');
+    }
+  };
+
+  const unassignLead = async (leadId: number) => {
+    if (!currentUser) return;
+    
+    try {
+      // Remove assignment from lead
+      const { error: leadError } = await supabase
+        .from('leads')
+        .update({ 
+          assigned_to: null, 
+          assigned_at: null 
+        })
+        .eq('id', leadId);
+
+      if (leadError) throw leadError;
+      
+      // Set assignment status to 'cancelled'
+      const { error: assignmentError } = await supabase
+        .from('lead_assignments')
+        .update({ status: 'cancelled' })
+        .eq('lead_id', leadId)
+        .eq('status', 'pending');
+
+      if (assignmentError) throw assignmentError;
+      
+      // Update local state
+      setLeads(leads.map(lead => 
+        lead.id === leadId ? { 
+          ...lead, 
+          assigned_to: null, 
+          assigned_at: null,
+          assignee_name: null
+        } : lead
+      ));
+      
+      toast.success('Asignación removida');
+      
+      // Refresh data
+      fetchLeads();
+    } catch (error) {
+      console.error('Error unassigning lead:', error);
+      toast.error('Error al remover la asignación');
     }
   };
 
@@ -109,6 +267,9 @@ export const useLeadInterviews = () => {
     if (filter === 'all') return true;
     if (filter === 'armed') return lead.empresa?.includes('armado') || lead.esarmado === 'SI';
     if (filter === 'vehicle') return lead.empresa?.includes('vehículo') || lead.tienevehiculo === 'SI';
+    if (filter === 'unassigned') return lead.assigned_to === null;
+    if (filter === 'assigned') return lead.assigned_to !== null;
+    if (filter === 'mine') return lead.assigned_to === currentUser?.uid;
     return true;
   });
 
@@ -130,16 +291,34 @@ export const useLeadInterviews = () => {
     lead.estado === 'Agendado' || lead.estado === 'Contactado'
   );
 
+  // Get unassigned leads
+  const unassignedLeads = leads.filter(lead => lead.assigned_to === null);
+
+  // Get assigned leads
+  const assignedLeads = leads.filter(lead => lead.assigned_to !== null);
+
+  // Get leads assigned to current user
+  const myLeads = leads.filter(lead => lead.assigned_to === currentUser?.uid);
+
   return {
     leads: filteredLeads,
     newLeads,
     classifiedLeads,
     scheduledLeads,
+    unassignedLeads,
+    assignedLeads,
+    myLeads,
     loading,
     filter,
     setFilter,
     fetchLeads,
     updateLeadStatus,
-    classifyLead
+    classifyLead,
+    assignLead,
+    unassignLead,
+    staffUsers,
+    loadingStaff,
+    isSupplyAdmin,
+    isSupply
   };
 };
