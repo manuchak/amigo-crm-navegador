@@ -2,7 +2,7 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Shield, LogIn, Users, LifeBuoy } from 'lucide-react';
-import { useAuth } from '@/context/auth';
+import { useAuth } from '@/context/auth'; // Updated import path
 import {
   DropdownMenu,
   DropdownMenuContent,

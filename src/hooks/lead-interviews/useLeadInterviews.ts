@@ -2,7 +2,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { LeadForInterview, StaffUser, LeadFilter, UseLeadInterviewsReturn } from './types';
-import { useAuth } from '@/context/auth';
+import { useAuth } from '@/context/auth'; // Updated import path
 import { toast } from 'sonner';
 
 export const useLeadInterviews = (): UseLeadInterviewsReturn => {
