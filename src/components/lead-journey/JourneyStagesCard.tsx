@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -6,7 +5,17 @@ import { useNavigate } from 'react-router-dom';
 import { ChevronRight } from 'lucide-react';
 import { JourneyWorkflow } from './JourneyWorkflow';
 
-export const JourneyStagesCard: React.FC = () => {
+interface Stage {
+  name: string;
+  description: string;
+  path: string;
+}
+
+interface JourneyStagesCardProps {
+  stages?: Stage[];
+}
+
+export const JourneyStagesCard: React.FC<JourneyStagesCardProps> = ({ stages }) => {
   const navigate = useNavigate();
   
   return (
