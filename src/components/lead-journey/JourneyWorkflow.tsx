@@ -25,7 +25,7 @@ export const JourneyWorkflow: React.FC<JourneyWorkflowProps> = ({ currentStage =
   };
   
   return (
-    <div className="w-full py-4">
+    <div className="w-full pt-2 pb-6">
       <div className="relative">
         {/* Progress Line */}
         <div className="absolute top-1/2 left-0 right-0 -translate-y-1/2 h-1 bg-slate-200 z-0"></div>
@@ -89,7 +89,7 @@ export const JourneyWorkflow: React.FC<JourneyWorkflowProps> = ({ currentStage =
             return (
               <div 
                 key={stage.id} 
-                className="flex flex-col items-center cursor-pointer" 
+                className="flex flex-col items-center cursor-pointer group" 
                 onClick={() => handleStageClick(stage.id)}
               >
                 <div 
@@ -99,7 +99,7 @@ export const JourneyWorkflow: React.FC<JourneyWorkflowProps> = ({ currentStage =
                     {index + 1}
                   </span>
                 </div>
-                <span className={`text-xs font-medium mt-2 ${isPassed ? textColor : 'text-slate-400'} max-w-[70px] text-center`}>
+                <span className={`text-xs font-medium mt-2 ${isPassed ? textColor : 'text-slate-400'} max-w-[90px] text-center truncate group-hover:text-slate-800 transition-colors`}>
                   {stage.name}
                 </span>
               </div>

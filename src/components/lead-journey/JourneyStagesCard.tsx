@@ -14,17 +14,20 @@ export const JourneyStagesCard: React.FC = () => {
       {/* Journey Visualization */}
       <Card className="overflow-hidden border-0 shadow-sm">
         <CardContent className="p-6">
-          <div className="mb-6">
+          <div className="mb-8">
             <h2 className="text-2xl font-medium text-slate-800">Proceso de Reclutamiento de Custodios</h2>
             <p className="text-slate-500 mt-1">Visualización del proceso completo de reclutamiento.</p>
           </div>
           
-          <div className="flex justify-center mb-8">
-            <img 
-              src="/leads-journey-workflow.svg" 
-              alt="Proceso de reclutamiento de custodios" 
-              className="max-w-full h-auto rounded-lg shadow-sm border border-slate-100"
-            />
+          <div className="flex justify-center mb-8 overflow-hidden">
+            <div className="w-full max-w-4xl">
+              <img 
+                src="/leads-journey-workflow.svg" 
+                alt="Proceso de reclutamiento de custodios" 
+                className="w-full h-auto object-contain"
+                style={{ maxHeight: "180px" }}
+              />
+            </div>
           </div>
           
           <div className="mt-8">
@@ -214,3 +217,4 @@ export const JourneyStagesCard: React.FC = () => {
     </div>
   );
 };
+
