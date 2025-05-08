@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { toast } from 'sonner';
 import { AuthContextProps, UserData, UserRole } from '@/types/auth';
@@ -226,6 +225,38 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  // Implement the missing refreshSession function
+  const refreshSession = async (): Promise<boolean> => {
+    try {
+      console.log("Refreshing session...");
+      
+      const { data, error } = await supabase.auth.refreshSession();
+      
+      if (error) {
+        console.error("Error refreshing session:", error);
+        return false;
+      }
+      
+      if (data.session) {
+        console.log("Session refreshed successfully");
+        setSession(data.session);
+        setSupabaseUser(data.session.user);
+        
+        // Update user data with the refreshed user
+        const mappedUserData = await mapUserData(data.session.user);
+        setUserData(mappedUserData);
+        
+        return true;
+      } else {
+        console.log("No session to refresh");
+        return false;
+      }
+    } catch (error) {
+      console.error("Error refreshing session:", error);
+      return false;
+    }
+  };
+
   // Create the context value with all authentication methods
   const contextValue: AuthContextProps = {
     user: supabaseUser,
@@ -238,6 +269,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     signUp,
     signOut,
     refreshUserData,
+    refreshSession,
     updateUserRole: async (userId, role) => {
       try {
         console.log(`Attempting to update user role: ${userId} to ${role}`);

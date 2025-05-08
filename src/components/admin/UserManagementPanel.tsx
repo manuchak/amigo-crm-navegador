@@ -1,9 +1,8 @@
-
 import React, { useEffect, useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Loader2, RefreshCw } from 'lucide-react';
 import { useAuth } from '@/context/auth';
-import { UserData } from '@/types/auth';
+import { UserData, UserRole } from '@/types/auth';
 import { toast } from 'sonner';
 import { 
   UserTable, 
@@ -23,7 +22,7 @@ const UserManagementPanel = () => {
   const [selectedUser, setSelectedUser] = useState<UserData | null>(null);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isConfirmationOpen, setIsConfirmationOpen] = useState(false);
-  const [newRole, setNewRole] = useState<string | null>(null);
+  const [newRole, setNewRole] = useState<UserRole | null>(null);
   const [lastFetchedAt, setLastFetchedAt] = useState<number | null>(null);
   const [retryCount, setRetryCount] = useState(0);
   const [autoRetry, setAutoRetry] = useState(false);
@@ -81,7 +80,7 @@ const UserManagementPanel = () => {
   // Handle role change
   const handleRoleChange = (role: string) => {
     console.log('Changing role to:', role);
-    setNewRole(role);
+    setNewRole(role as UserRole); // Cast string to UserRole type
   };
 
   // Update user role
@@ -90,7 +89,7 @@ const UserManagementPanel = () => {
     
     try {
       console.log(`Updating role for user ${selectedUser.uid} to ${newRole}`);
-      const result = await updateUserRole(selectedUser.uid, newRole as any);
+      const result = await updateUserRole(selectedUser.uid, newRole);
       
       if (!result.success) {
         throw new Error(result.error || 'Unknown error updating role');
@@ -100,7 +99,7 @@ const UserManagementPanel = () => {
       
       // Update local state to show the change immediately
       setUsers(prevUsers => prevUsers.map(user => 
-        user.uid === selectedUser.uid ? { ...user, role: newRole as any } : user
+        user.uid === selectedUser.uid ? { ...user, role: newRole } : user
       ));
       
       // Show confirmation dialog
