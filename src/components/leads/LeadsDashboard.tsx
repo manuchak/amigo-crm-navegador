@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useLeads } from '@/context/LeadsContext';
@@ -26,6 +27,7 @@ const LeadsDashboard: React.FC = () => {
   const { leads, updateLeadStatus, refetchLeads } = useLeads();
   const { toast } = useToast();
   const { userData } = useAuth();
+  const [filter, setFilter] = useState("todos"); // Added missing filter state
   
   useEffect(() => {
     console.log("LeadsDashboard mounted", { 
