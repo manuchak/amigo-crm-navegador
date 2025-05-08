@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from '@/components/ui/table';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -17,6 +16,11 @@ interface LeadsTableProps {
 }
 
 const LeadsTable: React.FC<LeadsTableProps> = ({ isLoading, onCallLead }) => {
+  // Add debug logging
+  React.useEffect(() => {
+    console.log("LeadsTable component mounted");
+  }, []);
+
   const { leads, updateLeadStatus, refetchLeads } = useLeads();
   const estadosLead = ['Todos', 'Nuevo', 'Contactado', 'En progreso', 'Calificado', 'No calificado'];
 

@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import * as leadService from '@/services/leadService';
 import { toast } from 'sonner';
@@ -58,11 +59,18 @@ export const LeadsProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   
+  // Add debug logging
+  useEffect(() => {
+    console.log("LeadsProvider mounted");
+  }, []);
+  
   // Cargar leads desde Supabase al iniciar
   const fetchLeads = async () => {
+    console.log("Fetching leads...");
     setLoading(true);
     try {
       const fetchedLeads = await leadService.getLeads();
+      console.log("Leads fetched:", fetchedLeads);
       
       // Transform the data to match our Lead interface
       const transformedLeads = fetchedLeads.map((item: any) => {

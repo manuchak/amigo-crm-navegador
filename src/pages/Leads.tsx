@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import PageLayout from '@/components/layout/PageLayout';
 import LeadsDashboard from '@/components/leads/LeadsDashboard';
 import { LeadsProvider } from '@/context/LeadsContext';
@@ -8,8 +8,16 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import ProspectsPage from '@/components/leads/ProspectsPage';
 import QualifiedLeadsApproval from '@/components/leads/QualifiedLeadsApproval';
 import LeadsCrmDashboard from '@/components/leads/LeadsCrmDashboard';
+import { useAuth } from '@/context/auth'; // Make sure to import from the correct path
 
 const Leads: React.FC = () => {
+  // Add debug logging
+  const { currentUser } = useAuth();
+  
+  useEffect(() => {
+    console.log("Leads page mounted", { user: currentUser?.email });
+  }, [currentUser]);
+  
   const navigate = useNavigate();
   const location = useLocation();
   const [activeTab, setActiveTab] = useState<string>('dashboard');
