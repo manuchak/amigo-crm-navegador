@@ -1,11 +1,14 @@
 
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 
 interface JourneyWorkflowProps {
   currentStage?: string;
 }
 
 export const JourneyWorkflow: React.FC<JourneyWorkflowProps> = ({ currentStage = 'interviews' }) => {
+  const navigate = useNavigate();
+  
   const stages = [
     { id: 'interviews', name: 'Entrevistas Iniciales', color: 'blue' },
     { id: 'validation', name: 'Validación', color: 'indigo' },
@@ -16,6 +19,10 @@ export const JourneyWorkflow: React.FC<JourneyWorkflowProps> = ({ currentStage =
   ];
   
   const currentIndex = stages.findIndex(stage => stage.id === currentStage);
+  
+  const handleStageClick = (stageId: string) => {
+    navigate(`/lead-journey/${stageId}`);
+  };
   
   return (
     <div className="w-full py-4">
@@ -80,9 +87,13 @@ export const JourneyWorkflow: React.FC<JourneyWorkflowProps> = ({ currentStage =
             }
             
             return (
-              <div key={stage.id} className="flex flex-col items-center">
+              <div 
+                key={stage.id} 
+                className="flex flex-col items-center cursor-pointer" 
+                onClick={() => handleStageClick(stage.id)}
+              >
                 <div 
-                  className={`w-8 h-8 rounded-full flex items-center justify-center ${bgColor} border-4 ${isPassed ? borderColor : 'border-slate-100'} shadow-sm ${isCurrent ? 'ring-4 ring-offset-2 ring-slate-100' : ''}`}
+                  className={`w-8 h-8 rounded-full flex items-center justify-center ${bgColor} border-4 ${isPassed ? borderColor : 'border-slate-100'} shadow-sm ${isCurrent ? 'ring-4 ring-offset-2 ring-slate-100' : ''} hover:scale-110 transition-transform`}
                 >
                   <span className="text-xs font-bold text-white">
                     {index + 1}

@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import PageLayout from '@/components/layout/PageLayout';
 import { LeadsProvider } from '@/context/LeadsContext';
@@ -11,14 +11,45 @@ import { PsychometricTests } from '@/components/lead-journey/PsychometricTests';
 import { FieldTests } from '@/components/lead-journey/FieldTests';
 import { Hiring } from '@/components/lead-journey/Hiring';
 import { ProcessSummary } from '@/components/lead-journey/ProcessSummary';
+import { useNavigate, useParams, useLocation } from 'react-router-dom';
+import { logPageAccess } from '@/context/auth/hooks/utils/userActions';
+import { useAuth } from '@/context/auth/AuthContext';
 
 const LeadJourney: React.FC = () => {
+  const { tab } = useParams<{ tab?: string }>();
   const [activeTab, setActiveTab] = useState<string>('journey');
+  const navigate = useNavigate();
+  const location = useLocation();
+  const { currentUser } = useAuth();
+  
+  // Set active tab based on URL parameter
+  useEffect(() => {
+    if (tab && ['interviews', 'validation', 'documents', 'tests', 'fieldtests', 'hiring', 'summary'].includes(tab)) {
+      setActiveTab(tab);
+    } else if (location.pathname === '/lead-journey') {
+      setActiveTab('journey');
+    }
+    
+    // Log page access for analytics
+    if (currentUser?.uid) {
+      logPageAccess(currentUser.uid, `lead-journey/${activeTab}`);
+    }
+  }, [tab, location.pathname, currentUser, activeTab]);
+  
+  // Handle tab change
+  const handleTabChange = (value: string) => {
+    setActiveTab(value);
+    if (value === 'journey') {
+      navigate('/lead-journey');
+    } else {
+      navigate(`/lead-journey/${value}`);
+    }
+  };
   
   return (
     <PageLayout title="Proceso de Custodios">
       <LeadsProvider>
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
           <TabsList className="mb-6 bg-white">
             <TabsTrigger value="journey" className="text-sm">Proceso</TabsTrigger>
             <TabsTrigger value="interviews" className="text-sm">Entrevistas Iniciales</TabsTrigger>

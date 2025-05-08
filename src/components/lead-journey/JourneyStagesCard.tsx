@@ -4,6 +4,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
 import { ChevronRight } from 'lucide-react';
+import { JourneyWorkflow } from './JourneyWorkflow';
 
 export const JourneyStagesCard: React.FC = () => {
   const navigate = useNavigate();
@@ -18,12 +19,16 @@ export const JourneyStagesCard: React.FC = () => {
             <p className="text-slate-500 mt-1">Visualización del proceso completo de reclutamiento.</p>
           </div>
           
-          <div className="flex justify-center">
+          <div className="flex justify-center mb-8">
             <img 
               src="/lovable-uploads/0ebda72f-8dd8-452d-b8c8-ead2d1363f28.png" 
               alt="Diagrama de flujo del proceso de reclutamiento" 
               className="max-w-full h-auto rounded-lg shadow-sm border border-slate-100"
             />
+          </div>
+          
+          <div className="mt-8">
+            <JourneyWorkflow />
           </div>
         </CardContent>
       </Card>
@@ -187,7 +192,7 @@ export const JourneyStagesCard: React.FC = () => {
             </div>
             <div className="p-4 space-y-2">
               <p className="text-slate-600 text-sm">
-                Finalizción del proceso de reclutamiento e incorporación.
+                Finalización del proceso de reclutamiento e incorporación.
               </p>
               <div className="flex items-center gap-2 mt-4">
                 <div className="h-2 w-full bg-slate-100 rounded-full overflow-hidden">
