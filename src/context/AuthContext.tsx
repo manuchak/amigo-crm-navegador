@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { toast } from 'sonner';
 import { AuthContextProps, UserData, UserRole } from '@/types/auth';
@@ -29,31 +30,31 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     console.log('Setting up authentication listeners and checking existing session...');
     let mounted = true;
     
-    // Set up the auth state listener FIRST
+    // Set up the auth state listener FIRST to prevent issues
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, newSession) => {
         console.log('Auth state change event:', event);
         
         if (!mounted) return;
         
-        // Update session and user immediately to avoid race conditions
+        // Update session immediately
         setSession(newSession);
         setSupabaseUser(newSession?.user || null);
         
         if (newSession?.user) {
+          // Use a safe pattern to avoid auth deadlocks
           try {
             // Get profile data
             const mappedUserData = await mapUserData(newSession.user);
             if (mounted) {
               setUserData(mappedUserData);
-              console.log('Authenticated user loaded:', mappedUserData);
-              setLoading(false);
-              setIsInitializing(false);
+              console.log('Authenticated user loaded:', mappedUserData?.email);
             }
           } catch (error) {
             console.error('Error getting profile data:', error);
+            if (mounted) setUserData(null);
+          } finally {
             if (mounted) {
-              setUserData(null);
               setLoading(false);
               setIsInitializing(false);
             }
@@ -72,6 +73,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     // THEN check for an existing session
     const checkSession = async () => {
       try {
+        console.log('Checking for existing session...');
         const { data, error } = await supabase.auth.getSession();
         
         if (error) {
@@ -134,16 +136,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return { user: null, error: new Error("Could not sign in") };
       }
 
-      // Map Supabase User to our UserData format
-      const mappedUser = await mapUserData(data.user);
-      
       console.log("Login successful:", data.user.email);
-      return { user: mappedUser, error: null };
+      return { user: data.user, error: null };
     } catch (error: any) {
       console.error("Error signing in:", error);
       setLoading(false);  // Set loading to false on catch
       return { user: null, error };
     }
+    // Don't set loading to false here - the auth state listener will handle this
   };
 
   const signUp = async (email: string, password: string, displayName: string) => {
@@ -186,7 +186,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       console.log("Signing out...");
       await supabase.auth.signOut();
       
-      // Explicitly reset user state - don't rely solely on auth state listener
+      // Explicitly reset user state to ensure fresh state after sign-out
       setUserData(null);
       setSupabaseUser(null);
       setSession(null);
@@ -200,34 +200,27 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const resetPassword = async (email: string) => {
+  const refreshUserData = async () => {
     try {
-      setLoading(true);
+      console.log("Refreshing user data...");
       
-      console.log(`Attempting to reset password for: ${email}`);
+      // Get current user
+      const { data: userData, error } = await supabase.auth.getUser();
       
-      // Get the current domain for redirects
-      const redirectURL = `${window.location.origin}/reset-password`;
-      
-      const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: redirectURL,
-      });
-      
-      if (error) {
-        console.error("Error sending recovery email:", error);
-        toast.error(`Error al enviar correo de recuperación: ${error.message}`);
-        return { success: false, error };
+      if (error || !userData.user) {
+        console.error("Error or no user found during refresh:", error);
+        return { success: false, error: error || new Error('No user found') };
       }
+
+      // Map to our user data format
+      const mappedUserData = await mapUserData(userData.user);
+      setUserData(mappedUserData);
       
-      console.log("Recovery email sent");
-      toast.success('Se ha enviado un correo para restablecer la contraseña');
+      console.log("User data refreshed successfully");
       return { success: true };
-    } catch (error: any) {
-      console.error("Error resetting password:", error);
-      toast.error(`Error al restablecer contraseña: ${error.message || 'Desconocido'}`);
+    } catch (error) {
+      console.error("Error refreshing user data:", error);
       return { success: false, error };
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -244,12 +237,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     signOut,
     updateUserRole: async (userId, role) => {
       try {
+        console.log(`Attempting to update user role: ${userId} to ${role}`);
         const { error } = await supabase.rpc('update_user_role', {
           target_user_id: userId,
           new_role: role
         });
         
-        if (error) throw error;
+        if (error) {
+          console.error('Error updating role:', error);
+          throw error;
+        }
+        
+        // Refresh user data if the updated user is the current user
+        if (supabaseUser && userId === supabaseUser.id) {
+          await refreshUserData();
+        }
+        
         return { success: true };
       } catch (error) {
         console.error('Error updating role:', error);
@@ -258,6 +261,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     },
     getAllUsers: async () => {
       try {
+        console.log('Fetching all users...');
         const { data, error } = await supabase
           .from('profiles')
           .select(`
@@ -269,7 +273,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             photo_url
           `);
         
-        if (error) throw error;
+        if (error) {
+          console.error('Error fetching profiles:', error);
+          throw error;
+        }
         
         // Get roles for each user
         const usersWithRoles = await Promise.all(data.map(async (user) => {
@@ -288,6 +295,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           } as UserData;
         }));
         
+        console.log(`Fetched ${usersWithRoles.length} users`);
         return usersWithRoles;
       } catch (error) {
         console.error('Error getting users:', error);
@@ -296,11 +304,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     },
     verifyEmail: async (userId) => {
       try {
+        console.log(`Verifying email for user: ${userId}`);
         const { error } = await supabase.rpc('verify_user_email', {
           target_user_id: userId
         });
         
-        if (error) throw error;
+        if (error) {
+          console.error('Error verifying email:', error);
+          throw error;
+        }
+        
+        console.log('Email verification successful');
         return { success: true };
       } catch (error) {
         console.error('Error verifying email:', error);
@@ -309,32 +323,53 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     },
     refreshSession: async () => {
       try {
+        console.log('Refreshing session...');
         const { data, error } = await supabase.auth.refreshSession();
-        if (error) throw error;
+        if (error) {
+          console.error('Error refreshing session:', error);
+          throw error;
+        }
+        console.log('Session refresh result:', !!data.session);
         return !!data.session;
       } catch (error) {
         console.error('Error refreshing session:', error);
         return false;
       }
     },
-    refreshUserData: async () => {
+    refreshUserData,
+    resetPassword: async (email: string) => {
       try {
-        const { data } = await supabase.auth.getUser();
-        if (!data.user) {
-          return { success: false, error: new Error('No authenticated user') };
+        setLoading(true);
+        
+        console.log(`Attempting to reset password for: ${email}`);
+        
+        // Get the current domain for redirects
+        const redirectURL = `${window.location.origin}/reset-password`;
+        
+        const { error } = await supabase.auth.resetPasswordForEmail(email, {
+          redirectTo: redirectURL,
+        });
+        
+        if (error) {
+          console.error("Error sending recovery email:", error);
+          toast.error(`Error al enviar correo de recuperación: ${error.message}`);
+          return { success: false, error };
         }
         
-        // The onAuthStateChange listener will update the state
+        console.log("Recovery email sent");
+        toast.success('Se ha enviado un correo para restablecer la contraseña');
         return { success: true };
-      } catch (error) {
-        console.error('Error updating user data:', error);
-        return { success: false, error: error as Error };
+      } catch (error: any) {
+        console.error("Error resetting password:", error);
+        toast.error(`Error al restablecer contraseña: ${error.message || 'Desconocido'}`);
+        return { success: false, error };
+      } finally {
+        setLoading(false);
       }
-    },
-    resetPassword,
+    }
   };
 
   return <AuthContext.Provider value={contextValue}>{children}</AuthContext.Provider>;
 };
 
-export default AuthProvider;
+export default AuthContext;

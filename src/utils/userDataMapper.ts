@@ -7,9 +7,14 @@ import { supabase } from '@/integrations/supabase/client';
  * Maps a Supabase User to the application's UserData format
  */
 export const mapUserData = async (user: User | null): Promise<UserData | null> => {
-  if (!user) return null;
+  if (!user) {
+    console.log('mapUserData: No user provided');
+    return null;
+  }
   
   try {
+    console.log(`Mapping user data for: ${user.email}`);
+    
     // Get user profile from profiles table
     const { data: profileData, error: profileError } = await supabase
       .from('profiles')
@@ -32,7 +37,7 @@ export const mapUserData = async (user: User | null): Promise<UserData | null> =
     }
     
     // Create user data object
-    return {
+    const userData: UserData = {
       uid: user.id,
       email: user.email || '',
       // Use profile display_name if available, otherwise fallback to user metadata
@@ -45,6 +50,9 @@ export const mapUserData = async (user: User | null): Promise<UserData | null> =
       lastLogin: profileData?.last_login ? new Date(profileData.last_login) : new Date(),
       photoURL: profileData?.photo_url || undefined,
     };
+    
+    console.log(`User data mapped successfully: ${userData.email} (${userData.role})`);
+    return userData;
   } catch (error) {
     console.error('Error mapping user data:', error);
     return null;

@@ -1,32 +1,59 @@
 
-import React, { useState } from 'react';
-import Navbar from '@/components/Navbar';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { BarChart3, Users, DollarSign, LineChart } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import PageLayout from '@/components/layout/PageLayout';
+import { Skeleton } from '@/components/ui/skeleton';
 
 const Dashboard: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'Resumen' | 'Por Clientes' | 'Por Valor'>('Resumen');
-  const { currentUser } = useAuth();
+  const [isLoading, setIsLoading] = useState(true);
+  const { currentUser, loading: authLoading } = useAuth();
+
+  // Simulate data loading
+  useEffect(() => {
+    console.log("Dashboard component mounted");
+    
+    // Simulate data fetch
+    const timer = setTimeout(() => {
+      setIsLoading(false);
+    }, 1000);
+    
+    return () => clearTimeout(timer);
+  }, []);
+  
+  // Debug logging
+  useEffect(() => {
+    console.log("Dashboard auth state:", { 
+      user: currentUser?.email, 
+      role: currentUser?.role,
+      authLoading
+    });
+  }, [currentUser, authLoading]);
 
   return (
-    <PageLayout>
-      <h1 className="text-3xl font-bold mb-8">Dashboard</h1>
-      
+    <PageLayout title="Dashboard">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
         <Card className="bg-white rounded-lg shadow-sm">
           <CardContent className="p-6">
             <div className="text-sm text-slate-500 mb-2">Total de Clientes</div>
-            <div className="text-4xl font-bold">10</div>
+            {isLoading ? (
+              <Skeleton className="h-10 w-20" />
+            ) : (
+              <div className="text-4xl font-bold">10</div>
+            )}
           </CardContent>
         </Card>
         
         <Card className="bg-white rounded-lg shadow-sm">
           <CardContent className="p-6">
             <div className="text-sm text-slate-500 mb-2">Clientes Ganados</div>
-            <div className="text-4xl font-bold">2</div>
+            {isLoading ? (
+              <Skeleton className="h-10 w-20" />
+            ) : (
+              <div className="text-4xl font-bold">2</div>
+            )}
           </CardContent>
         </Card>
       </div>
@@ -35,14 +62,22 @@ const Dashboard: React.FC = () => {
         <Card className="bg-white rounded-lg shadow-sm">
           <CardContent className="p-6">
             <div className="text-sm text-slate-500 mb-2">Valor Total (€)</div>
-            <div className="text-4xl font-bold">96.000</div>
+            {isLoading ? (
+              <Skeleton className="h-10 w-32" />
+            ) : (
+              <div className="text-4xl font-bold">96.000</div>
+            )}
           </CardContent>
         </Card>
         
         <Card className="bg-white rounded-lg shadow-sm">
           <CardContent className="p-6">
             <div className="text-sm text-slate-500 mb-2">Valor Activo (€)</div>
-            <div className="text-4xl font-bold">93.000</div>
+            {isLoading ? (
+              <Skeleton className="h-10 w-32" />
+            ) : (
+              <div className="text-4xl font-bold">93.000</div>
+            )}
           </CardContent>
         </Card>
       </div>
@@ -79,7 +114,14 @@ const Dashboard: React.FC = () => {
           <p className="text-center text-slate-500 text-sm mb-6">Cantidad de clientes por etapa</p>
           
           <div className="h-64 flex items-center justify-center">
-            <div className="text-sm text-slate-400">Gráfico de distribución aquí</div>
+            {isLoading ? (
+              <div className="w-full space-y-2">
+                <Skeleton className="h-40 w-full" />
+                <Skeleton className="h-4 w-3/4 mx-auto" />
+              </div>
+            ) : (
+              <div className="text-sm text-slate-400">Gráfico de distribución aquí</div>
+            )}
           </div>
         </CardContent>
       </Card>

@@ -1,9 +1,9 @@
-import React, { Suspense } from 'react';
+import React, { Suspense, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from 'sonner';
 import { AuthProvider } from '@/context/AuthContext';
 
-// Import ALL auth-related components statically to avoid dynamic import issues
+// Import ALL auth-related and critical components statically 
 import Login from './pages/Login';
 import Auth from './pages/Auth';
 import VerifyConfirmation from './pages/VerifyConfirmation';
@@ -27,6 +27,11 @@ const LoadingFallback = () => (
 );
 
 function App() {
+  // Log initial render for debugging
+  useEffect(() => {
+    console.log("App component mounted");
+  }, []);
+
   return (
     <AuthProvider>
       <Router>
@@ -37,13 +42,13 @@ function App() {
           <Route path="/auth" element={<Auth />} />
           <Route path="/verify-confirmation" element={<VerifyConfirmation />} />
           
-          {/* Dashboard route - Also import statically to avoid loading issues */}
+          {/* Dashboard route - Imported statically to avoid loading issues */}
           <Route path="/" element={<Navigate replace to="/dashboard" />} />
           <Route path="/dashboard" element={<Dashboard />} />
           
           {/* Leads route - Imported statically */}
           <Route path="/leads" element={<Leads />} />
-          <Route path="/leads/*" element={<Leads />} /> {/* Add this to handle nested routes */}
+          <Route path="/leads/*" element={<Leads />} /> {/* Handle nested routes */}
           
           {/* Other protected routes with Suspense */}
           <Route path="/lead-journey" element={
