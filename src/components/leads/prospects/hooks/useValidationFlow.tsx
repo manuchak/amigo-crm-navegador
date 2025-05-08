@@ -1,10 +1,9 @@
-
 import { useState } from 'react';
 import { Prospect } from '@/services/prospectService';
 import { useValidation } from '@/components/leads/validation/useValidation';
 import { useToast } from '@/hooks/use-toast';
 import { useLeads } from '@/context/LeadsContext';
-import { useAuth } from '@/context/AuthContext';
+import { useAuth } from '@/context/auth';
 
 export const useValidationFlow = (
   prospect: Prospect,

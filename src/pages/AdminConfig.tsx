@@ -3,7 +3,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
-import { useAuth } from '@/context/AuthContext';
+import { useAuth } from '@/context/auth';
 import UserManagementPanel from '@/components/admin/UserManagementPanel';
 import UserPermissionConfig from '@/components/user-management/UserPermissionConfig';
 import { Settings, Users, Lock, RefreshCw, AlertTriangle, Database, ShieldCheck } from 'lucide-react';

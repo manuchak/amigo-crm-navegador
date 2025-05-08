@@ -13,7 +13,7 @@ import { useCarData } from "@/hooks/useCarData";
 import VehiclesFieldArray from "./VehiclesFieldArray";
 import AddressSection from "./address/AddressSection";
 import InstallerWorkshopField from "./address/InstallerWorkshopField";
-import { useAuth } from "@/context/AuthContext";
+import { useAuth } from "@/context/auth";
 import { InstallerSelectMinimal } from "./installers/InstallerSelectMinimal";
 import type { Tables } from "@/integrations/supabase/types";
 

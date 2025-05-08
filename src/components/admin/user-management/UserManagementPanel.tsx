@@ -1,8 +1,7 @@
-
 import React, { useEffect, useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Loader2, RefreshCw, AlertTriangle, Users, Search, Filter } from 'lucide-react';
-import { useAuth } from '@/context/AuthContext';
+import { useAuth } from '@/context/auth';
 import { UserData } from '@/types/auth';
 import { toast } from 'sonner';
 import { 

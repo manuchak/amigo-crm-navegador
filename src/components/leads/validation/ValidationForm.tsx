@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Form } from '@/components/ui/form';
 import { Card, CardContent } from '@/components/ui/card';
@@ -11,7 +10,7 @@ import { ValidationNotes } from './components/ValidationNotes';
 import { FormActions } from './components/FormActions';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertTriangle, InfoIcon, Loader2, ShieldCheck } from 'lucide-react';
-import { useAuth } from '@/context/AuthContext';
+import { useAuth } from '@/context/auth';
 
 interface ValidationFormProps {
   formData: ValidationFormData;
