@@ -1,0 +1,65 @@
+
+<svg width="800" height="180" viewBox="0 0 800 180" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background -->
+  <rect width="800" height="180" fill="#F5F5F7" rx="12" ry="12" />
+  
+  <!-- Flow connection lines -->
+  <path d="M110,90 C160,90 180,90 230,90" stroke="#E0E0E0" stroke-width="3" stroke-dasharray="6,3" fill="none" />
+  <path d="M290,90 C340,90 360,90 410,90" stroke="#E0E0E0" stroke-width="3" stroke-dasharray="6,3" fill="none" />
+  <path d="M470,90 C520,90 540,90 590,90" stroke="#E0E0E0" stroke-width="3" stroke-dasharray="6,3" fill="none" />
+  <path d="M650,90 C700,90 720,90 770,90" stroke="#E0E0E0" stroke-width="3" stroke-dasharray="6,3" fill="none" />
+  
+  <!-- Step 1: Interviews -->
+  <circle cx="70" cy="90" r="40" fill="url(#blueGradient)" opacity="0.9" />
+  <circle cx="70" cy="90" r="35" fill="white" />
+  <text x="70" y="95" font-family="SF Pro Display, -apple-system, BlinkMacSystemFont, sans-serif" font-size="16" font-weight="600" text-anchor="middle" fill="#3B82F6">1</text>
+  <text x="70" y="140" font-family="SF Pro Display, -apple-system, BlinkMacSystemFont, sans-serif" font-size="14" font-weight="600" text-anchor="middle" fill="#1D1D1F">Entrevistas</text>
+  
+  <!-- Step 2: Validation -->
+  <circle cx="250" cy="90" r="40" fill="url(#indigoGradient)" opacity="0.9" />
+  <circle cx="250" cy="90" r="35" fill="white" />
+  <text x="250" y="95" font-family="SF Pro Display, -apple-system, BlinkMacSystemFont, sans-serif" font-size="16" font-weight="600" text-anchor="middle" fill="#6366F1">2</text>
+  <text x="250" y="140" font-family="SF Pro Display, -apple-system, BlinkMacSystemFont, sans-serif" font-size="14" font-weight="600" text-anchor="middle" fill="#1D1D1F">Validación</text>
+  
+  <!-- Step 3: Documentation -->
+  <circle cx="430" cy="90" r="40" fill="url(#purpleGradient)" opacity="0.9" />
+  <circle cx="430" cy="90" r="35" fill="white" />
+  <text x="430" y="95" font-family="SF Pro Display, -apple-system, BlinkMacSystemFont, sans-serif" font-size="16" font-weight="600" text-anchor="middle" fill="#8B5CF6">3</text>
+  <text x="430" y="140" font-family="SF Pro Display, -apple-system, BlinkMacSystemFont, sans-serif" font-size="14" font-weight="600" text-anchor="middle" fill="#1D1D1F">Documentación</text>
+  
+  <!-- Step 4: Tests -->
+  <circle cx="610" cy="90" r="40" fill="url(#pinkGradient)" opacity="0.9" />
+  <circle cx="610" cy="90" r="35" fill="white" />
+  <text x="610" y="95" font-family="SF Pro Display, -apple-system, BlinkMacSystemFont, sans-serif" font-size="16" font-weight="600" text-anchor="middle" fill="#EC4899">4</text>
+  <text x="610" y="140" font-family="SF Pro Display, -apple-system, BlinkMacSystemFont, sans-serif" font-size="14" font-weight="600" text-anchor="middle" fill="#1D1D1F">Exámenes</text>
+  
+  <!-- Step 5: Hiring -->
+  <circle cx="790" cy="90" r="40" fill="url(#emeraldGradient)" opacity="0.9" />
+  <circle cx="790" cy="90" r="35" fill="white" />
+  <text x="790" y="95" font-family="SF Pro Display, -apple-system, BlinkMacSystemFont, sans-serif" font-size="16" font-weight="600" text-anchor="middle" fill="#10B981">5</text>
+  <text x="790" y="140" font-family="SF Pro Display, -apple-system, BlinkMacSystemFont, sans-serif" font-size="14" font-weight="600" text-anchor="middle" fill="#1D1D1F">Contratación</text>
+  
+  <!-- Gradient Definitions -->
+  <defs>
+    <linearGradient id="blueGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#93C5FD" />
+      <stop offset="100%" stop-color="#3B82F6" />
+    </linearGradient>
+    <linearGradient id="indigoGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#A5B4FC" />
+      <stop offset="100%" stop-color="#6366F1" />
+    </linearGradient>
+    <linearGradient id="purpleGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#C4B5FD" />
+      <stop offset="100%" stop-color="#8B5CF6" />
+    </linearGradient>
+    <linearGradient id="pinkGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#F9A8D4" />
+      <stop offset="100%" stop-color="#EC4899" />
+    </linearGradient>
+    <linearGradient id="emeraldGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#6EE7B7" />
+      <stop offset="100%" stop-color="#10B981" />
+    </linearGradient>
+  </defs>
+</svg>

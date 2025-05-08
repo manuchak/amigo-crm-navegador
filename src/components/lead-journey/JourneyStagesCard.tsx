@@ -21,8 +21,8 @@ export const JourneyStagesCard: React.FC = () => {
           
           <div className="flex justify-center mb-8">
             <img 
-              src="/lovable-uploads/0ebda72f-8dd8-452d-b8c8-ead2d1363f28.png" 
-              alt="Diagrama de flujo del proceso de reclutamiento" 
+              src="/leads-journey-workflow.svg" 
+              alt="Proceso de reclutamiento de custodios" 
               className="max-w-full h-auto rounded-lg shadow-sm border border-slate-100"
             />
           </div>
