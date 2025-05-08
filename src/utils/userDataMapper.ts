@@ -5,6 +5,7 @@ import { supabase } from '@/integrations/supabase/client';
 
 /**
  * Maps a Supabase User to the application's UserData format
+ * with improved error handling and logging
  */
 export const mapUserData = async (user: User | null): Promise<UserData | null> => {
   if (!user) {
@@ -20,34 +21,22 @@ export const mapUserData = async (user: User | null): Promise<UserData | null> =
       .from('profiles')
       .select('*')
       .eq('id', user.id)
-      .single();
+      .maybeSingle();
     
-    // Handle error fetching profile
     if (profileError) {
       console.error('Error fetching user profile:', profileError);
-      
-      // Create a minimal UserData object if profile fetch fails
-      return {
-        uid: user.id,
-        email: user.email || '',
-        displayName: user.user_metadata?.display_name || user.email || '',
-        role: 'unverified' as UserRole,
-        emailVerified: user.email_confirmed_at ? true : false,
-        createdAt: new Date(user.created_at),
-        lastLogin: new Date(),
-      };
+      // Don't return early, continue to create a minimal user object
     }
     
     // Get user role
     const { data: roleData, error: roleError } = await supabase
       .rpc('get_user_role', { user_uid: user.id });
     
-    // Handle error fetching role
     if (roleError) {
       console.error('Error fetching user role:', roleError);
     }
     
-    // Create user data object
+    // Create user data object with fallbacks for all properties
     const userData: UserData = {
       uid: user.id,
       email: user.email || '',
@@ -57,7 +46,7 @@ export const mapUserData = async (user: User | null): Promise<UserData | null> =
       // Consider email verified if confirmed_at exists
       emailVerified: user.email_confirmed_at ? true : false,
       // Use timestamps from profile if available, otherwise use current date
-      createdAt: profileData?.created_at ? new Date(profileData.created_at) : new Date(),
+      createdAt: profileData?.created_at ? new Date(profileData.created_at) : new Date(user.created_at),
       lastLogin: profileData?.last_login ? new Date(profileData.last_login) : new Date(),
       photoURL: profileData?.photo_url || undefined,
     };

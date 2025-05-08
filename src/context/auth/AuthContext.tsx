@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { toast } from 'sonner';
 import { AuthContextProps, UserData, UserRole } from '@/types/auth';
@@ -135,10 +136,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return { user: null, error: new Error("Could not sign in") };
       }
 
-      // Map the Supabase user to our UserData format
-      const mappedUser = await mapUserData(data.user);
       console.log("Login successful:", data.user.email);
-      return { user: mappedUser, error: null };
+      return { user: data.user, error: null };
     } catch (error: any) {
       console.error("Error signing in:", error);
       setLoading(false);  // Set loading to false on catch
@@ -167,21 +166,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (error) {
         console.error("Registration error:", error);
         toast.error(`Error al registrar: ${error.message}`);
-        setLoading(false);
         return { user: null, error };
       }
       
-      // Create a UserData object from the registered user
-      const mappedUser = data.user ? await mapUserData(data.user) : null;
-      
       toast.success('Cuenta creada con éxito. Por favor, verifica tu correo electrónico.');
-      setLoading(false);
-      return { user: mappedUser, error: null };
+      return { user: data.user, error: null };
     } catch (error: any) {
       console.error("Error registering:", error);
       toast.error(`Error inesperado: ${error.message || 'Desconocido'}`);
-      setLoading(false);
       return { user: null, error };
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -255,7 +250,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         
         // Refresh user data if the updated user is the current user
         if (supabaseUser && userId === supabaseUser.id) {
-          await contextValue.refreshUserData();
+          await refreshUserData();
         }
         
         return { success: true };
