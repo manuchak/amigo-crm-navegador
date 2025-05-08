@@ -1,3 +1,4 @@
+
 import React, { Suspense, useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from 'sonner';
@@ -8,9 +9,9 @@ import Login from './pages/Login';
 import Auth from './pages/Auth';
 import VerifyConfirmation from './pages/VerifyConfirmation';
 import Dashboard from './pages/Dashboard';
-import Leads from './pages/Leads';
+import Leads from './pages/Leads'; // Imported statically instead of dynamically
 import Prospects from './pages/Prospects';
-import Performance from './pages/Performance';
+import Performance from './pages/Performance'; // Also statically imported
 
 // Use dynamic imports for non-critical components
 const LeadJourney = React.lazy(() => import('./pages/LeadJourney'));
