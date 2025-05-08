@@ -34,10 +34,10 @@
   <text x="610" y="140" font-family="SF Pro Display, -apple-system, BlinkMacSystemFont, sans-serif" font-size="14" font-weight="600" text-anchor="middle" fill="#1D1D1F">Exámenes</text>
   
   <!-- Step 5: Hiring -->
-  <circle cx="790" cy="90" r="40" fill="url(#emeraldGradient)" opacity="0.9" />
-  <circle cx="790" cy="90" r="35" fill="white" />
-  <text x="790" y="95" font-family="SF Pro Display, -apple-system, BlinkMacSystemFont, sans-serif" font-size="16" font-weight="600" text-anchor="middle" fill="#10B981">5</text>
-  <text x="790" y="140" font-family="SF Pro Display, -apple-system, BlinkMacSystemFont, sans-serif" font-size="14" font-weight="600" text-anchor="middle" fill="#1D1D1F">Contratación</text>
+  <circle cx="730" cy="90" r="40" fill="url(#emeraldGradient)" opacity="0.9" />
+  <circle cx="730" cy="90" r="35" fill="white" />
+  <text x="730" y="95" font-family="SF Pro Display, -apple-system, BlinkMacSystemFont, sans-serif" font-size="16" font-weight="600" text-anchor="middle" fill="#10B981">5</text>
+  <text x="730" y="140" font-family="SF Pro Display, -apple-system, BlinkMacSystemFont, sans-serif" font-size="14" font-weight="600" text-anchor="middle" fill="#1D1D1F">Contratación</text>
   
   <!-- Gradient Definitions -->
   <defs>
