@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { LeadForInterview, StaffUser, LeadFilter, UseLeadInterviewsReturn } from './types';
@@ -30,8 +29,15 @@ export const useLeadInterviews = (): UseLeadInterviewsReturn => {
     try {
       setLoading(true);
       
-      // Get current session
-      const { data: sessionData } = await supabase.auth.getSession();
+      // Get current session - using the proper getSession() method
+      const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+      
+      if (sessionError) {
+        console.error('Error getting session:', sessionError);
+        setLoading(false);
+        return;
+      }
+      
       const session = sessionData.session;
       
       if (!session) {

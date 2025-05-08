@@ -4,9 +4,10 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { Toaster } from 'sonner';
 import { AuthProvider } from '@/context/AuthContext';
 
-// Import components without using dynamic imports for critical paths
+// Import ALL auth-related components statically to prevent dynamic import issues
 import Login from './pages/Login';
 import Auth from './pages/Auth';
+import VerifyConfirmation from './pages/VerifyConfirmation';
 
 // Use dynamic imports for non-critical components
 const Dashboard = React.lazy(() => import('./pages/Dashboard'));
@@ -14,7 +15,6 @@ const LeadJourney = React.lazy(() => import('./pages/LeadJourney'));
 const Settings = React.lazy(() => import('./pages/Settings'));
 const UserManagement = React.lazy(() => import('./pages/UserManagement'));
 const NotFound = React.lazy(() => import('./pages/NotFound'));
-const VerifyConfirmation = React.lazy(() => import('./pages/VerifyConfirmation'));
 
 // Use a proper loading component
 const LoadingFallback = () => (
@@ -31,19 +31,28 @@ function App() {
     <AuthProvider>
       <Router>
         <Toaster position="top-right" richColors closeButton />
-        <Suspense fallback={<LoadingFallback />}>
-          <Routes>
-            <Route path="/login" element={<Login />} />
-            <Route path="/auth" element={<Auth />} />
-            <Route path="/dashboard" element={<Dashboard />} />
-            <Route path="/lead-journey" element={<LeadJourney />} />
-            <Route path="/settings" element={<Settings />} />
-            <Route path="/user-management" element={<UserManagement />} />
-            <Route path="/verify-confirmation" element={<VerifyConfirmation />} />
-            <Route path="/" element={<Navigate replace to="/dashboard" />} />
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </Suspense>
+        <Routes>
+          {/* Authentication routes - NO Suspense wrapper for auth routes */}
+          <Route path="/login" element={<Login />} />
+          <Route path="/auth" element={<Auth />} />
+          <Route path="/verify-confirmation" element={<VerifyConfirmation />} />
+          
+          {/* Protected routes with Suspense */}
+          <Route path="/" element={<Navigate replace to="/dashboard" />} />
+          <Route path="*" 
+            element={
+              <Suspense fallback={<LoadingFallback />}>
+                <Routes>
+                  <Route path="/dashboard" element={<Dashboard />} />
+                  <Route path="/lead-journey" element={<LeadJourney />} />
+                  <Route path="/settings" element={<Settings />} />
+                  <Route path="/user-management" element={<UserManagement />} />
+                  <Route path="*" element={<NotFound />} />
+                </Routes>
+              </Suspense>
+            } 
+          />
+        </Routes>
       </Router>
     </AuthProvider>
   );

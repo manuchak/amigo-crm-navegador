@@ -1,121 +1,157 @@
 
 import React, { useState, useEffect } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import EmailSignInForm from '@/components/auth/EmailSignInForm';
-import EmailSignUpForm from '@/components/auth/EmailSignUpForm';
-import { useAuth } from '@/context/auth/AuthContext';
-import { Shield, Loader2 } from 'lucide-react';
-import ForgotPasswordForm from '@/components/auth/ForgotPasswordForm';
+import { useNavigate, Link } from 'react-router-dom';
+import { useAuth } from '@/context/AuthContext';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Label } from '@/components/ui/label';
+import { Loader2 } from 'lucide-react';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { useForm } from 'react-hook-form';
+import { z } from 'zod';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+
+const formSchema = z.object({
+  email: z.string().email('Email inválido'),
+  password: z.string().min(6, 'La contraseña debe tener al menos 6 caracteres'),
+});
+
+type LoginFormValues = z.infer<typeof formSchema>;
 
 const Login = () => {
-  const { currentUser, loading } = useAuth();
-  const [authTab, setAuthTab] = useState('signin');
-  const [showForgotPassword, setShowForgotPassword] = useState(false);
+  const { signIn, currentUser, loading } = useAuth();
   const navigate = useNavigate();
-  const location = useLocation();
-  
-  // Get return URL from location state
-  const from = ((location.state as any)?.from?.pathname) || '/dashboard';
-  
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const form = useForm<LoginFormValues>({
+    resolver: zodResolver(formSchema),
+    defaultValues: {
+      email: '',
+      password: '',
+    },
+  });
+
+  // Redirect if user is already authenticated
   useEffect(() => {
-    // Log authentication state for debugging
-    console.log('Login component state:', { currentUser, loading, from });
-    
-    // Only redirect if we have a user and we're not loading
-    if (currentUser && !loading) {
-      console.log('User authenticated, redirecting to:', from);
-      navigate(from, { replace: true });
+    if (currentUser) {
+      navigate('/dashboard');
     }
-  }, [currentUser, loading, navigate, from]);
-  
-  // Handle forgot password view
-  const handleForgotPassword = () => {
-    setShowForgotPassword(true);
+  }, [currentUser, navigate]);
+
+  const onSubmit = async (values: LoginFormValues) => {
+    try {
+      setIsSubmitting(true);
+      const { user, error } = await signIn(values.email, values.password);
+      
+      if (error) {
+        console.error('Login error:', error);
+        if (error.message) {
+          form.setError('root', { message: error.message as string });
+        }
+        return;
+      }
+      
+      if (user) {
+        navigate('/dashboard');
+      }
+    } catch (err) {
+      console.error('Unexpected error during login:', err);
+      form.setError('root', { message: 'Error inesperado. Por favor, inténtelo de nuevo.' });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
-  
-  const handleBackToLogin = () => {
-    setShowForgotPassword(false);
-  };
-  
-  const handleLoginSuccess = () => {
-    console.log('Login success triggered in Login component');
-    // No need to navigate here as the useEffect will handle it when currentUser is updated
-  };
-  
-  // Render a simple loading state with timeout safety
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="text-center">
-          <Loader2 className="h-8 w-8 animate-spin mx-auto text-primary mb-4" />
-          <p className="text-muted-foreground">Verificando sesión...</p>
-          <p className="text-xs text-muted-foreground mt-2">
-            Si esto tarda demasiado, puedes <button 
-            onClick={() => window.location.reload()}
-            className="underline text-primary">recargar la página</button>
-          </p>
-        </div>
-      </div>
-    );
-  }
-  
-  // Render forgot password form
-  if (showForgotPassword) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
-        <Card className="w-full max-w-md shadow-lg">
-          <CardHeader className="space-y-1 flex flex-col items-center">
-            <div className="w-12 h-12 bg-primary rounded-full flex items-center justify-center mb-4">
-              <Shield className="h-6 w-6 text-white" />
-            </div>
-            <CardTitle className="text-2xl font-bold text-center">Restablecer contraseña</CardTitle>
-            <CardDescription className="text-center">
-              Ingresa tu correo electrónico para recibir instrucciones
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <ForgotPasswordForm onBack={handleBackToLogin} />
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-  
+
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 p-4">
+    <div className="flex min-h-screen items-center justify-center bg-slate-50 p-4">
       <Card className="w-full max-w-md shadow-lg">
-        <CardHeader className="space-y-1 flex flex-col items-center">
-          <div className="w-12 h-12 bg-primary rounded-full flex items-center justify-center mb-4">
-            <Shield className="h-6 w-6 text-white" />
-          </div>
-          <CardTitle className="text-2xl font-bold text-center">CustodiosCRM</CardTitle>
-          <CardDescription className="text-center">
-            Inicia sesión o regístrate para acceder al sistema
+        <CardHeader className="space-y-1">
+          <CardTitle className="text-2xl font-bold tracking-tight">Iniciar sesión</CardTitle>
+          <CardDescription>
+            Ingresa tus credenciales para acceder a tu cuenta
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <Tabs value={authTab} onValueChange={setAuthTab} className="w-full">
-            <TabsList className="grid w-full grid-cols-2 mb-4">
-              <TabsTrigger value="signin">Ingresar</TabsTrigger>
-              <TabsTrigger value="signup">Registrarse</TabsTrigger>
-            </TabsList>
-            <TabsContent value="signin">
-              <EmailSignInForm 
-                onForgotPassword={handleForgotPassword}
-                onSuccess={handleLoginSuccess}
+        <CardContent>
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+              <FormField
+                control={form.control}
+                name="email"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Email</FormLabel>
+                    <FormControl>
+                      <Input 
+                        placeholder="nombre@empresa.com" 
+                        autoComplete="email"
+                        disabled={isSubmitting}
+                        {...field} 
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
               />
-            </TabsContent>
-            <TabsContent value="signup">
-              <EmailSignUpForm />
-            </TabsContent>
-          </Tabs>
+              
+              <FormField
+                control={form.control}
+                name="password"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Contraseña</FormLabel>
+                    <FormControl>
+                      <Input 
+                        type="password" 
+                        autoComplete="current-password"
+                        disabled={isSubmitting}
+                        {...field} 
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              {form.formState.errors.root && (
+                <div className="text-sm text-red-500 mt-2">
+                  {form.formState.errors.root.message}
+                </div>
+              )}
+              
+              <Button 
+                type="submit" 
+                className="w-full" 
+                disabled={isSubmitting || loading}
+              >
+                {(isSubmitting || loading) ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" /> 
+                    Cargando...
+                  </>
+                ) : (
+                  'Iniciar sesión'
+                )}
+              </Button>
+            </form>
+          </Form>
           
-          <div className="text-center text-sm mt-6 text-muted-foreground">
-            Al iniciar sesión, aceptas nuestros términos y condiciones de servicio.
+          <div className="mt-4 text-center">
+            <Link 
+              to="/auth?mode=reset" 
+              className="text-sm text-blue-600 hover:text-blue-800 transition"
+            >
+              ¿Olvidaste tu contraseña?
+            </Link>
           </div>
         </CardContent>
+        <CardFooter className="flex flex-col items-center space-y-2">
+          <div className="text-sm text-muted-foreground">
+            ¿No tienes una cuenta?
+          </div>
+          <Button variant="outline" className="w-full" asChild>
+            <Link to="/auth?mode=register">Registrarse</Link>
+          </Button>
+        </CardFooter>
       </Card>
     </div>
   );
