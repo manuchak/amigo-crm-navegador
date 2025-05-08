@@ -19,14 +19,16 @@ export const JourneyStagesCard: React.FC = () => {
             <p className="text-slate-500 mt-1">Visualización del proceso completo de reclutamiento.</p>
           </div>
           
-          <div className="flex justify-center mb-8 overflow-hidden">
-            <div className="w-full max-w-4xl">
-              <img 
-                src="/leads-journey-workflow.svg" 
-                alt="Proceso de reclutamiento de custodios" 
-                className="w-full h-auto object-contain"
-                style={{ maxHeight: "180px" }}
-              />
+          <div className="flex justify-center mb-8">
+            <div className="w-full overflow-hidden">
+              <div className="w-full flex justify-center">
+                <img 
+                  src="/leads-journey-workflow.svg" 
+                  alt="Proceso de reclutamiento de custodios" 
+                  className="w-full max-w-5xl px-2"
+                  style={{ maxHeight: "180px", objectFit: "contain" }}
+                />
+              </div>
             </div>
           </div>
           
@@ -217,4 +219,3 @@ export const JourneyStagesCard: React.FC = () => {
     </div>
   );
 };
-

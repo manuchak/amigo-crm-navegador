@@ -1,43 +1,43 @@
 
-<svg width="800" height="180" viewBox="0 0 800 180" xmlns="http://www.w3.org/2000/svg">
+<svg width="100%" height="180" viewBox="0 0 900 180" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg">
   <!-- Background -->
-  <rect width="800" height="180" fill="#F5F5F7" rx="12" ry="12" />
+  <rect width="900" height="180" fill="#F5F5F7" rx="12" ry="12" />
   
   <!-- Flow connection lines -->
-  <path d="M110,90 C160,90 180,90 230,90" stroke="#E0E0E0" stroke-width="3" stroke-dasharray="6,3" fill="none" />
-  <path d="M290,90 C340,90 360,90 410,90" stroke="#E0E0E0" stroke-width="3" stroke-dasharray="6,3" fill="none" />
-  <path d="M470,90 C520,90 540,90 590,90" stroke="#E0E0E0" stroke-width="3" stroke-dasharray="6,3" fill="none" />
-  <path d="M650,90 C700,90 720,90 770,90" stroke="#E0E0E0" stroke-width="3" stroke-dasharray="6,3" fill="none" />
+  <path d="M125,90 C175,90 195,90 245,90" stroke="#E0E0E0" stroke-width="3" stroke-dasharray="6,3" fill="none" />
+  <path d="M305,90 C355,90 375,90 425,90" stroke="#E0E0E0" stroke-width="3" stroke-dasharray="6,3" fill="none" />
+  <path d="M485,90 C535,90 555,90 605,90" stroke="#E0E0E0" stroke-width="3" stroke-dasharray="6,3" fill="none" />
+  <path d="M665,90 C715,90 735,90 785,90" stroke="#E0E0E0" stroke-width="3" stroke-dasharray="6,3" fill="none" />
   
   <!-- Step 1: Interviews -->
-  <circle cx="70" cy="90" r="40" fill="url(#blueGradient)" opacity="0.9" />
-  <circle cx="70" cy="90" r="35" fill="white" />
-  <text x="70" y="95" font-family="Inter, -apple-system, BlinkMacSystemFont, sans-serif" font-size="16" font-weight="600" text-anchor="middle" fill="#3B82F6">1</text>
-  <text x="70" y="145" font-family="Inter, -apple-system, BlinkMacSystemFont, sans-serif" font-size="13" font-weight="600" text-anchor="middle" fill="#1D1D1F">Entrevistas</text>
+  <circle cx="95" cy="90" r="40" fill="url(#blueGradient)" opacity="0.9" />
+  <circle cx="95" cy="90" r="35" fill="white" />
+  <text x="95" y="95" font-family="Inter, -apple-system, BlinkMacSystemFont, sans-serif" font-size="16" font-weight="600" text-anchor="middle" fill="#3B82F6">1</text>
+  <text x="95" y="145" font-family="Inter, -apple-system, BlinkMacSystemFont, sans-serif" font-size="13" font-weight="500" text-anchor="middle" fill="#1D1D1F">Entrevistas</text>
   
   <!-- Step 2: Validation -->
-  <circle cx="250" cy="90" r="40" fill="url(#indigoGradient)" opacity="0.9" />
-  <circle cx="250" cy="90" r="35" fill="white" />
-  <text x="250" y="95" font-family="Inter, -apple-system, BlinkMacSystemFont, sans-serif" font-size="16" font-weight="600" text-anchor="middle" fill="#6366F1">2</text>
-  <text x="250" y="145" font-family="Inter, -apple-system, BlinkMacSystemFont, sans-serif" font-size="13" font-weight="600" text-anchor="middle" fill="#1D1D1F">Validación</text>
+  <circle cx="275" cy="90" r="40" fill="url(#indigoGradient)" opacity="0.9" />
+  <circle cx="275" cy="90" r="35" fill="white" />
+  <text x="275" y="95" font-family="Inter, -apple-system, BlinkMacSystemFont, sans-serif" font-size="16" font-weight="600" text-anchor="middle" fill="#6366F1">2</text>
+  <text x="275" y="145" font-family="Inter, -apple-system, BlinkMacSystemFont, sans-serif" font-size="13" font-weight="500" text-anchor="middle" fill="#1D1D1F">Validación</text>
   
   <!-- Step 3: Documentation -->
-  <circle cx="430" cy="90" r="40" fill="url(#purpleGradient)" opacity="0.9" />
-  <circle cx="430" cy="90" r="35" fill="white" />
-  <text x="430" y="95" font-family="Inter, -apple-system, BlinkMacSystemFont, sans-serif" font-size="16" font-weight="600" text-anchor="middle" fill="#8B5CF6">3</text>
-  <text x="430" y="145" font-family="Inter, -apple-system, BlinkMacSystemFont, sans-serif" font-size="13" font-weight="600" text-anchor="middle" fill="#1D1D1F">Documentación</text>
+  <circle cx="455" cy="90" r="40" fill="url(#purpleGradient)" opacity="0.9" />
+  <circle cx="455" cy="90" r="35" fill="white" />
+  <text x="455" y="95" font-family="Inter, -apple-system, BlinkMacSystemFont, sans-serif" font-size="16" font-weight="600" text-anchor="middle" fill="#8B5CF6">3</text>
+  <text x="455" y="145" font-family="Inter, -apple-system, BlinkMacSystemFont, sans-serif" font-size="13" font-weight="500" text-anchor="middle" fill="#1D1D1F">Documentación</text>
   
   <!-- Step 4: Tests -->
-  <circle cx="610" cy="90" r="40" fill="url(#pinkGradient)" opacity="0.9" />
-  <circle cx="610" cy="90" r="35" fill="white" />
-  <text x="610" y="95" font-family="Inter, -apple-system, BlinkMacSystemFont, sans-serif" font-size="16" font-weight="600" text-anchor="middle" fill="#EC4899">4</text>
-  <text x="610" y="145" font-family="Inter, -apple-system, BlinkMacSystemFont, sans-serif" font-size="13" font-weight="600" text-anchor="middle" fill="#1D1D1F">Exámenes</text>
+  <circle cx="635" cy="90" r="40" fill="url(#pinkGradient)" opacity="0.9" />
+  <circle cx="635" cy="90" r="35" fill="white" />
+  <text x="635" y="95" font-family="Inter, -apple-system, BlinkMacSystemFont, sans-serif" font-size="16" font-weight="600" text-anchor="middle" fill="#EC4899">4</text>
+  <text x="635" y="145" font-family="Inter, -apple-system, BlinkMacSystemFont, sans-serif" font-size="13" font-weight="500" text-anchor="middle" fill="#1D1D1F">Exámenes</text>
   
   <!-- Step 5: Hiring -->
-  <circle cx="770" cy="90" r="40" fill="url(#emeraldGradient)" opacity="0.9" />
-  <circle cx="770" cy="90" r="35" fill="white" />
-  <text x="770" y="95" font-family="Inter, -apple-system, BlinkMacSystemFont, sans-serif" font-size="16" font-weight="600" text-anchor="middle" fill="#10B981">5</text>
-  <text x="770" y="145" font-family="Inter, -apple-system, BlinkMacSystemFont, sans-serif" font-size="13" font-weight="600" text-anchor="middle" fill="#1D1D1F">Contratación</text>
+  <circle cx="815" cy="90" r="40" fill="url(#emeraldGradient)" opacity="0.9" />
+  <circle cx="815" cy="90" r="35" fill="white" />
+  <text x="815" y="95" font-family="Inter, -apple-system, BlinkMacSystemFont, sans-serif" font-size="16" font-weight="600" text-anchor="middle" fill="#10B981">5</text>
+  <text x="815" y="145" font-family="Inter, -apple-system, BlinkMacSystemFont, sans-serif" font-size="13" font-weight="500" text-anchor="middle" fill="#1D1D1F">Contratación</text>
   
   <!-- Gradient Definitions -->
   <defs>
