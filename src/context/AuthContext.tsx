@@ -1,8 +1,10 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { toast } from 'sonner';
-import { AuthContextProps, UserData } from '@/types/auth';
+import { AuthContextProps, UserData, UserRole } from '@/types/auth';
 import { supabase } from '@/integrations/supabase/client';
+import { User, Session } from '@supabase/supabase-js';
+import { mapUserData } from './hooks/utils/userDataMapper';
 
 // Create a context with a default undefined value
 const AuthContext = createContext<AuthContextProps | undefined>(undefined);
@@ -19,64 +21,102 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [userData, setUserData] = useState<UserData | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [isInitializing, setIsInitializing] = useState<boolean>(true);
+  const [supabaseUser, setSupabaseUser] = useState<User | null>(null);
+  const [session, setSession] = useState<Session | null>(null);
   
-  // Escuchar cambios en el estado de autenticación
+  // Listen for authentication state changes
   useEffect(() => {
-    console.log('Configurando escuchas de autenticación...');
+    console.log('Setting up authentication listeners and checking existing session...');
+    let mounted = true;
     
-    // 1. Primero configurar el listener para cambios de estado
+    // Set up the auth state listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        console.log('Evento de autenticación:', event);
+      (event, newSession) => {
+        console.log('Auth state change event:', event);
         
-        if (session?.user) {
-          try {
-            // Obtener datos del perfil
-            const { data: profileData } = await supabase
-              .from('profiles')
-              .select('*')
-              .eq('id', session.user.id)
-              .single();
+        if (!mounted) return;
+        
+        // Update session immediately to avoid race conditions
+        setSession(newSession);
+        setSupabaseUser(newSession?.user || null);
+        
+        if (newSession?.user) {
+          // Use setTimeout to avoid potential deadlocks
+          setTimeout(async () => {
+            if (!mounted) return;
             
-            // Obtener rol del usuario
-            const { data: roleData } = await supabase
-              .rpc('get_user_role', { user_uid: session.user.id });
-            
-            // Crear objeto userData
-            const user: UserData = {
-              uid: session.user.id,
-              email: session.user.email || '',
-              displayName: profileData?.display_name || session.user.email || '',
-              role: roleData as any || 'unverified',
-              emailVerified: session.user.email_confirmed_at ? true : false,
-              createdAt: profileData?.created_at ? new Date(profileData.created_at) : new Date(),
-              lastLogin: profileData?.last_login ? new Date(profileData.last_login) : new Date(),
-            };
-            
-            setUserData(user);
-          } catch (error) {
-            console.error('Error al obtener datos del perfil:', error);
-          }
+            try {
+              // Get profile data
+              const mappedUserData = await mapUserData(newSession.user);
+              if (mounted) {
+                setUserData(mappedUserData);
+                console.log('Authenticated user loaded:', mappedUserData);
+              }
+            } catch (error) {
+              console.error('Error getting profile data:', error);
+              if (mounted) setUserData(null);
+            } finally {
+              if (mounted) {
+                setLoading(false);
+                setIsInitializing(false);
+              }
+            }
+          }, 0);
         } else {
-          setUserData(null);
+          if (mounted) {
+            console.log('No active session in auth state change');
+            setUserData(null);
+            setLoading(false);
+            setIsInitializing(false);
+          }
         }
-        
-        setLoading(false);
       }
     );
 
-    // 2. Verificar si ya hay una sesión activa
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      console.log('Sesión existente:', session ? 'Sí' : 'No');
-      
-      if (!session) {
-        setLoading(false);
-        setIsInitializing(false);
+    // THEN check for an existing session
+    const checkSession = async () => {
+      try {
+        const { data, error } = await supabase.auth.getSession();
+        
+        if (error) {
+          console.error('Error getting session:', error);
+          if (mounted) {
+            setLoading(false);
+            setIsInitializing(false);
+          }
+          return;
+        }
+        
+        if (data.session) {
+          console.log('Existing session found:', data.session.user.email);
+          if (mounted) {
+            setSession(data.session);
+            setSupabaseUser(data.session.user);
+          }
+          
+          // User data will be updated by the auth state listener
+        } else {
+          console.log('No existing session');
+          if (mounted) {
+            setLoading(false);
+            setIsInitializing(false);
+          }
+        }
+      } catch (err) {
+        console.error('Unexpected error checking session:', err);
+        if (mounted) {
+          setLoading(false);
+          setIsInitializing(false);
+        }
       }
-      // No actualizamos el estado del usuario aquí porque el listener se encargará de eso
-    });
+    };
+
+    // Run session check
+    checkSession();
 
     return () => {
+      console.log('Cleaning up auth listeners');
+      mounted = false;
       subscription.unsubscribe();
     };
   }, []);
@@ -187,10 +227,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // Create the context value with all the authentication methods
   const contextValue: AuthContextProps = {
-    user: userData,
-    currentUser: userData,
+    user: supabaseUser, // Native Supabase user
+    currentUser: userData, // Our UserData format
     userData,
-    session: null,
+    session,
     loading,
     isInitializing,
     signIn,
