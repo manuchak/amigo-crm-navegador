@@ -15,7 +15,8 @@ import {
   ArrowRight,
   Users,
   UserCheck,
-  UserMinus
+  UserMinus,
+  RefreshCw
 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { useLeadInterviews } from '@/hooks/useLeadInterviews';
