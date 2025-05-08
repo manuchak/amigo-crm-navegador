@@ -99,12 +99,16 @@ export const useLeadInterviews = () => {
     
     setLoadingStaff(true);
     try {
+      // Get the current access token
+      const { data: sessionData } = await supabase.auth.getSession();
+      const accessToken = sessionData.session?.access_token;
+      
       // Make a fetch request to our edge function
       const response = await fetch('https://beefjsdgrdeiymzxwxru.supabase.co/functions/v1/get_users_by_role', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${supabase.auth.session()?.access_token}`
+          'Authorization': `Bearer ${accessToken}`
         },
         body: JSON.stringify({
           role: 'supply'
@@ -118,7 +122,7 @@ export const useLeadInterviews = () => {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${supabase.auth.session()?.access_token}`
+          'Authorization': `Bearer ${accessToken}`
         },
         body: JSON.stringify({
           role: 'supply_admin'
