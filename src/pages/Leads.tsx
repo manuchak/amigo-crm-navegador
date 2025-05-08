@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, Suspense } from 'react';
 import PageLayout from '@/components/layout/PageLayout';
 import LeadsDashboard from '@/components/leads/LeadsDashboard';
@@ -11,6 +10,7 @@ import LeadsCrmDashboard from '@/components/leads/LeadsCrmDashboard';
 import { useAuth } from '@/context/auth';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertCircle } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
 const Leads: React.FC = () => {
   const { currentUser, loading: authLoading } = useAuth();
@@ -186,8 +186,5 @@ const LoadingContent: React.FC = () => (
     <div className="h-64 bg-slate-100 rounded"></div>
   </div>
 );
-
-// Import Button component for the ErrorBoundary
-import { Button } from '@/components/ui/button';
 
 export default Leads;

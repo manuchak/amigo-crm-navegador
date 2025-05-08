@@ -30,13 +30,9 @@ const LoadingFallback = () => (
 );
 
 function AuthLogger() {
-  const start = performance.now();
   const { currentUser, loading } = useAuth();
-  const [loggedOut, setLoggedOut] = useState(false);
   
   useEffect(() => {
-    const end = performance.now();
-    console.log(`[Auth] Initialization took ${(end - start).toFixed(2)}ms`);
     console.log(`[Auth] Auth loading state: ${loading}`);
     console.log(`[Auth] User authenticated: ${!!currentUser}`);
     
@@ -49,20 +45,7 @@ function AuthLogger() {
     );
     
     console.log('[Auth] Storage keys:', authKeys);
-    
-    // Check if previously logged in but now logged out
-    const hadPreviousSession = authKeys.length > 0;
-    if (hadPreviousSession && !currentUser && !loading && !loggedOut) {
-      setLoggedOut(true);
-      toast.error("Sesión expirada", {
-        description: "Tu sesión ha expirado. Por favor, inicia sesión nuevamente."
-      });
-    }
-    
-    // Log any session or user info in window object
-    if ('Supabase' in window) {
-      console.log('[Auth] Supabase initialized in window object');
-    }
+
   }, [currentUser, loading]);
   
   return null;

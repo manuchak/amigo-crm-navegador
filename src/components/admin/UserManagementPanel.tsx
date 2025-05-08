@@ -12,70 +12,85 @@ import {
   canEditUser
 } from '@/components/user-management';
 import UserManagementHeader from './user-management/UserManagementHeader';
-import useUserManagement from './user-management/hooks/useUserManagement';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 
 const UserManagementPanel = () => {
-  const { getAllUsers, updateUserRole, verifyEmail, userData: currentUserData } = useAuth();
+  const { getAllUsers, updateUserRole, verifyEmail, userData: currentUserData, refreshUserData } = useAuth();
+  const [users, setUsers] = useState<UserData[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<Error | null>(null);
+  const [selectedUser, setSelectedUser] = useState<UserData | null>(null);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [isConfirmationOpen, setIsConfirmationOpen] = useState(false);
+  const [newRole, setNewRole] = useState<string | null>(null);
+  const [lastFetchedAt, setLastFetchedAt] = useState<number | null>(null);
   const [retryCount, setRetryCount] = useState(0);
   const [autoRetry, setAutoRetry] = useState(false);
   
-  const { 
-    users, 
-    loading, 
-    selectedUser,
-    isEditDialogOpen,
-    isConfirmationOpen,
-    newRole,
-    error,
-    setUsers,
-    setSelectedUser, 
-    setIsEditDialogOpen, 
-    setIsConfirmationOpen, 
-    setNewRole,
-    fetchUsers,
-    handleRoleChange,
-    handleEditClick,
-    lastFetchedAt,
-    refreshUserList
-  } = useUserManagement({ getAllUsers });
-  
-  // Automatic retry when error occurs
-  useEffect(() => {
-    if (error && autoRetry && retryCount < 3) {
-      const timer = setTimeout(() => {
-        console.log(`Auto-retry attempt ${retryCount + 1}/3`);
-        setRetryCount(prev => prev + 1);
-        fetchUsers(true);
-      }, 3000);
-      
-      return () => clearTimeout(timer);
+  // Function to fetch users
+  const fetchUsers = async (forceRefresh: boolean = false) => {
+    // Skip if already loading
+    if (loading) {
+      console.log('Already loading users, skipping duplicate fetch');
+      return users;
     }
-  }, [error, autoRetry, retryCount, fetchUsers]);
-  
-  // Initial data fetch with improved error handling
-  useEffect(() => {
-    const loadInitialData = async () => {
-      if (users.length === 0 && !loading) {
-        console.log('Initial fetch of users in UserManagementPanel');
-        try {
-          await fetchUsers(true);
-        } catch (err) {
-          console.error('Failed to load users:', err);
-        }
-      }
-    };
     
-    loadInitialData();
-  }, [retryCount]); // Dependency on retryCount allows manual retries
-  
+    // If not forcing refresh and we fetched recently, return cached users
+    const CACHE_TTL = 5 * 1000; // 5 seconds
+    if (
+      !forceRefresh && 
+      lastFetchedAt && 
+      Date.now() - lastFetchedAt < CACHE_TTL &&
+      users.length > 0
+    ) {
+      console.log('Using cached users list from recent fetch');
+      return users;
+    }
+
+    console.log('Fetching users from server (force refresh: ' + forceRefresh + ')');
+    setLoading(true);
+    setError(null);
+
+    try {
+      const data = await getAllUsers();
+      console.log('Fetched users data:', data);
+      
+      setUsers(data);
+      setLastFetchedAt(Date.now());
+      return data;
+    } catch (err) {
+      const error = err instanceof Error ? err : new Error('Failed to fetch users');
+      console.error('Error fetching users:', error);
+      setError(error);
+      toast.error('Error al cargar usuarios: ' + error.message);
+      return [];
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Handle user edit action
+  const handleEditClick = (user: UserData) => {
+    console.log('Editing user:', user);
+    setSelectedUser(user);
+    setNewRole(user.role);
+    setIsEditDialogOpen(true);
+  };
+
+  // Handle role change
+  const handleRoleChange = (role: string) => {
+    console.log('Changing role to:', role);
+    setNewRole(role);
+  };
+
+  // Update user role
   const handleUpdateRole = async () => {
     if (!selectedUser || !newRole) return;
     
     try {
       console.log(`Updating role for user ${selectedUser.uid} to ${newRole}`);
-      const result = await updateUserRole(selectedUser.uid, newRole);
+      const result = await updateUserRole(selectedUser.uid, newRole as any);
       
       if (!result.success) {
         throw new Error(result.error || 'Unknown error updating role');
@@ -85,7 +100,7 @@ const UserManagementPanel = () => {
       
       // Update local state to show the change immediately
       setUsers(prevUsers => prevUsers.map(user => 
-        user.uid === selectedUser.uid ? { ...user, role: newRole } : user
+        user.uid === selectedUser.uid ? { ...user, role: newRole as any } : user
       ));
       
       // Show confirmation dialog
@@ -104,6 +119,7 @@ const UserManagementPanel = () => {
     }
   };
   
+  // Handle user verification
   const handleVerifyUser = async (user: UserData) => {
     try {
       console.log(`Verifying email for user ${user.uid}`);
@@ -131,11 +147,20 @@ const UserManagementPanel = () => {
     }
   };
 
+  // Function to handle manual refresh
   const handleRefresh = () => {
     console.log('Manual refresh triggered');
     setRetryCount(prev => prev + 1);
     fetchUsers(true);
   };
+  
+  // Initial data fetch with improved error handling
+  useEffect(() => {
+    if (users.length === 0 && !loading) {
+      console.log('Initial fetch of users in UserManagementPanel');
+      fetchUsers(true);
+    }
+  }, [retryCount]); // Dependency on retryCount allows manual retries
   
   // Format date function for UserTable
   const formatDate = (date: Date | null | undefined): string => {
@@ -143,38 +168,32 @@ const UserManagementPanel = () => {
     return new Date(date).toLocaleDateString();
   };
 
-  const showDebugInfo = () => {
-    if (currentUserData?.role !== 'admin' && currentUserData?.role !== 'owner') return null;
-    
-    return (
-      <div className="text-xs text-muted-foreground mt-4 border-t pt-4">
-        <p>Información de depuración:</p>
-        <ul className="list-disc pl-5 space-y-1">
-          <li>Usuario actual: {currentUserData?.email || 'No autenticado'} (Rol: {currentUserData?.role || 'ninguno'})</li>
-          <li>Total de usuarios cargados: {users.length}</li>
-          <li>Última actualización: {lastFetchedAt ? new Date(lastFetchedAt).toLocaleString() : 'Nunca'}</li>
-          <li>Número de intentos: {retryCount}</li>
-          <li>Auto-retry: {autoRetry ? 'Activado' : 'Desactivado'}</li>
-        </ul>
-        {currentUserData && (
-          <>
-            <p className="mt-2 font-medium">Datos del usuario actual:</p>
-            <pre className="bg-gray-100 p-2 rounded text-xs overflow-auto mt-1">
-              {JSON.stringify(currentUserData, null, 2)}
-            </pre>
-          </>
-        )}
-        <p className="mt-2 font-medium">Datos de usuarios:</p>
-        <div className="bg-gray-100 p-2 rounded text-xs overflow-auto mt-1 max-h-40">
-          {users.map(user => (
-            <div key={user.uid} className="mb-1">
-              {user.email}: rol={user.role}, verificado={user.emailVerified ? 'sí' : 'no'}
-            </div>
-          ))}
-        </div>
-      </div>
-    );
+  // Wrapper function for refreshUserData to handle void return type
+  const wrappedRefreshUserData = async (): Promise<void> => {
+    try {
+      const result = await refreshUserData();
+      if (!result.success && result.error) {
+        console.error("Error refreshing user data:", result.error);
+        toast.error(`Error al actualizar datos de usuario: ${result.error.message || 'Error desconocido'}`);
+      }
+    } catch (error: any) {
+      console.error("Unexpected error refreshing user data:", error);
+      toast.error(`Error inesperado al actualizar datos: ${error.message || 'Error desconocido'}`);
+    }
   };
+
+  // Automatic retry when error occurs
+  useEffect(() => {
+    if (error && autoRetry && retryCount < 3) {
+      const timer = setTimeout(() => {
+        console.log(`Auto-retry attempt ${retryCount + 1}/3`);
+        setRetryCount(prev => prev + 1);
+        fetchUsers(true);
+      }, 3000);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [error, autoRetry, retryCount]);
 
   return (
     <Card className="border shadow-sm">
@@ -211,18 +230,14 @@ const UserManagementPanel = () => {
             </div>
           </div>
         ) : (
-          <>
-            <UserTable 
-              users={users}
-              onEditClick={handleEditClick}
-              onVerifyUser={handleVerifyUser}
-              canEditUser={(user) => canEditUser(currentUserData, user)}
-              formatDate={formatDate}
-              currentUser={currentUserData}
-            />
-            
-            {showDebugInfo()}
-          </>
+          <UserTable 
+            users={users}
+            onEditClick={handleEditClick}
+            onVerifyUser={handleVerifyUser}
+            canEditUser={(user) => canEditUser(currentUserData, user)}
+            formatDate={formatDate}
+            currentUser={currentUserData}
+          />
         )}
       </CardContent>
 

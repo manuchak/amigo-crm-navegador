@@ -237,6 +237,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     signIn,
     signUp,
     signOut,
+    refreshUserData,
     updateUserRole: async (userId, role) => {
       try {
         console.log(`Attempting to update user role: ${userId} to ${role}`);
@@ -322,22 +323,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         return { success: false, error: error as Error };
       }
     },
-    refreshSession: async () => {
-      try {
-        console.log('Refreshing session...');
-        const { data, error } = await supabase.auth.refreshSession();
-        if (error) {
-          console.error('Error refreshing session:', error);
-          throw error;
-        }
-        console.log('Session refresh result:', !!data.session);
-        return !!data.session;
-      } catch (error) {
-        console.error('Error refreshing session:', error);
-        return false;
-      }
-    },
-    refreshUserData,
     resetPassword: async (email: string) => {
       try {
         setLoading(true);
