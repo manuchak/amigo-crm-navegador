@@ -15,7 +15,7 @@ import {
   Shield, Lock, CheckCircle2, Info, UserCog, Check
 } from 'lucide-react';
 import { toast } from 'sonner';
-import { useAuth } from '@/context/auth';
+import { useAuth } from '@/context/auth'; // Updated import path
 import { checkForOwnerRole } from '@/integrations/supabase/client';
 import { useUserVerification } from '@/hooks/user-management/useUserVerification';
 

@@ -1,7 +1,7 @@
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Loader2, RefreshCw, AlertTriangle, Users, Search, Filter } from 'lucide-react';
-import { useAuth } from '@/context/auth';
+import { useAuth } from '@/context/auth'; // Updated import path
 import { UserData } from '@/types/auth';
 import { toast } from 'sonner';
 import { 

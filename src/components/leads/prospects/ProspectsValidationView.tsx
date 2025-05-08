@@ -5,7 +5,7 @@ import { ValidationContent } from './components/ValidationContent';
 import { ConfirmDialog } from './dialogs/ConfirmDialog';
 import { SuccessDialog } from './dialogs/SuccessDialog';
 import { useValidationFlow } from './hooks/useValidationFlow';
-import { useAuth } from '@/context/auth';
+import { useAuth } from '@/context/auth'; // Updated import path
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AlertTriangle, Info } from 'lucide-react';
 

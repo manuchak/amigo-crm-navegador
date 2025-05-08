@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useLeads } from '@/context/LeadsContext';
 import { useToast } from '@/hooks/use-toast';
@@ -20,11 +20,21 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { CallBatchDialog } from './batch-calling';
 import { processBatchCalls } from '@/hooks/lead-call-logs/batch-calls';
+import { useAuth } from '@/context/auth';
 
-const LeadsDashboard = () => {
+const LeadsDashboard: React.FC = () => {
   const { leads, updateLeadStatus, refetchLeads } = useLeads();
   const { toast } = useToast();
-  const [filter, setFilter] = useState("todos");
+  const { userData } = useAuth();
+  
+  useEffect(() => {
+    console.log("LeadsDashboard mounted", { 
+      auth: !!userData,
+      role: userData?.role,
+      userEmail: userData?.email
+    });
+  }, [userData]);
+  
   const { getCallsForLead } = useCallHistory();
   const [selectedLeadId, setSelectedLeadId] = useState<number | null>(null);
   const [isCallLogOpen, setIsCallLogOpen] = useState(false);

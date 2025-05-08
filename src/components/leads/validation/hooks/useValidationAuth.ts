@@ -1,6 +1,5 @@
-
 import { useState, useEffect } from 'react';
-import { useAuth } from '@/context/auth';
+import { useAuth } from '@/context/auth'; // Updated import path
 import { supabase, checkForOwnerRole } from '@/integrations/supabase/client';
 import { UserRole } from '@/types/auth';
 

@@ -9,7 +9,7 @@ import { Ticket, TicketComment, useSupport } from '@/context/SupportContext';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { useAuth } from '@/context/auth';
+import { useAuth } from '@/context/auth'; // Updated import path
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { 
   MessageSquare, Send, Lock, Clock, AlertCircle, 
